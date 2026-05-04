@@ -3,6 +3,7 @@ import { Plus } from 'lucide-react'
 import { useChores } from '@/hooks/useChores'
 import { CategorySection } from '@/components/CategorySection/CategorySection'
 import { LogModal } from '@/components/LogModal/LogModal'
+import { HistoryView } from '@/components/HistoryView/HistoryView'
 import { CategoryFormModal } from '@/components/CategoryFormModal/CategoryFormModal'
 import type { ChoreWithLastCompletion } from '@/types'
 
@@ -14,7 +15,18 @@ export function Ribbon({ editMode }: Props) {
   const { data, loading, refresh } = useChores()
   const [activeCategoryIndex, setActiveCategoryIndex] = useState(0)
   const [selectedChore, setSelectedChore] = useState<ChoreWithLastCompletion | null>(null)
+  const [view, setView] = useState<'log' | 'history'>('log')
   const [addingCategory, setAddingCategory] = useState(false)
+
+  function openChore(chore: ChoreWithLastCompletion) {
+    setSelectedChore(chore)
+    setView('log')
+  }
+
+  function closeChore() {
+    setSelectedChore(null)
+    setView('log')
+  }
 
   if (loading) {
     return (
@@ -57,7 +69,7 @@ export function Ribbon({ editMode }: Props) {
               <CategorySection
                 data={data[activeCategoryIndex]}
                 editMode={editMode}
-                onChoreTab={setSelectedChore}
+                onChoreTab={openChore}
                 onRefresh={refresh}
               />
             )
@@ -90,7 +102,7 @@ export function Ribbon({ editMode }: Props) {
                 <CategorySection
                   data={d}
                   editMode={editMode}
-                  onChoreTab={setSelectedChore}
+                  onChoreTab={openChore}
                   onRefresh={refresh}
                 />
               </div>
@@ -110,11 +122,21 @@ export function Ribbon({ editMode }: Props) {
         )}
       </div>
 
-      {selectedChore && !editMode && (
+      {selectedChore && !editMode && view === 'log' && (
         <LogModal
           chore={selectedChore}
-          onClose={() => setSelectedChore(null)}
-          onLogged={() => { setSelectedChore(null); refresh() }}
+          onClose={closeChore}
+          onLogged={() => { closeChore(); refresh() }}
+          onViewHistory={() => setView('history')}
+        />
+      )}
+
+      {selectedChore && !editMode && view === 'history' && (
+        <HistoryView
+          chore={selectedChore}
+          onBack={() => setView('log')}
+          onClose={closeChore}
+          onChanged={refresh}
         />
       )}
 
