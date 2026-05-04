@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { X } from 'lucide-react'
 import type { ChoreWithLastCompletion } from '@/types'
 import { logCompletion } from '@/db/queries'
 import dayjs from 'dayjs'
@@ -36,9 +37,14 @@ export function LogModal({ chore, onClose, onLogged }: Props) {
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
       <div className="w-full sm:max-w-md bg-slate-800 rounded-t-2xl sm:rounded-2xl p-6 space-y-4 shadow-2xl border border-slate-700/50">
-        <div>
-          <h2 className="text-base font-semibold text-slate-100">{chore.name}</h2>
-          <p className="text-sm text-slate-400 mt-0.5">Last done: {elapsedText}</p>
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <h2 className="text-base font-semibold text-slate-100">{chore.name}</h2>
+            <p className="text-sm text-slate-400 mt-0.5">Last done: {elapsedText}</p>
+          </div>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-200 transition-colors shrink-0 mt-0.5">
+            <X size={18} />
+          </button>
         </div>
 
         <div className="space-y-3">
