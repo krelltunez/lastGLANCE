@@ -36,9 +36,8 @@ export async function getChoresForCategory(categoryId: number): Promise<ChoreWit
       const last = await db.completionEvents
         .where('chore_id')
         .equals(chore.id!)
-        .reverse()
-        .sortBy('completed_at')
-        .then(evts => evts[0] ?? null)
+        .toArray()
+        .then(evts => evts.sort((a, b) => b.completed_at.localeCompare(a.completed_at))[0] ?? null)
 
       const elapsed_days = last
         ? dayjs().diff(dayjs(last.completed_at), 'minute') / (60 * 24)
@@ -95,9 +94,8 @@ export async function getCompletionHistory(
   return db.completionEvents
     .where('chore_id')
     .equals(choreId)
-    .reverse()
-    .sortBy('completed_at')
-    .then(evts => evts.slice(0, limit))
+    .toArray()
+    .then(evts => evts.sort((a, b) => b.completed_at.localeCompare(a.completed_at)).slice(0, limit))
 }
 
 export async function deleteCompletion(id: number): Promise<void> {
