@@ -1,20 +1,6 @@
-import { useState, useEffect } from 'react'
-import { getDB } from '@/db/client'
-
-type DBState = 'loading' | 'ready' | 'error'
-
-export function useDBReady(): { state: DBState; error: Error | null } {
-  const [state, setState] = useState<DBState>('loading')
-  const [error, setError] = useState<Error | null>(null)
-
-  useEffect(() => {
-    getDB()
-      .then(() => setState('ready'))
-      .catch(e => {
-        setError(e instanceof Error ? e : new Error(String(e)))
-        setState('error')
-      })
-  }, [])
-
-  return { state, error }
+// Dexie opens the IndexedDB connection lazily on first query — no explicit
+// initialization required. This hook exists as a seam for future needs
+// (e.g. migration checks) and to keep App.tsx's structure consistent.
+export function useDBReady() {
+  return { state: 'ready' as const, error: null }
 }

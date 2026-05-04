@@ -10,8 +10,8 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "@sqlite.org/sqlite-wasm": "^3.49.1-build3",
     "dayjs": "^1.11.13",
+    "dexie": "^4.4.2",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },
