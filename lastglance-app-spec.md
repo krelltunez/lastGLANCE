@@ -174,23 +174,29 @@ Track when you last did stuff. If you want, set a cadence and it'll schedule its
 - Cadence color logic: green → amber → red gradient based on elapsed/target ratio
 - Log completion flow: tap-to-log modal with optional note and backdate
 - Elapsed time display: "just now" / "5m ago" / "2h ago" / "3d ago"
+- Management UI: edit mode toggle in header; add/edit/delete categories and chores; cadence field per chore; confirmation dialogs for destructive actions
 - Seed data: 4 categories, 10 chores
 
 ### What's not built yet (v1 remaining)
 
-- Management UI: add/edit/delete chores and categories, set cadence per chore
 - Per-chore history drill-down
 - dayGLANCE intent integration (outbound CREATE, inbound NOTIFY loopback)
-- PWA icons (192px, 512px placeholders needed)
-- Visual design pass (current state is functional but not publish-ready)
+- Design pass (see below — visual design, icons, PWA assets)
+- Android wrapper
 
 ## Build plan
 
 Remaining v1 work in order:
 
-1. **Management UI** — add/edit/delete chores and categories. Edit mode toggle in header; per-category chore management; cadence setting per chore. *(in progress)*
-2. **History drill-down** — tap a chore in a detail/history view to see past completions with timestamps and notes.
-3. **dayGLANCE integration** — outbound `app.dayglance.CREATE` intent when scheduling a chore; inbound `app.dayglance.NOTIFY` broadcast receiver for completion loopback. Detect dayGLANCE absence and hide integration UI.
-4. **Visual design pass** — icons, color palette refinement, typography, overall polish to publish-ready standard.
-5. **PWA icons** — 192px and 512px app icons.
-6. **Android wrapper** — WebView shell, native SQLite swap-in, intent protocol wiring.
+1. **History drill-down** — tap a chore name (not the log button) to open a detail view showing past completions: timestamp, note, source (manual vs. dayGLANCE). Allow deleting individual completions. Stretch: simple bar chart or timeline visualization of completion frequency.
+
+2. **dayGLANCE integration** — outbound `app.dayglance.CREATE` intent when user schedules a chore manually or auto-schedule fires; inbound `app.dayglance.NOTIFY` broadcast receiver logs a CompletionEvent with `source="dayglance"`. Detect dayGLANCE absence at runtime and hide all integration UI. Per-chore `auto_schedule_to_dayglance` toggle lives in the chore edit form.
+
+3. **Design pass** — the app is functional but not publish-ready. Full pass covers:
+   - **Color and typography** — move away from generic slate palette; establish a visual identity consistent with the GLANCE family. Consider a signature accent color, tighter typographic scale, and more intentional use of weight/spacing in the ribbon.
+   - **Category and chore icons** — user-selectable icon per category and per chore. Implementation: add optional `icon` field to Category and Chore (Dexie schema v2 migration); curate ~100 relevant lucide icons (home, cleaning, pet, vehicle, garden, etc.) as a static registry; build a scrollable icon picker grid (possibly filterable) used from both the category and chore edit forms; render icons in category headers and chore rows.
+   - **Ribbon visual weight** — the horizontal bar is the core visual metaphor; it should feel more intentional. Consider height, corner radius, label placement, and whether the elapsed text lives on the bar or beside it.
+   - **Empty and loading states** — polish the empty state illustration/copy and the initial load experience.
+   - **PWA app icons** — 192px and 512px icons (and apple-touch-icon) consistent with the final visual identity. Design these after the color/identity work is done.
+
+4. **Android wrapper** — WebView shell, native SQLite swap-in replacing Dexie, intent protocol wiring for dayGLANCE integration, Obtainium distribution.
