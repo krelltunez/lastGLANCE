@@ -1,13 +1,20 @@
 import { useState } from 'react'
+import { Plus } from 'lucide-react'
 import { useChores } from '@/hooks/useChores'
 import { CategorySection } from '@/components/CategorySection/CategorySection'
 import { LogModal } from '@/components/LogModal/LogModal'
+import { CategoryFormModal } from '@/components/CategoryFormModal/CategoryFormModal'
 import type { ChoreWithLastCompletion } from '@/types'
 
-export function Ribbon() {
+interface Props {
+  editMode: boolean
+}
+
+export function Ribbon({ editMode }: Props) {
   const { data, loading, refresh } = useChores()
   const [activeCategoryIndex, setActiveCategoryIndex] = useState(0)
   const [selectedChore, setSelectedChore] = useState<ChoreWithLastCompletion | null>(null)
+  const [addingCategory, setAddingCategory] = useState(false)
 
   if (loading) {
     return (
@@ -17,67 +24,121 @@ export function Ribbon() {
     )
   }
 
-  if (data.length === 0) {
-    return (
-      <div className="flex-1 flex items-center justify-center px-8 text-center">
-        <div>
-          <p className="text-slate-400 text-sm">No categories yet.</p>
-          <p className="text-slate-500 text-xs mt-1">Add a category to get started.</p>
-        </div>
-      </div>
-    )
-  }
+  const showEmpty = data.length === 0
 
   return (
     <>
       {/* Mobile: one category at a time with tab strip */}
       <div className="flex flex-col flex-1 overflow-hidden lg:hidden">
-        <div className="flex overflow-x-auto scrollbar-none border-b border-slate-700/60 bg-slate-900">
-          {data.map((d, i) => (
-            <button
-              key={d.category.id}
-              onClick={() => setActiveCategoryIndex(i)}
-              className={`
-                shrink-0 px-4 py-2.5 text-xs font-medium transition-colors whitespace-nowrap
-                ${i === activeCategoryIndex
-                  ? 'text-white border-b-2 border-green-400'
-                  : 'text-slate-400 hover:text-slate-200'}
-              `}
-            >
-              {d.category.name}
-            </button>
-          ))}
-        </div>
+        {!showEmpty && (
+          <div className="flex overflow-x-auto scrollbar-none border-b border-slate-700/60 bg-slate-900">
+            {data.map((d, i) => (
+              <button
+                key={d.category.id}
+                onClick={() => setActiveCategoryIndex(i)}
+                className={`
+                  shrink-0 px-4 py-2.5 text-xs font-medium transition-colors whitespace-nowrap
+                  ${i === activeCategoryIndex
+                    ? 'text-white border-b-2 border-green-400'
+                    : 'text-slate-400 hover:text-slate-200'}
+                `}
+              >
+                {d.category.name}
+              </button>
+            ))}
+          </div>
+        )}
 
         <div className="flex-1 overflow-hidden">
-          {data[activeCategoryIndex] && (
-            <CategorySection
-              data={data[activeCategoryIndex]}
-              onChoreTab={setSelectedChore}
-            />
+          {showEmpty ? (
+            <EmptyState onAdd={() => setAddingCategory(true)} />
+          ) : (
+            data[activeCategoryIndex] && (
+              <CategorySection
+                data={data[activeCategoryIndex]}
+                editMode={editMode}
+                onChoreTab={setSelectedChore}
+                onRefresh={refresh}
+              />
+            )
           )}
         </div>
+
+        {editMode && !showEmpty && (
+          <div className="shrink-0 border-t border-slate-700/60 p-3">
+            <button
+              onClick={() => setAddingCategory(true)}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm text-slate-400 hover:text-slate-200 hover:bg-slate-700/40 border border-slate-700/60 transition-colors"
+            >
+              <Plus size={15} />
+              Add category
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Desktop: multiple categories side by side */}
       <div className="hidden lg:flex flex-1 overflow-hidden divide-x divide-slate-700/60">
-        {data.map(d => (
-          <div key={d.category.id} className="flex-1 min-w-0 overflow-hidden">
-            <CategorySection data={d} onChoreTab={setSelectedChore} />
+        {showEmpty ? (
+          <div className="flex-1">
+            <EmptyState onAdd={() => setAddingCategory(true)} />
           </div>
-        ))}
+        ) : (
+          <>
+            {data.map(d => (
+              <div key={d.category.id} className="flex-1 min-w-0 overflow-hidden flex flex-col">
+                <CategorySection
+                  data={d}
+                  editMode={editMode}
+                  onChoreTab={setSelectedChore}
+                  onRefresh={refresh}
+                />
+              </div>
+            ))}
+            {editMode && (
+              <div className="w-48 flex flex-col items-center justify-start pt-12 px-4">
+                <button
+                  onClick={() => setAddingCategory(true)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm text-slate-400 hover:text-slate-200 hover:bg-slate-700/40 border border-slate-700/60 transition-colors"
+                >
+                  <Plus size={15} />
+                  Add category
+                </button>
+              </div>
+            )}
+          </>
+        )}
       </div>
 
-      {selectedChore && (
+      {selectedChore && !editMode && (
         <LogModal
           chore={selectedChore}
           onClose={() => setSelectedChore(null)}
-          onLogged={() => {
-            setSelectedChore(null)
-            refresh()
-          }}
+          onLogged={() => { setSelectedChore(null); refresh() }}
+        />
+      )}
+
+      {addingCategory && (
+        <CategoryFormModal
+          onClose={() => setAddingCategory(false)}
+          onSaved={() => { setAddingCategory(false); refresh() }}
         />
       )}
     </>
+  )
+}
+
+function EmptyState({ onAdd }: { onAdd: () => void }) {
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center gap-4 px-8 text-center h-full">
+      <p className="text-slate-400 text-sm">No categories yet.</p>
+      <button
+        onClick={onAdd}
+        className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-slate-900 bg-green-400 hover:bg-green-300 transition-colors"
+      >
+        <Plus size={15} />
+        Add your first category
+      </button>
+    </div>
   )
 }

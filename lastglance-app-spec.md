@@ -152,3 +152,45 @@ Cost acknowledged: full integration layer (intents, completion loopback, duplica
 ## Brief summary / elevator pitch
 
 Track when you last did stuff. If you want, set a cadence and it'll schedule itself in dayGLANCE when it's time. No guilt, no nagging, just information.
+
+---
+
+## Status
+
+**As of May 2026 — active development, web PWA v1 in progress.**
+
+### Decisions made
+
+- **Storage: Dexie (IndexedDB) for web, native SQLite for Android.** SQLite WASM requires `Atomics.wait()` which is blocked on the browser main thread; OPFS persistence is only possible from a dedicated worker. Dexie provides equivalent local-first persistence via IndexedDB with no worker or special HTTP headers required. The TypeScript data model is identical across both targets.
+- **Standalone web-first, then Android wrapper.** Consistent with dayGLANCE and lifeGLANCE build pattern.
+- **React 19 + Vite + Tailwind CSS + TypeScript.** Consistent with dayGLANCE stack.
+- **Full PWA support from day one.** Service worker, offline precache, installable.
+
+### What's built
+
+- Project scaffold: Vite + React 19 + TypeScript, Tailwind, vite-plugin-pwa
+- Dexie data layer: schema, all CRUD queries for Category, Chore, CompletionEvent
+- Ribbon UI: category tabs (mobile) / side-by-side columns (desktop), chore rows with color-gradient cadence bars
+- Cadence color logic: green → amber → red gradient based on elapsed/target ratio
+- Log completion flow: tap-to-log modal with optional note and backdate
+- Elapsed time display: "just now" / "5m ago" / "2h ago" / "3d ago"
+- Seed data: 4 categories, 10 chores
+
+### What's not built yet (v1 remaining)
+
+- Management UI: add/edit/delete chores and categories, set cadence per chore
+- Per-chore history drill-down
+- dayGLANCE intent integration (outbound CREATE, inbound NOTIFY loopback)
+- PWA icons (192px, 512px placeholders needed)
+- Visual design pass (current state is functional but not publish-ready)
+
+## Build plan
+
+Remaining v1 work in order:
+
+1. **Management UI** — add/edit/delete chores and categories. Edit mode toggle in header; per-category chore management; cadence setting per chore. *(in progress)*
+2. **History drill-down** — tap a chore in a detail/history view to see past completions with timestamps and notes.
+3. **dayGLANCE integration** — outbound `app.dayglance.CREATE` intent when scheduling a chore; inbound `app.dayglance.NOTIFY` broadcast receiver for completion loopback. Detect dayGLANCE absence and hide integration UI.
+4. **Visual design pass** — icons, color palette refinement, typography, overall polish to publish-ready standard.
+5. **PWA icons** — 192px and 512px app icons.
+6. **Android wrapper** — WebView shell, native SQLite swap-in, intent protocol wiring.
