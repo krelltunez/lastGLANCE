@@ -42,7 +42,13 @@ function interpolateHex(a: string, b: string, t: number): string {
 
 export function formatElapsed(elapsedDays: number | null, lastCompletedAt: string | null): string {
   if (elapsedDays === null || lastCompletedAt === null) return 'never'
-  if (elapsedDays < 1) return 'today'
+  const diffMinutes = dayjs().diff(dayjs(lastCompletedAt), 'minute')
+  if (diffMinutes < 1) return 'just now'
+  if (diffMinutes < 60) return `${diffMinutes}m ago`
+  if (elapsedDays < 1) {
+    const diffHours = Math.floor(diffMinutes / 60)
+    return `${diffHours}h ago`
+  }
   if (elapsedDays < 2) return 'yesterday'
   return `${Math.floor(elapsedDays)}d ago`
 }

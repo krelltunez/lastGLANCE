@@ -8,12 +8,23 @@ async function initDB(): Promise<Database> {
 
   const s3 = await sqlite3InitModule({ print: console.log, printErr: console.error })
 
-  if (s3.capi.sqlite3_vfs_find('opfs')) {
-    const oo = s3.oo1 as typeof s3.oo1 & { OpfsDb: new (path: string) => Database }
-    db = new oo.OpfsDb('/lastglance.db')
-  } else {
-    db = new s3.oo1.DB(':memory:', 'ct')
-    console.warn('OPFS not available — using in-memory SQLite (data will not persist)')
+  // SAH pool VFS: persistent, no SharedArrayBuffer/COOP/COEP required
+  try {
+    const pool = await s3.installOpfsSAHPoolVfs({ clearOnInit: false })
+    db = new pool.OpfsSAHPoolDb('/lastglance.db')
+  } catch {
+    // Fall back to regular OPFS VFS (requires SharedArrayBuffer + COOP/COEP headers)
+    if (s3.oo1.OpfsDb) {
+      try {
+        db = new s3.oo1.OpfsDb('/lastglance.db')
+      } catch {
+        db = null
+      }
+    }
+    if (!db) {
+      db = new s3.oo1.DB(':memory:', 'ct')
+      console.warn('OPFS not available — using in-memory SQLite (data will not persist across reloads)')
+    }
   }
 
   db.exec(SCHEMA_SQL)
