@@ -122,7 +122,7 @@ export function LogModal({ chore, onClose, onLogged }: Props) {
         </div>
 
         {/* ── Right / bottom: history ─────────────────────────────── */}
-        <div className="flex-1 flex flex-col min-h-0 border-t border-slate-700/60 lg:border-t-0">
+        <div className="flex-1 flex flex-col min-h-0 border-t border-slate-700/60 lg:border-t-0 bg-slate-900/60">
 
           {/* Stats */}
           <div className="shrink-0 grid grid-cols-3 divide-x divide-slate-700/60 border-b border-slate-700/60">
@@ -274,7 +274,7 @@ function Heatmap({ weeks }: { weeks: HeatDay[][] }) {
 function cellColor(day: HeatDay, today: string): string {
   if (day.isFuture) return 'transparent'
   if (day.date === today && day.count === 0) return '#1e3a2f'
-  if (day.count === 0) return '#1e293b'
+  if (day.count === 0) return '#2d3f55'
   if (day.count === 1) return '#16a34a'
   return '#4ade80'
 }
