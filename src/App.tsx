@@ -75,7 +75,7 @@ export default function App() {
             <h1 className="text-4xl font-black tracking-tight leading-none text-slate-100">
               last<span className="italic text-green-400">GLANCE</span>
             </h1>
-            <p className="text-xs text-slate-600 mt-1 tracking-wide">when did you last do this?</p>
+            <p className="text-xs text-slate-600 mt-1 tracking-wide">when did you last do...?</p>
           </div>
 
           {/* Compact heatmap — hidden on small screens */}
