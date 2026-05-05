@@ -10,10 +10,10 @@ type HeatDay = { date: string; count: number; isFuture: boolean }
 
 function buildHeaderHeatmap(counts: Map<string, number>): HeatDay[][] {
   const today = dayjs()
-  const start = today.subtract(25, 'week').startOf('week')
+  const start = today.subtract(51, 'week').startOf('week')
   const weeks: HeatDay[][] = []
   let cur = start
-  for (let w = 0; w < 26; w++) {
+  for (let w = 0; w < 52; w++) {
     const week: HeatDay[] = []
     for (let d = 0; d < 7; d++) {
       const date = cur.format('YYYY-MM-DD')
