@@ -8,13 +8,23 @@ export async function getCategories(): Promise<Category[]> {
   return db.categories.orderBy('sort_order').toArray()
 }
 
-export async function createCategory(name: string, sort_order?: number): Promise<number> {
+export async function createCategory(name: string, sort_order?: number, icon?: string): Promise<number> {
   const order = sort_order ?? (await db.categories.count())
-  return db.categories.add({ name, sort_order: order } as Category)
+  return db.categories.add({ name, sort_order: order, icon } as Category)
 }
 
-export async function updateCategory(id: number, name: string): Promise<void> {
-  await db.categories.update(id, { name })
+export async function updateCategory(id: number, fields: { name?: string; icon?: string }): Promise<void> {
+  await db.categories.update(id, fields)
+}
+
+export async function getAllCompletionCounts(): Promise<Map<string, number>> {
+  const all = await db.completionEvents.toArray()
+  const counts = new Map<string, number>()
+  for (const evt of all) {
+    const d = dayjs(evt.completed_at).format('YYYY-MM-DD')
+    counts.set(d, (counts.get(d) ?? 0) + 1)
+  }
+  return counts
 }
 
 export async function deleteCategory(id: number): Promise<void> {
@@ -61,7 +71,7 @@ export async function createChore(
 
 export async function updateChore(
   id: number,
-  data: Partial<Omit<Chore, 'id' | 'created_at' | 'updated_at'>>
+  data: Partial<Omit<Chore, 'id' | 'created_at' | 'updated_at'>> & { icon?: string }
 ): Promise<void> {
   await db.chores.update(id, { ...data, updated_at: dayjs().toISOString() })
 }

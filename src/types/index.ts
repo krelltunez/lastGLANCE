@@ -2,6 +2,7 @@ export interface Category {
   id: number
   name: string
   sort_order: number
+  icon?: string
 }
 
 export interface Chore {
@@ -13,6 +14,7 @@ export interface Chore {
   preferred_schedule_behavior: 'today' | 'next_weekend' | 'next_free_day' | null
   created_at: string
   updated_at: string
+  icon?: string
 }
 
 export interface CompletionEvent {

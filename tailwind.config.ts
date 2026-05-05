@@ -2,6 +2,7 @@ import type { Config } from 'tailwindcss'
 
 export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
@@ -14,6 +15,10 @@ export default {
           fresh: '#22c55e',
           mid: '#f59e0b',
           stale: '#ef4444',
+        },
+        glance: {
+          green: '#4ade80',
+          'green-dim': '#16a34a',
         },
       },
       fontFamily: {

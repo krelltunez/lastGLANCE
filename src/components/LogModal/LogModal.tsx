@@ -4,6 +4,7 @@ import dayjs from 'dayjs'
 import type { ChoreWithLastCompletion, CompletionEvent } from '@/types'
 import { logCompletion, getCompletionHistory, deleteCompletion } from '@/db/queries'
 import { formatElapsed } from '@/utils/cadence'
+import { useEscapeKey } from '@/hooks/useEscapeKey'
 
 interface Props {
   chore: ChoreWithLastCompletion
@@ -17,6 +18,7 @@ export function LogModal({ chore, onClose, onLogged }: Props) {
   const [saving, setSaving] = useState(false)
   const [completions, setCompletions] = useState<CompletionEvent[]>([])
   const heatmapRef = useRef<HTMLDivElement>(null)
+  useEscapeKey(onClose)
 
   useEffect(() => {
     getCompletionHistory(chore.id, 1000).then(c => {

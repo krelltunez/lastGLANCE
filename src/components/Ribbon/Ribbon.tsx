@@ -8,9 +8,10 @@ import type { ChoreWithLastCompletion } from '@/types'
 
 interface Props {
   editMode: boolean
+  onLogged?: () => void
 }
 
-export function Ribbon({ editMode }: Props) {
+export function Ribbon({ editMode, onLogged }: Props) {
   const { data, loading, refresh } = useChores()
   const [activeCategoryIndex, setActiveCategoryIndex] = useState(0)
   const [selectedChore, setSelectedChore] = useState<ChoreWithLastCompletion | null>(null)
@@ -18,6 +19,8 @@ export function Ribbon({ editMode }: Props) {
 
   function openChore(chore: ChoreWithLastCompletion) { setSelectedChore(chore) }
   function closeChore() { setSelectedChore(null) }
+
+  function afterLog() { refresh(); onLogged?.() }
 
   if (loading) {
     return (
@@ -31,18 +34,18 @@ export function Ribbon({ editMode }: Props) {
 
   return (
     <>
-      {/* Mobile: one category at a time with tab strip */}
+      {/* ── Mobile: one category at a time with tab strip ── */}
       <div className="flex flex-col flex-1 overflow-hidden lg:hidden">
         {!showEmpty && (
-          <div className="flex overflow-x-auto scrollbar-none border-b border-slate-700/60 bg-slate-900">
+          <div className="flex overflow-x-auto scrollbar-none border-b border-slate-700/60 bg-slate-900 shrink-0">
             {data.map((d, i) => (
               <button
                 key={d.category.id}
                 onClick={() => setActiveCategoryIndex(i)}
                 className={`
-                  shrink-0 px-4 py-2.5 text-xs font-medium transition-colors whitespace-nowrap
+                  shrink-0 px-4 py-2.5 text-xs font-semibold transition-colors whitespace-nowrap
                   ${i === activeCategoryIndex
-                    ? 'text-white border-b-2 border-green-400'
+                    ? 'text-glance-green border-b-2 border-glance-green'
                     : 'text-slate-400 hover:text-slate-200'}
                 `}
               >
@@ -52,17 +55,20 @@ export function Ribbon({ editMode }: Props) {
           </div>
         )}
 
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-y-auto">
           {showEmpty ? (
             <EmptyState onAdd={() => setAddingCategory(true)} />
           ) : (
             data[activeCategoryIndex] && (
-              <CategorySection
-                data={data[activeCategoryIndex]}
-                editMode={editMode}
-                onChoreTab={openChore}
-                onRefresh={refresh}
-              />
+              <div className="p-4">
+                <CategorySection
+                  data={data[activeCategoryIndex]}
+                  editMode={editMode}
+                  onChoreTab={openChore}
+                  onRefresh={refresh}
+                  onLogged={onLogged}
+                />
+              </div>
             )
           )}
         </div>
@@ -80,36 +86,45 @@ export function Ribbon({ editMode }: Props) {
         )}
       </div>
 
-      {/* Desktop: multiple categories side by side */}
-      <div className="hidden lg:flex flex-1 overflow-hidden divide-x divide-slate-700/60">
+      {/* ── Desktop: masonry columns ── */}
+      <div className="hidden lg:block flex-1 overflow-y-auto">
         {showEmpty ? (
-          <div className="flex-1">
-            <EmptyState onAdd={() => setAddingCategory(true)} />
-          </div>
+          <EmptyState onAdd={() => setAddingCategory(true)} />
         ) : (
-          <>
-            {data.map(d => (
-              <div key={d.category.id} className="flex-1 min-w-0 overflow-hidden flex flex-col">
-                <CategorySection
-                  data={d}
-                  editMode={editMode}
-                  onChoreTab={openChore}
-                  onRefresh={refresh}
-                />
-              </div>
-            ))}
-            {editMode && (
-              <div className="w-48 flex flex-col items-center justify-start pt-12 px-4">
-                <button
-                  onClick={() => setAddingCategory(true)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm text-slate-400 hover:text-slate-200 hover:bg-slate-700/40 border border-slate-700/60 transition-colors"
-                >
-                  <Plus size={15} />
-                  Add category
-                </button>
-              </div>
-            )}
-          </>
+          <div className="p-6">
+            <div
+              className="gap-5"
+              style={{
+                columns: data.length === 1 ? 1 : data.length === 2 ? 2 : data.length <= 4 ? 3 : 4,
+                columnGap: '1.25rem',
+              }}
+            >
+              {data.map(d => (
+                <div key={d.category.id} className="break-inside-avoid mb-5">
+                  <div className="bg-slate-800/50 border border-slate-700/50 rounded-2xl p-5">
+                    <CategorySection
+                      data={d}
+                      editMode={editMode}
+                      onChoreTab={openChore}
+                      onRefresh={refresh}
+                  onLogged={onLogged}
+                    />
+                  </div>
+                </div>
+              ))}
+              {editMode && (
+                <div className="break-inside-avoid mb-5">
+                  <button
+                    onClick={() => setAddingCategory(true)}
+                    className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl text-sm text-slate-500 hover:text-slate-200 hover:bg-slate-700/30 border border-dashed border-slate-700/60 hover:border-slate-600 transition-colors"
+                  >
+                    <Plus size={15} />
+                    Add category
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
         )}
       </div>
 
@@ -117,7 +132,7 @@ export function Ribbon({ editMode }: Props) {
         <LogModal
           chore={selectedChore}
           onClose={closeChore}
-          onLogged={() => { closeChore(); refresh() }}
+          onLogged={() => { closeChore(); afterLog() }}
         />
       )}
 
@@ -133,11 +148,11 @@ export function Ribbon({ editMode }: Props) {
 
 function EmptyState({ onAdd }: { onAdd: () => void }) {
   return (
-    <div className="flex-1 flex flex-col items-center justify-center gap-4 px-8 text-center h-full">
+    <div className="flex-1 flex flex-col items-center justify-center gap-4 px-8 text-center h-full min-h-[60vh]">
       <p className="text-slate-400 text-sm">No categories yet.</p>
       <button
         onClick={onAdd}
-        className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-slate-900 bg-green-400 hover:bg-green-300 transition-colors"
+        className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-slate-900 bg-glance-green hover:bg-green-300 transition-colors"
       >
         <Plus size={15} />
         Add your first category
