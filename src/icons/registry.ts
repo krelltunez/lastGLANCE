@@ -1,15 +1,21 @@
 import * as LucideIcons from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
-// All exported icon components (excludes utility exports and *Icon aliases)
+// All exported icon components, deduplicated by reference
+const _seen = new Set<unknown>()
 export const ICON_REGISTRY: Record<string, LucideIcon> = Object.fromEntries(
-  Object.entries(LucideIcons).filter(([name, val]) =>
-    !name.endsWith('Icon') &&
-    name !== 'createLucideIcon' &&
-    val !== null &&
-    typeof val === 'object' &&
-    '$$typeof' in (val as object)
-  )
+  Object.entries(LucideIcons).filter(([name, val]) => {
+    if (
+      name.endsWith('Icon') ||
+      name === 'createLucideIcon' ||
+      val === null ||
+      typeof val !== 'object' ||
+      !('$$typeof' in (val as object))
+    ) return false
+    if (_seen.has(val)) return false
+    _seen.add(val)
+    return true
+  })
 ) as Record<string, LucideIcon>
 
 export const ICON_NAMES = Object.keys(ICON_REGISTRY).sort()
