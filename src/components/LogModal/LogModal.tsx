@@ -5,6 +5,7 @@ import type { ChoreWithLastCompletion, CompletionEvent } from '@/types'
 import { logCompletion, getCompletionHistory, deleteCompletion } from '@/db/queries'
 import { formatElapsed } from '@/utils/cadence'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
+import { DateTimePicker } from '@/components/DateTimePicker/DateTimePicker'
 
 interface Props {
   chore: ChoreWithLastCompletion
@@ -103,27 +104,13 @@ export function LogModal({ chore, onClose, onLogged }: Props) {
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-400 mb-1">Done earlier? (optional)</label>
-              <div className="flex gap-2">
-                <input
-                  type="date"
-                  value={backdateDate}
-                  onChange={e => setBackdateDate(e.target.value)}
-                  max={dayjs().format('YYYY-MM-DD')}
-                  style={{ colorScheme: 'dark' }}
-                  className="flex-1 min-w-0 bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 border border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400 [&::-webkit-calendar-picker-indicator]:opacity-50 [&::-webkit-calendar-picker-indicator]:invert"
-                />
-                <input
-                  type="time"
-                  value={backdateTime}
-                  onChange={e => setBackdateTime(e.target.value)}
-                  disabled={!backdateDate}
-                  style={{ colorScheme: 'dark' }}
-                  className="w-28 bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 border border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400 disabled:opacity-40 disabled:cursor-not-allowed [&::-webkit-calendar-picker-indicator]:opacity-50 [&::-webkit-calendar-picker-indicator]:invert"
-                />
-              </div>
-              {backdateDate && !backdateTime && (
-                <p className="text-xs text-slate-600 mt-1">No time set — will use noon</p>
-              )}
+              <DateTimePicker
+                date={backdateDate}
+                time={backdateTime}
+                onDateChange={setBackdateDate}
+                onTimeChange={setBackdateTime}
+                maxDate={dayjs().format('YYYY-MM-DD')}
+              />
             </div>
           </div>
 
@@ -137,7 +124,7 @@ export function LogModal({ chore, onClose, onLogged }: Props) {
             <button
               onClick={handleLog}
               disabled={saving}
-              className="flex-1 py-2.5 rounded-xl text-sm font-medium text-slate-900 bg-green-400 hover:bg-green-300 disabled:opacity-50 transition-colors"
+              className="flex-1 py-2.5 rounded-xl text-sm font-medium text-green-400 border border-green-400/40 hover:text-green-300 hover:bg-green-400/10 hover:border-green-400/60 disabled:opacity-50 transition-colors"
             >
               {saving ? 'Logging…' : 'Done ✓'}
             </button>

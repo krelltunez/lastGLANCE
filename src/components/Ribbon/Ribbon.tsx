@@ -152,7 +152,7 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
       <p className="text-slate-400 text-sm">No categories yet.</p>
       <button
         onClick={onAdd}
-        className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-slate-900 bg-green-400 hover:bg-green-300 transition-colors"
+        className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-green-400 border border-green-400/40 hover:text-green-300 hover:bg-green-400/10 hover:border-green-400/60 transition-colors"
       >
         <Plus size={15} />
         Add your first category
