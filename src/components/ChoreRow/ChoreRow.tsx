@@ -74,28 +74,34 @@ export function ChoreRow({ chore, editMode, onTap, onEdit, onDelete, onRefresh }
   return (
     <div
       onClick={() => onTap(chore)}
-      className="relative overflow-hidden rounded-xl bg-slate-800 border border-slate-700/40 cursor-pointer group transition-colors hover:border-slate-600/60"
+      className="relative overflow-hidden rounded-xl bg-slate-800/80 border border-slate-700/40 cursor-pointer group transition-colors hover:border-slate-600/60"
       role="button"
       aria-label={`${chore.name} — ${elapsedText}`}
     >
-      {/* Chunky background fill bar */}
+      {/* Left accent stripe — always visible cadence indicator */}
+      <div
+        className="absolute inset-y-0 left-0 w-1 rounded-l-xl"
+        style={{ backgroundColor: fillColor, opacity: ratio !== null ? 0.9 : 0.3 }}
+      />
+
+      {/* Chunky background fill */}
       <div
         className="absolute inset-y-0 left-0 transition-all duration-700 ease-out"
         style={{
           width: fillWidth,
           backgroundColor: fillColor,
-          opacity: 0.13,
+          opacity: 0.18,
         }}
       />
 
       {/* Content layer */}
-      <div className="relative flex items-center gap-3 px-4 py-3.5">
+      <div className="relative flex items-center gap-3 pl-5 pr-4 py-3.5">
         {/* Icon */}
         {ChoreIcon && (
           <ChoreIcon
             size={18}
-            className="shrink-0 transition-colors"
-            style={{ color: fillColor, opacity: 0.85 }}
+            className="shrink-0"
+            style={{ color: ratio !== null ? fillColor : '#94a3b8', opacity: ratio !== null ? 1 : 0.6 }}
           />
         )}
 

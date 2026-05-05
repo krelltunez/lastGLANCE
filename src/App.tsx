@@ -1,21 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Pencil, Check, Sun, Moon } from 'lucide-react'
+import { Pencil, Check } from 'lucide-react'
 import { Ribbon } from '@/components/Ribbon/Ribbon'
 import { getAllCompletionCounts } from '@/db/queries'
 import dayjs from 'dayjs'
-
-// ── Theme ─────────────────────────────────────────────────────────────────────
-
-function getInitialTheme(): 'dark' | 'light' {
-  const stored = localStorage.getItem('theme')
-  if (stored === 'light' || stored === 'dark') return stored
-  return 'dark'
-}
-
-function applyTheme(theme: 'dark' | 'light') {
-  document.documentElement.classList.toggle('dark', theme === 'dark')
-  localStorage.setItem('theme', theme)
-}
 
 // ── Header heatmap ─────────────────────────────────────────────────────────────
 
@@ -70,15 +57,7 @@ function HeaderHeatmap({ weeks }: { weeks: HeatDay[][] }) {
 
 export default function App() {
   const [editMode, setEditMode] = useState(false)
-  const [theme, setTheme] = useState<'dark' | 'light'>(getInitialTheme)
   const [heatmapWeeks, setHeatmapWeeks] = useState<HeatDay[][]>([])
-
-  // Apply theme on mount and change
-  useEffect(() => { applyTheme(theme) }, [theme])
-
-  function toggleTheme() {
-    setTheme(t => t === 'dark' ? 'light' : 'dark')
-  }
 
   const loadHeatmap = useCallback(async () => {
     const counts = await getAllCompletionCounts()
@@ -88,8 +67,8 @@ export default function App() {
   useEffect(() => { loadHeatmap() }, [loadHeatmap])
 
   return (
-    <div className="min-h-screen bg-slate-950 dark:bg-slate-950 flex flex-col">
-      <header className="shrink-0 px-5 pt-5 pb-4 border-b border-slate-800 flex items-end justify-between gap-4">
+    <div className="min-h-screen bg-slate-950 flex flex-col">
+      <header className="shrink-0 px-5 pt-5 pb-4 border-b border-slate-800/80 flex items-end justify-between gap-4">
         {/* Logo + heatmap */}
         <div className="flex items-end gap-5 min-w-0">
           <div className="shrink-0">
@@ -110,23 +89,16 @@ export default function App() {
         {/* Controls */}
         <div className="flex items-center gap-2 shrink-0">
           <button
-            onClick={toggleTheme}
-            className="p-2 rounded-lg text-slate-500 hover:text-slate-300 hover:bg-slate-800 transition-colors"
-            aria-label="Toggle theme"
-          >
-            {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
-          </button>
-          <button
             onClick={() => setEditMode(e => !e)}
             className={`
-              flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors
+              flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-colors border
               ${editMode
-                ? 'bg-glance-green text-slate-900 hover:bg-green-300'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'}
+                ? 'bg-glance-green text-slate-900 hover:bg-green-300 border-transparent'
+                : 'text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 border-slate-700'}
             `}
             aria-label={editMode ? 'Done editing' : 'Edit categories and chores'}
           >
-            {editMode ? <><Check size={13} /> Done</> : <><Pencil size={13} /> Edit</>}
+            {editMode ? <><Check size={14} /> Done</> : <><Pencil size={14} /> Edit</>}
           </button>
         </div>
       </header>
