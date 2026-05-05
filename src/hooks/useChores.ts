@@ -12,7 +12,6 @@ export function useChores() {
   const [loading, setLoading] = useState(true)
 
   const refresh = useCallback(async () => {
-    setLoading(true)
     try {
       const categories = await getCategories()
       const results = await Promise.all(
