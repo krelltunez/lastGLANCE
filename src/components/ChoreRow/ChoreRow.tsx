@@ -99,7 +99,7 @@ export function ChoreRow({ chore, editMode, onTap, onEdit, onDelete, onRefresh }
         {/* Icon */}
         {ChoreIcon && (
           <ChoreIcon
-            size={18}
+            size={22}
             className="shrink-0"
             style={{ color: ratio !== null ? fillColor : '#94a3b8', opacity: ratio !== null ? 1 : 0.6 }}
           />
