@@ -91,10 +91,10 @@ export default function App() {
           <button
             onClick={() => setEditMode(e => !e)}
             className={`
-              flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-colors border
+              flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors
               ${editMode
-                ? 'bg-green-400 text-slate-900 hover:bg-green-300 border-transparent'
-                : 'text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 border-slate-700'}
+                ? 'text-green-400 hover:text-green-300 hover:bg-green-400/10'
+                : 'text-slate-500 hover:text-slate-200 hover:bg-slate-800'}
             `}
             aria-label={editMode ? 'Done editing' : 'Edit categories and chores'}
           >
