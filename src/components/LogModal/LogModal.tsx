@@ -23,14 +23,11 @@ export function LogModal({ chore, onClose, onLogged }: Props) {
   useEscapeKey(onClose)
 
   useEffect(() => {
-    getCompletionHistory(chore.id, 1000).then(c => {
-      setCompletions(c)
-    })
+    getCompletionHistory(chore.id, 1000).then(c => setCompletions(c))
   }, [chore.id])
 
   useEffect(() => {
     if (!heatmapRef.current) return
-    // rAF ensures the heatmap has painted before we measure scrollWidth
     const id = requestAnimationFrame(() => {
       if (heatmapRef.current)
         heatmapRef.current.scrollLeft = heatmapRef.current.scrollWidth
@@ -65,45 +62,41 @@ export function LogModal({ chore, onClose, onLogged }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 dark:bg-black/60 backdrop-blur-sm"
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
-      {/*
-        Mobile:  tall bottom sheet, single column, scrollable
-        Desktop: wide centered modal, two columns
-      */}
       <div className="
-        w-full bg-slate-800 border border-slate-700/50 shadow-2xl
+        w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/50 shadow-2xl
         rounded-t-2xl max-h-[90svh] overflow-hidden flex flex-col
         sm:rounded-2xl sm:max-w-xl
         lg:max-w-5xl lg:max-h-[85svh] lg:flex-row lg:items-start
       ">
 
-        {/* ── Left / top: log form (self-contained, doesn't stretch) ── */}
-        <div className="shrink-0 flex flex-col p-6 gap-4 lg:w-72 lg:border-r lg:border-slate-700/60 lg:self-stretch">
+        {/* ── Left / top: log form ── */}
+        <div className="shrink-0 flex flex-col p-6 gap-4 lg:w-72 lg:border-r lg:border-slate-100 dark:lg:border-slate-700/60 lg:self-stretch">
           <div className="flex items-start justify-between gap-2">
             <div>
-              <h2 className="text-base font-semibold text-slate-100">{chore.name}</h2>
-              <p className="text-sm text-slate-400 mt-0.5">Last done: {elapsedText}</p>
+              <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100">{chore.name}</h2>
+              <p className="text-sm text-slate-400 dark:text-slate-400 mt-0.5">Last done: {elapsedText}</p>
             </div>
-            <button onClick={onClose} className="text-slate-400 hover:text-slate-200 transition-colors shrink-0 mt-0.5">
+            <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors shrink-0 mt-0.5">
               <X size={18} />
             </button>
           </div>
 
           <div className="space-y-3">
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">Note (optional)</label>
+              <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Note (optional)</label>
               <input
                 type="text"
                 value={note}
                 onChange={e => setNote(e.target.value)}
                 placeholder="e.g. only the front bathroom"
-                className="w-full bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-500 border border-slate-600 focus:outline-none focus:ring-2 focus:ring-slate-400"
+                className="w-full bg-slate-100 dark:bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">Done earlier? (optional)</label>
+              <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Done earlier? (optional)</label>
               <DateTimePicker
                 date={backdateDate}
                 time={backdateTime}
@@ -117,7 +110,7 @@ export function LogModal({ chore, onClose, onLogged }: Props) {
           <div className="flex gap-3">
             <button
               onClick={onClose}
-              className="flex-1 py-2.5 rounded-xl text-sm font-medium text-slate-300 bg-slate-700 hover:bg-slate-600 transition-colors"
+              className="flex-1 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
             >
               Cancel
             </button>
@@ -131,34 +124,29 @@ export function LogModal({ chore, onClose, onLogged }: Props) {
           </div>
         </div>
 
-        {/* ── Right / bottom: history ─────────────────────────────── */}
-        <div className="flex-1 min-w-0 flex flex-col min-h-0 border-t border-slate-700/60 lg:border-t-0 bg-slate-900/60">
+        {/* ── Right / bottom: history ── */}
+        <div className="flex-1 min-w-0 flex flex-col min-h-0 border-t border-slate-100 dark:border-slate-700/60 lg:border-t-0 bg-slate-50 dark:bg-slate-900/60">
 
-          {/* Stats — horizontal row, no grid clipping */}
-          <div className="shrink-0 flex divide-x divide-slate-700/60 border-b border-slate-700/60">
+          <div className="shrink-0 flex divide-x divide-slate-100 dark:divide-slate-700/60 border-b border-slate-100 dark:border-slate-700/60">
             <StatCell label="Total" value={String(completions.length)} />
             <StatCell label="Avg interval" value={stats.avgInterval} />
             <StatCell label="Target" value={chore.target_cadence_days ? `${chore.target_cadence_days}d` : '—'} />
           </div>
 
-          {/* Scrollable history area */}
           <div className="flex-1 overflow-y-auto">
-
-            {/* Heatmap */}
             <div className="px-5 pt-4 pb-3">
-              <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-3">Past year</p>
+              <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-3">Past year</p>
               <div ref={heatmapRef} className="overflow-x-auto scrollbar-none">
                 <Heatmap weeks={heatmap} />
               </div>
             </div>
 
-            {/* Completion list */}
             <div className="px-5 pb-6">
-              <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-2">
+              <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2">
                 History {completions.length > 0 && `· ${completions.length}`}
               </p>
               {completions.length === 0 ? (
-                <p className="text-sm text-slate-600 py-4 text-center">No completions yet.</p>
+                <p className="text-sm text-slate-400 dark:text-slate-600 py-4 text-center">No completions yet.</p>
               ) : (
                 <div>
                   {completions.map((evt, i) => {
@@ -190,8 +178,8 @@ export function LogModal({ chore, onClose, onLogged }: Props) {
 function StatCell({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex-1 py-3 px-4 text-center min-w-0">
-      <p className="text-lg font-bold text-slate-100 tabular-nums truncate">{value}</p>
-      <p className="text-xs text-slate-500 mt-0.5 truncate">{label}</p>
+      <p className="text-lg font-bold text-slate-800 dark:text-slate-100 tabular-nums truncate">{value}</p>
+      <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5 truncate">{label}</p>
     </div>
   )
 }
@@ -200,26 +188,26 @@ function CompletionRow({ evt, onDelete }: { evt: CompletionEvent; onDelete: () =
   const [confirming, setConfirming] = useState(false)
   const dt = dayjs(evt.completed_at)
   return (
-    <div className="flex items-start gap-3 py-2.5 border-b border-slate-700/30 group">
+    <div className="flex items-start gap-3 py-2.5 border-b border-slate-100 dark:border-slate-700/30 group">
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline gap-2 flex-wrap">
-          <span className="text-sm font-medium text-slate-200">{dt.format('MMM D, YYYY')}</span>
-          <span className="text-xs text-slate-500">{dt.format('h:mm A')}</span>
+          <span className="text-sm font-medium text-slate-700 dark:text-slate-200">{dt.format('MMM D, YYYY')}</span>
+          <span className="text-xs text-slate-400 dark:text-slate-500">{dt.format('h:mm A')}</span>
           {evt.source === 'dayglance' && (
-            <span className="text-xs text-blue-400 bg-blue-400/10 px-1.5 py-0.5 rounded">via dayGLANCE</span>
+            <span className="text-xs text-blue-500 dark:text-blue-400 bg-blue-50 dark:bg-blue-400/10 px-1.5 py-0.5 rounded">via dayGLANCE</span>
           )}
         </div>
-        {evt.note && <p className="text-xs text-slate-400 italic mt-0.5">{evt.note}</p>}
+        {evt.note && <p className="text-xs text-slate-400 dark:text-slate-400 italic mt-0.5">{evt.note}</p>}
       </div>
       {confirming ? (
         <div className="flex items-center gap-2 shrink-0">
-          <button onClick={() => setConfirming(false)} className="text-xs text-slate-400 hover:text-slate-200">Cancel</button>
-          <button onClick={onDelete} className="text-xs text-red-400 hover:text-red-300 font-medium">Delete</button>
+          <button onClick={() => setConfirming(false)} className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">Cancel</button>
+          <button onClick={onDelete} className="text-xs text-red-500 hover:text-red-400 font-medium">Delete</button>
         </div>
       ) : (
         <button
           onClick={() => setConfirming(true)}
-          className="text-slate-700 hover:text-red-400 transition-colors shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100"
+          className="text-slate-300 dark:text-slate-700 hover:text-red-400 transition-colors shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100"
         >
           <Trash2 size={13} />
         </button>
@@ -232,8 +220,8 @@ function GapMarker({ days, target }: { days: number; target: number | null }) {
   const overdue = target !== null && days > target
   return (
     <div className="flex items-center gap-2 py-1 pl-2">
-      <div className={`w-px h-4 rounded-full ${overdue ? 'bg-red-800' : 'bg-slate-700'}`} />
-      <span className={`text-xs tabular-nums ${overdue ? 'text-red-500' : 'text-slate-600'}`}>
+      <div className={`w-px h-4 rounded-full ${overdue ? 'bg-red-300 dark:bg-red-800' : 'bg-slate-200 dark:bg-slate-700'}`} />
+      <span className={`text-xs tabular-nums ${overdue ? 'text-red-400 dark:text-red-500' : 'text-slate-400 dark:text-slate-600'}`}>
         {days === 1 ? '1 day later' : `${days} days later`}
       </span>
     </div>
@@ -253,7 +241,7 @@ function Heatmap({ weeks }: { weeks: HeatDay[][] }) {
     <div className="inline-flex flex-col gap-1 select-none">
       <div className="flex gap-[3px] mb-0.5 ml-5">
         {weeks.map((_w, wi) => (
-          <div key={wi} className="w-[11px] text-[9px] text-slate-600 text-center leading-none">
+          <div key={wi} className="w-[11px] text-[9px] text-slate-400 dark:text-slate-600 text-center leading-none">
             {months.get(wi) ?? ''}
           </div>
         ))}
@@ -261,7 +249,7 @@ function Heatmap({ weeks }: { weeks: HeatDay[][] }) {
       <div className="flex gap-[3px]">
         <div className="flex flex-col gap-[3px] mr-1">
           {DAY_LABELS.map((l, i) => (
-            <div key={i} className="h-[11px] w-3 text-[9px] text-slate-600 text-right leading-[11px]">{l}</div>
+            <div key={i} className="h-[11px] w-3 text-[9px] text-slate-400 dark:text-slate-600 text-right leading-[11px]">{l}</div>
           ))}
         </div>
         {weeks.map((week, wi) => (
@@ -298,8 +286,6 @@ function getMonthLabels(weeks: HeatDay[][]): Map<number, string> {
   })
   return labels
 }
-
-// ── Data helpers ──────────────────────────────────────────────────────────────
 
 function buildHeatmap(completions: CompletionEvent[]): HeatDay[][] {
   const byDate = new Map<string, number>()

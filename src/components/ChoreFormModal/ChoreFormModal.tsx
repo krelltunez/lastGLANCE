@@ -58,15 +58,15 @@ export function ChoreFormModal({ category, chore, onClose, onSaved }: Props) {
   return (
     <>
       <div
-        className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm"
+        className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 dark:bg-black/60 backdrop-blur-sm"
         onClick={e => { if (e.target === e.currentTarget) onClose() }}
       >
-        <div className="w-full sm:max-w-md bg-slate-800 rounded-t-2xl sm:rounded-2xl p-6 space-y-4 shadow-2xl border border-slate-700/50">
+        <div className="w-full sm:max-w-md bg-white dark:bg-slate-800 rounded-t-2xl sm:rounded-2xl p-6 space-y-4 shadow-2xl border border-slate-200 dark:border-slate-700/50">
           <div className="flex items-center justify-between">
-            <h2 className="text-base font-semibold text-slate-100">
+            <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100">
               {isEdit ? 'Edit chore' : `Add chore — ${category.name}`}
             </h2>
-            <button onClick={onClose} className="text-slate-400 hover:text-slate-200 transition-colors">
+            <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
               <X size={18} />
             </button>
           </div>
@@ -74,7 +74,7 @@ export function ChoreFormModal({ category, chore, onClose, onSaved }: Props) {
           <div className="space-y-3">
             <div className="flex gap-2">
               <div className="flex-1">
-                <label className="block text-xs font-medium text-slate-400 mb-1">Name</label>
+                <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Name</label>
                 <input
                   type="text"
                   value={name}
@@ -82,15 +82,15 @@ export function ChoreFormModal({ category, chore, onClose, onSaved }: Props) {
                   placeholder="e.g. Mop kitchen"
                   autoFocus
                   onKeyDown={e => { if (e.key === 'Enter') handleSave() }}
-                  className="w-full bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-500 border border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
+                  className="w-full bg-slate-100 dark:bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Icon</label>
+                <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Icon</label>
                 <button
                   type="button"
                   onClick={() => setShowIconPicker(true)}
-                  className="h-[38px] w-[38px] flex items-center justify-center bg-slate-700 rounded-lg border border-slate-600 hover:border-green-400/60 transition-colors text-slate-400 hover:text-green-400"
+                  className="h-[38px] w-[38px] flex items-center justify-center bg-slate-100 dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600 hover:border-green-400/60 transition-colors text-slate-400 hover:text-green-400"
                   title="Pick icon"
                 >
                   {SelectedIcon ? <SelectedIcon size={18} className="text-green-400" /> : <Smile size={16} />}
@@ -99,8 +99,8 @@ export function ChoreFormModal({ category, chore, onClose, onSaved }: Props) {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">
-                Cadence <span className="text-slate-500">(days, optional)</span>
+              <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+                Cadence <span className="text-slate-400 dark:text-slate-500">(days, optional)</span>
               </label>
               <input
                 type="number"
@@ -108,20 +108,20 @@ export function ChoreFormModal({ category, chore, onClose, onSaved }: Props) {
                 value={cadence}
                 onChange={e => { setCadence(e.target.value); setError('') }}
                 placeholder="e.g. 14"
-                className="w-full bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-500 border border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
+                className="w-full bg-slate-100 dark:bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
               />
-              <p className="text-xs text-slate-500 mt-1">
+              <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
                 Leave blank for no target — just tracking.
               </p>
             </div>
 
-            {error && <p className="text-xs text-red-400">{error}</p>}
+            {error && <p className="text-xs text-red-500">{error}</p>}
           </div>
 
           <div className="flex gap-3 pt-1">
             <button
               onClick={onClose}
-              className="flex-1 py-2.5 rounded-xl text-sm font-medium text-slate-300 bg-slate-700 hover:bg-slate-600 transition-colors"
+              className="flex-1 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
             >
               Cancel
             </button>

@@ -4,25 +4,24 @@ import relativeTime from 'dayjs/plugin/relativeTime'
 dayjs.extend(relativeTime)
 
 /**
- * Returns a 0–1 fill ratio based on elapsed vs target cadence.
- * Clamps at 1 (never goes negative or over 1 for the bar itself).
+ * Returns elapsed / target, unclamped. Values < 1 = within cadence, >= 1 = overdue.
+ * Bar width clamps this to 100% in the UI; color uses the unclamped value.
  */
 export function getFillRatio(elapsedDays: number, targetDays: number): number {
-  return Math.min(elapsedDays / targetDays, 1)
+  return elapsedDays / targetDays
 }
 
 /**
- * Interpolates through fresh (green) → mid (amber) → stale (red).
- * ratio: 0 = just done, 1 = at/past cadence target.
+ * Within cadence (ratio 0→1): green → amber.
+ * Overdue (ratio 1→2+): amber → red. Full red at 2× overdue.
+ *
+ * This means red = actually overdue, not merely approaching the deadline.
  */
 export function getCadenceColor(ratio: number): string {
-  if (ratio <= 0.5) {
-    // green → amber
-    const t = ratio / 0.5
-    return interpolateHex('#22c55e', '#f59e0b', t)
+  if (ratio < 1) {
+    return interpolateHex('#22c55e', '#f59e0b', ratio)
   } else {
-    // amber → red
-    const t = (ratio - 0.5) / 0.5
+    const t = Math.min(ratio - 1, 1)
     return interpolateHex('#f59e0b', '#ef4444', t)
   }
 }
