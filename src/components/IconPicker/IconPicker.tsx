@@ -30,7 +30,7 @@ export function IconPicker({ selected, onSelect, onClose }: Props) {
             onChange={e => setQuery(e.target.value)}
             placeholder="Search icons…"
             autoFocus
-            className="flex-1 bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-500 border border-slate-600 focus:outline-none focus:ring-2 focus:ring-glance-green"
+            className="flex-1 bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-500 border border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
           />
           <button onClick={onClose} className="text-slate-400 hover:text-slate-200 transition-colors shrink-0">
             <X size={18} />
@@ -40,7 +40,7 @@ export function IconPicker({ selected, onSelect, onClose }: Props) {
         {selected && (
           <div className="px-4 py-2 border-b border-slate-700/40 shrink-0 flex items-center gap-2">
             <span className="text-xs text-slate-500">Current:</span>
-            {(() => { const Icon = ICON_REGISTRY[selected]; return Icon ? <Icon size={16} className="text-glance-green" /> : null })()}
+            {(() => { const Icon = ICON_REGISTRY[selected]; return Icon ? <Icon size={16} className="text-green-400" /> : null })()}
             <span className="text-xs text-slate-300">{selected}</span>
             <button
               onClick={() => { onSelect(undefined); onClose() }}
@@ -68,7 +68,7 @@ export function IconPicker({ selected, onSelect, onClose }: Props) {
                     className={`
                       flex items-center justify-center w-full aspect-square rounded-lg transition-colors
                       ${isSelected
-                        ? 'bg-glance-green text-slate-900'
+                        ? 'bg-green-400 text-slate-900'
                         : 'text-slate-400 hover:text-slate-100 hover:bg-slate-700'}
                     `}
                   >

@@ -49,21 +49,21 @@ export function CategorySection({ data, editMode, onChoreTab, onRefresh, onLogge
           {editMode && (
             <button
               onClick={() => setIconPickerFor('category')}
-              className="shrink-0 p-1.5 rounded-lg hover:bg-slate-700 transition-colors text-slate-500 hover:text-glance-green"
+              className="shrink-0 p-1.5 rounded-lg hover:bg-slate-700 transition-colors text-slate-500 hover:text-green-400"
               aria-label="Change category icon"
               title="Change icon"
             >
               {CategoryIcon
-                ? <CategoryIcon size={18} className="text-glance-green" />
+                ? <CategoryIcon size={18} className="text-green-400" />
                 : <Smile size={16} />}
             </button>
           )}
 
           {!editMode && CategoryIcon && (
-            <CategoryIcon size={18} className="text-glance-green shrink-0" />
+            <CategoryIcon size={18} className="text-green-400 shrink-0" />
           )}
 
-          <h2 className="text-base font-bold text-glance-green tracking-tight truncate flex-1">
+          <h2 className="text-base font-bold text-green-400 tracking-tight truncate flex-1">
             {data.category.name}
           </h2>
 

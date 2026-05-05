@@ -73,7 +73,7 @@ export default function App() {
         <div className="flex items-end gap-5 min-w-0">
           <div className="shrink-0">
             <h1 className="text-4xl font-black tracking-tight leading-none text-slate-100">
-              last<span className="italic text-glance-green">GLANCE</span>
+              last<span className="italic text-green-400">GLANCE</span>
             </h1>
             <p className="text-xs text-slate-600 mt-1 tracking-wide">when did you last do this?</p>
           </div>
@@ -93,7 +93,7 @@ export default function App() {
             className={`
               flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-colors border
               ${editMode
-                ? 'bg-glance-green text-slate-900 hover:bg-green-300 border-transparent'
+                ? 'bg-green-400 text-slate-900 hover:bg-green-300 border-transparent'
                 : 'text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 border-slate-700'}
             `}
             aria-label={editMode ? 'Done editing' : 'Edit categories and chores'}

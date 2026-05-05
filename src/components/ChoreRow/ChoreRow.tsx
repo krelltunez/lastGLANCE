@@ -37,7 +37,7 @@ export function ChoreRow({ chore, editMode, onTap, onEdit, onDelete, onRefresh }
       await logCompletion(chore.id)
       setLogState('done')
       onRefresh()
-      setTimeout(() => setLogState('idle'), 1500)
+      setTimeout(() => setLogState('idle'), 3000)
     } catch {
       setLogState('idle')
     }

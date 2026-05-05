@@ -82,7 +82,7 @@ export function ChoreFormModal({ category, chore, onClose, onSaved }: Props) {
                   placeholder="e.g. Mop kitchen"
                   autoFocus
                   onKeyDown={e => { if (e.key === 'Enter') handleSave() }}
-                  className="w-full bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-500 border border-slate-600 focus:outline-none focus:ring-2 focus:ring-glance-green"
+                  className="w-full bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-500 border border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
                 />
               </div>
               <div>
@@ -90,10 +90,10 @@ export function ChoreFormModal({ category, chore, onClose, onSaved }: Props) {
                 <button
                   type="button"
                   onClick={() => setShowIconPicker(true)}
-                  className="h-[38px] w-[38px] flex items-center justify-center bg-slate-700 rounded-lg border border-slate-600 hover:border-glance-green/60 transition-colors text-slate-400 hover:text-glance-green"
+                  className="h-[38px] w-[38px] flex items-center justify-center bg-slate-700 rounded-lg border border-slate-600 hover:border-green-400/60 transition-colors text-slate-400 hover:text-green-400"
                   title="Pick icon"
                 >
-                  {SelectedIcon ? <SelectedIcon size={18} className="text-glance-green" /> : <Smile size={16} />}
+                  {SelectedIcon ? <SelectedIcon size={18} className="text-green-400" /> : <Smile size={16} />}
                 </button>
               </div>
             </div>
@@ -108,7 +108,7 @@ export function ChoreFormModal({ category, chore, onClose, onSaved }: Props) {
                 value={cadence}
                 onChange={e => { setCadence(e.target.value); setError('') }}
                 placeholder="e.g. 14"
-                className="w-full bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-500 border border-slate-600 focus:outline-none focus:ring-2 focus:ring-glance-green"
+                className="w-full bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-500 border border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
               />
               <p className="text-xs text-slate-500 mt-1">
                 Leave blank for no target — just tracking.
@@ -128,7 +128,7 @@ export function ChoreFormModal({ category, chore, onClose, onSaved }: Props) {
             <button
               onClick={handleSave}
               disabled={saving}
-              className="flex-1 py-2.5 rounded-xl text-sm font-medium text-slate-900 bg-glance-green hover:bg-green-300 disabled:opacity-50 transition-colors"
+              className="flex-1 py-2.5 rounded-xl text-sm font-medium text-slate-900 bg-green-400 hover:bg-green-300 disabled:opacity-50 transition-colors"
             >
               {saving ? 'Saving…' : isEdit ? 'Save' : 'Add'}
             </button>

@@ -45,7 +45,7 @@ export function Ribbon({ editMode, onLogged }: Props) {
                 className={`
                   shrink-0 px-4 py-2.5 text-xs font-semibold transition-colors whitespace-nowrap
                   ${i === activeCategoryIndex
-                    ? 'text-glance-green border-b-2 border-glance-green'
+                    ? 'text-green-400 border-b-2 border-green-400'
                     : 'text-slate-400 hover:text-slate-200'}
                 `}
               >
@@ -152,7 +152,7 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
       <p className="text-slate-400 text-sm">No categories yet.</p>
       <button
         onClick={onAdd}
-        className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-slate-900 bg-glance-green hover:bg-green-300 transition-colors"
+        className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-slate-900 bg-green-400 hover:bg-green-300 transition-colors"
       >
         <Plus size={15} />
         Add your first category
