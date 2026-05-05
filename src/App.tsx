@@ -62,6 +62,11 @@ export default function App() {
     document.documentElement.classList.contains('dark')
   )
 
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', isDark)
+    localStorage.setItem('theme', isDark ? 'dark' : 'light')
+  }, [isDark])
+
   const loadHeatmap = useCallback(async () => {
     const counts = await getAllCompletionCounts()
     setHeatmapWeeks(buildHeaderHeatmap(counts))
@@ -70,10 +75,7 @@ export default function App() {
   useEffect(() => { loadHeatmap() }, [loadHeatmap])
 
   function toggleTheme() {
-    const next = !isDark
-    setIsDark(next)
-    document.documentElement.classList.toggle('dark', next)
-    localStorage.setItem('theme', next ? 'dark' : 'light')
+    setIsDark(d => !d)
   }
 
   return (
