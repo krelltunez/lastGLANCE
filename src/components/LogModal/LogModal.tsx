@@ -25,9 +25,13 @@ export function LogModal({ chore, onClose, onLogged }: Props) {
   }, [chore.id])
 
   useEffect(() => {
-    if (heatmapRef.current) {
-      heatmapRef.current.scrollLeft = heatmapRef.current.scrollWidth
-    }
+    if (!heatmapRef.current) return
+    // rAF ensures the heatmap has painted before we measure scrollWidth
+    const id = requestAnimationFrame(() => {
+      if (heatmapRef.current)
+        heatmapRef.current.scrollLeft = heatmapRef.current.scrollWidth
+    })
+    return () => cancelAnimationFrame(id)
   }, [completions])
 
   async function handleLog() {
@@ -66,11 +70,11 @@ export function LogModal({ chore, onClose, onLogged }: Props) {
         w-full bg-slate-800 border border-slate-700/50 shadow-2xl
         rounded-t-2xl max-h-[90svh] overflow-hidden flex flex-col
         sm:rounded-2xl sm:max-w-xl
-        lg:max-w-4xl lg:max-h-[85svh] lg:flex-row
+        lg:max-w-5xl lg:max-h-[85svh] lg:flex-row lg:items-start
       ">
 
-        {/* ── Left / top: log form ────────────────────────────────── */}
-        <div className="shrink-0 flex flex-col p-6 gap-4 lg:w-80 lg:border-r lg:border-slate-700/60">
+        {/* ── Left / top: log form (self-contained, doesn't stretch) ── */}
+        <div className="shrink-0 flex flex-col p-6 gap-4 lg:w-72 lg:border-r lg:border-slate-700/60 lg:self-stretch">
           <div className="flex items-start justify-between gap-2">
             <div>
               <h2 className="text-base font-semibold text-slate-100">{chore.name}</h2>
@@ -104,7 +108,7 @@ export function LogModal({ chore, onClose, onLogged }: Props) {
             </div>
           </div>
 
-          <div className="flex gap-3 mt-auto">
+          <div className="flex gap-3">
             <button
               onClick={onClose}
               className="flex-1 py-2.5 rounded-xl text-sm font-medium text-slate-300 bg-slate-700 hover:bg-slate-600 transition-colors"
@@ -122,10 +126,10 @@ export function LogModal({ chore, onClose, onLogged }: Props) {
         </div>
 
         {/* ── Right / bottom: history ─────────────────────────────── */}
-        <div className="flex-1 flex flex-col min-h-0 border-t border-slate-700/60 lg:border-t-0 bg-slate-900/60">
+        <div className="flex-1 min-w-0 flex flex-col min-h-0 border-t border-slate-700/60 lg:border-t-0 bg-slate-900/60">
 
-          {/* Stats */}
-          <div className="shrink-0 grid grid-cols-3 divide-x divide-slate-700/60 border-b border-slate-700/60">
+          {/* Stats — horizontal row, no grid clipping */}
+          <div className="shrink-0 flex divide-x divide-slate-700/60 border-b border-slate-700/60">
             <StatCell label="Total" value={String(completions.length)} />
             <StatCell label="Avg interval" value={stats.avgInterval} />
             <StatCell label="Target" value={chore.target_cadence_days ? `${chore.target_cadence_days}d` : '—'} />
@@ -179,9 +183,9 @@ export function LogModal({ chore, onClose, onLogged }: Props) {
 
 function StatCell({ label, value }: { label: string; value: string }) {
   return (
-    <div className="py-3 px-4 text-center">
-      <p className="text-lg font-bold text-slate-100 tabular-nums">{value}</p>
-      <p className="text-xs text-slate-500 mt-0.5">{label}</p>
+    <div className="flex-1 py-3 px-4 text-center min-w-0">
+      <p className="text-lg font-bold text-slate-100 tabular-nums truncate">{value}</p>
+      <p className="text-xs text-slate-500 mt-0.5 truncate">{label}</p>
     </div>
   )
 }
