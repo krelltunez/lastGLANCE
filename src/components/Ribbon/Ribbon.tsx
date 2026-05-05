@@ -3,7 +3,6 @@ import { Plus } from 'lucide-react'
 import { useChores } from '@/hooks/useChores'
 import { CategorySection } from '@/components/CategorySection/CategorySection'
 import { LogModal } from '@/components/LogModal/LogModal'
-import { HistoryView } from '@/components/HistoryView/HistoryView'
 import { CategoryFormModal } from '@/components/CategoryFormModal/CategoryFormModal'
 import type { ChoreWithLastCompletion } from '@/types'
 
@@ -15,18 +14,10 @@ export function Ribbon({ editMode }: Props) {
   const { data, loading, refresh } = useChores()
   const [activeCategoryIndex, setActiveCategoryIndex] = useState(0)
   const [selectedChore, setSelectedChore] = useState<ChoreWithLastCompletion | null>(null)
-  const [view, setView] = useState<'log' | 'history'>('log')
   const [addingCategory, setAddingCategory] = useState(false)
 
-  function openChore(chore: ChoreWithLastCompletion) {
-    setSelectedChore(chore)
-    setView('log')
-  }
-
-  function closeChore() {
-    setSelectedChore(null)
-    setView('log')
-  }
+  function openChore(chore: ChoreWithLastCompletion) { setSelectedChore(chore) }
+  function closeChore() { setSelectedChore(null) }
 
   if (loading) {
     return (
@@ -122,21 +113,11 @@ export function Ribbon({ editMode }: Props) {
         )}
       </div>
 
-      {selectedChore && !editMode && view === 'log' && (
+      {selectedChore && !editMode && (
         <LogModal
           chore={selectedChore}
           onClose={closeChore}
           onLogged={() => { closeChore(); refresh() }}
-          onViewHistory={() => setView('history')}
-        />
-      )}
-
-      {selectedChore && !editMode && view === 'history' && (
-        <HistoryView
-          chore={selectedChore}
-          onBack={() => setView('log')}
-          onClose={closeChore}
-          onChanged={refresh}
         />
       )}
 
