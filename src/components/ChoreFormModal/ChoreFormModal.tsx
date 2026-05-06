@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { X, Smile } from 'lucide-react'
+import { X, Smile, Bell } from 'lucide-react'
 import type { Chore, Category } from '@/types'
 import { createChore, updateChore } from '@/db/queries'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
 import { IconPicker } from '@/components/IconPicker/IconPicker'
 import { ICON_REGISTRY } from '@/icons/registry'
+import { requestNotificationPermission } from '@/hooks/useNotifications'
 
 interface Props {
   category: Category
@@ -20,6 +21,8 @@ export function ChoreFormModal({ category, chore, onClose, onSaved }: Props) {
     chore?.target_cadence_days != null ? String(chore.target_cadence_days) : ''
   )
   const [icon, setIcon] = useState<string | undefined>(chore?.icon)
+  const [notify, setNotify] = useState(chore?.notify_when_overdue ?? false)
+  const [notifyBlocked, setNotifyBlocked] = useState(false)
   const [showIconPicker, setShowIconPicker] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -36,12 +39,13 @@ export function ChoreFormModal({ category, chore, onClose, onSaved }: Props) {
     setSaving(true)
     try {
       if (isEdit && chore) {
-        await updateChore(chore.id, { name: trimmed, target_cadence_days: cadenceDays, icon })
+        await updateChore(chore.id, { name: trimmed, target_cadence_days: cadenceDays, notify_when_overdue: notify, icon })
       } else {
         await createChore({
           name: trimmed,
           category_id: category.id,
           target_cadence_days: cadenceDays,
+          notify_when_overdue: notify,
           auto_schedule_to_dayglance: false,
           preferred_schedule_behavior: null,
           icon,
@@ -114,6 +118,34 @@ export function ChoreFormModal({ category, chore, onClose, onSaved }: Props) {
                 Leave blank for no target — just tracking.
               </p>
             </div>
+
+            {cadence.trim() && (
+              <div className="flex items-center justify-between py-1">
+                <div className="flex items-center gap-2">
+                  <Bell size={13} className={notify ? 'text-green-400' : 'text-slate-400 dark:text-slate-500'} />
+                  <span className="text-sm text-slate-600 dark:text-slate-300">Notify when overdue</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!notify) {
+                      const perm = await requestNotificationPermission()
+                      if (perm === 'denied') { setNotifyBlocked(true); return }
+                      setNotifyBlocked(false)
+                    }
+                    setNotify(v => !v)
+                  }}
+                  className={`relative w-10 h-6 rounded-full transition-colors ${notify ? 'bg-green-400' : 'bg-slate-300 dark:bg-slate-600'}`}
+                  aria-checked={notify}
+                  role="switch"
+                >
+                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${notify ? 'translate-x-4' : ''}`} />
+                </button>
+              </div>
+            )}
+            {notifyBlocked && (
+              <p className="text-xs text-amber-500 dark:text-amber-400">Notifications blocked — enable them in your browser settings.</p>
+            )}
 
             {error && <p className="text-xs text-red-500">{error}</p>}
           </div>

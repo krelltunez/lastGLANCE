@@ -24,6 +24,16 @@ class LastGlanceDB extends Dexie {
         })
       )
 
+    this.version(3)
+      .stores({})
+      .upgrade(tx =>
+        tx.table('chores').toCollection().modify((chore: Chore) => {
+          if ((chore as { notify_when_overdue?: boolean }).notify_when_overdue === undefined) {
+            chore.notify_when_overdue = false
+          }
+        })
+      )
+
     this.on('populate', async () => {
       const catIds = (await this.categories.bulkAdd(
         SEED_CATEGORIES as unknown as Category[],
@@ -51,16 +61,16 @@ const SEED_CATEGORIES: Omit<Category, 'id'>[] = [
 ]
 
 const SEED_CHORES: (Omit<Chore, 'id' | 'category_id' | 'sort_order'> & { _catIndex: number })[] = [
-  { name: 'Mop kitchen',        _catIndex: 0, target_cadence_days: 14, auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, created_at: now, updated_at: now },
-  { name: 'Clean bathrooms',    _catIndex: 0, target_cadence_days: 7,  auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, created_at: now, updated_at: now },
-  { name: 'Vacuum',             _catIndex: 0, target_cadence_days: 7,  auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, created_at: now, updated_at: now },
-  { name: 'Take out trash',     _catIndex: 0, target_cadence_days: 3,  auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, created_at: now, updated_at: now },
-  { name: 'Change cat litter',  _catIndex: 1, target_cadence_days: 2,  auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, created_at: now, updated_at: now },
-  { name: 'Feed fish',          _catIndex: 1, target_cadence_days: 1,  auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, created_at: now, updated_at: now },
-  { name: 'Oil change',         _catIndex: 2, target_cadence_days: 90, auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, created_at: now, updated_at: now },
-  { name: 'Wash car',           _catIndex: 2, target_cadence_days: 30, auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, created_at: now, updated_at: now },
-  { name: 'Clean oven',         _catIndex: 3, target_cadence_days: 60, auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, created_at: now, updated_at: now },
-  { name: 'Wipe down cabinets', _catIndex: 3, target_cadence_days: 30, auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, created_at: now, updated_at: now },
+  { name: 'Mop kitchen',        _catIndex: 0, target_cadence_days: 14, notify_when_overdue: false, auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, created_at: now, updated_at: now },
+  { name: 'Clean bathrooms',    _catIndex: 0, target_cadence_days: 7,  notify_when_overdue: false, auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, created_at: now, updated_at: now },
+  { name: 'Vacuum',             _catIndex: 0, target_cadence_days: 7,  notify_when_overdue: false, auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, created_at: now, updated_at: now },
+  { name: 'Take out trash',     _catIndex: 0, target_cadence_days: 3,  notify_when_overdue: false, auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, created_at: now, updated_at: now },
+  { name: 'Change cat litter',  _catIndex: 1, target_cadence_days: 2,  notify_when_overdue: false, auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, created_at: now, updated_at: now },
+  { name: 'Feed fish',          _catIndex: 1, target_cadence_days: 1,  notify_when_overdue: false, auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, created_at: now, updated_at: now },
+  { name: 'Oil change',         _catIndex: 2, target_cadence_days: 90, notify_when_overdue: false, auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, created_at: now, updated_at: now },
+  { name: 'Wash car',           _catIndex: 2, target_cadence_days: 30, notify_when_overdue: false, auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, created_at: now, updated_at: now },
+  { name: 'Clean oven',         _catIndex: 3, target_cadence_days: 60, notify_when_overdue: false, auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, created_at: now, updated_at: now },
+  { name: 'Wipe down cabinets', _catIndex: 3, target_cadence_days: 30, notify_when_overdue: false, auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, created_at: now, updated_at: now },
 ]
 
 export const db = new LastGlanceDB()

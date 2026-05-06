@@ -11,6 +11,7 @@ export interface Chore {
   category_id: number
   sort_order: number
   target_cadence_days: number | null
+  notify_when_overdue: boolean
   auto_schedule_to_dayglance: boolean
   preferred_schedule_behavior: 'today' | 'next_weekend' | 'next_free_day' | null
   created_at: string
