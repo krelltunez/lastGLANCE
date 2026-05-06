@@ -91,6 +91,7 @@ function HeaderHeatmap({ weeks }: { weeks: HeatDay[][] }) {
 export default function App() {
   const [editMode, setEditMode] = useState(false)
   const [heatmapWeeks, setHeatmapWeeks] = useState<HeatDay[][]>([])
+  const [waveKey, setWaveKey] = useState(0)
   const [isDark, setIsDark] = useState(() =>
     document.documentElement.classList.contains('dark')
   )
@@ -103,6 +104,7 @@ export default function App() {
   const loadHeatmap = useCallback(async () => {
     const counts = await getAllCompletionCounts()
     setHeatmapWeeks(buildHeaderHeatmap(counts))
+    setWaveKey(k => k + 1)
   }, [])
 
   useEffect(() => { loadHeatmap() }, [loadHeatmap])
@@ -125,7 +127,7 @@ export default function App() {
 
           {heatmapWeeks.length > 0 && (
             <div className="hidden md:block pb-0.5 opacity-80">
-              <HeaderHeatmap weeks={heatmapWeeks} />
+              <HeaderHeatmap key={waveKey} weeks={heatmapWeeks} />
             </div>
           )}
         </div>
