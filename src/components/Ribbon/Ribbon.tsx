@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useLayoutEffect } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Plus, GripVertical } from 'lucide-react'
 import { useChores } from '@/hooks/useChores'
 import { reorderCategories } from '@/db/queries'
@@ -29,14 +29,14 @@ export function Ribbon({ editMode, onLogged }: Props) {
   const catListRef = useRef<HTMLElement | null>(null)
   const catItemSelector = useRef('')
 
-  // Swipe (mobile) — track transform is driven directly via ref, not React state
+  // Swipe (mobile)
+  const [offset, setOffset] = useState(0)
   const [snapping, setSnapping] = useState(false)
   const isDragging = useRef(false)
   const touchStartX = useRef(0)
   const touchStartY = useRef(0)
   const liveOffset = useRef(0)
   const containerRef = useRef<HTMLDivElement>(null)
-  const trackRef = useRef<HTMLDivElement>(null)
   const tabsRef = useRef<HTMLDivElement>(null)
   const desktopGridRef = useRef<HTMLDivElement>(null)
 
@@ -117,18 +117,6 @@ export function Ribbon({ editMode, onLogged }: Props) {
     setDraggingCatId(catId)
   }
 
-  // Drive the carousel track directly — no React re-render during drag
-  function applyTrackOffset(px: number, animated = false) {
-    if (!trackRef.current) return
-    trackRef.current.style.transition = animated
-      ? `transform ${SNAP_MS}ms cubic-bezier(0.25, 1, 0.5, 1)`
-      : 'none'
-    trackRef.current.style.transform = `translateX(calc(-33.333% + ${px}px))`
-  }
-
-  // useLayoutEffect = runs before paint, so track is correct on first render
-  useLayoutEffect(() => { applyTrackOffset(0) }, [activeCategoryIndex]) // eslint-disable-line
-
   // Swipe handlers
   function handleTouchStart(e: React.TouchEvent) {
     if (snapping) return
@@ -151,15 +139,15 @@ export function Ribbon({ editMode, onLogged }: Props) {
     const atEnd = activeCategoryIndex === localData.length - 1 && dx < 0
     const newOffset = (atStart || atEnd) ? dx * 0.2 : dx
     liveOffset.current = newOffset
-    applyTrackOffset(newOffset)
+    setOffset(newOffset)
   }
 
   function snap(targetOffset: number, afterSnap?: () => void) {
     setSnapping(true)
-    applyTrackOffset(targetOffset, true)
+    setOffset(targetOffset)
     setTimeout(() => {
       afterSnap?.()
-      applyTrackOffset(0)
+      setOffset(0)
       liveOffset.current = 0
       setSnapping(false)
     }, SNAP_MS)
@@ -257,9 +245,13 @@ export function Ribbon({ editMode, onLogged }: Props) {
             style={{ touchAction: 'pan-y' }}
           >
             <div
-              ref={trackRef}
               className="flex h-full"
-              style={{ width: '300%', willChange: 'transform' }}
+              style={{
+                width: '300%',
+                transform: `translateX(calc(-33.333% + ${offset}px))`,
+                transition: snapping ? `transform ${SNAP_MS}ms cubic-bezier(0.25, 1, 0.5, 1)` : 'none',
+                willChange: 'transform',
+              }}
             >
               <div className="overflow-y-auto" style={{ width: '33.333%' }}>
                 {prevData && <div className="p-4"><CategorySection data={prevData} editMode={editMode} onChoreTab={openChore} onRefresh={refresh} onLogged={onLogged} /></div>}
