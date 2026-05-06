@@ -92,6 +92,7 @@ function HeaderHeatmap({ weeks }: { weeks: HeatDay[][] }) {
 export default function App() {
   const [editMode, setEditMode] = useState(false)
   const [showBackup, setShowBackup] = useState(false)
+  const [ribbonKey, setRibbonKey] = useState(0)
   const [heatmapWeeks, setHeatmapWeeks] = useState<HeatDay[][]>([])
   const [waveKey, setWaveKey] = useState(0)
   const [isDark, setIsDark] = useState(() =>
@@ -121,34 +122,41 @@ export default function App() {
         {/* Logo + heatmap */}
         <div className="flex items-end gap-5 min-w-0">
           <div className="shrink-0">
-            <h1 className="text-4xl font-black tracking-tight leading-none text-slate-900 dark:text-slate-100">
+            <h1 className="text-3xl md:text-4xl font-black tracking-tight leading-none text-slate-900 dark:text-slate-100">
               last<span className="italic text-green-400">GLANCE</span>
             </h1>
             <p className="text-xs text-slate-400 dark:text-slate-600 mt-1 tracking-wide">when did you last...?</p>
           </div>
 
           {heatmapWeeks.length > 0 && (
-            <div className="hidden md:block pb-0.5 opacity-80">
-              <HeaderHeatmap key={waveKey} weeks={heatmapWeeks} />
-            </div>
+            <>
+              {/* 26 weeks on landscape mobile / small screens */}
+              <div className="hidden md:block lg:hidden pb-0.5 opacity-80">
+                <HeaderHeatmap key={waveKey} weeks={heatmapWeeks.slice(-26)} />
+              </div>
+              {/* 52 weeks on large screens */}
+              <div className="hidden lg:block pb-0.5 opacity-80">
+                <HeaderHeatmap key={waveKey} weeks={heatmapWeeks} />
+              </div>
+            </>
           )}
         </div>
 
         {/* Controls */}
         <div className="flex items-center gap-2 shrink-0">
           <button
-            onClick={() => setShowBackup(true)}
-            className="p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors"
-            aria-label="Backup & Restore"
-          >
-            <Archive size={15} />
-          </button>
-          <button
             onClick={toggleTheme}
             className="p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors"
             aria-label="Toggle theme"
           >
             {isDark ? <Sun size={15} /> : <Moon size={15} />}
+          </button>
+          <button
+            onClick={() => setShowBackup(true)}
+            className="p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors"
+            aria-label="Backup & Restore"
+          >
+            <Archive size={15} />
           </button>
           <button
             onClick={() => setEditMode(e => !e)}
@@ -166,13 +174,13 @@ export default function App() {
       </header>
 
       <main className="flex-1 flex flex-col overflow-hidden">
-        <Ribbon editMode={editMode} onLogged={loadHeatmap} />
+        <Ribbon key={ribbonKey} editMode={editMode} onLogged={loadHeatmap} />
       </main>
 
       {showBackup && (
         <BackupModal
           onClose={() => setShowBackup(false)}
-          onImported={loadHeatmap}
+          onImported={() => { loadHeatmap(); setRibbonKey(k => k + 1) }}
         />
       )}
     </div>
