@@ -37,9 +37,9 @@ function heatCellColor(day: HeatDay): string {
 const WAVE_WIDTH = 14
 const WAVE_DURATION = 1500
 
-function getWaveColor(wi: number, day: HeatDay, wavePos: number): string {
+function getWaveColor(wi: number, di: number, day: HeatDay, wavePos: number): string {
   if (day.isFuture) return 'transparent'
-  const dist = wavePos - wi
+  const dist = wavePos - wi - di * 0.6
   if (dist < 0) return 'rgba(71,85,105,0.15)'
   if (dist >= WAVE_WIDTH) return heatCellColor(day)
   const t = dist / WAVE_WIDTH
@@ -77,7 +77,7 @@ function HeaderHeatmap({ weeks }: { weeks: HeatDay[][] }) {
               key={di}
               title={day.isFuture ? '' : `${day.date}${day.count > 0 ? ` · ${day.count}` : ''}`}
               className="w-[9px] h-[9px] rounded-[2px]"
-              style={{ backgroundColor: getWaveColor(wi, day, wavePos) }}
+              style={{ backgroundColor: getWaveColor(wi, di, day, wavePos) }}
             />
           ))}
         </div>
