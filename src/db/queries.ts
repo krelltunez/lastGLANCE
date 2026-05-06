@@ -124,3 +124,33 @@ export async function getCompletionHistory(
 export async function deleteCompletion(id: number): Promise<void> {
   await db.completionEvents.delete(id)
 }
+
+// Backup / restore
+
+export interface BackupPayload {
+  version: number
+  exportedAt: string
+  categories: Category[]
+  chores: Chore[]
+  completionEvents: CompletionEvent[]
+}
+
+export async function exportBackup(): Promise<BackupPayload> {
+  const [categories, chores, completionEvents] = await Promise.all([
+    db.categories.toArray(),
+    db.chores.toArray(),
+    db.completionEvents.toArray(),
+  ])
+  return { version: 1, exportedAt: new Date().toISOString(), categories, chores, completionEvents }
+}
+
+export async function importBackup(payload: BackupPayload): Promise<void> {
+  await db.transaction('rw', db.categories, db.chores, db.completionEvents, async () => {
+    await db.completionEvents.clear()
+    await db.chores.clear()
+    await db.categories.clear()
+    await db.categories.bulkAdd(payload.categories)
+    await db.chores.bulkAdd(payload.chores)
+    await db.completionEvents.bulkAdd(payload.completionEvents)
+  })
+}

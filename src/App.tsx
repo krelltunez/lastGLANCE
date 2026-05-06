@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Pencil, Check, Sun, Moon } from 'lucide-react'
+import { Pencil, Check, Sun, Moon, Archive } from 'lucide-react'
 import { Ribbon } from '@/components/Ribbon/Ribbon'
+import { BackupModal } from '@/components/BackupModal/BackupModal'
 import { getAllCompletionCounts } from '@/db/queries'
 import dayjs from 'dayjs'
 
@@ -90,6 +91,7 @@ function HeaderHeatmap({ weeks }: { weeks: HeatDay[][] }) {
 
 export default function App() {
   const [editMode, setEditMode] = useState(false)
+  const [showBackup, setShowBackup] = useState(false)
   const [heatmapWeeks, setHeatmapWeeks] = useState<HeatDay[][]>([])
   const [waveKey, setWaveKey] = useState(0)
   const [isDark, setIsDark] = useState(() =>
@@ -135,6 +137,13 @@ export default function App() {
         {/* Controls */}
         <div className="flex items-center gap-2 shrink-0">
           <button
+            onClick={() => setShowBackup(true)}
+            className="p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors"
+            aria-label="Backup & Restore"
+          >
+            <Archive size={15} />
+          </button>
+          <button
             onClick={toggleTheme}
             className="p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors"
             aria-label="Toggle theme"
@@ -159,6 +168,13 @@ export default function App() {
       <main className="flex-1 flex flex-col overflow-hidden">
         <Ribbon editMode={editMode} onLogged={loadHeatmap} />
       </main>
+
+      {showBackup && (
+        <BackupModal
+          onClose={() => setShowBackup(false)}
+          onImported={loadHeatmap}
+        />
+      )}
     </div>
   )
 }
