@@ -59,29 +59,31 @@ export function Ribbon({ editMode, onLogged }: Props) {
     if (draggingCatId === null) return
 
     function onMove(e: PointerEvent) {
-      const els = Array.from(catListRef.current?.querySelectorAll(catItemSelector.current) ?? []) as HTMLElement[]
-      if (els.length === 0) return
-
+      if (!catListRef.current) return
       const cur = localDataRef.current
-      const fromIdx = cur.findIndex(d => d.category.id === draggingCatIdRef.current)
+      const fromId = draggingCatIdRef.current
+      if (fromId === null) return
+      const fromIdx = cur.findIndex(d => d.category.id === fromId)
       if (fromIdx === -1) return
 
-      const draggedEl = els[fromIdx]
-      if (!draggedEl) return
-      const rect = draggedEl.getBoundingClientRect()
-
-      let toIdx = fromIdx
-      if (e.clientX < rect.left && fromIdx > 0) {
-        toIdx = fromIdx - 1
-      } else if (e.clientX > rect.right && fromIdx < cur.length - 1) {
-        toIdx = fromIdx + 1
-      } else {
-        return
+      // Target-based swap: find the category whose card/tab rect contains the cursor
+      const sel = catItemSelector.current
+      let toIdx = -1
+      for (let i = 0; i < cur.length; i++) {
+        if (i === fromIdx) continue
+        const id = cur[i].category.id
+        const el = catListRef.current.querySelector(sel.replace(']', `="${id}"]`)) as HTMLElement | null
+        if (!el) continue
+        const r = el.getBoundingClientRect()
+        if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) {
+          toIdx = i
+          break
+        }
       }
+      if (toIdx === -1) return
 
       const next = [...cur]
-      const [item] = next.splice(fromIdx, 1)
-      next.splice(toIdx, 0, item)
+      ;[next[fromIdx], next[toIdx]] = [next[toIdx], next[fromIdx]]
       localDataRef.current = next
       setLocalData(next)
     }
@@ -280,7 +282,7 @@ export function Ribbon({ editMode, onLogged }: Props) {
         )}
       </div>
 
-      {/* ── Desktop: grid columns ── */}
+      {/* ── Desktop: fluid masonry columns ── */}
       <div className="hidden lg:block flex-1 overflow-y-auto">
         {showEmpty ? (
           <EmptyState onAdd={() => setAddingCategory(true)} />
@@ -288,14 +290,13 @@ export function Ribbon({ editMode, onLogged }: Props) {
           <div className="p-6">
             <div
               ref={desktopGridRef}
-              className="grid gap-5 items-start"
-              style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
+              style={{ columns: cols, columnGap: '1.25rem' }}
             >
               {localData.map(d => (
                 <div
                   key={d.category.id}
                   data-cat-card-id={d.category.id}
-                  className="bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-5"
+                  className="break-inside-avoid mb-5 bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-5"
                 >
                   <CategorySection
                     data={d}
@@ -313,7 +314,7 @@ export function Ribbon({ editMode, onLogged }: Props) {
               {editMode && (
                 <button
                   onClick={() => setAddingCategory(true)}
-                  className="flex items-center justify-center gap-2 py-4 rounded-2xl text-sm text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/30 border border-dashed border-slate-300 dark:border-slate-700/60 hover:border-slate-400 dark:hover:border-slate-600 transition-colors"
+                  className="break-inside-avoid mb-5 w-full flex items-center justify-center gap-2 py-4 rounded-2xl text-sm text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/30 border border-dashed border-slate-300 dark:border-slate-700/60 hover:border-slate-400 dark:hover:border-slate-600 transition-colors"
                 >
                   <Plus size={15} />
                   Add category
