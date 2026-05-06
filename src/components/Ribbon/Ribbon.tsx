@@ -29,14 +29,14 @@ export function Ribbon({ editMode, onLogged }: Props) {
   const catListRef = useRef<HTMLElement | null>(null)
   const catItemSelector = useRef('')
 
-  // Swipe (mobile)
-  const [offset, setOffset] = useState(0)
+  // Swipe (mobile) — track transform is driven directly via ref, not React state
   const [snapping, setSnapping] = useState(false)
   const isDragging = useRef(false)
   const touchStartX = useRef(0)
   const touchStartY = useRef(0)
   const liveOffset = useRef(0)
   const containerRef = useRef<HTMLDivElement>(null)
+  const trackRef = useRef<HTMLDivElement>(null)
   const tabsRef = useRef<HTMLDivElement>(null)
   const desktopGridRef = useRef<HTMLDivElement>(null)
 
@@ -117,6 +117,18 @@ export function Ribbon({ editMode, onLogged }: Props) {
     setDraggingCatId(catId)
   }
 
+  // Drive the carousel track directly — bypasses React rendering on every drag pixel
+  function applyTrackOffset(px: number, animated = false) {
+    if (!trackRef.current) return
+    trackRef.current.style.transition = animated
+      ? `transform ${SNAP_MS}ms cubic-bezier(0.25, 1, 0.5, 1)`
+      : 'none'
+    trackRef.current.style.transform = `translateX(calc(-33.333% + ${px}px))`
+  }
+
+  // Re-centre the track whenever the active category changes (tab click, snap, etc.)
+  useEffect(() => { applyTrackOffset(0) }, [activeCategoryIndex]) // eslint-disable-line
+
   // Swipe handlers
   function handleTouchStart(e: React.TouchEvent) {
     if (snapping) return
@@ -139,15 +151,15 @@ export function Ribbon({ editMode, onLogged }: Props) {
     const atBoundary = !looping && ((activeCategoryIndex === 0 && dx > 0) || (activeCategoryIndex === localData.length - 1 && dx < 0))
     const newOffset = atBoundary ? dx * 0.2 : dx
     liveOffset.current = newOffset
-    setOffset(newOffset)
+    applyTrackOffset(newOffset) // direct DOM — no React re-render during drag
   }
 
   function snap(targetOffset: number, afterSnap?: () => void) {
     setSnapping(true)
-    setOffset(targetOffset)
+    applyTrackOffset(targetOffset, true)
     setTimeout(() => {
       afterSnap?.()
-      setOffset(0)
+      applyTrackOffset(0) // reset before React commits new panel content
       liveOffset.current = 0
       setSnapping(false)
     }, SNAP_MS)
@@ -248,13 +260,9 @@ export function Ribbon({ editMode, onLogged }: Props) {
             style={{ touchAction: 'pan-y' }}
           >
             <div
+              ref={trackRef}
               className="flex h-full"
-              style={{
-                width: '300%',
-                transform: `translateX(calc(-33.333% + ${offset}px))`,
-                transition: snapping ? `transform ${SNAP_MS}ms cubic-bezier(0.25, 1, 0.5, 1)` : 'none',
-                willChange: 'transform',
-              }}
+              style={{ width: '300%', willChange: 'transform' }}
             >
               <div className="overflow-y-auto" style={{ width: '33.333%' }}>
                 {prevData && <div className="p-4"><CategorySection data={prevData} editMode={editMode} onChoreTab={openChore} onRefresh={refresh} onLogged={onLogged} /></div>}
