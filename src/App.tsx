@@ -34,7 +34,40 @@ function heatCellColor(day: HeatDay): string {
   return '#4ade80'
 }
 
+const WAVE_WIDTH = 14
+const WAVE_DURATION = 1500
+
+function getWaveColor(wi: number, day: HeatDay, wavePos: number): string {
+  if (day.isFuture) return 'transparent'
+  const dist = wavePos - wi
+  if (dist < 0) return 'rgba(71,85,105,0.15)'
+  if (dist >= WAVE_WIDTH) return heatCellColor(day)
+  const t = dist / WAVE_WIDTH
+  if (t < 0.15) return '#86efac'
+  if (t < 0.40) return '#4ade80'
+  if (t < 0.65) return '#22c55e'
+  if (t < 0.85) return '#16a34a'
+  return heatCellColor(day)
+}
+
 function HeaderHeatmap({ weeks }: { weeks: HeatDay[][] }) {
+  const [wavePos, setWavePos] = useState(-WAVE_WIDTH)
+
+  useEffect(() => {
+    const start = performance.now()
+    const totalRange = 52 + WAVE_WIDTH * 2
+    let raf: number
+
+    function step(now: number) {
+      const pos = ((now - start) / WAVE_DURATION) * totalRange - WAVE_WIDTH
+      setWavePos(pos)
+      if (pos < 52 + WAVE_WIDTH) raf = requestAnimationFrame(step)
+    }
+
+    raf = requestAnimationFrame(step)
+    return () => cancelAnimationFrame(raf)
+  }, [])
+
   return (
     <div className="flex gap-[3px] items-end">
       {weeks.map((week, wi) => (
@@ -44,7 +77,7 @@ function HeaderHeatmap({ weeks }: { weeks: HeatDay[][] }) {
               key={di}
               title={day.isFuture ? '' : `${day.date}${day.count > 0 ? ` · ${day.count}` : ''}`}
               className="w-[9px] h-[9px] rounded-[2px]"
-              style={{ backgroundColor: heatCellColor(day) }}
+              style={{ backgroundColor: getWaveColor(wi, day, wavePos) }}
             />
           ))}
         </div>
