@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Check, Pencil, Trash2, GripVertical } from 'lucide-react'
+import { Check, Pencil, Trash2, GripVertical, Bell } from 'lucide-react'
 import type { ChoreWithLastCompletion } from '@/types'
 import { getFillRatio, getCadenceColor, formatElapsed } from '@/utils/cadence'
 import { logCompletion } from '@/db/queries'
@@ -113,8 +113,9 @@ export function ChoreRow({ chore, editMode, onTap, onEdit, onDelete, onRefresh, 
         )}
 
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-slate-800 dark:text-slate-100 group-hover:text-slate-900 dark:group-hover:text-white transition-colors truncate leading-snug">
+          <p className="text-sm font-medium text-slate-800 dark:text-slate-100 group-hover:text-slate-900 dark:group-hover:text-white transition-colors truncate leading-snug flex items-center gap-1.5">
             {chore.name}
+            {chore.notify_when_overdue && <Bell size={10} className="shrink-0 text-slate-400 dark:text-slate-500 opacity-50" />}
           </p>
           <p className="text-xs text-slate-400 dark:text-slate-500 tabular-nums mt-0.5">{elapsedText}</p>
         </div>
