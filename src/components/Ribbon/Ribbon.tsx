@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Plus } from 'lucide-react'
 import { useChores } from '@/hooks/useChores'
 import { CategorySection } from '@/components/CategorySection/CategorySection'
@@ -16,6 +16,28 @@ export function Ribbon({ editMode, onLogged }: Props) {
   const [activeCategoryIndex, setActiveCategoryIndex] = useState(0)
   const [selectedChore, setSelectedChore] = useState<ChoreWithLastCompletion | null>(null)
   const [addingCategory, setAddingCategory] = useState(false)
+  const touchStartX = useRef(0)
+  const touchStartY = useRef(0)
+  const tabsRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const el = tabsRef.current?.children[activeCategoryIndex] as HTMLElement | undefined
+    el?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
+  }, [activeCategoryIndex])
+
+  function handleTouchStart(e: React.TouchEvent) {
+    touchStartX.current = e.touches[0].clientX
+    touchStartY.current = e.touches[0].clientY
+  }
+
+  function handleTouchEnd(e: React.TouchEvent) {
+    const dx = e.changedTouches[0].clientX - touchStartX.current
+    const dy = e.changedTouches[0].clientY - touchStartY.current
+    if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy)) return
+    setActiveCategoryIndex(i =>
+      dx < 0 ? Math.min(i + 1, data.length - 1) : Math.max(i - 1, 0)
+    )
+  }
 
   function openChore(chore: ChoreWithLastCompletion) { setSelectedChore(chore) }
   function closeChore() { setSelectedChore(null) }
@@ -36,7 +58,7 @@ export function Ribbon({ editMode, onLogged }: Props) {
       {/* ── Mobile: one category at a time with tab strip ── */}
       <div className="flex flex-col flex-1 overflow-hidden lg:hidden">
         {!showEmpty && (
-          <div className="flex overflow-x-auto scrollbar-none border-b border-slate-200 dark:border-slate-700/60 bg-slate-100 dark:bg-slate-900 shrink-0">
+          <div ref={tabsRef} className="flex overflow-x-auto scrollbar-none border-b border-slate-200 dark:border-slate-700/60 bg-slate-100 dark:bg-slate-900 shrink-0">
             {data.map((d, i) => (
               <button
                 key={d.category.id}
@@ -54,7 +76,11 @@ export function Ribbon({ editMode, onLogged }: Props) {
           </div>
         )}
 
-        <div className="flex-1 overflow-y-auto">
+        <div
+          className="flex-1 overflow-y-auto"
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+        >
           {showEmpty ? (
             <EmptyState onAdd={() => setAddingCategory(true)} />
           ) : (
