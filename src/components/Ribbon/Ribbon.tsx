@@ -59,28 +59,31 @@ export function Ribbon({ editMode, onLogged }: Props) {
     if (draggingCatId === null) return
 
     function onMove(e: PointerEvent) {
-      const els = Array.from(catListRef.current?.querySelectorAll(catItemSelector.current) ?? [])
+      const els = Array.from(catListRef.current?.querySelectorAll(catItemSelector.current) ?? []) as HTMLElement[]
       if (els.length === 0) return
-
-      let hoverIdx = els.length
-      for (let i = 0; i < els.length; i++) {
-        const rect = els[i].getBoundingClientRect()
-        if (e.clientX < rect.left + rect.width / 2) { hoverIdx = i; break }
-      }
 
       const cur = localDataRef.current
       const fromIdx = cur.findIndex(d => d.category.id === draggingCatIdRef.current)
       if (fromIdx === -1) return
 
+      const draggedEl = els[fromIdx]
+      if (!draggedEl) return
+      const rect = draggedEl.getBoundingClientRect()
+
+      let toIdx = fromIdx
+      if (e.clientX < rect.left && fromIdx > 0) {
+        toIdx = fromIdx - 1
+      } else if (e.clientX > rect.right && fromIdx < cur.length - 1) {
+        toIdx = fromIdx + 1
+      } else {
+        return
+      }
+
       const next = [...cur]
       const [item] = next.splice(fromIdx, 1)
-      const insertIdx = Math.max(0, Math.min(hoverIdx > fromIdx ? hoverIdx - 1 : hoverIdx, next.length))
-      next.splice(insertIdx, 0, item)
-
-      if (next.some((d, i) => d.category.id !== cur[i].category.id)) {
-        localDataRef.current = next
-        setLocalData(next)
-      }
+      next.splice(toIdx, 0, item)
+      localDataRef.current = next
+      setLocalData(next)
     }
 
     async function onUp() {
@@ -130,9 +133,9 @@ export function Ribbon({ editMode, onLogged }: Props) {
       if (Math.abs(dy) > Math.abs(dx)) return
       isDragging.current = true
     }
-    const atStart = activeCategoryIndex === 0 && dx > 0
-    const atEnd = activeCategoryIndex === localData.length - 1 && dx < 0
-    const newOffset = (atStart || atEnd) ? dx * 0.2 : dx
+    const looping = localData.length > 1
+    const atBoundary = !looping && ((activeCategoryIndex === 0 && dx > 0) || (activeCategoryIndex === localData.length - 1 && dx < 0))
+    const newOffset = atBoundary ? dx * 0.2 : dx
     liveOffset.current = newOffset
     setOffset(newOffset)
   }
@@ -155,10 +158,11 @@ export function Ribbon({ editMode, onLogged }: Props) {
     const cur = liveOffset.current
     const threshold = W * 0.28
 
-    if (cur < -threshold && activeCategoryIndex < localData.length - 1) {
-      snap(-W, () => setActiveCategoryIndex(i => i + 1))
-    } else if (cur > threshold && activeCategoryIndex > 0) {
-      snap(W, () => setActiveCategoryIndex(i => i - 1))
+    const looping = localData.length > 1
+    if (cur < -threshold && (looping || activeCategoryIndex < localData.length - 1)) {
+      snap(-W, () => setActiveCategoryIndex(i => (i + 1) % localData.length))
+    } else if (cur > threshold && (looping || activeCategoryIndex > 0)) {
+      snap(W, () => setActiveCategoryIndex(i => (i - 1 + localData.length) % localData.length))
     } else {
       snap(0)
     }
@@ -183,9 +187,11 @@ export function Ribbon({ editMode, onLogged }: Props) {
   }
 
   const showEmpty = localData.length === 0
-  const prevData = activeCategoryIndex > 0 ? localData[activeCategoryIndex - 1] : null
+  const n = localData.length
+  const canLoop = n > 1
+  const prevData = canLoop ? localData[(activeCategoryIndex - 1 + n) % n] : (activeCategoryIndex > 0 ? localData[activeCategoryIndex - 1] : null)
   const currData = localData[activeCategoryIndex]
-  const nextData = activeCategoryIndex < localData.length - 1 ? localData[activeCategoryIndex + 1] : null
+  const nextData = canLoop ? localData[(activeCategoryIndex + 1) % n] : (activeCategoryIndex < n - 1 ? localData[activeCategoryIndex + 1] : null)
   const cols = Math.min(Math.max(localData.length, 1), 4)
 
   return (
@@ -282,7 +288,7 @@ export function Ribbon({ editMode, onLogged }: Props) {
           <div className="p-6">
             <div
               ref={desktopGridRef}
-              className="grid gap-5"
+              className="grid gap-5 items-start"
               style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
             >
               {localData.map(d => (
