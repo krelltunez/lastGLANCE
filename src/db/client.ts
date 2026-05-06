@@ -14,6 +14,16 @@ class LastGlanceDB extends Dexie {
       completionEvents: '++id, chore_id, completed_at',
     })
 
+    this.version(2)
+      .stores({ chores: '++id, category_id, sort_order' })
+      .upgrade(tx =>
+        tx.table('chores').toCollection().modify((chore: Chore) => {
+          if ((chore as { sort_order?: number }).sort_order === undefined) {
+            chore.sort_order = chore.id
+          }
+        })
+      )
+
     this.on('populate', async () => {
       const catIds = (await this.categories.bulkAdd(
         SEED_CATEGORIES as unknown as Category[],
@@ -21,8 +31,9 @@ class LastGlanceDB extends Dexie {
       )) as unknown as number[]
 
       await this.chores.bulkAdd(
-        SEED_CHORES.map(({ _catIndex, ...rest }) => ({
+        SEED_CHORES.map(({ _catIndex, ...rest }, i) => ({
           ...rest,
+          sort_order: i,
           category_id: catIds[_catIndex],
         })) as unknown as Chore[]
       )
@@ -39,7 +50,7 @@ const SEED_CATEGORIES: Omit<Category, 'id'>[] = [
   { name: 'Deep clean', sort_order: 3 },
 ]
 
-const SEED_CHORES: (Omit<Chore, 'id' | 'category_id'> & { _catIndex: number })[] = [
+const SEED_CHORES: (Omit<Chore, 'id' | 'category_id' | 'sort_order'> & { _catIndex: number })[] = [
   { name: 'Mop kitchen',        _catIndex: 0, target_cadence_days: 14, auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, created_at: now, updated_at: now },
   { name: 'Clean bathrooms',    _catIndex: 0, target_cadence_days: 7,  auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, created_at: now, updated_at: now },
   { name: 'Vacuum',             _catIndex: 0, target_cadence_days: 7,  auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, created_at: now, updated_at: now },

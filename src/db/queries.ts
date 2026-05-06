@@ -39,7 +39,7 @@ export async function deleteCategory(id: number): Promise<void> {
 // Chores
 
 export async function getChoresForCategory(categoryId: number): Promise<ChoreWithLastCompletion[]> {
-  const chores = await db.chores.where('category_id').equals(categoryId).sortBy('name')
+  const chores = await db.chores.where('category_id').equals(categoryId).sortBy('sort_order')
 
   return Promise.all(
     chores.map(async chore => {
@@ -63,10 +63,23 @@ export async function getChoresForCategory(categoryId: number): Promise<ChoreWit
 }
 
 export async function createChore(
-  data: Omit<Chore, 'id' | 'created_at' | 'updated_at'>
+  data: Omit<Chore, 'id' | 'sort_order' | 'created_at' | 'updated_at'>
 ): Promise<number> {
   const now = dayjs().toISOString()
-  return db.chores.add({ ...data, created_at: now, updated_at: now } as Chore)
+  const count = await db.chores.where('category_id').equals(data.category_id).count()
+  return db.chores.add({ ...data, sort_order: count, created_at: now, updated_at: now } as Chore)
+}
+
+export async function reorderChores(orderedIds: number[]): Promise<void> {
+  await db.transaction('rw', db.chores, () =>
+    Promise.all(orderedIds.map((id, idx) => db.chores.update(id, { sort_order: idx })))
+  )
+}
+
+export async function reorderCategories(orderedIds: number[]): Promise<void> {
+  await db.transaction('rw', db.categories, () =>
+    Promise.all(orderedIds.map((id, idx) => db.categories.update(id, { sort_order: idx })))
+  )
 }
 
 export async function updateChore(

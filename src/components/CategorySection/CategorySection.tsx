@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Pencil, Trash2, Plus, Smile } from 'lucide-react'
 import type { CategoryWithChores } from '@/hooks/useChores'
 import type { ChoreWithLastCompletion } from '@/types'
@@ -6,7 +6,7 @@ import { ChoreRow } from '@/components/ChoreRow/ChoreRow'
 import { ChoreFormModal } from '@/components/ChoreFormModal/ChoreFormModal'
 import { CategoryFormModal } from '@/components/CategoryFormModal/CategoryFormModal'
 import { IconPicker } from '@/components/IconPicker/IconPicker'
-import { deleteCategory, deleteChore, updateCategory } from '@/db/queries'
+import { deleteCategory, deleteChore, updateCategory, reorderChores } from '@/db/queries'
 import { ICON_REGISTRY } from '@/icons/registry'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
 
@@ -23,6 +23,71 @@ export function CategorySection({ data, editMode, onChoreTab, onRefresh, onLogge
   const [categoryForm, setCategoryForm] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState<'category' | number | null>(null)
   const [iconPickerFor, setIconPickerFor] = useState<'category' | number | null>(null)
+
+  // Drag-to-reorder
+  const [localChores, setLocalChores] = useState<ChoreWithLastCompletion[]>(data.chores)
+  const [draggingId, setDraggingId] = useState<number | null>(null)
+  const localChoresRef = useRef<ChoreWithLastCompletion[]>(data.chores)
+  const draggingIdRef = useRef<number | null>(null)
+  const choreListRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (draggingIdRef.current === null) {
+      setLocalChores(data.chores)
+      localChoresRef.current = data.chores
+    }
+  }, [data.chores])
+
+  useEffect(() => {
+    if (draggingId === null) return
+
+    function onMove(e: PointerEvent) {
+      const rows = Array.from(choreListRef.current?.querySelectorAll('[data-chore-id]') ?? [])
+      if (rows.length === 0) return
+
+      let hoverIdx = rows.length
+      for (let i = 0; i < rows.length; i++) {
+        const rect = rows[i].getBoundingClientRect()
+        if (e.clientY < rect.top + rect.height / 2) { hoverIdx = i; break }
+      }
+
+      const cur = localChoresRef.current
+      const fromIdx = cur.findIndex(c => c.id === draggingIdRef.current)
+      if (fromIdx === -1) return
+
+      const next = [...cur]
+      const [item] = next.splice(fromIdx, 1)
+      const insertIdx = Math.max(0, Math.min(hoverIdx > fromIdx ? hoverIdx - 1 : hoverIdx, next.length))
+      next.splice(insertIdx, 0, item)
+
+      if (next.some((c, i) => c.id !== cur[i].id)) {
+        localChoresRef.current = next
+        setLocalChores(next)
+      }
+    }
+
+    async function onUp() {
+      if (draggingIdRef.current !== null) {
+        await reorderChores(localChoresRef.current.map(c => c.id!))
+        onRefresh()
+      }
+      draggingIdRef.current = null
+      setDraggingId(null)
+    }
+
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+    return () => {
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+    }
+  }, [draggingId, onRefresh])
+
+  function startDrag(e: React.PointerEvent, choreId: number) {
+    e.currentTarget.setPointerCapture(e.pointerId)
+    draggingIdRef.current = choreId
+    setDraggingId(choreId)
+  }
 
   async function handleDeleteCategory() {
     await deleteCategory(data.category.id)
@@ -88,22 +153,25 @@ export function CategorySection({ data, editMode, onChoreTab, onRefresh, onLogge
         </div>
 
         {/* Chore list */}
-        <div className="flex flex-col gap-2">
-          {data.chores.length === 0 && !editMode && (
+        <div ref={choreListRef} className="flex flex-col gap-2">
+          {localChores.length === 0 && !editMode && (
             <p className="text-sm text-slate-400 dark:text-slate-600 py-3 text-center">
               No chores yet — tap Edit to add one.
             </p>
           )}
-          {data.chores.map(chore => (
-            <ChoreRow
-              key={chore.id}
-              chore={chore}
-              editMode={editMode}
-              onTap={onChoreTab}
-              onEdit={() => setChoreForm({ chore })}
-              onDelete={() => setConfirmDelete(chore.id)}
-              onRefresh={() => { onRefresh(); onLogged?.() }}
-            />
+          {localChores.map(chore => (
+            <div key={chore.id} data-chore-id={chore.id}>
+              <ChoreRow
+                chore={chore}
+                editMode={editMode}
+                onTap={onChoreTab}
+                onEdit={() => setChoreForm({ chore })}
+                onDelete={() => setConfirmDelete(chore.id)}
+                onRefresh={() => { onRefresh(); onLogged?.() }}
+                onDragHandlePointerDown={e => startDrag(e, chore.id!)}
+                isDragging={draggingId === chore.id}
+              />
+            </div>
           ))}
           {editMode && (
             <button

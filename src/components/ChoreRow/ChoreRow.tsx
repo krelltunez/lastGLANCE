@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Check, Pencil, Trash2 } from 'lucide-react'
+import { Check, Pencil, Trash2, GripVertical } from 'lucide-react'
 import type { ChoreWithLastCompletion } from '@/types'
 import { getFillRatio, getCadenceColor, formatElapsed } from '@/utils/cadence'
 import { logCompletion } from '@/db/queries'
@@ -12,11 +12,13 @@ interface Props {
   onEdit: () => void
   onDelete: () => void
   onRefresh: () => void
+  onDragHandlePointerDown?: (e: React.PointerEvent) => void
+  isDragging?: boolean
 }
 
 type LogState = 'idle' | 'saving' | 'done'
 
-export function ChoreRow({ chore, editMode, onTap, onEdit, onDelete, onRefresh }: Props) {
+export function ChoreRow({ chore, editMode, onTap, onEdit, onDelete, onRefresh, onDragHandlePointerDown, isDragging }: Props) {
   const [logState, setLogState] = useState<LogState>('idle')
 
   const hasCadence = chore.target_cadence_days !== null
@@ -45,7 +47,17 @@ export function ChoreRow({ chore, editMode, onTap, onEdit, onDelete, onRefresh }
 
   if (editMode) {
     return (
-      <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/40">
+      <div
+        className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/40 transition-opacity"
+        style={{ opacity: isDragging ? 0.4 : 1 }}
+      >
+        <div
+          className="shrink-0 cursor-grab active:cursor-grabbing text-slate-300 dark:text-slate-600 hover:text-slate-400 dark:hover:text-slate-500 -ml-1"
+          style={{ touchAction: 'none' }}
+          onPointerDown={onDragHandlePointerDown}
+        >
+          <GripVertical size={14} />
+        </div>
         {ChoreIcon && (
           <ChoreIcon size={14} className="text-slate-400 dark:text-slate-500 shrink-0" />
         )}
