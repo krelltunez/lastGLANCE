@@ -11,13 +11,22 @@ interface Props {
   onLogged?: () => void
 }
 
+const SNAP_MS = 280
+
 export function Ribbon({ editMode, onLogged }: Props) {
   const { data, loading, refresh } = useChores()
   const [activeCategoryIndex, setActiveCategoryIndex] = useState(0)
   const [selectedChore, setSelectedChore] = useState<ChoreWithLastCompletion | null>(null)
   const [addingCategory, setAddingCategory] = useState(false)
+
+  // Swipe
+  const [offset, setOffset] = useState(0)
+  const [snapping, setSnapping] = useState(false)
+  const isDragging = useRef(false)
   const touchStartX = useRef(0)
   const touchStartY = useRef(0)
+  const liveOffset = useRef(0)
+  const containerRef = useRef<HTMLDivElement>(null)
   const tabsRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -26,17 +35,60 @@ export function Ribbon({ editMode, onLogged }: Props) {
   }, [activeCategoryIndex])
 
   function handleTouchStart(e: React.TouchEvent) {
+    if (snapping) return
     touchStartX.current = e.touches[0].clientX
     touchStartY.current = e.touches[0].clientY
+    isDragging.current = false
+    liveOffset.current = 0
   }
 
-  function handleTouchEnd(e: React.TouchEvent) {
-    const dx = e.changedTouches[0].clientX - touchStartX.current
-    const dy = e.changedTouches[0].clientY - touchStartY.current
-    if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy)) return
-    setActiveCategoryIndex(i =>
-      dx < 0 ? Math.min(i + 1, data.length - 1) : Math.max(i - 1, 0)
-    )
+  function handleTouchMove(e: React.TouchEvent) {
+    if (snapping) return
+    const dx = e.touches[0].clientX - touchStartX.current
+    const dy = e.touches[0].clientY - touchStartY.current
+    if (!isDragging.current) {
+      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return
+      if (Math.abs(dy) > Math.abs(dx)) return
+      isDragging.current = true
+    }
+    const atStart = activeCategoryIndex === 0 && dx > 0
+    const atEnd = activeCategoryIndex === data.length - 1 && dx < 0
+    const newOffset = (atStart || atEnd) ? dx * 0.2 : dx
+    liveOffset.current = newOffset
+    setOffset(newOffset)
+  }
+
+  function snap(targetOffset: number, afterSnap?: () => void) {
+    setSnapping(true)
+    setOffset(targetOffset)
+    setTimeout(() => {
+      afterSnap?.()
+      setOffset(0)
+      liveOffset.current = 0
+      setSnapping(false)
+    }, SNAP_MS)
+  }
+
+  function handleTouchEnd() {
+    if (!isDragging.current) return
+    isDragging.current = false
+    const W = containerRef.current?.offsetWidth ?? 375
+    const cur = liveOffset.current
+    const threshold = W * 0.28
+
+    if (cur < -threshold && activeCategoryIndex < data.length - 1) {
+      snap(-W, () => setActiveCategoryIndex(i => i + 1))
+    } else if (cur > threshold && activeCategoryIndex > 0) {
+      snap(W, () => setActiveCategoryIndex(i => i - 1))
+    } else {
+      snap(0)
+    }
+  }
+
+  function handleTouchCancel() {
+    if (!isDragging.current) return
+    isDragging.current = false
+    snap(0)
   }
 
   function openChore(chore: ChoreWithLastCompletion) { setSelectedChore(chore) }
@@ -52,6 +104,10 @@ export function Ribbon({ editMode, onLogged }: Props) {
   }
 
   const showEmpty = data.length === 0
+
+  const prevData = activeCategoryIndex > 0 ? data[activeCategoryIndex - 1] : null
+  const currData = data[activeCategoryIndex]
+  const nextData = activeCategoryIndex < data.length - 1 ? data[activeCategoryIndex + 1] : null
 
   return (
     <>
@@ -76,27 +132,42 @@ export function Ribbon({ editMode, onLogged }: Props) {
           </div>
         )}
 
-        <div
-          className="flex-1 overflow-y-auto"
-          onTouchStart={handleTouchStart}
-          onTouchEnd={handleTouchEnd}
-        >
-          {showEmpty ? (
+        {showEmpty ? (
+          <div className="flex-1">
             <EmptyState onAdd={() => setAddingCategory(true)} />
-          ) : (
-            data[activeCategoryIndex] && (
-              <div className="p-4">
-                <CategorySection
-                  data={data[activeCategoryIndex]}
-                  editMode={editMode}
-                  onChoreTab={openChore}
-                  onRefresh={refresh}
-                  onLogged={onLogged}
-                />
+          </div>
+        ) : (
+          <div
+            ref={containerRef}
+            className="flex-1 overflow-hidden"
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            onTouchCancel={handleTouchCancel}
+            style={{ touchAction: 'pan-y' }}
+          >
+            {/* Three-panel track: [prev][current][next] */}
+            <div
+              className="flex h-full"
+              style={{
+                width: '300%',
+                transform: `translateX(calc(-33.333% + ${offset}px))`,
+                transition: snapping ? `transform ${SNAP_MS}ms cubic-bezier(0.25, 1, 0.5, 1)` : 'none',
+                willChange: 'transform',
+              }}
+            >
+              <div className="overflow-y-auto" style={{ width: '33.333%' }}>
+                {prevData && <div className="p-4"><CategorySection data={prevData} editMode={editMode} onChoreTab={openChore} onRefresh={refresh} onLogged={onLogged} /></div>}
               </div>
-            )
-          )}
-        </div>
+              <div className="overflow-y-auto" style={{ width: '33.333%' }}>
+                {currData && <div className="p-4"><CategorySection data={currData} editMode={editMode} onChoreTab={openChore} onRefresh={refresh} onLogged={onLogged} /></div>}
+              </div>
+              <div className="overflow-y-auto" style={{ width: '33.333%' }}>
+                {nextData && <div className="p-4"><CategorySection data={nextData} editMode={editMode} onChoreTab={openChore} onRefresh={refresh} onLogged={onLogged} /></div>}
+              </div>
+            </div>
+          </div>
+        )}
 
         {editMode && !showEmpty && (
           <div className="shrink-0 border-t border-slate-200 dark:border-slate-700/60 p-3">
