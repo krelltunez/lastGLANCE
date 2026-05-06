@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect } from 'react'
-import { Plus } from 'lucide-react'
+import { Plus, GripVertical } from 'lucide-react'
 import { useChores } from '@/hooks/useChores'
+import { reorderCategories } from '@/db/queries'
 import { CategorySection } from '@/components/CategorySection/CategorySection'
 import { LogModal } from '@/components/LogModal/LogModal'
 import { CategoryFormModal } from '@/components/CategoryFormModal/CategoryFormModal'
 import type { ChoreWithLastCompletion } from '@/types'
+import type { CategoryWithChores } from '@/hooks/useChores'
 
 interface Props {
   editMode: boolean
@@ -15,11 +17,19 @@ const SNAP_MS = 280
 
 export function Ribbon({ editMode, onLogged }: Props) {
   const { data, loading, refresh } = useChores()
+  const [localData, setLocalData] = useState<CategoryWithChores[]>([])
   const [activeCategoryIndex, setActiveCategoryIndex] = useState(0)
   const [selectedChore, setSelectedChore] = useState<ChoreWithLastCompletion | null>(null)
   const [addingCategory, setAddingCategory] = useState(false)
 
-  // Swipe
+  // Category drag
+  const [draggingCatId, setDraggingCatId] = useState<number | null>(null)
+  const localDataRef = useRef<CategoryWithChores[]>([])
+  const draggingCatIdRef = useRef<number | null>(null)
+  const catListRef = useRef<HTMLElement | null>(null)
+  const catItemSelector = useRef('')
+
+  // Swipe (mobile)
   const [offset, setOffset] = useState(0)
   const [snapping, setSnapping] = useState(false)
   const isDragging = useRef(false)
@@ -28,12 +38,81 @@ export function Ribbon({ editMode, onLogged }: Props) {
   const liveOffset = useRef(0)
   const containerRef = useRef<HTMLDivElement>(null)
   const tabsRef = useRef<HTMLDivElement>(null)
+  const desktopGridRef = useRef<HTMLDivElement>(null)
 
+  // Sync localData from server when not dragging categories
+  useEffect(() => {
+    if (draggingCatIdRef.current === null) {
+      setLocalData(data)
+      localDataRef.current = data
+    }
+  }, [data])
+
+  // Scroll active tab into view
   useEffect(() => {
     const el = tabsRef.current?.children[activeCategoryIndex] as HTMLElement | undefined
     el?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
   }, [activeCategoryIndex])
 
+  // Category drag listeners
+  useEffect(() => {
+    if (draggingCatId === null) return
+
+    function onMove(e: PointerEvent) {
+      const els = Array.from(catListRef.current?.querySelectorAll(catItemSelector.current) ?? [])
+      if (els.length === 0) return
+
+      let hoverIdx = els.length
+      for (let i = 0; i < els.length; i++) {
+        const rect = els[i].getBoundingClientRect()
+        if (e.clientX < rect.left + rect.width / 2) { hoverIdx = i; break }
+      }
+
+      const cur = localDataRef.current
+      const fromIdx = cur.findIndex(d => d.category.id === draggingCatIdRef.current)
+      if (fromIdx === -1) return
+
+      const next = [...cur]
+      const [item] = next.splice(fromIdx, 1)
+      const insertIdx = Math.max(0, Math.min(hoverIdx > fromIdx ? hoverIdx - 1 : hoverIdx, next.length))
+      next.splice(insertIdx, 0, item)
+
+      if (next.some((d, i) => d.category.id !== cur[i].category.id)) {
+        localDataRef.current = next
+        setLocalData(next)
+      }
+    }
+
+    async function onUp() {
+      if (draggingCatIdRef.current !== null) {
+        const newOrder = localDataRef.current
+        // Update activeCategoryIndex to follow the dragged category
+        const newIdx = newOrder.findIndex(d => d.category.id === draggingCatIdRef.current)
+        if (newIdx !== -1) setActiveCategoryIndex(newIdx)
+        await reorderCategories(newOrder.map(d => d.category.id))
+        refresh()
+      }
+      draggingCatIdRef.current = null
+      setDraggingCatId(null)
+    }
+
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+    return () => {
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+    }
+  }, [draggingCatId, refresh])
+
+  function startCatDrag(e: React.PointerEvent, catId: number, listEl: HTMLElement, selector: string) {
+    e.currentTarget.setPointerCapture(e.pointerId)
+    catListRef.current = listEl
+    catItemSelector.current = selector
+    draggingCatIdRef.current = catId
+    setDraggingCatId(catId)
+  }
+
+  // Swipe handlers
   function handleTouchStart(e: React.TouchEvent) {
     if (snapping) return
     touchStartX.current = e.touches[0].clientX
@@ -52,7 +131,7 @@ export function Ribbon({ editMode, onLogged }: Props) {
       isDragging.current = true
     }
     const atStart = activeCategoryIndex === 0 && dx > 0
-    const atEnd = activeCategoryIndex === data.length - 1 && dx < 0
+    const atEnd = activeCategoryIndex === localData.length - 1 && dx < 0
     const newOffset = (atStart || atEnd) ? dx * 0.2 : dx
     liveOffset.current = newOffset
     setOffset(newOffset)
@@ -76,7 +155,7 @@ export function Ribbon({ editMode, onLogged }: Props) {
     const cur = liveOffset.current
     const threshold = W * 0.28
 
-    if (cur < -threshold && activeCategoryIndex < data.length - 1) {
+    if (cur < -threshold && activeCategoryIndex < localData.length - 1) {
       snap(-W, () => setActiveCategoryIndex(i => i + 1))
     } else if (cur > threshold && activeCategoryIndex > 0) {
       snap(W, () => setActiveCategoryIndex(i => i - 1))
@@ -103,11 +182,11 @@ export function Ribbon({ editMode, onLogged }: Props) {
     )
   }
 
-  const showEmpty = data.length === 0
-
-  const prevData = activeCategoryIndex > 0 ? data[activeCategoryIndex - 1] : null
-  const currData = data[activeCategoryIndex]
-  const nextData = activeCategoryIndex < data.length - 1 ? data[activeCategoryIndex + 1] : null
+  const showEmpty = localData.length === 0
+  const prevData = activeCategoryIndex > 0 ? localData[activeCategoryIndex - 1] : null
+  const currData = localData[activeCategoryIndex]
+  const nextData = activeCategoryIndex < localData.length - 1 ? localData[activeCategoryIndex + 1] : null
+  const cols = Math.min(Math.max(localData.length, 1), 4)
 
   return (
     <>
@@ -115,17 +194,31 @@ export function Ribbon({ editMode, onLogged }: Props) {
       <div className="flex flex-col flex-1 overflow-hidden lg:hidden">
         {!showEmpty && (
           <div ref={tabsRef} className="flex overflow-x-auto scrollbar-none border-b border-slate-200 dark:border-slate-700/60 bg-slate-100 dark:bg-slate-900 shrink-0">
-            {data.map((d, i) => (
+            {localData.map((d, i) => (
               <button
                 key={d.category.id}
+                data-cat-tab-id={d.category.id}
                 onClick={() => setActiveCategoryIndex(i)}
                 className={`
-                  shrink-0 px-4 py-2.5 text-xs font-semibold transition-colors whitespace-nowrap
+                  shrink-0 flex items-center gap-1 px-3 py-2.5 text-xs font-semibold transition-colors whitespace-nowrap
                   ${i === activeCategoryIndex
                     ? 'text-green-400 border-b-2 border-green-400'
                     : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}
+                  ${draggingCatId === d.category.id ? 'opacity-40' : ''}
                 `}
               >
+                {editMode && (
+                  <span
+                    className="text-slate-300 dark:text-slate-600 hover:text-slate-400 shrink-0"
+                    style={{ touchAction: 'none' }}
+                    onPointerDown={e => {
+                      e.stopPropagation()
+                      startCatDrag(e, d.category.id, tabsRef.current!, '[data-cat-tab-id]')
+                    }}
+                  >
+                    <GripVertical size={11} />
+                  </span>
+                )}
                 {d.category.name}
               </button>
             ))}
@@ -146,7 +239,6 @@ export function Ribbon({ editMode, onLogged }: Props) {
             onTouchCancel={handleTouchCancel}
             style={{ touchAction: 'pan-y' }}
           >
-            {/* Three-panel track: [prev][current][next] */}
             <div
               className="flex h-full"
               style={{
@@ -182,42 +274,44 @@ export function Ribbon({ editMode, onLogged }: Props) {
         )}
       </div>
 
-      {/* ── Desktop: masonry columns ── */}
+      {/* ── Desktop: grid columns ── */}
       <div className="hidden lg:block flex-1 overflow-y-auto">
         {showEmpty ? (
           <EmptyState onAdd={() => setAddingCategory(true)} />
         ) : (
           <div className="p-6">
             <div
-              className="gap-5"
-              style={{
-                columns: data.length === 1 ? 1 : data.length === 2 ? 2 : data.length <= 4 ? 3 : 4,
-                columnGap: '1.25rem',
-              }}
+              ref={desktopGridRef}
+              className="grid gap-5"
+              style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
             >
-              {data.map(d => (
-                <div key={d.category.id} className="break-inside-avoid mb-5">
-                  <div className="bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-5">
-                    <CategorySection
-                      data={d}
-                      editMode={editMode}
-                      onChoreTab={openChore}
-                      onRefresh={refresh}
-                      onLogged={onLogged}
-                    />
-                  </div>
+              {localData.map(d => (
+                <div
+                  key={d.category.id}
+                  data-cat-card-id={d.category.id}
+                  className="bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-5"
+                >
+                  <CategorySection
+                    data={d}
+                    editMode={editMode}
+                    onChoreTab={openChore}
+                    onRefresh={refresh}
+                    onLogged={onLogged}
+                    onCategoryDragHandlePointerDown={editMode
+                      ? e => startCatDrag(e, d.category.id, desktopGridRef.current!, '[data-cat-card-id]')
+                      : undefined}
+                    isCategoryDragging={draggingCatId === d.category.id}
+                  />
                 </div>
               ))}
               {editMode && (
-                <div className="break-inside-avoid mb-5">
-                  <button
-                    onClick={() => setAddingCategory(true)}
-                    className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl text-sm text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/30 border border-dashed border-slate-300 dark:border-slate-700/60 hover:border-slate-400 dark:hover:border-slate-600 transition-colors"
-                  >
-                    <Plus size={15} />
-                    Add category
-                  </button>
-                </div>
+                <button
+                  onClick={() => setAddingCategory(true)}
+                  className="flex items-center justify-center gap-2 py-4 rounded-2xl text-sm text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/30 border border-dashed border-slate-300 dark:border-slate-700/60 hover:border-slate-400 dark:hover:border-slate-600 transition-colors"
+                >
+                  <Plus size={15} />
+                  Add category
+                </button>
               )}
             </div>
           </div>

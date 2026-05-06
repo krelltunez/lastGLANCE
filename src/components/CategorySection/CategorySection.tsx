@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Pencil, Trash2, Plus, Smile } from 'lucide-react'
+import { Pencil, Trash2, Plus, Smile, GripVertical } from 'lucide-react'
 import type { CategoryWithChores } from '@/hooks/useChores'
 import type { ChoreWithLastCompletion } from '@/types'
 import { ChoreRow } from '@/components/ChoreRow/ChoreRow'
@@ -16,9 +16,11 @@ interface Props {
   onChoreTab: (chore: ChoreWithLastCompletion) => void
   onRefresh: () => void
   onLogged?: () => void
+  onCategoryDragHandlePointerDown?: (e: React.PointerEvent) => void
+  isCategoryDragging?: boolean
 }
 
-export function CategorySection({ data, editMode, onChoreTab, onRefresh, onLogged }: Props) {
+export function CategorySection({ data, editMode, onChoreTab, onRefresh, onLogged, onCategoryDragHandlePointerDown, isCategoryDragging }: Props) {
   const [choreForm, setChoreForm] = useState<{ chore?: ChoreWithLastCompletion } | null>(null)
   const [categoryForm, setCategoryForm] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState<'category' | number | null>(null)
@@ -108,9 +110,18 @@ export function CategorySection({ data, editMode, onChoreTab, onRefresh, onLogge
 
   return (
     <>
-      <div className="flex flex-col">
+      <div className="flex flex-col" style={{ opacity: isCategoryDragging ? 0.4 : 1 }}>
         {/* Category header */}
         <div className="flex items-center gap-2.5 mb-3">
+          {editMode && onCategoryDragHandlePointerDown && (
+            <div
+              className="shrink-0 cursor-grab active:cursor-grabbing text-slate-300 dark:text-slate-600 hover:text-slate-400 dark:hover:text-slate-500"
+              style={{ touchAction: 'none' }}
+              onPointerDown={onCategoryDragHandlePointerDown}
+            >
+              <GripVertical size={14} />
+            </div>
+          )}
           {editMode && (
             <button
               onClick={() => setIconPickerFor('category')}
