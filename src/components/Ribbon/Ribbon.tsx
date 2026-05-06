@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useLayoutEffect } from 'react'
 import { Plus, GripVertical } from 'lucide-react'
 import { useChores } from '@/hooks/useChores'
 import { reorderCategories } from '@/db/queries'
@@ -117,7 +117,7 @@ export function Ribbon({ editMode, onLogged }: Props) {
     setDraggingCatId(catId)
   }
 
-  // Drive the carousel track directly — bypasses React rendering on every drag pixel
+  // Drive the carousel track directly — no React re-render during drag
   function applyTrackOffset(px: number, animated = false) {
     if (!trackRef.current) return
     trackRef.current.style.transition = animated
@@ -126,8 +126,8 @@ export function Ribbon({ editMode, onLogged }: Props) {
     trackRef.current.style.transform = `translateX(calc(-33.333% + ${px}px))`
   }
 
-  // Re-centre the track whenever the active category changes (tab click, snap, etc.)
-  useEffect(() => { applyTrackOffset(0) }, [activeCategoryIndex]) // eslint-disable-line
+  // useLayoutEffect = runs before paint, so track is correct on first render
+  useLayoutEffect(() => { applyTrackOffset(0) }, [activeCategoryIndex]) // eslint-disable-line
 
   // Swipe handlers
   function handleTouchStart(e: React.TouchEvent) {
@@ -147,11 +147,11 @@ export function Ribbon({ editMode, onLogged }: Props) {
       if (Math.abs(dy) > Math.abs(dx)) return
       isDragging.current = true
     }
-    const looping = localData.length > 1
-    const atBoundary = !looping && ((activeCategoryIndex === 0 && dx > 0) || (activeCategoryIndex === localData.length - 1 && dx < 0))
-    const newOffset = atBoundary ? dx * 0.2 : dx
+    const atStart = activeCategoryIndex === 0 && dx > 0
+    const atEnd = activeCategoryIndex === localData.length - 1 && dx < 0
+    const newOffset = (atStart || atEnd) ? dx * 0.2 : dx
     liveOffset.current = newOffset
-    applyTrackOffset(newOffset) // direct DOM — no React re-render during drag
+    applyTrackOffset(newOffset)
   }
 
   function snap(targetOffset: number, afterSnap?: () => void) {
@@ -159,7 +159,7 @@ export function Ribbon({ editMode, onLogged }: Props) {
     applyTrackOffset(targetOffset, true)
     setTimeout(() => {
       afterSnap?.()
-      applyTrackOffset(0) // reset before React commits new panel content
+      applyTrackOffset(0)
       liveOffset.current = 0
       setSnapping(false)
     }, SNAP_MS)
@@ -172,11 +172,10 @@ export function Ribbon({ editMode, onLogged }: Props) {
     const cur = liveOffset.current
     const threshold = W * 0.28
 
-    const looping = localData.length > 1
-    if (cur < -threshold && (looping || activeCategoryIndex < localData.length - 1)) {
-      snap(-W, () => setActiveCategoryIndex(i => (i + 1) % localData.length))
-    } else if (cur > threshold && (looping || activeCategoryIndex > 0)) {
-      snap(W, () => setActiveCategoryIndex(i => (i - 1 + localData.length) % localData.length))
+    if (cur < -threshold && activeCategoryIndex < localData.length - 1) {
+      snap(-W, () => setActiveCategoryIndex(i => i + 1))
+    } else if (cur > threshold && activeCategoryIndex > 0) {
+      snap(W, () => setActiveCategoryIndex(i => i - 1))
     } else {
       snap(0)
     }
@@ -201,11 +200,9 @@ export function Ribbon({ editMode, onLogged }: Props) {
   }
 
   const showEmpty = localData.length === 0
-  const n = localData.length
-  const canLoop = n > 1
-  const prevData = canLoop ? localData[(activeCategoryIndex - 1 + n) % n] : (activeCategoryIndex > 0 ? localData[activeCategoryIndex - 1] : null)
+  const prevData = activeCategoryIndex > 0 ? localData[activeCategoryIndex - 1] : null
   const currData = localData[activeCategoryIndex]
-  const nextData = canLoop ? localData[(activeCategoryIndex + 1) % n] : (activeCategoryIndex < n - 1 ? localData[activeCategoryIndex + 1] : null)
+  const nextData = activeCategoryIndex < localData.length - 1 ? localData[activeCategoryIndex + 1] : null
   const cols = Math.min(Math.max(localData.length, 1), 4)
 
   return (
