@@ -8,36 +8,13 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png'],
-      manifest: {
-        name: 'lastGLANCE',
-        short_name: 'lastGLANCE',
-        description: 'Track when you last did stuff',
-        theme_color: '#0f172a',
-        background_color: '#0f172a',
-        display: 'standalone',
-        orientation: 'any',
-        start_url: '/',
-        scope: '/',
-        icons: [
-          {
-            src: 'icons/icon-192.png',
-            sizes: '192x192',
-            type: 'image/png',
-          },
-          {
-            src: 'icons/icon-512.png',
-            sizes: '512x512',
-            type: 'image/png',
-          },
-          {
-            src: 'icons/icon-512.png',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'any maskable',
-          },
-        ],
-      },
+      manifest: false,
+      includeAssets: [
+        'favicon.ico',
+        'og-image.png',
+        'favicon/*.png',
+        'icons/*.png',
+      ],
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
       },

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 200" width="980" height="200">
+  <text x="50" y="148"
+        font-family='-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
+        font-size="120"
+        font-weight="800"
+        letter-spacing="-3"
+        fill="#EEF1F8">last</text>
+  <text x="288" y="148"
+        font-family='-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
+        font-size="120"
+        font-weight="800"
+        font-style="italic"
+        letter-spacing="-2"
+        fill="#3DDC84">GLANCE</text>
+</svg>
