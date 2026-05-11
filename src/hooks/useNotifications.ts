@@ -28,7 +28,7 @@ async function checkAndNotify() {
   for (const chore of allChores) {
     if (!chore.notify_when_overdue) continue
     if (!chore.target_cadence_days) continue
-    if (chore.elapsed_days === null || chore.elapsed_days <= chore.target_cadence_days) continue
+    if (chore.elapsed_days === null || chore.elapsed_days < chore.target_cadence_days) continue
     if (localStorage.getItem(STORAGE_KEY(chore.id!)) === today) continue
 
     const overdue = Math.floor(chore.elapsed_days - chore.target_cadence_days)
@@ -51,8 +51,12 @@ export function useNotifications() {
     if (!('Notification' in window)) return
     checkAndNotify()
 
-    function onFocus() { checkAndNotify() }
-    document.addEventListener('visibilitychange', onFocus)
-    return () => document.removeEventListener('visibilitychange', onFocus)
+    const interval = setInterval(checkAndNotify, 60 * 60 * 1000)
+    function onVisibilityChange() { checkAndNotify() }
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    return () => {
+      clearInterval(interval)
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+    }
   }, [])
 }
