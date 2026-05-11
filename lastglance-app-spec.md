@@ -71,35 +71,39 @@ Cadence storage: single `target_cadence_days` integer. UI handles the softening 
 
 ## dayGLANCE integration
 
-The key power-up. Standalone app that gains significant power when paired with dayGLANCE, via the intent protocol (see `dayglance-intent-protocol.md`). lastGLANCE is the second consumer of the protocol after Tasker, and the one that drove its bidirectional design.
+The key power-up. Standalone app that gains significant power when paired with dayGLANCE, via the intent protocol (see `dayglance-intent-protocol.md`). lastGLANCE is the GLANCE-family consumer the bidirectional design was built around: specifically, the requirement that a completion happening on one device propagate to lastGLANCE on another device, anywhere in the world. The WebDAV event log transport in the intent protocol exists to satisfy this requirement.
 
 ### Flows
 
 **lastGLANCE → dayGLANCE (manual):**
 - User taps a chore, selects "do this today" or similar
-- lastGLANCE fires an `app.dayglance.CREATE` intent: title, due date, `source_app=app.lastglance`, `source_entity_id=<chore_id>`
-- Task appears in dayGLANCE on that day
+- lastGLANCE emits a `create` action against dayGLANCE: title, due date, `source_app=app.lastglance`, `source_entity_id=<chore_id>`
+- Task appears in dayGLANCE on that day (immediately on same-device Android via intent; within polling interval cross-device via WebDAV)
 
 **lastGLANCE → dayGLANCE (automatic, when enabled per chore):**
 - When a chore with `auto_schedule_to_dayglance=true` crosses its cadence threshold
-- lastGLANCE auto-fires the `create` intent
+- lastGLANCE auto-emits the `create` action
 - Task appears in dayGLANCE without user action
 
 **dayGLANCE → lastGLANCE (completion loopback):**
-- When a lastGLANCE-originated task is completed in dayGLANCE, dayGLANCE broadcasts `app.dayglance.NOTIFY` with `event=completed`, `source_app=app.lastglance`, and the round-tripped `source_entity_id`
-- lastGLANCE receives the broadcast, filters on `source_app=app.lastglance` to ignore events meant for other consumers, and logs a CompletionEvent with `source="dayglance"`
+- When a lastGLANCE-originated task is completed in dayGLANCE, dayGLANCE emits a `notify` event with `event=completed`, `source_app=app.lastglance`, and the round-tripped `source_entity_id`
+- lastGLANCE receives the event (via WebDAV poll or Android broadcast), filters on `source_app=app.lastglance` to ignore events meant for other consumers, and logs a CompletionEvent with `source="dayglance"`
 - Ribbon updates
+
+This is the flow that motivates the WebDAV transport: a user completing a task on their phone away from home, and lastGLANCE on their home desktop reflecting that completion the next time it polls.
 
 ### Contract
 
 Uses the dayGLANCE intent protocol exactly as specced. No protocol work specific to lastGLANCE.
 
-**Outbound from lastGLANCE:** fires `create` intents against dayGLANCE. Every `create` includes:
+Primary transport is the WebDAV event log (cross-platform, cross-network, cross-device). When both apps are running natively on the same Android device, the Android intent transport may be used as a low-latency optimization. The lastGLANCE consumer treats both transports uniformly: same payload shape, same handler logic, idempotent dedup on `event_id`.
+
+**Outbound from lastGLANCE:** emits `create` actions to dayGLANCE. Every `create` includes:
 - `source_app=app.lastglance`
 - `source_entity_id=<chore_id>`
 - `title`, `due`, and any other fields the user has configured
 
-**Inbound to lastGLANCE:** subscribes to `app.dayglance.NOTIFY` broadcasts. Filters on `source_app=app.lastglance`. Reacts to `event=completed` by logging a CompletionEvent with `source="dayglance"`. Other events (`rescheduled`, `deleted`, `updated`) can be handled later; v1 only needs `completed`.
+**Inbound to lastGLANCE:** subscribes to `notify` events (by polling the WebDAV event log, by registering for `app.dayglance.NOTIFY` Android broadcasts when on Android with both apps installed, or both). Filters on `source_app=app.lastglance`. Reacts to `event=completed` by logging a CompletionEvent with `source="dayglance"`. Other events (`rescheduled`, `deleted`, `updated`) can be handled later; v1 only needs `completed`.
 
 ### Duplicate prevention
 
@@ -107,9 +111,9 @@ Handled at the protocol level. dayGLANCE matches incoming `create` intents on `s
 
 ### Standalone operation
 
-lastGLANCE must be fully useful without dayGLANCE installed. The integration is a power-up, not a dependency. Detect absence of dayGLANCE at install/runtime, hide the relevant UI, app still works.
+lastGLANCE must be fully useful without dayGLANCE installed *and* without WebDAV configured. The integration is a power-up, not a dependency. Detect each prerequisite independently at install/runtime, hide the relevant UI when missing, app still works in every degraded configuration.
 
-This is a hard rule. The target audience includes people who want "last done" tracking but don't want a day planner — that user is served by lastGLANCE on its own and never gets nudged toward dayGLANCE.
+This is a hard rule. The target audience includes people who want "last done" tracking but don't want a day planner; that user is served by lastGLANCE on its own and never gets nudged toward dayGLANCE. The audience also includes users who self-host but haven't set up WebDAV; that user gets dayGLANCE integration on the same device via Android intents (when applicable), and is informed that cross-device integration requires WebDAV.
 
 ## Standalone-first decision
 
@@ -133,19 +137,18 @@ Cost acknowledged: full integration layer (intents, completion loopback, duplica
 ## Architectural notes
 
 - Local-first, privacy-first, consistent with rest of GLANCE family
-- Likely reuses WebView hybrid Android pattern from dayGLANCE
-- SQLite schema (no cloud sync required for v1)
-- Docker + Vercel deployment pattern if a web version is in scope
-- GitHub distribution via Obtainium, potential Play Store presence
-- Electron, Android, and iOS builds follow the standalone web/Android v1, in that order
+- Reuses WebView hybrid Android pattern from dayGLANCE
+- SQLite schema on Android, Dexie/IndexedDB on web (no cloud sync for lastGLANCE's own data in v1; cross-app integration is via WebDAV per the intent protocol)
+- Docker + Vercel deployment pattern for the web version, consistent with dayGLANCE and lifeGLANCE
+- GitHub distribution via Obtainium for Android, potential Play Store presence
+- Web, Android, iOS, and Electron all ship as v1.0.0 in the multi-platform release
 
 ## What's NOT in v1
 
 - Sub-chores / hierarchical chore structures (user controls granularity by splitting)
 - AI-inferred cadence (data model supports it; UI/logic deferred)
 - Notifications beyond dayGLANCE auto-scheduling
-- Cloud sync (deferred, same rationale as dayGLANCE; if paid sync ever ships across the family, lastGLANCE adopts it then)
-- iOS version (follows the standalone Android version)
+- Cloud sync for lastGLANCE's own data across devices (deferred, same rationale as dayGLANCE; if GLANCEcloud ever ships across the family, lastGLANCE adopts it then). Note: this is distinct from the WebDAV event log used for cross-app integration with dayGLANCE, which is in v1.
 - lifeGLANCE integration (focus is dayGLANCE pairing first)
 - TRMNL plugin (possible later as a standalone lastGLANCE-specific plugin, not v1)
 
@@ -162,7 +165,7 @@ Track when you last did stuff. If you want, set a cadence and it'll schedule its
 ### Decisions made
 
 - **Storage: Dexie (IndexedDB) for web, native SQLite for Android.** SQLite WASM requires `Atomics.wait()` which is blocked on the browser main thread; OPFS persistence is only possible from a dedicated worker. Dexie provides equivalent local-first persistence via IndexedDB with no worker or special HTTP headers required. The TypeScript data model is identical across both targets.
-- **Standalone web-first, then Android wrapper.** Consistent with dayGLANCE and lifeGLANCE build pattern.
+- **Standalone web-first, then Android, iOS, and Electron all ship as v1.0.0.** Web PWA is the lead surface and proves the product; platform wrappers follow.
 - **React 19 + Vite + Tailwind CSS + TypeScript.** Consistent with dayGLANCE stack.
 - **Full PWA support from day one.** Service worker, offline precache, installable.
 
@@ -175,28 +178,38 @@ Track when you last did stuff. If you want, set a cadence and it'll schedule its
 - Log completion flow: tap-to-log modal with optional note and backdate
 - Elapsed time display: "just now" / "5m ago" / "2h ago" / "3d ago"
 - Management UI: edit mode toggle in header; add/edit/delete categories and chores; cadence field per chore; confirmation dialogs for destructive actions
+- Per-chore history drill-down: tap a chore name to open a detail view of past completions (timestamp, note, source); delete individual completions
+- Full PWA asset set: app icons at all standard sizes, maskable variants, apple-touch-icon, favicon, manifest configured
 - Seed data: 4 categories, 10 chores
 
 ### What's not built yet (v1 remaining)
 
-- Per-chore history drill-down
-- dayGLANCE intent integration (outbound CREATE, inbound NOTIFY loopback)
-- Design pass (see below — visual design, icons, PWA assets)
-- Android wrapper
+- Responsive layout work: refinement across screen sizes (small phones, tablets, desktop widths). Ribbon, category navigation, and management UI all need a pass for breakpoint behavior.
+- dayGLANCE intent integration (outbound `create`, inbound `notify` loopback over WebDAV; Android broadcast on Android when applicable)
+- Design pass (visual identity, color, typography, ribbon visual weight, icons)
+- Docker + docker-compose.yml for self-hosters, consistent with dayGLANCE and lifeGLANCE distribution
+- Android wrapper (WebView shell, native SQLite swap-in, intent protocol wiring, Obtainium distribution)
+- iOS app (PWA-shell or wrapped, follows the standalone Android version)
+- Electron app (desktop build, consistent with dayGLANCE Desktop pattern)
 
 ## Build plan
 
 Remaining v1 work in order:
 
-1. **History drill-down** — tap a chore name (not the log button) to open a detail view showing past completions: timestamp, note, source (manual vs. dayGLANCE). Allow deleting individual completions. Stretch: simple bar chart or timeline visualization of completion frequency.
+1. **Responsive layout pass** — refine the layout across the screen-size matrix (small phones up through wide desktop). Ribbon row height and label placement, category navigation between tabs and side-by-side columns, management UI density, modal sizing on small screens. The current layout works at the sizes it was built against; this pass takes it from "works" to "feels intentional on every device."
 
-2. **dayGLANCE integration** — outbound `app.dayglance.CREATE` intent when user schedules a chore manually or auto-schedule fires; inbound `app.dayglance.NOTIFY` broadcast receiver logs a CompletionEvent with `source="dayglance"`. Detect dayGLANCE absence at runtime and hide all integration UI. Per-chore `auto_schedule_to_dayglance` toggle lives in the chore edit form.
+2. **dayGLANCE integration** — outbound `create` action emitted to dayGLANCE when user schedules a chore manually or auto-schedule fires; inbound subscription to `notify` events (WebDAV poll on web/iOS/Electron, Android broadcast on Android when applicable) that logs a CompletionEvent with `source="dayglance"` for `event=completed`. Detect dayGLANCE absence and WebDAV absence independently at runtime; hide integration UI accordingly. Per-chore `auto_schedule_to_dayglance` toggle lives in the chore edit form. WebDAV endpoint config lives in app settings (defaults to same endpoint dayGLANCE uses, if discoverable).
 
 3. **Design pass** — the app is functional but not publish-ready. Full pass covers:
    - **Color and typography** — move away from generic slate palette; establish a visual identity consistent with the GLANCE family. Consider a signature accent color, tighter typographic scale, and more intentional use of weight/spacing in the ribbon.
    - **Category and chore icons** — user-selectable icon per category and per chore. Implementation: add optional `icon` field to Category and Chore (Dexie schema v2 migration); curate ~100 relevant lucide icons (home, cleaning, pet, vehicle, garden, etc.) as a static registry; build a scrollable icon picker grid (possibly filterable) used from both the category and chore edit forms; render icons in category headers and chore rows.
    - **Ribbon visual weight** — the horizontal bar is the core visual metaphor; it should feel more intentional. Consider height, corner radius, label placement, and whether the elapsed text lives on the bar or beside it.
    - **Empty and loading states** — polish the empty state illustration/copy and the initial load experience.
-   - **PWA app icons** — 192px and 512px icons (and apple-touch-icon) consistent with the final visual identity. Design these after the color/identity work is done.
 
-4. **Android wrapper** — WebView shell, native SQLite swap-in replacing Dexie, intent protocol wiring for dayGLANCE integration, Obtainium distribution.
+4. **Docker distribution** — Dockerfile and `docker-compose.yml` for self-hosters. Consistent with dayGLANCE and lifeGLANCE distribution: static file server (nginx or similar) serving the built PWA, single image published to GHCR, single-service compose file. Document the image at ghcr.io/krelltunez/lastglance (or equivalent) and the standard port.
+
+5. **Android wrapper** — WebView shell, native SQLite swap-in replacing Dexie, intent protocol wiring for dayGLANCE integration (Android intent transport in addition to WebDAV), Obtainium distribution, eventual Google Play presence.
+
+6. **iOS app** — PWA-shell or native wrapper, follows the standalone Android version. WebDAV transport is the integration path on iOS (no Android intent equivalent). Background polling caveats apply.
+
+7. **Electron app** — desktop build, consistent with the dayGLANCE Desktop pattern. WebDAV transport for cross-app integration; no local server needed unless lastGLANCE later gains an integration that requires one (none planned for v1).
