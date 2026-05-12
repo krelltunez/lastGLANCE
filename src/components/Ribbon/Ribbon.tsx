@@ -267,7 +267,7 @@ export function Ribbon({ editMode, onLogged }: Props) {
         )}
 
         {editMode && !showEmpty && (
-          <div className="shrink-0 border-t border-slate-200 dark:border-slate-700/60 p-3">
+          <div className="shrink-0 border-t border-slate-200 dark:border-slate-700/60 p-3 flex flex-col gap-2">
             <button
               onClick={() => setAddingCategory(true)}
               className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/40 border border-slate-200 dark:border-slate-700/60 transition-colors"
@@ -275,6 +275,7 @@ export function Ribbon({ editMode, onLogged }: Props) {
               <Plus size={15} />
               Add category
             </button>
+            <p className="text-center text-xs text-slate-400 dark:text-slate-600">v{__APP_VERSION__}</p>
           </div>
         )}
       </div>
@@ -318,6 +319,9 @@ export function Ribbon({ editMode, onLogged }: Props) {
                 </button>
               )}
             </div>
+            {editMode && (
+              <p className="mt-2 text-center text-xs text-slate-400 dark:text-slate-600">v{__APP_VERSION__}</p>
+            )}
           </div>
         )}
       </div>
