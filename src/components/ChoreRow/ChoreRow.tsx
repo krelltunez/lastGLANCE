@@ -113,8 +113,8 @@ export function ChoreRow({ chore, editMode, onTap, onEdit, onDelete, onRefresh, 
         )}
 
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-slate-800 dark:text-slate-100 group-hover:text-slate-900 dark:group-hover:text-white transition-colors truncate leading-snug flex items-center gap-1.5">
-            {chore.name}
+          <p className="text-sm font-medium text-slate-800 dark:text-slate-100 group-hover:text-slate-900 dark:group-hover:text-white transition-colors leading-snug flex items-center gap-1.5">
+            <span className="truncate min-w-0">{chore.name}</span>
             {chore.notify_when_overdue && <Bell size={10} className="shrink-0 text-slate-400 dark:text-slate-500 opacity-50" />}
           </p>
           <p className="text-xs text-slate-400 dark:text-slate-500 tabular-nums mt-0.5">{elapsedText}</p>

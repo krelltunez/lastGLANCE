@@ -40,6 +40,13 @@ export function Ribbon({ editMode, onLogged }: Props) {
   const tabsRef = useRef<HTMLDivElement>(null)
   const desktopGridRef = useRef<HTMLDivElement>(null)
 
+  const [windowWidth, setWindowWidth] = useState(() => window.innerWidth)
+  useEffect(() => {
+    const handler = () => setWindowWidth(window.innerWidth)
+    window.addEventListener('resize', handler)
+    return () => window.removeEventListener('resize', handler)
+  }, [])
+
   // Sync localData from server when not dragging categories
   useEffect(() => {
     if (draggingCatIdRef.current === null) {
@@ -191,12 +198,13 @@ export function Ribbon({ editMode, onLogged }: Props) {
   const prevData = activeCategoryIndex > 0 ? localData[activeCategoryIndex - 1] : null
   const currData = localData[activeCategoryIndex]
   const nextData = activeCategoryIndex < localData.length - 1 ? localData[activeCategoryIndex + 1] : null
-  const cols = Math.min(Math.max(localData.length, 1), 4)
+  const maxCols = windowWidth >= 1260 ? 4 : 3
+  const cols = Math.min(Math.max(localData.length, 1), maxCols)
 
   return (
     <>
       {/* ── Mobile: one category at a time with tab strip ── */}
-      <div className="flex flex-col flex-1 overflow-hidden lg:hidden">
+      <div className="flex flex-col flex-1 overflow-hidden min-[1060px]:hidden">
         {!showEmpty && (
           <div ref={tabsRef} className="flex overflow-x-auto scrollbar-none border-b border-slate-200 dark:border-slate-700/60 bg-slate-100 dark:bg-slate-900 shrink-0">
             {localData.map((d, i) => (
@@ -281,7 +289,7 @@ export function Ribbon({ editMode, onLogged }: Props) {
       </div>
 
       {/* ── Desktop: fluid masonry columns ── */}
-      <div className="hidden lg:block flex-1 overflow-y-auto">
+      <div className="hidden min-[1060px]:block flex-1 overflow-y-auto">
         {showEmpty ? (
           <EmptyState onAdd={() => setAddingCategory(true)} />
         ) : (
