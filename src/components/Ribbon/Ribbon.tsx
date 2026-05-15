@@ -296,7 +296,7 @@ export function Ribbon({ editMode, onLogged }: Props) {
           <div className="p-6">
             <div
               ref={desktopGridRef}
-              style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: '1.25rem' }}
+              style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: '1.25rem', alignItems: 'start' }}
             >
               {localData.map(d => (
                 <div
