@@ -168,20 +168,31 @@ export function Ribbon({ editMode, onLogged }: Props) {
     setDraggingCatId(catId)
   }
 
-  // Container ResizeObserver — measures width for column count
+  // Container ResizeObserver — measures width for column count.
+  // Deps include localData.length because desktopGridRef.current is null during the loading
+  // spinner render; the effect must re-run once the grid div actually mounts.
   useEffect(() => {
     const el = desktopGridRef.current
     if (!el) return
     const obs = new ResizeObserver(entries => {
       const w = entries[0].contentRect.width
-      if (w !== containerWidthRef.current) {
-        containerWidthRef.current = w
-        setContainerWidth(w)
+      if (w === containerWidthRef.current) return
+      containerWidthRef.current = w
+      setContainerWidth(w)
+      // Phase 0→1 if card heights already arrived before container width did
+      if (
+        packPhaseRef.current === 0 &&
+        cardHeightsRef.current.size >= localDataLengthRef.current &&
+        localDataLengthRef.current > 0
+      ) {
+        packPhaseRef.current = 1
+        setPackPhase(1)
       }
     })
     obs.observe(el)
     return () => obs.disconnect()
-  }, [])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [localData.length])
 
   // Card ResizeObservers — re-created only when the set of category IDs changes (add/remove, not reorder)
   const sortedCatIdsKey = localData.map(d => d.category.id).sort((a, b) => a - b).join(',')
