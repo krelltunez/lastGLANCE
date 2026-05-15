@@ -84,7 +84,7 @@ export function Ribbon({ editMode, onLogged }: Props) {
   const [containerWidth, setContainerWidth] = useState(0)
   const containerWidthRef = useRef(0)
   const cardHeightsRef = useRef<Map<number, number>>(new Map())
-  const [packVersion, setPackVersion] = useState(0)
+  const [, setPackVersion] = useState(0)
   // packPhase: 0 = hidden, 1 = placed (no transition), 2 = animated
   const [packPhase, setPackPhase] = useState<0 | 1 | 2>(0)
   const packPhaseRef = useRef<0 | 1 | 2>(0)
