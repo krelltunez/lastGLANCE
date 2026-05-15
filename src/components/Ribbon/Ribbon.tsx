@@ -41,6 +41,7 @@ export function Ribbon({ editMode, onLogged }: Props) {
   const desktopGridRef = useRef<HTMLDivElement>(null)
 
   const [windowWidth, setWindowWidth] = useState(() => window.innerWidth)
+  const [colHeight, setColHeight] = useState<number | null>(null)
   useEffect(() => {
     const handler = () => setWindowWidth(window.innerWidth)
     window.addEventListener('resize', handler)
@@ -201,9 +202,6 @@ export function Ribbon({ editMode, onLogged }: Props) {
   const maxCols = windowWidth >= 2200 ? 6 : windowWidth >= 1800 ? 5 : windowWidth >= 1400 ? 4 : 3
   const cols = Math.min(Math.max(localData.length, 1), maxCols)
 
-  // Measure total content height so column-fill:auto distributes correctly.
-  // column-fill:balance ignores column-count when items have break-inside-avoid.
-  const [colHeight, setColHeight] = useState<number | null>(null)
   useLayoutEffect(() => {
     const el = desktopGridRef.current
     if (!el || windowWidth < 1060) { setColHeight(null); return }
