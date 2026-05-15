@@ -18,9 +18,10 @@ interface Props {
   onLogged?: () => void
   onCategoryDragHandlePointerDown?: (e: React.PointerEvent) => void
   isCategoryDragging?: boolean
+  wrapChores?: boolean
 }
 
-export function CategorySection({ data, editMode, onChoreTab, onRefresh, onLogged, onCategoryDragHandlePointerDown, isCategoryDragging }: Props) {
+export function CategorySection({ data, editMode, onChoreTab, onRefresh, onLogged, onCategoryDragHandlePointerDown, isCategoryDragging, wrapChores }: Props) {
   const [choreForm, setChoreForm] = useState<{ chore?: ChoreWithLastCompletion } | null>(null)
   const [categoryForm, setCategoryForm] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState<'category' | number | null>(null)
@@ -164,14 +165,22 @@ export function CategorySection({ data, editMode, onChoreTab, onRefresh, onLogge
         </div>
 
         {/* Chore list */}
-        <div ref={choreListRef} className="flex flex-col gap-2">
+        <div
+          ref={choreListRef}
+          className="flex gap-2"
+          style={wrapChores ? { flexWrap: 'wrap', justifyContent: 'flex-start' } : { flexDirection: 'column' }}
+        >
           {localChores.length === 0 && !editMode && (
             <p className="text-sm text-slate-400 dark:text-slate-600 py-3 text-center">
               No chores yet — tap Edit to add one.
             </p>
           )}
           {localChores.map(chore => (
-            <div key={chore.id} data-chore-id={chore.id}>
+            <div
+              key={chore.id}
+              data-chore-id={chore.id}
+              style={wrapChores ? { flex: '1 1 320px', maxWidth: 480, minWidth: 0 } : undefined}
+            >
               <ChoreRow
                 chore={chore}
                 editMode={editMode}
@@ -187,6 +196,7 @@ export function CategorySection({ data, editMode, onChoreTab, onRefresh, onLogge
           {editMode && (
             <button
               onClick={() => setChoreForm({})}
+              style={wrapChores ? { flex: '1 1 320px', maxWidth: 480, minWidth: 0 } : undefined}
               className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/40 border border-dashed border-slate-300 dark:border-slate-700/60 hover:border-slate-400 dark:hover:border-slate-600 transition-colors"
             >
               <Plus size={14} />
