@@ -439,7 +439,7 @@ export function Ribbon({ editMode, onLogged }: Props) {
                       width: cardWidth > 0 ? cardWidth : undefined,
                       transform: pos ? `translate(${pos.x}px,${pos.y}px)` : undefined,
                       visibility: packPhase >= 1 ? 'visible' : 'hidden',
-                      transition: packPhase >= 2 ? 'transform 300ms ease' : 'none',
+                      transition: packPhase >= 2 && draggingCatId === null ? 'transform 300ms ease' : 'none',
                       willChange: 'transform',
                     }}
                   >
