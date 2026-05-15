@@ -179,7 +179,7 @@ export function CategorySection({ data, editMode, onChoreTab, onRefresh, onLogge
             <div
               key={chore.id}
               data-chore-id={chore.id}
-              style={wrapChores ? { flex: '1 1 320px', maxWidth: 480, minWidth: 0 } : undefined}
+              style={wrapChores ? { flex: '1 1 320px', maxWidth: 'calc(50% - 4px)', minWidth: 0 } : undefined}
             >
               <ChoreRow
                 chore={chore}
@@ -196,7 +196,7 @@ export function CategorySection({ data, editMode, onChoreTab, onRefresh, onLogge
           {editMode && (
             <button
               onClick={() => setChoreForm({})}
-              style={wrapChores ? { flex: '1 1 320px', maxWidth: 480, minWidth: 0 } : undefined}
+              style={wrapChores ? { flex: '1 1 320px', maxWidth: 'calc(50% - 4px)', minWidth: 0 } : undefined}
               className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/40 border border-dashed border-slate-300 dark:border-slate-700/60 hover:border-slate-400 dark:hover:border-slate-600 transition-colors"
             >
               <Plus size={14} />
