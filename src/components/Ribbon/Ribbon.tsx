@@ -198,8 +198,8 @@ export function Ribbon({ editMode, onLogged }: Props) {
   const prevData = activeCategoryIndex > 0 ? localData[activeCategoryIndex - 1] : null
   const currData = localData[activeCategoryIndex]
   const nextData = activeCategoryIndex < localData.length - 1 ? localData[activeCategoryIndex + 1] : null
-  const maxCols = windowWidth >= 2200 ? 6 : windowWidth >= 1800 ? 5 : windowWidth >= 1400 ? 4 : 3
-  const cols = Math.min(Math.max(localData.length, 1), maxCols)
+  const maxColsByWidth = Math.min(Math.max(Math.floor((windowWidth - 48) / 280), 3), 6)
+  const cols = Math.min(Math.max(localData.length, 1), maxColsByWidth)
 
   return (
     <>
@@ -296,13 +296,13 @@ export function Ribbon({ editMode, onLogged }: Props) {
           <div className="p-6">
             <div
               ref={desktopGridRef}
-              style={{ columns: cols, columnGap: '1.25rem' }}
+              style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: '1.25rem' }}
             >
               {localData.map(d => (
                 <div
                   key={d.category.id}
                   data-cat-card-id={d.category.id}
-                  className="break-inside-avoid mb-5 bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-5"
+                  className="bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-5"
                 >
                   <CategorySection
                     data={d}
@@ -321,7 +321,7 @@ export function Ribbon({ editMode, onLogged }: Props) {
               {editMode && (
                 <button
                   onClick={() => setAddingCategory(true)}
-                  className="break-inside-avoid mb-5 w-full flex items-center justify-center gap-2 py-4 rounded-2xl text-sm text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/30 border border-dashed border-slate-300 dark:border-slate-700/60 hover:border-slate-400 dark:hover:border-slate-600 transition-colors"
+                  className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl text-sm text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/30 border border-dashed border-slate-300 dark:border-slate-700/60 hover:border-slate-400 dark:hover:border-slate-600 transition-colors"
                 >
                   <Plus size={15} />
                   Add category
