@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useLayoutEffect } from 'react'
 import { Plus, GripVertical } from 'lucide-react'
 import { useChores } from '@/hooks/useChores'
 import { reorderCategories } from '@/db/queries'
@@ -46,6 +46,22 @@ export function Ribbon({ editMode, onLogged }: Props) {
     window.addEventListener('resize', handler)
     return () => window.removeEventListener('resize', handler)
   }, [])
+
+  // Measure total content height so column-fill:auto distributes correctly.
+  // column-fill:balance ignores column-count when items have break-inside-avoid.
+  const [colHeight, setColHeight] = useState<number | null>(null)
+  useLayoutEffect(() => {
+    const el = desktopGridRef.current
+    if (!el || windowWidth < 1060) { setColHeight(null); return }
+    const savedCC = el.style.columnCount
+    const savedH = el.style.height
+    el.style.columnCount = '1'
+    el.style.height = 'auto'
+    const totalH = el.scrollHeight
+    el.style.columnCount = savedCC
+    el.style.height = savedH
+    setColHeight(Math.ceil(totalH / cols) + 1)
+  }, [cols, localData, windowWidth])
 
   // Sync localData from server when not dragging categories
   useEffect(() => {
@@ -296,7 +312,7 @@ export function Ribbon({ editMode, onLogged }: Props) {
           <div className="p-6">
             <div
               ref={desktopGridRef}
-              style={{ columns: cols, columnGap: '1.25rem' }}
+              style={{ columns: cols, columnGap: '1.25rem', ...(colHeight !== null ? { columnFill: 'auto', height: colHeight } : {}) }}
             >
               {localData.map(d => (
                 <div
