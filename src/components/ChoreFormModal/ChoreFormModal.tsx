@@ -9,12 +9,13 @@ import { requestNotificationPermission } from '@/hooks/useNotifications'
 
 interface Props {
   category: Category
+  categories?: Category[]
   chore?: Chore
   onClose: () => void
   onSaved: () => void
 }
 
-export function ChoreFormModal({ category, chore, onClose, onSaved }: Props) {
+export function ChoreFormModal({ category, categories, chore, onClose, onSaved }: Props) {
   const isEdit = Boolean(chore)
   const [name, setName] = useState(chore?.name ?? '')
   const [cadence, setCadence] = useState(
@@ -22,6 +23,7 @@ export function ChoreFormModal({ category, chore, onClose, onSaved }: Props) {
   )
   const [icon, setIcon] = useState<string | undefined>(chore?.icon)
   const [notify, setNotify] = useState(chore?.notify_when_overdue ?? false)
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number>(chore?.category_id ?? category.id)
   const [notifyBlocked, setNotifyBlocked] = useState(false)
   const [showIconPicker, setShowIconPicker] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -39,7 +41,7 @@ export function ChoreFormModal({ category, chore, onClose, onSaved }: Props) {
     setSaving(true)
     try {
       if (isEdit && chore) {
-        await updateChore(chore.id, { name: trimmed, target_cadence_days: cadenceDays, notify_when_overdue: notify, icon })
+        await updateChore(chore.id, { name: trimmed, target_cadence_days: cadenceDays, notify_when_overdue: notify, icon, category_id: selectedCategoryId })
       } else {
         await createChore({
           name: trimmed,
@@ -101,6 +103,21 @@ export function ChoreFormModal({ category, chore, onClose, onSaved }: Props) {
                 </button>
               </div>
             </div>
+
+            {isEdit && categories && categories.length > 1 && (
+              <div>
+                <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Category</label>
+                <select
+                  value={selectedCategoryId}
+                  onChange={e => setSelectedCategoryId(Number(e.target.value))}
+                  className="w-full bg-slate-100 dark:bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
+                >
+                  {categories.map(cat => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             <div>
               <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">

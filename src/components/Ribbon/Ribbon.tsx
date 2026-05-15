@@ -389,13 +389,13 @@ export function Ribbon({ editMode, onLogged }: Props) {
               }}
             >
               <div className="overflow-y-auto" style={{ width: '33.333%' }}>
-                {prevData && <div className="p-4"><CategorySection key={prevData.category.id} data={prevData} editMode={editMode} onChoreTab={openChore} onRefresh={refresh} onLogged={onLogged} wrapChores /></div>}
+                {prevData && <div className="p-4"><CategorySection key={prevData.category.id} data={prevData} categories={localData.map(d => d.category)} editMode={editMode} onChoreTab={openChore} onRefresh={refresh} onLogged={onLogged} wrapChores /></div>}
               </div>
               <div className="overflow-y-auto" style={{ width: '33.333%' }}>
-                {currData && <div className="p-4"><CategorySection key={currData.category.id} data={currData} editMode={editMode} onChoreTab={openChore} onRefresh={refresh} onLogged={onLogged} wrapChores /></div>}
+                {currData && <div className="p-4"><CategorySection key={currData.category.id} data={currData} categories={localData.map(d => d.category)} editMode={editMode} onChoreTab={openChore} onRefresh={refresh} onLogged={onLogged} wrapChores /></div>}
               </div>
               <div className="overflow-y-auto" style={{ width: '33.333%' }}>
-                {nextData && <div className="p-4"><CategorySection key={nextData.category.id} data={nextData} editMode={editMode} onChoreTab={openChore} onRefresh={refresh} onLogged={onLogged} wrapChores /></div>}
+                {nextData && <div className="p-4"><CategorySection key={nextData.category.id} data={nextData} categories={localData.map(d => d.category)} editMode={editMode} onChoreTab={openChore} onRefresh={refresh} onLogged={onLogged} wrapChores /></div>}
               </div>
             </div>
           </div>
@@ -445,6 +445,7 @@ export function Ribbon({ editMode, onLogged }: Props) {
                   >
                     <CategorySection
                       data={d}
+                      categories={localData.map(d => d.category)}
                       editMode={editMode}
                       onChoreTab={openChore}
                       onRefresh={refresh}
