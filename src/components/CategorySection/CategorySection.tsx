@@ -18,9 +18,10 @@ interface Props {
   onLogged?: () => void
   onCategoryDragHandlePointerDown?: (e: React.PointerEvent) => void
   isCategoryDragging?: boolean
+  wrapChores?: boolean
 }
 
-export function CategorySection({ data, editMode, onChoreTab, onRefresh, onLogged, onCategoryDragHandlePointerDown, isCategoryDragging }: Props) {
+export function CategorySection({ data, editMode, onChoreTab, onRefresh, onLogged, onCategoryDragHandlePointerDown, isCategoryDragging, wrapChores }: Props) {
   const [choreForm, setChoreForm] = useState<{ chore?: ChoreWithLastCompletion } | null>(null)
   const [categoryForm, setCategoryForm] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState<'category' | number | null>(null)
@@ -164,14 +165,22 @@ export function CategorySection({ data, editMode, onChoreTab, onRefresh, onLogge
         </div>
 
         {/* Chore list */}
-        <div ref={choreListRef} className="flex flex-col gap-2">
+        <div
+          ref={choreListRef}
+          className={wrapChores ? 'flex flex-wrap gap-2' : 'flex flex-col gap-2'}
+        >
           {localChores.length === 0 && !editMode && (
             <p className="text-sm text-slate-400 dark:text-slate-600 py-3 text-center">
               No chores yet — tap Edit to add one.
             </p>
           )}
           {localChores.map(chore => (
-            <div key={chore.id} data-chore-id={chore.id}>
+            <div
+              key={chore.id}
+              data-chore-id={chore.id}
+              className={wrapChores ? 'min-w-0 min-[480px]:max-w-[calc(50%_-_4px)]' : undefined}
+              style={wrapChores ? { flex: '1 1 320px' } : undefined}
+            >
               <ChoreRow
                 chore={chore}
                 editMode={editMode}
@@ -187,7 +196,8 @@ export function CategorySection({ data, editMode, onChoreTab, onRefresh, onLogge
           {editMode && (
             <button
               onClick={() => setChoreForm({})}
-              className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/40 border border-dashed border-slate-300 dark:border-slate-700/60 hover:border-slate-400 dark:hover:border-slate-600 transition-colors"
+              className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/40 border border-dashed border-slate-300 dark:border-slate-700/60 hover:border-slate-400 dark:hover:border-slate-600 transition-colors${wrapChores ? ' min-w-0 min-[480px]:max-w-[calc(50%_-_4px)]' : ''}`}
+              style={wrapChores ? { flex: '1 1 320px' } : undefined}
             >
               <Plus size={14} />
               Add chore
