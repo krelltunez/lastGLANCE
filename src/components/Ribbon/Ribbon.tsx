@@ -198,8 +198,8 @@ export function Ribbon({ editMode, onLogged }: Props) {
   const prevData = activeCategoryIndex > 0 ? localData[activeCategoryIndex - 1] : null
   const currData = localData[activeCategoryIndex]
   const nextData = activeCategoryIndex < localData.length - 1 ? localData[activeCategoryIndex + 1] : null
-  const maxColsByWidth = Math.min(Math.max(Math.floor((windowWidth - 48) / 280), 3), 6)
-  const cols = Math.min(Math.max(localData.length, 1), maxColsByWidth)
+  const maxCols = windowWidth >= 2200 ? 6 : windowWidth >= 1800 ? 5 : windowWidth >= 1400 ? 4 : 3
+  const cols = Math.min(Math.max(localData.length, 1), maxCols)
 
   return (
     <>
