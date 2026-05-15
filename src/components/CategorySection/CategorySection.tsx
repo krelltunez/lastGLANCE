@@ -167,8 +167,7 @@ export function CategorySection({ data, editMode, onChoreTab, onRefresh, onLogge
         {/* Chore list */}
         <div
           ref={choreListRef}
-          className="flex gap-2"
-          style={wrapChores ? { flexWrap: 'wrap', justifyContent: 'flex-start' } : { flexDirection: 'column' }}
+          className={wrapChores ? 'flex flex-wrap gap-2' : 'flex flex-col gap-2'}
         >
           {localChores.length === 0 && !editMode && (
             <p className="text-sm text-slate-400 dark:text-slate-600 py-3 text-center">
@@ -179,7 +178,8 @@ export function CategorySection({ data, editMode, onChoreTab, onRefresh, onLogge
             <div
               key={chore.id}
               data-chore-id={chore.id}
-              style={wrapChores ? { flex: '1 1 320px', maxWidth: 'calc(50% - 4px)', minWidth: 0 } : undefined}
+              className={wrapChores ? 'min-w-0 min-[480px]:max-w-[calc(50%_-_4px)]' : undefined}
+              style={wrapChores ? { flex: '1 1 320px' } : undefined}
             >
               <ChoreRow
                 chore={chore}
@@ -196,8 +196,8 @@ export function CategorySection({ data, editMode, onChoreTab, onRefresh, onLogge
           {editMode && (
             <button
               onClick={() => setChoreForm({})}
-              style={wrapChores ? { flex: '1 1 320px', maxWidth: 'calc(50% - 4px)', minWidth: 0 } : undefined}
-              className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/40 border border-dashed border-slate-300 dark:border-slate-700/60 hover:border-slate-400 dark:hover:border-slate-600 transition-colors"
+              className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/40 border border-dashed border-slate-300 dark:border-slate-700/60 hover:border-slate-400 dark:hover:border-slate-600 transition-colors${wrapChores ? ' min-w-0 min-[480px]:max-w-[calc(50%_-_4px)]' : ''}`}
+              style={wrapChores ? { flex: '1 1 320px' } : undefined}
             >
               <Plus size={14} />
               Add chore
