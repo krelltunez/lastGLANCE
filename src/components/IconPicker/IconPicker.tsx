@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { ICON_REGISTRY, ICON_NAMES, ICON_GROUPS } from '@/icons/registry'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
@@ -24,7 +25,7 @@ export function IconPicker({ selected, onSelect, onClose }: Props) {
     onClose()
   }
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/40 dark:bg-black/70 backdrop-blur-sm"
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
@@ -97,7 +98,8 @@ export function IconPicker({ selected, onSelect, onClose }: Props) {
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 

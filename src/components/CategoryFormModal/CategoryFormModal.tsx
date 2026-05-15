@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { X, Smile } from 'lucide-react'
 import type { Category } from '@/types'
 import { createCategory, updateCategory } from '@/db/queries'
@@ -40,7 +41,7 @@ export function CategoryFormModal({ category, onClose, onSaved }: Props) {
 
   const SelectedIcon = icon ? ICON_REGISTRY[icon] : null
 
-  return (
+  return createPortal(
     <>
       <div
         className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 dark:bg-black/60 backdrop-blur-sm"
@@ -105,6 +106,7 @@ export function CategoryFormModal({ category, onClose, onSaved }: Props) {
           onClose={() => setShowIconPicker(false)}
         />
       )}
-    </>
+    </>,
+    document.body
   )
 }

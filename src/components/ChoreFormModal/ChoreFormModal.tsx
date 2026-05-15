@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { X, Smile, Bell } from 'lucide-react'
 import type { Chore, Category } from '@/types'
 import { createChore, updateChore } from '@/db/queries'
@@ -61,7 +62,7 @@ export function ChoreFormModal({ category, categories, chore, onClose, onSaved }
 
   const SelectedIcon = icon ? ICON_REGISTRY[icon] : null
 
-  return (
+  return createPortal(
     <>
       <div
         className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 dark:bg-black/60 backdrop-blur-sm"
@@ -192,6 +193,7 @@ export function ChoreFormModal({ category, categories, chore, onClose, onSaved }
           onClose={() => setShowIconPicker(false)}
         />
       )}
-    </>
+    </>,
+    document.body
   )
 }

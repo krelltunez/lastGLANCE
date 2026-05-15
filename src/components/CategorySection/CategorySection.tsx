@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { Pencil, Trash2, Plus, Smile, GripVertical } from 'lucide-react'
 import type { CategoryWithChores } from '@/hooks/useChores'
 import type { Category, ChoreWithLastCompletion } from '@/types'
@@ -262,7 +263,7 @@ function ConfirmDialog({
   onCancel: () => void
 }) {
   useEscapeKey(onCancel)
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 dark:bg-black/60 backdrop-blur-sm"
       onClick={e => { if (e.target === e.currentTarget) onCancel() }}
@@ -285,6 +286,7 @@ function ConfirmDialog({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
