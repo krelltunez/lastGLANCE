@@ -47,22 +47,6 @@ export function Ribbon({ editMode, onLogged }: Props) {
     return () => window.removeEventListener('resize', handler)
   }, [])
 
-  // Measure total content height so column-fill:auto distributes correctly.
-  // column-fill:balance ignores column-count when items have break-inside-avoid.
-  const [colHeight, setColHeight] = useState<number | null>(null)
-  useLayoutEffect(() => {
-    const el = desktopGridRef.current
-    if (!el || windowWidth < 1060) { setColHeight(null); return }
-    const savedCC = el.style.columnCount
-    const savedH = el.style.height
-    el.style.columnCount = '1'
-    el.style.height = 'auto'
-    const totalH = el.scrollHeight
-    el.style.columnCount = savedCC
-    el.style.height = savedH
-    setColHeight(Math.ceil(totalH / cols) + 1)
-  }, [cols, localData, windowWidth])
-
   // Sync localData from server when not dragging categories
   useEffect(() => {
     if (draggingCatIdRef.current === null) {
@@ -216,6 +200,22 @@ export function Ribbon({ editMode, onLogged }: Props) {
   const nextData = activeCategoryIndex < localData.length - 1 ? localData[activeCategoryIndex + 1] : null
   const maxCols = windowWidth >= 2200 ? 6 : windowWidth >= 1800 ? 5 : windowWidth >= 1400 ? 4 : 3
   const cols = Math.min(Math.max(localData.length, 1), maxCols)
+
+  // Measure total content height so column-fill:auto distributes correctly.
+  // column-fill:balance ignores column-count when items have break-inside-avoid.
+  const [colHeight, setColHeight] = useState<number | null>(null)
+  useLayoutEffect(() => {
+    const el = desktopGridRef.current
+    if (!el || windowWidth < 1060) { setColHeight(null); return }
+    const savedCC = el.style.columnCount
+    const savedH = el.style.height
+    el.style.columnCount = '1'
+    el.style.height = 'auto'
+    const totalH = el.scrollHeight
+    el.style.columnCount = savedCC
+    el.style.height = savedH
+    setColHeight(Math.ceil(totalH / cols) + 1)
+  }, [cols, localData, windowWidth])
 
   return (
     <>
