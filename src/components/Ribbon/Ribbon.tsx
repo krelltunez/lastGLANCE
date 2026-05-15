@@ -48,6 +48,21 @@ export function Ribbon({ editMode, onLogged }: Props) {
     return () => window.removeEventListener('resize', handler)
   }, [])
 
+  useLayoutEffect(() => {
+    const el = desktopGridRef.current
+    if (!el || windowWidth < 1060 || localData.length === 0) { setColHeight(null); return }
+    const maxC = windowWidth >= 2200 ? 6 : windowWidth >= 1800 ? 5 : windowWidth >= 1400 ? 4 : 3
+    const c = Math.min(Math.max(localData.length, 1), maxC)
+    const savedCC = el.style.columnCount
+    const savedH = el.style.height
+    el.style.columnCount = '1'
+    el.style.height = 'auto'
+    const totalH = el.scrollHeight
+    el.style.columnCount = savedCC
+    el.style.height = savedH
+    setColHeight(Math.ceil(totalH / c) + 1)
+  }, [windowWidth, localData])
+
   // Sync localData from server when not dragging categories
   useEffect(() => {
     if (draggingCatIdRef.current === null) {
@@ -201,19 +216,6 @@ export function Ribbon({ editMode, onLogged }: Props) {
   const nextData = activeCategoryIndex < localData.length - 1 ? localData[activeCategoryIndex + 1] : null
   const maxCols = windowWidth >= 2200 ? 6 : windowWidth >= 1800 ? 5 : windowWidth >= 1400 ? 4 : 3
   const cols = Math.min(Math.max(localData.length, 1), maxCols)
-
-  useLayoutEffect(() => {
-    const el = desktopGridRef.current
-    if (!el || windowWidth < 1060) { setColHeight(null); return }
-    const savedCC = el.style.columnCount
-    const savedH = el.style.height
-    el.style.columnCount = '1'
-    el.style.height = 'auto'
-    const totalH = el.scrollHeight
-    el.style.columnCount = savedCC
-    el.style.height = savedH
-    setColHeight(Math.ceil(totalH / cols) + 1)
-  }, [cols, localData, windowWidth])
 
   return (
     <>
