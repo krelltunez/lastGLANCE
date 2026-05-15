@@ -296,37 +296,41 @@ export function Ribbon({ editMode, onLogged }: Props) {
           <div className="p-6">
             <div
               ref={desktopGridRef}
-              style={{ columns: cols, columnGap: '1.25rem' }}
+              style={{ display: 'flex', gap: '1.25rem', alignItems: 'flex-start' }}
             >
-              {localData.map(d => (
-                <div
-                  key={d.category.id}
-                  data-cat-card-id={d.category.id}
-                  className="break-inside-avoid mb-5 bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-5"
-                >
-                  <CategorySection
-                    data={d}
-                    categories={localData.map(d => d.category)}
-                    editMode={editMode}
-                    onChoreTab={openChore}
-                    onRefresh={refresh}
-                    onLogged={onLogged}
-                    onCategoryDragHandlePointerDown={editMode
-                      ? e => startCatDrag(e, d.category.id, desktopGridRef.current!, '[data-cat-card-id]')
-                      : undefined}
-                    isCategoryDragging={draggingCatId === d.category.id}
-                  />
+              {Array.from({ length: cols }, (_, ci) => (
+                <div key={ci} style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                  {localData.filter((_, i) => i % cols === ci).map(d => (
+                    <div
+                      key={d.category.id}
+                      data-cat-card-id={d.category.id}
+                      className="bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-5"
+                    >
+                      <CategorySection
+                        data={d}
+                        categories={localData.map(d => d.category)}
+                        editMode={editMode}
+                        onChoreTab={openChore}
+                        onRefresh={refresh}
+                        onLogged={onLogged}
+                        onCategoryDragHandlePointerDown={editMode
+                          ? e => startCatDrag(e, d.category.id, desktopGridRef.current!, '[data-cat-card-id]')
+                          : undefined}
+                        isCategoryDragging={draggingCatId === d.category.id}
+                      />
+                    </div>
+                  ))}
+                  {editMode && ci === cols - 1 && (
+                    <button
+                      onClick={() => setAddingCategory(true)}
+                      className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl text-sm text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/30 border border-dashed border-slate-300 dark:border-slate-700/60 hover:border-slate-400 dark:hover:border-slate-600 transition-colors"
+                    >
+                      <Plus size={15} />
+                      Add category
+                    </button>
+                  )}
                 </div>
               ))}
-              {editMode && (
-                <button
-                  onClick={() => setAddingCategory(true)}
-                  className="break-inside-avoid mb-5 w-full flex items-center justify-center gap-2 py-4 rounded-2xl text-sm text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/30 border border-dashed border-slate-300 dark:border-slate-700/60 hover:border-slate-400 dark:hover:border-slate-600 transition-colors"
-                >
-                  <Plus size={15} />
-                  Add category
-                </button>
-              )}
             </div>
             {editMode && (
               <p className="mt-2 text-center text-xs text-slate-400 dark:text-slate-600">v{__APP_VERSION__}</p>
