@@ -14,6 +14,46 @@ interface Props {
 }
 
 const SNAP_MS = 280
+const MASONRY_GAP = 20 // px — 1.25rem, matches the former columnGap
+
+function getColCount(containerWidth: number, itemCount: number): number {
+  let cols: number
+  if (containerWidth >= 2400) cols = 6
+  else if (containerWidth >= 1920) cols = 5
+  else if (containerWidth >= 1440) cols = 4
+  else if (containerWidth >= 1200) cols = 3
+  else if (containerWidth >= 800) cols = 2
+  else cols = 1
+  return Math.min(cols, Math.max(itemCount, 1))
+}
+
+interface MasonryPos { x: number; y: number }
+
+// Pure packing function: ordered catIds × column count × measured heights → positions + container height.
+// Shortest-column-next; leftmost column wins on tie (strict <).
+function packMasonry(
+  catIds: number[],
+  cols: number,
+  heights: Map<number, number>,
+  cardWidth: number,
+  gap: number,
+): { positions: Map<number, MasonryPos>; containerHeight: number } {
+  const positions = new Map<number, MasonryPos>()
+  if (catIds.length === 0 || cardWidth <= 0) return { positions, containerHeight: 0 }
+
+  const colHeights = new Array<number>(cols).fill(0)
+  for (const id of catIds) {
+    let shortest = 0
+    for (let c = 1; c < cols; c++) {
+      if (colHeights[c] < colHeights[shortest]) shortest = c
+    }
+    positions.set(id, { x: shortest * (cardWidth + gap), y: colHeights[shortest] })
+    colHeights[shortest] += (heights.get(id) ?? 200) + gap
+  }
+
+  const maxH = Math.max(...colHeights)
+  return { positions, containerHeight: maxH > gap ? maxH - gap : maxH }
+}
 
 export function Ribbon({ editMode, onLogged }: Props) {
   const { data, loading, refresh } = useChores()
@@ -40,12 +80,16 @@ export function Ribbon({ editMode, onLogged }: Props) {
   const tabsRef = useRef<HTMLDivElement>(null)
   const desktopGridRef = useRef<HTMLDivElement>(null)
 
-  const [windowWidth, setWindowWidth] = useState(() => window.innerWidth)
-  useEffect(() => {
-    const handler = () => setWindowWidth(window.innerWidth)
-    window.addEventListener('resize', handler)
-    return () => window.removeEventListener('resize', handler)
-  }, [])
+  // Masonry measurement & layout
+  const [containerWidth, setContainerWidth] = useState(0)
+  const containerWidthRef = useRef(0)
+  const cardHeightsRef = useRef<Map<number, number>>(new Map())
+  const [packVersion, setPackVersion] = useState(0)
+  // packPhase: 0 = hidden, 1 = placed (no transition), 2 = animated
+  const [packPhase, setPackPhase] = useState<0 | 1 | 2>(0)
+  const packPhaseRef = useRef<0 | 1 | 2>(0)
+  const localDataLengthRef = useRef(0)
+  localDataLengthRef.current = localData.length
 
   // Sync localData from server when not dragging categories
   useEffect(() => {
@@ -124,6 +168,67 @@ export function Ribbon({ editMode, onLogged }: Props) {
     setDraggingCatId(catId)
   }
 
+  // Container ResizeObserver — measures width for column count
+  useEffect(() => {
+    const el = desktopGridRef.current
+    if (!el) return
+    const obs = new ResizeObserver(entries => {
+      const w = entries[0].contentRect.width
+      if (w !== containerWidthRef.current) {
+        containerWidthRef.current = w
+        setContainerWidth(w)
+      }
+    })
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [])
+
+  // Card ResizeObservers — re-created only when the set of category IDs changes (add/remove, not reorder)
+  const sortedCatIdsKey = localData.map(d => d.category.id).sort((a, b) => a - b).join(',')
+  useEffect(() => {
+    const grid = desktopGridRef.current
+    if (!grid) return
+
+    const obs = new ResizeObserver(entries => {
+      let changed = false
+      for (const entry of entries) {
+        const el = entry.target as HTMLElement
+        const id = parseInt(el.getAttribute('data-cat-card-id') ?? '0')
+        if (!id) continue
+        const h = el.offsetHeight
+        if (cardHeightsRef.current.get(id) !== h) {
+          cardHeightsRef.current.set(id, h)
+          changed = true
+        }
+      }
+      if (!changed) return
+      setPackVersion(v => v + 1)
+      // Transition 0→1: all cards measured and container width known
+      if (
+        packPhaseRef.current === 0 &&
+        cardHeightsRef.current.size >= localDataLengthRef.current &&
+        containerWidthRef.current > 0
+      ) {
+        packPhaseRef.current = 1
+        setPackPhase(1)
+      }
+    })
+
+    grid.querySelectorAll<HTMLElement>('[data-cat-card-id]').forEach(el => obs.observe(el))
+    return () => obs.disconnect()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sortedCatIdsKey])
+
+  // Transition 1→2: enable CSS transitions one frame after cards are placed
+  useEffect(() => {
+    if (packPhase !== 1) return
+    const raf = requestAnimationFrame(() => {
+      packPhaseRef.current = 2
+      setPackPhase(2)
+    })
+    return () => cancelAnimationFrame(raf)
+  }, [packPhase])
+
   // Swipe handlers
   function handleTouchStart(e: React.TouchEvent) {
     if (snapping) return
@@ -198,8 +303,19 @@ export function Ribbon({ editMode, onLogged }: Props) {
   const prevData = activeCategoryIndex > 0 ? localData[activeCategoryIndex - 1] : null
   const currData = localData[activeCategoryIndex]
   const nextData = activeCategoryIndex < localData.length - 1 ? localData[activeCategoryIndex + 1] : null
-  const maxCols = windowWidth >= 1260 ? 4 : 3
-  const cols = Math.min(Math.max(localData.length, 1), maxCols)
+
+  // Masonry layout computation
+  const colCount = getColCount(containerWidth, localData.length)
+  const cardWidth = colCount > 0 && containerWidth > 0
+    ? (containerWidth - MASONRY_GAP * (colCount - 1)) / colCount
+    : 0
+  const { positions, containerHeight } = packMasonry(
+    localData.map(d => d.category.id),
+    colCount,
+    cardHeightsRef.current,
+    cardWidth,
+    MASONRY_GAP,
+  )
 
   return (
     <>
@@ -288,47 +404,61 @@ export function Ribbon({ editMode, onLogged }: Props) {
         )}
       </div>
 
-      {/* ── Desktop: fluid masonry columns ── */}
+      {/* ── Desktop: true masonry layout ── */}
       <div className="hidden min-[1060px]:block flex-1 overflow-y-auto">
         {showEmpty ? (
           <EmptyState onAdd={() => setAddingCategory(true)} />
         ) : (
           <div className="p-6">
+            {/* Masonry container: cards are absolutely positioned within */}
             <div
               ref={desktopGridRef}
-              style={{ columns: cols, columnGap: '1.25rem' }}
+              style={{ position: 'relative', height: containerHeight }}
             >
-              {localData.map(d => (
-                <div
-                  key={d.category.id}
-                  data-cat-card-id={d.category.id}
-                  className="break-inside-avoid mb-5 bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-5"
-                >
-                  <CategorySection
-                    data={d}
-                    editMode={editMode}
-                    onChoreTab={openChore}
-                    onRefresh={refresh}
-                    onLogged={onLogged}
-                    onCategoryDragHandlePointerDown={editMode
-                      ? e => startCatDrag(e, d.category.id, desktopGridRef.current!, '[data-cat-card-id]')
-                      : undefined}
-                    isCategoryDragging={draggingCatId === d.category.id}
-                  />
-                </div>
-              ))}
-              {editMode && (
+              {localData.map(d => {
+                const pos = positions.get(d.category.id)
+                return (
+                  <div
+                    key={d.category.id}
+                    data-cat-card-id={d.category.id}
+                    className="absolute bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-5"
+                    style={{
+                      top: 0,
+                      left: 0,
+                      width: cardWidth > 0 ? cardWidth : undefined,
+                      transform: pos ? `translate(${pos.x}px,${pos.y}px)` : undefined,
+                      visibility: packPhase >= 1 ? 'visible' : 'hidden',
+                      transition: packPhase >= 2 ? 'transform 300ms ease' : 'none',
+                      willChange: 'transform',
+                    }}
+                  >
+                    <CategorySection
+                      data={d}
+                      editMode={editMode}
+                      onChoreTab={openChore}
+                      onRefresh={refresh}
+                      onLogged={onLogged}
+                      onCategoryDragHandlePointerDown={editMode
+                        ? e => startCatDrag(e, d.category.id, desktopGridRef.current!, '[data-cat-card-id]')
+                        : undefined}
+                      isCategoryDragging={draggingCatId === d.category.id}
+                    />
+                  </div>
+                )
+              })}
+            </div>
+
+            {editMode && (
+              <div className="mt-5 flex flex-col gap-2">
                 <button
                   onClick={() => setAddingCategory(true)}
-                  className="break-inside-avoid mb-5 w-full flex items-center justify-center gap-2 py-4 rounded-2xl text-sm text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/30 border border-dashed border-slate-300 dark:border-slate-700/60 hover:border-slate-400 dark:hover:border-slate-600 transition-colors"
+                  className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl text-sm text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/30 border border-dashed border-slate-300 dark:border-slate-700/60 hover:border-slate-400 dark:hover:border-slate-600 transition-colors"
                 >
                   <Plus size={15} />
                   Add category
                 </button>
-              )}
-            </div>
-            {editMode && (
-              <p className="mt-2 text-center text-xs text-slate-400 dark:text-slate-600">v{__APP_VERSION__}</p>
+                <p className="text-center text-xs text-slate-400 dark:text-slate-600">v{__APP_VERSION__}</p>
+              </div>
             )}
           </div>
         )}
