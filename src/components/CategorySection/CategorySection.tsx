@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Pencil, Trash2, Plus, Smile, GripVertical } from 'lucide-react'
 import type { CategoryWithChores } from '@/hooks/useChores'
-import type { ChoreWithLastCompletion } from '@/types'
+import type { Category, ChoreWithLastCompletion } from '@/types'
 import { ChoreRow } from '@/components/ChoreRow/ChoreRow'
 import { ChoreFormModal } from '@/components/ChoreFormModal/ChoreFormModal'
 import { CategoryFormModal } from '@/components/CategoryFormModal/CategoryFormModal'
@@ -12,6 +12,7 @@ import { useEscapeKey } from '@/hooks/useEscapeKey'
 
 interface Props {
   data: CategoryWithChores
+  categories?: Category[]
   editMode: boolean
   onChoreTab: (chore: ChoreWithLastCompletion) => void
   onRefresh: () => void
@@ -20,7 +21,7 @@ interface Props {
   isCategoryDragging?: boolean
 }
 
-export function CategorySection({ data, editMode, onChoreTab, onRefresh, onLogged, onCategoryDragHandlePointerDown, isCategoryDragging }: Props) {
+export function CategorySection({ data, categories, editMode, onChoreTab, onRefresh, onLogged, onCategoryDragHandlePointerDown, isCategoryDragging }: Props) {
   const [choreForm, setChoreForm] = useState<{ chore?: ChoreWithLastCompletion } | null>(null)
   const [categoryForm, setCategoryForm] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState<'category' | number | null>(null)
@@ -199,6 +200,7 @@ export function CategorySection({ data, editMode, onChoreTab, onRefresh, onLogge
       {choreForm !== null && (
         <ChoreFormModal
           category={data.category}
+          categories={categories}
           chore={choreForm.chore}
           onClose={() => setChoreForm(null)}
           onSaved={() => { setChoreForm(null); onRefresh() }}
