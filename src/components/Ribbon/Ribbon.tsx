@@ -296,7 +296,7 @@ export function Ribbon({ editMode, onLogged }: Props) {
           <div className="p-6">
             <div
               ref={desktopGridRef}
-              style={{ columns: cols, columnGap: '1.25rem', columnFill: 'auto', height: '9999px' }}
+              style={{ columns: cols, columnGap: '1.25rem' }}
             >
               {localData.map(d => (
                 <div
