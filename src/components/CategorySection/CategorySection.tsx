@@ -37,11 +37,12 @@ interface ChoreListProps {
   isDropTarget?: boolean
   onExternalHover?: (categoryId: number | null) => void
   onCrossListDrop?: (choreId: number, targetCategoryId: number) => void
+  hideEmptyState?: boolean
 }
 
 function ChoreList({
   category, allCategories, chores, editMode, onChoreTab, onRefresh, onLogged,
-  wrapChores, isDropTarget, onExternalHover, onCrossListDrop,
+  wrapChores, isDropTarget, onExternalHover, onCrossListDrop, hideEmptyState,
 }: ChoreListProps) {
   const [choreForm, setChoreForm] = useState<{ chore?: ChoreWithLastCompletion } | null>(null)
   const [confirmDeleteChore, setConfirmDeleteChore] = useState<number | null>(null)
@@ -165,7 +166,7 @@ function ChoreList({
         data-cat-droptarget-id={category.id}
         className={`rounded-xl ${wrapChores ? 'flex flex-wrap gap-2' : 'flex flex-col gap-2'}`}
       >
-        {localChores.length === 0 && !editMode && !isDropTarget && (
+        {localChores.length === 0 && !editMode && !isDropTarget && !hideEmptyState && (
           <p className="text-sm text-slate-400 dark:text-slate-600 py-3 text-center">
             No chores yet — tap Edit to add one.
           </p>
@@ -496,6 +497,7 @@ export function CategorySection({
           isDropTarget={externalHoverTargetId === data.category.id}
           onExternalHover={setExternalHoverTargetId}
           onCrossListDrop={handleCrossListDrop}
+          hideEmptyState={data.subcategories.length > 0}
         />
 
         {/* Subcategory sections */}
