@@ -14,7 +14,20 @@ export async function createCategory(name: string, sort_order?: number, icon?: s
 }
 
 export async function updateCategory(id: number, fields: { name?: string; icon?: string; parent_category_id?: number | null }): Promise<void> {
-  await db.categories.update(id, fields)
+  const { parent_category_id, ...simpleFields } = fields
+  if (Object.keys(simpleFields).length > 0) {
+    await db.categories.update(id, simpleFields)
+  }
+  if ('parent_category_id' in fields) {
+    if (parent_category_id) {
+      await db.categories.update(id, { parent_category_id })
+    } else {
+      // Promote to root: delete the field entirely rather than setting null
+      await db.categories.where('id').equals(id).modify((cat: Category) => {
+        delete (cat as Record<string, unknown>).parent_category_id
+      })
+    }
+  }
 }
 
 export async function getAllCompletionCounts(): Promise<Map<string, number>> {
