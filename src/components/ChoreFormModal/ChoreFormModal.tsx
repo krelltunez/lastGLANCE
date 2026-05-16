@@ -10,13 +10,27 @@ import { requestNotificationPermission } from '@/hooks/useNotifications'
 
 interface Props {
   category: Category
-  categories?: Category[]
+  allCategories?: Category[]
   chore?: Chore
   onClose: () => void
   onSaved: () => void
 }
 
-export function ChoreFormModal({ category, categories, chore, onClose, onSaved }: Props) {
+// Sort categories hierarchically: root → its children → next root → its children…
+function sortHierarchically(categories: Category[]): Category[] {
+  const roots = categories.filter(c => !c.parent_category_id)
+  const childrenByParent = new Map<number, Category[]>()
+  for (const cat of categories) {
+    if (cat.parent_category_id) {
+      const arr = childrenByParent.get(cat.parent_category_id) ?? []
+      arr.push(cat)
+      childrenByParent.set(cat.parent_category_id, arr)
+    }
+  }
+  return roots.flatMap(r => [r, ...(childrenByParent.get(r.id) ?? [])])
+}
+
+export function ChoreFormModal({ category, allCategories, chore, onClose, onSaved }: Props) {
   const isEdit = Boolean(chore)
   const [name, setName] = useState(chore?.name ?? '')
   const [cadence, setCadence] = useState(
@@ -105,7 +119,7 @@ export function ChoreFormModal({ category, categories, chore, onClose, onSaved }
               </div>
             </div>
 
-            {isEdit && categories && categories.length > 1 && (
+            {isEdit && allCategories && allCategories.length > 1 && (
               <div>
                 <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Category</label>
                 <select
@@ -113,8 +127,10 @@ export function ChoreFormModal({ category, categories, chore, onClose, onSaved }
                   onChange={e => setSelectedCategoryId(Number(e.target.value))}
                   className="w-full bg-slate-100 dark:bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
                 >
-                  {categories.map(cat => (
-                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  {sortHierarchically(allCategories).map(cat => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.parent_category_id ? `  ${cat.name}` : cat.name}
+                    </option>
                   ))}
                 </select>
               </div>

@@ -46,7 +46,7 @@ Tap any row to log completion.
 - `name` (e.g. "Home", "Pets", "Vehicle", "Deep clean")
 - `sort_order`
 
-User decides granularity. Fish tank water changes can be one chore or five — up to the user. No sub-chore machinery in v1.
+User decides granularity. Fish tank water changes can be one chore or five — up to the user.
 
 ### CompletionEvent
 - `id`

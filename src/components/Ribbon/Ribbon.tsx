@@ -335,6 +335,9 @@ export function Ribbon({ editMode, onLogged }: Props) {
   const currData = localData[activeCategoryIndex]
   const nextData = activeCategoryIndex < localData.length - 1 ? localData[activeCategoryIndex + 1] : null
 
+  // Flat list of all categories (roots + subcategories) for form pickers
+  const allCategories = localData.flatMap(d => [d.category, ...d.subcategories.map(s => s.category)])
+
   // Masonry layout computation
   const colCount = getColCount(containerWidth, localData.length)
   const cardWidth = colCount > 0 && containerWidth > 0
@@ -409,13 +412,13 @@ export function Ribbon({ editMode, onLogged }: Props) {
               }}
             >
               <div className="overflow-y-auto" style={{ width: '33.333%' }}>
-                {prevData && <div className="p-4"><CategorySection key={prevData.category.id} data={prevData} categories={localData.map(d => d.category)} editMode={editMode} onChoreTab={openChore} onRefresh={refresh} onLogged={onLogged} wrapChores /></div>}
+                {prevData && <div className="p-4"><CategorySection key={prevData.category.id} data={prevData} allCategories={allCategories} editMode={editMode} onChoreTab={openChore} onRefresh={refresh} onLogged={onLogged} wrapChores /></div>}
               </div>
               <div className="overflow-y-auto" style={{ width: '33.333%' }}>
-                {currData && <div className="p-4"><CategorySection key={currData.category.id} data={currData} categories={localData.map(d => d.category)} editMode={editMode} onChoreTab={openChore} onRefresh={refresh} onLogged={onLogged} wrapChores /></div>}
+                {currData && <div className="p-4"><CategorySection key={currData.category.id} data={currData} allCategories={allCategories} editMode={editMode} onChoreTab={openChore} onRefresh={refresh} onLogged={onLogged} wrapChores /></div>}
               </div>
               <div className="overflow-y-auto" style={{ width: '33.333%' }}>
-                {nextData && <div className="p-4"><CategorySection key={nextData.category.id} data={nextData} categories={localData.map(d => d.category)} editMode={editMode} onChoreTab={openChore} onRefresh={refresh} onLogged={onLogged} wrapChores /></div>}
+                {nextData && <div className="p-4"><CategorySection key={nextData.category.id} data={nextData} allCategories={allCategories} editMode={editMode} onChoreTab={openChore} onRefresh={refresh} onLogged={onLogged} wrapChores /></div>}
               </div>
             </div>
           </div>
@@ -465,7 +468,7 @@ export function Ribbon({ editMode, onLogged }: Props) {
                   >
                     <CategorySection
                       data={d}
-                      categories={localData.map(d => d.category)}
+                      allCategories={allCategories}
                       editMode={editMode}
                       onChoreTab={openChore}
                       onRefresh={refresh}
