@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Pencil, Check, Sun, Moon, Archive } from 'lucide-react'
 import { Ribbon } from '@/components/Ribbon/Ribbon'
 import { BackupModal } from '@/components/BackupModal/BackupModal'
+import { ToastProvider } from '@/components/Toast/Toast'
 import { useNotifications } from '@/hooks/useNotifications'
 import { getAllCompletionCounts } from '@/db/queries'
 import dayjs from 'dayjs'
@@ -90,7 +91,7 @@ function HeaderHeatmap({ weeks }: { weeks: HeatDay[][] }) {
 
 // ── App ───────────────────────────────────────────────────────────────────────
 
-export default function App() {
+function AppInner() {
   useNotifications()
   const [editMode, setEditMode] = useState(false)
   const [showBackup, setShowBackup] = useState(false)
@@ -186,5 +187,13 @@ export default function App() {
         />
       )}
     </div>
+  )
+}
+
+export default function App() {
+  return (
+    <ToastProvider>
+      <AppInner />
+    </ToastProvider>
   )
 }
