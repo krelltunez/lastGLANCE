@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { Download, Upload, X } from 'lucide-react'
 import { exportBackup, importBackup, type BackupPayload } from '@/db/queries'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
+import dayjs from 'dayjs'
 
 interface Props {
   onClose: () => void
@@ -26,7 +27,7 @@ export function BackupModal({ onClose, onImported }: Props) {
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `lastglance-${new Date().toISOString().slice(0, 10)}.json`
+      a.download = `lastglance-${dayjs().format('YYYY-MM-DD')}.json`
       a.click()
       URL.revokeObjectURL(url)
     } finally {

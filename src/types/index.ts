@@ -3,6 +3,7 @@ export interface Category {
   name: string
   sort_order: number
   icon?: string
+  parent_category_id?: number
 }
 
 export interface Chore {

@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from 'react'
-import { Plus, GripVertical } from 'lucide-react'
+import { Plus, GripVertical, Search } from 'lucide-react'
 import { useChores } from '@/hooks/useChores'
 import { reorderCategories } from '@/db/queries'
 import { CategorySection } from '@/components/CategorySection/CategorySection'
 import { LogModal } from '@/components/LogModal/LogModal'
 import { CategoryFormModal } from '@/components/CategoryFormModal/CategoryFormModal'
+import { SearchModal } from '@/components/SearchModal/SearchModal'
 import type { ChoreWithLastCompletion } from '@/types'
 import type { CategoryWithChores } from '@/hooks/useChores'
 
@@ -63,6 +64,9 @@ export function Ribbon({ editMode, onLogged }: Props) {
   const [addingCategory, setAddingCategory] = useState(false)
 
   // Category drag
+  const [showSearch, setShowSearch] = useState(false)
+
+  // Category drag
   const [draggingCatId, setDraggingCatId] = useState<number | null>(null)
   const localDataRef = useRef<CategoryWithChores[]>([])
   const draggingCatIdRef = useRef<number | null>(null)
@@ -90,6 +94,42 @@ export function Ribbon({ editMode, onLogged }: Props) {
   const packPhaseRef = useRef<0 | 1 | 2>(0)
   const localDataLengthRef = useRef(0)
   localDataLengthRef.current = localData.length
+
+  // Refresh when a completion is logged from a toast notification
+  useEffect(() => {
+    function handleToastLog() { refresh(); onLogged?.() }
+    window.addEventListener('lg:chore-logged', handleToastLog)
+    return () => window.removeEventListener('lg:chore-logged', handleToastLog)
+  }, [refresh, onLogged])
+
+  // Open LogModal when a toast's Details button is tapped
+  useEffect(() => {
+    function handleOpenChore(e: Event) {
+      const choreId = (e as CustomEvent<{ choreId: number }>).detail.choreId
+      const chore = localDataRef.current.flatMap(d => [
+        ...d.chores,
+        ...d.subcategories.flatMap(s => s.chores),
+      ]).find(c => c.id === choreId)
+      if (chore) setSelectedChore(chore)
+    }
+    window.addEventListener('lg:open-chore', handleOpenChore)
+    return () => window.removeEventListener('lg:open-chore', handleOpenChore)
+  }, [])
+
+  // Keyboard shortcut: Cmd/Ctrl+K or / opens search
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (showSearch) return
+      const tag = (e.target as HTMLElement).tagName
+      const editable = tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement).isContentEditable
+      if ((e.key === 'k' && (e.metaKey || e.ctrlKey)) || (e.key === '/' && !editable)) {
+        e.preventDefault()
+        setShowSearch(true)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [showSearch])
 
   // Sync localData from server when not dragging categories
   useEffect(() => {
@@ -301,6 +341,7 @@ export function Ribbon({ editMode, onLogged }: Props) {
   function openChore(chore: ChoreWithLastCompletion) { setSelectedChore(chore) }
   function closeChore() { setSelectedChore(null) }
   function afterLog() { refresh(); onLogged?.() }
+  function selectSearchResult(chore: ChoreWithLastCompletion) { setShowSearch(false); setSelectedChore(chore) }
 
   if (loading) {
     return (
@@ -314,6 +355,9 @@ export function Ribbon({ editMode, onLogged }: Props) {
   const prevData = activeCategoryIndex > 0 ? localData[activeCategoryIndex - 1] : null
   const currData = localData[activeCategoryIndex]
   const nextData = activeCategoryIndex < localData.length - 1 ? localData[activeCategoryIndex + 1] : null
+
+  // Flat list of all categories (roots + subcategories) for form pickers
+  const allCategories = localData.flatMap(d => [d.category, ...d.subcategories.map(s => s.category)])
 
   // Masonry layout computation
   const colCount = getColCount(containerWidth, localData.length)
@@ -389,13 +433,13 @@ export function Ribbon({ editMode, onLogged }: Props) {
               }}
             >
               <div className="overflow-y-auto" style={{ width: '33.333%' }}>
-                {prevData && <div className="p-4"><CategorySection key={prevData.category.id} data={prevData} categories={localData.map(d => d.category)} editMode={editMode} onChoreTab={openChore} onRefresh={refresh} onLogged={onLogged} wrapChores /></div>}
+                {prevData && <div className="p-4"><CategorySection key={prevData.category.id} data={prevData} allCategories={allCategories} editMode={editMode} onChoreTab={openChore} onRefresh={refresh} onLogged={onLogged} wrapChores /></div>}
               </div>
               <div className="overflow-y-auto" style={{ width: '33.333%' }}>
-                {currData && <div className="p-4"><CategorySection key={currData.category.id} data={currData} categories={localData.map(d => d.category)} editMode={editMode} onChoreTab={openChore} onRefresh={refresh} onLogged={onLogged} wrapChores /></div>}
+                {currData && <div className="p-4"><CategorySection key={currData.category.id} data={currData} allCategories={allCategories} editMode={editMode} onChoreTab={openChore} onRefresh={refresh} onLogged={onLogged} wrapChores /></div>}
               </div>
               <div className="overflow-y-auto" style={{ width: '33.333%' }}>
-                {nextData && <div className="p-4"><CategorySection key={nextData.category.id} data={nextData} categories={localData.map(d => d.category)} editMode={editMode} onChoreTab={openChore} onRefresh={refresh} onLogged={onLogged} wrapChores /></div>}
+                {nextData && <div className="p-4"><CategorySection key={nextData.category.id} data={nextData} allCategories={allCategories} editMode={editMode} onChoreTab={openChore} onRefresh={refresh} onLogged={onLogged} wrapChores /></div>}
               </div>
             </div>
           </div>
@@ -445,7 +489,7 @@ export function Ribbon({ editMode, onLogged }: Props) {
                   >
                     <CategorySection
                       data={d}
-                      categories={localData.map(d => d.category)}
+                      allCategories={allCategories}
                       editMode={editMode}
                       onChoreTab={openChore}
                       onRefresh={refresh}
@@ -476,11 +520,30 @@ export function Ribbon({ editMode, onLogged }: Props) {
         )}
       </div>
 
+      {/* Mobile search FAB — hidden on desktop, hidden in edit mode */}
+      {!editMode && !showEmpty && (
+        <button
+          onClick={() => setShowSearch(true)}
+          className="min-[1060px]:hidden fixed bottom-6 right-6 z-40 flex items-center justify-center w-13 h-13 rounded-full bg-slate-800 dark:bg-slate-700 text-slate-100 shadow-lg border border-slate-700 dark:border-slate-600 hover:bg-slate-700 dark:hover:bg-slate-600 active:scale-95 transition-all"
+          aria-label="Search chores"
+        >
+          <Search size={20} />
+        </button>
+      )}
+
       {selectedChore && !editMode && (
         <LogModal
           chore={selectedChore}
           onClose={closeChore}
           onLogged={() => { closeChore(); afterLog() }}
+        />
+      )}
+
+      {showSearch && (
+        <SearchModal
+          data={localData}
+          onSelect={selectSearchResult}
+          onClose={() => setShowSearch(false)}
         />
       )}
 

@@ -34,6 +34,10 @@ class LastGlanceDB extends Dexie {
         })
       )
 
+    // Adds parent_category_id index to support subcategories and efficient cascade deletes.
+    this.version(4)
+      .stores({ categories: '++id, sort_order, parent_category_id' })
+
     this.on('populate', async () => {
       const catIds = (await this.categories.bulkAdd(
         SEED_CATEGORIES as unknown as Category[],

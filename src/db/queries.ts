@@ -8,13 +8,26 @@ export async function getCategories(): Promise<Category[]> {
   return db.categories.orderBy('sort_order').toArray()
 }
 
-export async function createCategory(name: string, sort_order?: number, icon?: string): Promise<number> {
+export async function createCategory(name: string, sort_order?: number, icon?: string, parent_category_id?: number): Promise<number> {
   const order = sort_order ?? (await db.categories.count())
-  return db.categories.add({ name, sort_order: order, icon } as Category)
+  return db.categories.add({ name, sort_order: order, icon, parent_category_id } as Category)
 }
 
-export async function updateCategory(id: number, fields: { name?: string; icon?: string }): Promise<void> {
-  await db.categories.update(id, fields)
+export async function updateCategory(id: number, fields: { name?: string; icon?: string; parent_category_id?: number | null }): Promise<void> {
+  const { parent_category_id, ...simpleFields } = fields
+  if (Object.keys(simpleFields).length > 0) {
+    await db.categories.update(id, simpleFields)
+  }
+  if ('parent_category_id' in fields) {
+    if (parent_category_id) {
+      await db.categories.update(id, { parent_category_id })
+    } else {
+      // Promote to root: delete the field entirely rather than setting null
+      await db.categories.where('id').equals(id).modify((cat: Category) => {
+        delete (cat as unknown as Record<string, unknown>).parent_category_id
+      })
+    }
+  }
 }
 
 export async function getAllCompletionCounts(): Promise<Map<string, number>> {
@@ -29,9 +42,14 @@ export async function getAllCompletionCounts(): Promise<Map<string, number>> {
 
 export async function deleteCategory(id: number): Promise<void> {
   await db.transaction('rw', db.categories, db.chores, db.completionEvents, async () => {
-    const chores = await db.chores.where('category_id').equals(id).toArray()
-    await db.completionEvents.where('chore_id').anyOf(chores.map(c => c.id!)).delete()
-    await db.chores.where('category_id').equals(id).delete()
+    const subcats = await db.categories.where('parent_category_id').equals(id).toArray()
+    const catIds = [id, ...subcats.map(c => c.id!)]
+    for (const catId of catIds) {
+      const chores = await db.chores.where('category_id').equals(catId).toArray()
+      await db.completionEvents.where('chore_id').anyOf(chores.map(c => c.id!)).delete()
+      await db.chores.where('category_id').equals(catId).delete()
+    }
+    await db.categories.where('id').anyOf(subcats.map(c => c.id!)).delete()
     await db.categories.delete(id)
   })
 }
