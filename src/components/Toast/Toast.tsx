@@ -64,6 +64,14 @@ function ToastCard({ toast, onDismiss }: { toast: ToastItem; onDismiss: () => vo
         {toast.body && (
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{toast.body}</p>
         )}
+        {toast.type === 'warning' && (
+          <button
+            onClick={exit}
+            className="mt-2 text-xs font-medium text-amber-500 dark:text-amber-400 hover:text-amber-600 dark:hover:text-amber-300 transition-colors"
+          >
+            Done
+          </button>
+        )}
       </div>
       <button
         onClick={exit}
