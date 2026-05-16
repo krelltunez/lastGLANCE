@@ -48,7 +48,7 @@ function WarningActions({ onAction, onDetails, onExit }: {
   }
 
   return (
-    <div className="mt-2.5 flex items-center gap-2">
+    <div className="mt-2.5 flex items-center gap-3">
       <button
         onClick={handleDone}
         disabled={saving}
@@ -60,7 +60,7 @@ function WarningActions({ onAction, onDetails, onExit }: {
       {onDetails && (
         <button
           onClick={handleDetails}
-          className="text-xs text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+          className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium text-slate-400 dark:text-slate-500 border border-slate-300 dark:border-slate-600 hover:text-slate-600 dark:hover:text-slate-300 hover:border-slate-400 dark:hover:border-slate-500 transition-colors"
         >
           Details
         </button>
