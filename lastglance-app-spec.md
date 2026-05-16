@@ -145,10 +145,7 @@ Cost acknowledged: full integration layer (intents, completion loopback, duplica
 
 ## What's NOT in v1
 
-- Sub-chores / hierarchical chore structures (user controls granularity by splitting)
 - AI-inferred cadence (data model supports it; UI/logic deferred)
-- Notifications beyond dayGLANCE auto-scheduling
-- Cloud sync for lastGLANCE's own data across devices (deferred, same rationale as dayGLANCE; if GLANCEcloud ever ships across the family, lastGLANCE adopts it then). Note: this is distinct from the WebDAV event log used for cross-app integration with dayGLANCE, which is in v1.
 - lifeGLANCE integration (focus is dayGLANCE pairing first)
 - TRMNL plugin (possible later as a standalone lastGLANCE-specific plugin, not v1)
 
@@ -180,27 +177,29 @@ Track when you last did stuff. If you want, set a cadence and it'll schedule its
 - Management UI: edit mode toggle in header; add/edit/delete categories and chores; cadence field per chore; confirmation dialogs for destructive actions
 - Per-chore history drill-down: tap a chore name to open a detail view of past completions (timestamp, note, source); delete individual completions
 - Full PWA asset set: app icons at all standard sizes, maskable variants, apple-touch-icon, favicon, manifest configured
+- Docker + docker-compose.yml for self-hosters, consistent with dayGLANCE and lifeGLANCE distribution
+- Responsive layout work: refinement across screen sizes (small phones, tablets, desktop widths). Ribbon, category navigation, and management UI all need a pass for breakpoint behavior.
 - Seed data: 4 categories, 10 chores
 
 ### What's not built yet (v1 remaining)
 
-- Responsive layout work: refinement across screen sizes (small phones, tablets, desktop widths). Ribbon, category navigation, and management UI all need a pass for breakpoint behavior.
+- Search - next!!
+- Subcategories - next!!
+- Cloud sync/remote backup (following dayGLANCE model)
 - dayGLANCE intent integration (outbound `create`, inbound `notify` loopback over WebDAV; Android broadcast on Android when applicable)
 - Design pass (visual identity, color, typography, ribbon visual weight, icons)
-- Docker + docker-compose.yml for self-hosters, consistent with dayGLANCE and lifeGLANCE distribution
+- v1.0.0 release
 - Android wrapper (WebView shell, native SQLite swap-in, intent protocol wiring, Obtainium distribution)
 - iOS app (PWA-shell or wrapped, follows the standalone Android version)
 - Electron app (desktop build, consistent with dayGLANCE Desktop pattern)
 
 ## Build plan
 
-Remaining v1 work in order:
+Remaining v1 work in order (after search, subcategories, and cloud sync):
 
-1. **Responsive layout pass** — refine the layout across the screen-size matrix (small phones up through wide desktop). Ribbon row height and label placement, category navigation between tabs and side-by-side columns, management UI density, modal sizing on small screens. The current layout works at the sizes it was built against; this pass takes it from "works" to "feels intentional on every device."
+1. **dayGLANCE integration** — outbound `create` action emitted to dayGLANCE when user schedules a chore manually or auto-schedule fires; inbound subscription to `notify` events (WebDAV poll on web/iOS/Electron, Android broadcast on Android when applicable) that logs a CompletionEvent with `source="dayglance"` for `event=completed`. Detect dayGLANCE absence and WebDAV absence independently at runtime; hide integration UI accordingly. Per-chore `auto_schedule_to_dayglance` toggle lives in the chore edit form. WebDAV endpoint config lives in app settings (defaults to same endpoint dayGLANCE uses, if discoverable).
 
-2. **dayGLANCE integration** — outbound `create` action emitted to dayGLANCE when user schedules a chore manually or auto-schedule fires; inbound subscription to `notify` events (WebDAV poll on web/iOS/Electron, Android broadcast on Android when applicable) that logs a CompletionEvent with `source="dayglance"` for `event=completed`. Detect dayGLANCE absence and WebDAV absence independently at runtime; hide integration UI accordingly. Per-chore `auto_schedule_to_dayglance` toggle lives in the chore edit form. WebDAV endpoint config lives in app settings (defaults to same endpoint dayGLANCE uses, if discoverable).
-
-3. **Design pass** — the app is functional but not publish-ready. Full pass covers:
+2. **Design pass** — the app is functional but not publish-ready. Full pass covers:
    - **Color and typography** — move away from generic slate palette; establish a visual identity consistent with the GLANCE family. Consider a signature accent color, tighter typographic scale, and more intentional use of weight/spacing in the ribbon.
    - **Category and chore icons** — user-selectable icon per category and per chore. Implementation: add optional `icon` field to Category and Chore (Dexie schema v2 migration); curate ~100 relevant lucide icons (home, cleaning, pet, vehicle, garden, etc.) as a static registry; build a scrollable icon picker grid (possibly filterable) used from both the category and chore edit forms; render icons in category headers and chore rows.
    - **Ribbon visual weight** — the horizontal bar is the core visual metaphor; it should feel more intentional. Consider height, corner radius, label placement, and whether the elapsed text lives on the bar or beside it.
