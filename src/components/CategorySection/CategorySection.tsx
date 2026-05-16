@@ -163,7 +163,7 @@ function ChoreList({
       <div
         ref={choreListRef}
         data-cat-droptarget-id={category.id}
-        className={`rounded-xl transition-colors ${isDropTarget ? 'ring-2 ring-green-400/40 bg-green-400/5' : ''} ${wrapChores ? 'flex flex-wrap gap-2' : 'flex flex-col gap-2'}`}
+        className={`rounded-xl ${wrapChores ? 'flex flex-wrap gap-2' : 'flex flex-col gap-2'}`}
       >
         {localChores.length === 0 && !editMode && !isDropTarget && (
           <p className="text-sm text-slate-400 dark:text-slate-600 py-3 text-center">
@@ -190,7 +190,7 @@ function ChoreList({
           </div>
         ))}
         {isDropTarget && (
-          <div className="flex items-center justify-center py-2 text-xs text-green-400/70 pointer-events-none">
+          <div className="flex items-center justify-center py-1.5 px-3 rounded-lg text-xs text-green-400 border border-dashed border-green-400/50 bg-green-400/5 pointer-events-none">
             Drop here
           </div>
         )}
@@ -262,11 +262,7 @@ function SubcategorySection({
   return (
     <div
       data-cat-droptarget-id={data.category.id}
-      className={`mt-4 border-t pt-3 rounded-xl transition-colors ${
-        isDropTarget
-          ? 'border-green-400/40 bg-green-400/5 ring-2 ring-green-400/40'
-          : 'border-slate-100 dark:border-slate-700/40'
-      }`}
+      className="mt-4 border-t border-slate-100 dark:border-slate-700/40 pt-3"
     >
       {/* Subcategory header */}
       <div className="flex items-center gap-2 mb-2">
@@ -299,7 +295,9 @@ function SubcategorySection({
         </h3>
 
         {isDropTarget && collapsed && (
-          <span className="text-xs text-green-400/70 shrink-0">Drop here</span>
+          <span className="shrink-0 px-2 py-0.5 rounded text-xs text-green-400 border border-dashed border-green-400/50 bg-green-400/5">
+            Drop here
+          </span>
         )}
 
         {editMode && (
