@@ -248,11 +248,12 @@ interface SubcategorySectionProps {
   isDropTarget: boolean
   onExternalHover: (categoryId: number | null) => void
   onCrossListDrop: (choreId: number, targetCategoryId: number) => void
+  compact?: boolean
 }
 
 function SubcategorySection({
   data, allCategories, rootCategories, editMode, onChoreTab, onRefresh, onLogged,
-  wrapChores, collapsed, onToggleCollapse, isDropTarget, onExternalHover, onCrossListDrop,
+  wrapChores, collapsed, onToggleCollapse, isDropTarget, onExternalHover, onCrossListDrop, compact,
 }: SubcategorySectionProps) {
   const [catForm, setCatForm] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -263,7 +264,7 @@ function SubcategorySection({
   return (
     <div
       data-cat-droptarget-id={data.category.id}
-      className="mt-4 border-t border-slate-100 dark:border-slate-700/40 pt-3"
+      className={`${compact ? 'mt-2' : 'mt-4'} border-t border-slate-100 dark:border-slate-700/40 pt-3`}
     >
       {/* Subcategory header */}
       <div className="flex items-center gap-2 mb-2">
@@ -425,7 +426,7 @@ export function CategorySection({
         style={{ opacity: isCategoryDragging ? 0.4 : 1 }}
       >
         {/* Category header */}
-        <div className="flex items-center gap-2.5 mb-3">
+        <div className={`flex items-center gap-2.5 ${data.chores.length === 0 && data.subcategories.length > 0 ? 'mb-1.5' : 'mb-3'}`}>
           {editMode && onCategoryDragHandlePointerDown && (
             <div
               className="shrink-0 cursor-grab active:cursor-grabbing text-slate-300 dark:text-slate-600 hover:text-slate-400 dark:hover:text-slate-500"
@@ -501,10 +502,11 @@ export function CategorySection({
         />
 
         {/* Subcategory sections */}
-        {data.subcategories.map(sub => (
+        {data.subcategories.map((sub, idx) => (
           <SubcategorySection
             key={sub.category.id}
             data={sub}
+            compact={idx === 0 && data.chores.length === 0}
             allCategories={allCategories}
             rootCategories={rootCategories}
             editMode={editMode}
