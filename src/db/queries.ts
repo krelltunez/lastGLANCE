@@ -24,7 +24,7 @@ export async function updateCategory(id: number, fields: { name?: string; icon?:
     } else {
       // Promote to root: delete the field entirely rather than setting null
       await db.categories.where('id').equals(id).modify((cat: Category) => {
-        delete (cat as Record<string, unknown>).parent_category_id
+        delete (cat as unknown as Record<string, unknown>).parent_category_id
       })
     }
   }
