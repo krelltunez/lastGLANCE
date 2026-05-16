@@ -45,11 +45,16 @@ export function SearchModal({ data, onSelect, onClose }: Props) {
 
   const results: SearchResult[] = q === ''
     ? []
-    : data.flatMap(({ category, chores }) =>
-        chores
+    : data.flatMap(({ category, chores, subcategories }) => [
+        ...chores
           .filter(c => c.name.toLowerCase().includes(q))
-          .map(chore => ({ chore, category }))
-      ).sort((a, b) => {
+          .map(chore => ({ chore, category })),
+        ...subcategories.flatMap(({ category: subCat, chores: subChores }) =>
+          subChores
+            .filter(c => c.name.toLowerCase().includes(q))
+            .map(chore => ({ chore, category: subCat }))
+        ),
+      ]).sort((a, b) => {
         const aPrefix = a.chore.name.toLowerCase().startsWith(q)
         const bPrefix = b.chore.name.toLowerCase().startsWith(q)
         if (aPrefix && !bPrefix) return -1

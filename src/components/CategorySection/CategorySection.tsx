@@ -535,6 +535,7 @@ export function CategorySection({
       {addingSubcategory && (
         <CategoryFormModal
           parentCategoryId={data.category.id}
+          parentIcon={data.category.icon}
           onClose={() => setAddingSubcategory(false)}
           onSaved={() => { setAddingSubcategory(false); onRefresh() }}
         />
