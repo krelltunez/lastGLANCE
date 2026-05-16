@@ -36,7 +36,7 @@ export function ChoreFormModal({ category, allCategories, chore, onClose, onSave
   const [cadence, setCadence] = useState(
     chore?.target_cadence_days != null ? String(chore.target_cadence_days) : ''
   )
-  const [icon, setIcon] = useState<string | undefined>(chore?.icon)
+  const [icon, setIcon] = useState<string | undefined>(chore ? chore.icon : category.icon)
   const [notify, setNotify] = useState(chore?.notify_when_overdue ?? false)
   const [selectedCategoryId, setSelectedCategoryId] = useState<number>(chore?.category_id ?? category.id)
   const [notifyBlocked, setNotifyBlocked] = useState(false)

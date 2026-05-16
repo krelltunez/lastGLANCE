@@ -10,15 +10,16 @@ import { ICON_REGISTRY } from '@/icons/registry'
 interface Props {
   category?: Category          // edit mode when provided
   parentCategoryId?: number    // pre-set parent for "Add subcategory" context
+  parentIcon?: string          // default icon when adding a subcategory
   rootCategories?: Category[]  // when provided, shows parent picker in edit mode
   onClose: () => void
   onSaved: () => void
 }
 
-export function CategoryFormModal({ category, parentCategoryId, rootCategories, onClose, onSaved }: Props) {
+export function CategoryFormModal({ category, parentCategoryId, parentIcon, rootCategories, onClose, onSaved }: Props) {
   const isEdit = Boolean(category)
   const [name, setName] = useState(category?.name ?? '')
-  const [icon, setIcon] = useState<string | undefined>(category?.icon)
+  const [icon, setIcon] = useState<string | undefined>(category ? category.icon : parentIcon)
   const [selectedParentId, setSelectedParentId] = useState<number | undefined>(
     category?.parent_category_id ?? parentCategoryId
   )
