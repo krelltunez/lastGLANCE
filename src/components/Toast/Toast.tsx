@@ -28,7 +28,7 @@ export function useToast() {
 const MAX_TOASTS = 4
 
 function ToastCard({ toast, onDismiss }: { toast: ToastItem; onDismiss: () => void }) {
-  const duration = toast.duration ?? 4000
+  const duration = toast.type === 'warning' ? null : (toast.duration ?? 4000)
   const [exiting, setExiting] = useState(false)
 
   const exit = useCallback(() => {
@@ -37,6 +37,7 @@ function ToastCard({ toast, onDismiss }: { toast: ToastItem; onDismiss: () => vo
   }, [onDismiss])
 
   useEffect(() => {
+    if (duration === null) return
     const t = setTimeout(exit, duration)
     return () => clearTimeout(t)
   }, [duration, exit])
