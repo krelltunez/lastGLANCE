@@ -363,6 +363,14 @@ export function CategorySection({
           {editMode && (
             <div className="flex items-center gap-1 shrink-0">
               <button
+                onClick={() => setAddingSubcategory(true)}
+                className="p-1.5 rounded-lg text-slate-400 dark:text-slate-500 hover:text-green-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                aria-label="Add subcategory"
+                title="Add subcategory"
+              >
+                <FolderPlus size={13} />
+              </button>
+              <button
                 onClick={() => setCategoryForm(true)}
                 className="p-1.5 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
                 aria-label="Rename category"
@@ -409,16 +417,7 @@ export function CategorySection({
           />
         ))}
 
-        {/* Add subcategory button (edit mode only) */}
-        {editMode && (
-          <button
-            onClick={() => setAddingSubcategory(true)}
-            className="mt-3 flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/30 border border-dashed border-slate-200 dark:border-slate-700/40 hover:border-slate-300 dark:hover:border-slate-600 transition-colors self-start"
-          >
-            <FolderPlus size={13} />
-            Add subcategory
-          </button>
-        )}
+
       </div>
 
       {categoryForm && (
