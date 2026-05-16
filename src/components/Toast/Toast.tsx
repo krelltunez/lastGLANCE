@@ -8,6 +8,7 @@ export interface ToastOptions {
   type?: 'default' | 'success' | 'warning'
   duration?: number
   onAction?: () => Promise<void> | void
+  onDetails?: () => void
 }
 
 interface ToastItem extends ToastOptions {
@@ -28,24 +29,43 @@ export function useToast() {
 
 const MAX_TOASTS = 4
 
-function DoneButton({ onAction, onExit }: { onAction?: () => Promise<void> | void; onExit: () => void }) {
+function WarningActions({ onAction, onDetails, onExit }: {
+  onAction?: () => Promise<void> | void
+  onDetails?: () => void
+  onExit: () => void
+}) {
   const [saving, setSaving] = useState(false)
 
-  async function handle() {
+  async function handleDone() {
     if (saving) return
     setSaving(true)
     try { await onAction?.() } finally { onExit() }
   }
 
+  function handleDetails() {
+    onDetails?.()
+    onExit()
+  }
+
   return (
-    <button
-      onClick={handle}
-      disabled={saving}
-      className="mt-2 flex items-center gap-1 text-xs font-medium text-amber-500 dark:text-amber-400 hover:text-amber-600 dark:hover:text-amber-300 disabled:opacity-50 transition-colors"
-    >
-      {saving ? <Loader size={11} className="animate-spin" /> : <Check size={11} strokeWidth={2.5} />}
-      Done
-    </button>
+    <div className="mt-2.5 flex items-center gap-2">
+      <button
+        onClick={handleDone}
+        disabled={saving}
+        className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium text-amber-500 dark:text-amber-400 border border-amber-400/50 hover:bg-amber-400/10 disabled:opacity-50 transition-colors"
+      >
+        {saving ? <Loader size={11} className="animate-spin" /> : <Check size={11} strokeWidth={2.5} />}
+        Done
+      </button>
+      {onDetails && (
+        <button
+          onClick={handleDetails}
+          className="text-xs text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+        >
+          Details
+        </button>
+      )}
+    </div>
   )
 }
 
@@ -87,7 +107,7 @@ function ToastCard({ toast, onDismiss }: { toast: ToastItem; onDismiss: () => vo
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{toast.body}</p>
         )}
         {toast.type === 'warning' && (
-          <DoneButton onAction={toast.onAction} onExit={exit} />
+          <WarningActions onAction={toast.onAction} onDetails={toast.onDetails} onExit={exit} />
         )}
       </div>
       <button

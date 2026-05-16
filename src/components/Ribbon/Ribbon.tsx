@@ -102,6 +102,20 @@ export function Ribbon({ editMode, onLogged }: Props) {
     return () => window.removeEventListener('lg:chore-logged', handleToastLog)
   }, [refresh, onLogged])
 
+  // Open LogModal when a toast's Details button is tapped
+  useEffect(() => {
+    function handleOpenChore(e: Event) {
+      const choreId = (e as CustomEvent<{ choreId: number }>).detail.choreId
+      const chore = localDataRef.current.flatMap(d => [
+        ...d.chores,
+        ...d.subcategories.flatMap(s => s.chores),
+      ]).find(c => c.id === choreId)
+      if (chore) setSelectedChore(chore)
+    }
+    window.addEventListener('lg:open-chore', handleOpenChore)
+    return () => window.removeEventListener('lg:open-chore', handleOpenChore)
+  }, [])
+
   // Keyboard shortcut: Cmd/Ctrl+K or / opens search
   useEffect(() => {
     function onKey(e: KeyboardEvent) {

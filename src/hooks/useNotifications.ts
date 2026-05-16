@@ -59,6 +59,9 @@ export function useNotifications() {
               await logCompletion(choreId)
               window.dispatchEvent(new CustomEvent('lg:chore-logged'))
             },
+            onDetails: () => {
+              window.dispatchEvent(new CustomEvent('lg:open-chore', { detail: { choreId } }))
+            },
           })
         } else {
           await fireBrowserNotification(chore.name, body)
