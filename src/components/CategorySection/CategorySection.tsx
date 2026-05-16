@@ -7,7 +7,7 @@ import { ChoreRow } from '@/components/ChoreRow/ChoreRow'
 import { ChoreFormModal } from '@/components/ChoreFormModal/ChoreFormModal'
 import { CategoryFormModal } from '@/components/CategoryFormModal/CategoryFormModal'
 import { IconPicker } from '@/components/IconPicker/IconPicker'
-import { deleteCategory, deleteChore, updateCategory, reorderChores } from '@/db/queries'
+import { deleteCategory, deleteChore, updateCategory, updateChore, reorderChores } from '@/db/queries'
 import { ICON_REGISTRY } from '@/icons/registry'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
 
@@ -34,16 +34,28 @@ interface ChoreListProps {
   onRefresh: () => void
   onLogged?: () => void
   wrapChores?: boolean
+  isDropTarget?: boolean
+  onExternalHover?: (categoryId: number | null) => void
+  onCrossListDrop?: (choreId: number, targetCategoryId: number) => void
 }
 
-function ChoreList({ category, allCategories, chores, editMode, onChoreTab, onRefresh, onLogged, wrapChores }: ChoreListProps) {
+function ChoreList({
+  category, allCategories, chores, editMode, onChoreTab, onRefresh, onLogged,
+  wrapChores, isDropTarget, onExternalHover, onCrossListDrop,
+}: ChoreListProps) {
   const [choreForm, setChoreForm] = useState<{ chore?: ChoreWithLastCompletion } | null>(null)
   const [confirmDeleteChore, setConfirmDeleteChore] = useState<number | null>(null)
   const [localChores, setLocalChores] = useState<ChoreWithLastCompletion[]>(chores)
   const localChoresRef = useRef<ChoreWithLastCompletion[]>(chores)
   const [draggingId, setDraggingId] = useState<number | null>(null)
   const draggingIdRef = useRef<number | null>(null)
+  const externalHoverRef = useRef<number | null>(null)
   const choreListRef = useRef<HTMLDivElement>(null)
+
+  // Use a ref for callbacks so the drag useEffect never needs to re-run when
+  // CategorySection re-renders (which happens whenever externalHoverTargetId changes).
+  const cbRef = useRef({ onExternalHover, onCrossListDrop })
+  useEffect(() => { cbRef.current = { onExternalHover, onCrossListDrop } })
 
   useEffect(() => {
     if (draggingIdRef.current === null) {
@@ -56,7 +68,36 @@ function ChoreList({ category, allCategories, chores, editMode, onChoreTab, onRe
     if (draggingId === null) return
 
     function onMove(e: PointerEvent) {
-      const rows = Array.from(choreListRef.current?.querySelectorAll('[data-chore-id]') ?? [])
+      const listEl = choreListRef.current
+      if (!listEl) return
+
+      const ownRect = listEl.getBoundingClientRect()
+      const insideOwn = (
+        e.clientX >= ownRect.left && e.clientX <= ownRect.right &&
+        e.clientY >= ownRect.top  && e.clientY <= ownRect.bottom
+      )
+
+      if (!insideOwn) {
+        // Find which drop target the pointer is over
+        const el = document.elementFromPoint(e.clientX, e.clientY)
+        const targetEl = el?.closest('[data-cat-droptarget-id]') as HTMLElement | null
+        const targetId = targetEl ? Number(targetEl.getAttribute('data-cat-droptarget-id')) : null
+        const externalId = (targetId !== null && targetId !== category.id) ? targetId : null
+        if (externalId !== externalHoverRef.current) {
+          externalHoverRef.current = externalId
+          cbRef.current.onExternalHover?.(externalId)
+        }
+        return
+      }
+
+      // Back inside own list — clear external hover
+      if (externalHoverRef.current !== null) {
+        externalHoverRef.current = null
+        cbRef.current.onExternalHover?.(null)
+      }
+
+      // Same-list reorder
+      const rows = Array.from(listEl.querySelectorAll('[data-chore-id]'))
       if (rows.length === 0) return
 
       let hoverIdx = rows.length
@@ -81,12 +122,26 @@ function ChoreList({ category, allCategories, chores, editMode, onChoreTab, onRe
     }
 
     async function onUp() {
-      if (draggingIdRef.current !== null) {
+      const choreId = draggingIdRef.current
+      const externalTarget = externalHoverRef.current
+
+      externalHoverRef.current = null
+      cbRef.current.onExternalHover?.(null)
+      draggingIdRef.current = null
+      setDraggingId(null)
+
+      if (choreId === null) return
+
+      if (externalTarget !== null) {
+        // Optimistically remove from this list before the refresh
+        const without = localChoresRef.current.filter(c => c.id !== choreId)
+        localChoresRef.current = without
+        setLocalChores(without)
+        cbRef.current.onCrossListDrop?.(choreId, externalTarget)
+      } else {
         await reorderChores(localChoresRef.current.map(c => c.id!))
         onRefresh()
       }
-      draggingIdRef.current = null
-      setDraggingId(null)
     }
 
     window.addEventListener('pointermove', onMove)
@@ -95,7 +150,7 @@ function ChoreList({ category, allCategories, chores, editMode, onChoreTab, onRe
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup', onUp)
     }
-  }, [draggingId, onRefresh])
+  }, [draggingId, onRefresh, category.id])
 
   function startDrag(e: React.PointerEvent, choreId: number) {
     e.currentTarget.setPointerCapture(e.pointerId)
@@ -107,9 +162,10 @@ function ChoreList({ category, allCategories, chores, editMode, onChoreTab, onRe
     <>
       <div
         ref={choreListRef}
-        className={wrapChores ? 'flex flex-wrap gap-2' : 'flex flex-col gap-2'}
+        data-cat-droptarget-id={category.id}
+        className={`rounded-xl transition-colors ${isDropTarget ? 'ring-2 ring-green-400/40 bg-green-400/5' : ''} ${wrapChores ? 'flex flex-wrap gap-2' : 'flex flex-col gap-2'}`}
       >
-        {localChores.length === 0 && !editMode && (
+        {localChores.length === 0 && !editMode && !isDropTarget && (
           <p className="text-sm text-slate-400 dark:text-slate-600 py-3 text-center">
             No chores yet — tap Edit to add one.
           </p>
@@ -133,6 +189,11 @@ function ChoreList({ category, allCategories, chores, editMode, onChoreTab, onRe
             />
           </div>
         ))}
+        {isDropTarget && (
+          <div className="flex items-center justify-center py-2 text-xs text-green-400/70 pointer-events-none">
+            Drop here
+          </div>
+        )}
         {editMode && (
           <button
             onClick={() => setChoreForm({})}
@@ -183,11 +244,14 @@ interface SubcategorySectionProps {
   wrapChores?: boolean
   collapsed: boolean
   onToggleCollapse: () => void
+  isDropTarget: boolean
+  onExternalHover: (categoryId: number | null) => void
+  onCrossListDrop: (choreId: number, targetCategoryId: number) => void
 }
 
 function SubcategorySection({
   data, allCategories, rootCategories, editMode, onChoreTab, onRefresh, onLogged,
-  wrapChores, collapsed, onToggleCollapse,
+  wrapChores, collapsed, onToggleCollapse, isDropTarget, onExternalHover, onCrossListDrop,
 }: SubcategorySectionProps) {
   const [catForm, setCatForm] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -196,7 +260,14 @@ function SubcategorySection({
   const SubIcon = data.category.icon ? ICON_REGISTRY[data.category.icon] : null
 
   return (
-    <div className="mt-4 border-t border-slate-100 dark:border-slate-700/40 pt-3">
+    <div
+      data-cat-droptarget-id={data.category.id}
+      className={`mt-4 border-t pt-3 rounded-xl transition-colors ${
+        isDropTarget
+          ? 'border-green-400/40 bg-green-400/5 ring-2 ring-green-400/40'
+          : 'border-slate-100 dark:border-slate-700/40'
+      }`}
+    >
       {/* Subcategory header */}
       <div className="flex items-center gap-2 mb-2">
         <button
@@ -226,6 +297,10 @@ function SubcategorySection({
         <h3 className="text-sm font-semibold text-slate-600 dark:text-slate-300 tracking-tight truncate flex-1">
           {data.category.name}
         </h3>
+
+        {isDropTarget && collapsed && (
+          <span className="text-xs text-green-400/70 shrink-0">Drop here</span>
+        )}
 
         {editMode && (
           <div className="flex items-center gap-1 shrink-0">
@@ -258,6 +333,9 @@ function SubcategorySection({
             onRefresh={onRefresh}
             onLogged={onLogged}
             wrapChores={wrapChores}
+            isDropTarget={isDropTarget}
+            onExternalHover={onExternalHover}
+            onCrossListDrop={onCrossListDrop}
           />
         </div>
       )}
@@ -308,6 +386,7 @@ export function CategorySection({
   const [confirmDeleteCategory, setConfirmDeleteCategory] = useState(false)
   const [iconPickerOpen, setIconPickerOpen] = useState(false)
   const [collapsedSubs, setCollapsedSubs] = useState<Set<number>>(new Set())
+  const [externalHoverTargetId, setExternalHoverTargetId] = useState<number | null>(null)
 
   function toggleSubCollapse(id: number) {
     setCollapsedSubs(prev => {
@@ -315,6 +394,20 @@ export function CategorySection({
       next.has(id) ? next.delete(id) : next.add(id)
       return next
     })
+  }
+
+  async function handleCrossListDrop(choreId: number, targetCategoryId: number) {
+    await updateChore(choreId, { category_id: targetCategoryId })
+    // Auto-expand if the target subcategory was collapsed
+    setCollapsedSubs(prev => {
+      if (prev.has(targetCategoryId)) {
+        const next = new Set(prev)
+        next.delete(targetCategoryId)
+        return next
+      }
+      return prev
+    })
+    onRefresh()
   }
 
   const rootCategories = allCategories?.filter(c => !c.parent_category_id) ?? []
@@ -327,7 +420,11 @@ export function CategorySection({
 
   return (
     <>
-      <div className="flex flex-col" style={{ opacity: isCategoryDragging ? 0.4 : 1 }}>
+      <div
+        data-cat-droptarget-id={data.category.id}
+        className="flex flex-col"
+        style={{ opacity: isCategoryDragging ? 0.4 : 1 }}
+      >
         {/* Category header */}
         <div className="flex items-center gap-2.5 mb-3">
           {editMode && onCategoryDragHandlePointerDown && (
@@ -398,6 +495,9 @@ export function CategorySection({
           onRefresh={onRefresh}
           onLogged={onLogged}
           wrapChores={wrapChores}
+          isDropTarget={externalHoverTargetId === data.category.id}
+          onExternalHover={setExternalHoverTargetId}
+          onCrossListDrop={handleCrossListDrop}
         />
 
         {/* Subcategory sections */}
@@ -414,10 +514,11 @@ export function CategorySection({
             wrapChores={wrapChores}
             collapsed={collapsedSubs.has(sub.category.id)}
             onToggleCollapse={() => toggleSubCollapse(sub.category.id)}
+            isDropTarget={externalHoverTargetId === sub.category.id}
+            onExternalHover={setExternalHoverTargetId}
+            onCrossListDrop={handleCrossListDrop}
           />
         ))}
-
-
       </div>
 
       {categoryForm && (
