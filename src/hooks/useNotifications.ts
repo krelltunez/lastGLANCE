@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { getCategories, getChoresForCategory } from '@/db/queries'
+import { getCategories, getChoresForCategory, logCompletion } from '@/db/queries'
 import { useToast, type ToastOptions } from '@/components/Toast/Toast'
 import dayjs from 'dayjs'
 
@@ -50,7 +50,16 @@ export function useNotifications() {
           : 'Due today'
 
         if (document.visibilityState === 'visible') {
-          showToastRef.current({ title: chore.name, body, type: 'warning', duration: 6000 })
+          const choreId = chore.id!
+          showToastRef.current({
+            title: chore.name,
+            body,
+            type: 'warning',
+            onAction: async () => {
+              await logCompletion(choreId)
+              window.dispatchEvent(new CustomEvent('lg:chore-logged'))
+            },
+          })
         } else {
           await fireBrowserNotification(chore.name, body)
         }

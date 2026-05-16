@@ -1,12 +1,13 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { X, Bell, Check } from 'lucide-react'
+import { X, Bell, Check, Loader } from 'lucide-react'
 
 export interface ToastOptions {
   title: string
   body?: string
   type?: 'default' | 'success' | 'warning'
   duration?: number
+  onAction?: () => Promise<void> | void
 }
 
 interface ToastItem extends ToastOptions {
@@ -26,6 +27,27 @@ export function useToast() {
 }
 
 const MAX_TOASTS = 4
+
+function DoneButton({ onAction, onExit }: { onAction?: () => Promise<void> | void; onExit: () => void }) {
+  const [saving, setSaving] = useState(false)
+
+  async function handle() {
+    if (saving) return
+    setSaving(true)
+    try { await onAction?.() } finally { onExit() }
+  }
+
+  return (
+    <button
+      onClick={handle}
+      disabled={saving}
+      className="mt-2 flex items-center gap-1 text-xs font-medium text-amber-500 dark:text-amber-400 hover:text-amber-600 dark:hover:text-amber-300 disabled:opacity-50 transition-colors"
+    >
+      {saving ? <Loader size={11} className="animate-spin" /> : <Check size={11} strokeWidth={2.5} />}
+      Done
+    </button>
+  )
+}
 
 function ToastCard({ toast, onDismiss }: { toast: ToastItem; onDismiss: () => void }) {
   const duration = toast.type === 'warning' ? null : (toast.duration ?? 4000)
@@ -65,12 +87,7 @@ function ToastCard({ toast, onDismiss }: { toast: ToastItem; onDismiss: () => vo
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{toast.body}</p>
         )}
         {toast.type === 'warning' && (
-          <button
-            onClick={exit}
-            className="mt-2 text-xs font-medium text-amber-500 dark:text-amber-400 hover:text-amber-600 dark:hover:text-amber-300 transition-colors"
-          >
-            Done
-          </button>
+          <DoneButton onAction={toast.onAction} onExit={exit} />
         )}
       </div>
       <button

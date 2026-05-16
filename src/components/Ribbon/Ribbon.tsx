@@ -95,6 +95,13 @@ export function Ribbon({ editMode, onLogged }: Props) {
   const localDataLengthRef = useRef(0)
   localDataLengthRef.current = localData.length
 
+  // Refresh when a completion is logged from a toast notification
+  useEffect(() => {
+    function handleToastLog() { refresh(); onLogged?.() }
+    window.addEventListener('lg:chore-logged', handleToastLog)
+    return () => window.removeEventListener('lg:chore-logged', handleToastLog)
+  }, [refresh, onLogged])
+
   // Keyboard shortcut: Cmd/Ctrl+K or / opens search
   useEffect(() => {
     function onKey(e: KeyboardEvent) {

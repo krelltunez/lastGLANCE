@@ -115,6 +115,11 @@ function AppInner() {
 
   useEffect(() => { loadHeatmap() }, [loadHeatmap])
 
+  useEffect(() => {
+    window.addEventListener('lg:chore-logged', loadHeatmap)
+    return () => window.removeEventListener('lg:chore-logged', loadHeatmap)
+  }, [loadHeatmap])
+
   function toggleTheme() {
     setIsDark(d => !d)
   }
