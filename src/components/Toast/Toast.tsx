@@ -85,6 +85,11 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     })
   }, [])
 
+  useEffect(() => {
+    (window as Record<string, unknown>).__toast = showToast
+    return () => { delete (window as Record<string, unknown>).__toast }
+  }, [showToast])
+
   function dismiss(id: string) {
     setToasts(prev => prev.filter(t => t.id !== id))
   }
