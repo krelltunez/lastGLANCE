@@ -23,7 +23,7 @@ export async function ensureFolder(baseUrl: string, folderPath: string, authHead
     try {
       await fetch(withProxy(url), {
         method: 'MKCOL',
-        headers: { Authorization: authHeader },
+        headers: { 'X-WebDAV-Auth': authHeader },
       })
     } catch {
       // ignore errors silently
@@ -37,7 +37,7 @@ export async function putFile(baseUrl: string, folderPath: string, filename: str
   const res = await fetch(withProxy(url), {
     method: 'PUT',
     headers: {
-      Authorization: authHeader,
+      'X-WebDAV-Auth': authHeader,
       'Content-Type': 'application/json',
     },
     body: content,
@@ -55,7 +55,7 @@ export async function listFiles(baseUrl: string, folderPath: string, authHeader:
     const res = await fetch(withProxy(folderUrl), {
       method: 'PROPFIND',
       headers: {
-        Authorization: authHeader,
+        'X-WebDAV-Auth': authHeader,
         Depth: '1',
         'Content-Type': 'application/xml',
       },
@@ -84,7 +84,7 @@ export async function getFile(baseUrl: string, folderPath: string, filename: str
   const url = `${folderUrl}/${filename}`
   const res = await fetch(withProxy(url), {
     method: 'GET',
-    headers: { Authorization: authHeader },
+    headers: { 'X-WebDAV-Auth': authHeader },
   })
   if (!res.ok) {
     throw new Error(`GET ${filename} failed: ${res.status} ${res.statusText}`)
@@ -99,7 +99,7 @@ export async function testConnection(baseUrl: string, folderPath: string, userna
     const res = await fetch(withProxy(folderUrl), {
       method: 'PROPFIND',
       headers: {
-        Authorization: authHeader,
+        'X-WebDAV-Auth': authHeader,
         Depth: '0',
         'Content-Type': 'application/xml',
       },
