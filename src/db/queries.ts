@@ -2,6 +2,12 @@ import { db } from './client'
 import type { Category, Chore, ChoreWithLastCompletion, CompletionEvent } from '@/types'
 import dayjs from 'dayjs'
 
+// Tombstone helpers
+
+async function writeTombstone(syncId: string): Promise<void> {
+  await db.tombstones.put({ id: syncId, deleted_at: new Date().toISOString() })
+}
+
 // Categories
 
 export async function getCategories(): Promise<Category[]> {
@@ -10,23 +16,49 @@ export async function getCategories(): Promise<Category[]> {
 
 export async function createCategory(name: string, sort_order?: number, icon?: string, parent_category_id?: number): Promise<number> {
   const order = sort_order ?? (await db.categories.count())
-  return db.categories.add({ name, sort_order: order, icon, parent_category_id } as Category)
+  let parent_sync_id: string | null = null
+  if (parent_category_id) {
+    const parent = await db.categories.get(parent_category_id)
+    parent_sync_id = parent?.sync_id ?? null
+  }
+  return db.categories.add({
+    name,
+    sort_order: order,
+    icon,
+    parent_category_id,
+    sync_id: crypto.randomUUID(),
+    parent_sync_id,
+    updated_at: new Date().toISOString(),
+  } as Category)
 }
 
 export async function updateCategory(id: number, fields: { name?: string; icon?: string; parent_category_id?: number | null }): Promise<void> {
   const { parent_category_id, ...simpleFields } = fields
+  const updated_at = new Date().toISOString()
+  // Update simple fields (name, icon) with timestamp
   if (Object.keys(simpleFields).length > 0) {
-    await db.categories.update(id, simpleFields)
+    await db.categories.update(id, { ...simpleFields, updated_at })
   }
   if ('parent_category_id' in fields) {
     if (parent_category_id) {
-      await db.categories.update(id, { parent_category_id })
+      // Resolve parent sync_id
+      const parent = await db.categories.get(parent_category_id)
+      await db.categories.update(id, {
+        parent_category_id,
+        parent_sync_id: parent?.sync_id ?? null,
+        updated_at,
+      })
     } else {
       // Promote to root: delete the field entirely rather than setting null
       await db.categories.where('id').equals(id).modify((cat: Category) => {
         delete (cat as unknown as Record<string, unknown>).parent_category_id
+        ;(cat as unknown as Record<string, unknown>).parent_sync_id = null
+        ;(cat as unknown as Record<string, unknown>).updated_at = updated_at
       })
     }
+  } else if (Object.keys(simpleFields).length === 0) {
+    // Nothing to update but stamp the timestamp anyway
+    await db.categories.update(id, { updated_at })
   }
 }
 
@@ -41,16 +73,36 @@ export async function getAllCompletionCounts(): Promise<Map<string, number>> {
 }
 
 export async function deleteCategory(id: number): Promise<void> {
-  await db.transaction('rw', db.categories, db.chores, db.completionEvents, async () => {
+  await db.transaction('rw', db.categories, db.chores, db.completionEvents, db.tombstones, async () => {
     const subcats = await db.categories.where('parent_category_id').equals(id).toArray()
     const catIds = [id, ...subcats.map(c => c.id!)]
+
+    // Collect all sync_ids for tombstoning
+    const rootCat = await db.categories.get(id)
+    const catSyncIds: string[] = []
+    if (rootCat?.sync_id) catSyncIds.push(rootCat.sync_id)
+    for (const sub of subcats) if (sub.sync_id) catSyncIds.push(sub.sync_id)
+
+    const choreSyncIds: string[] = []
+    const evtSyncIds: string[] = []
+
     for (const catId of catIds) {
       const chores = await db.chores.where('category_id').equals(catId).toArray()
+      for (const chore of chores) if (chore.sync_id) choreSyncIds.push(chore.sync_id)
+      const evts = await db.completionEvents.where('chore_id').anyOf(chores.map(c => c.id!)).toArray()
+      for (const evt of evts) if (evt.sync_id) evtSyncIds.push(evt.sync_id)
       await db.completionEvents.where('chore_id').anyOf(chores.map(c => c.id!)).delete()
       await db.chores.where('category_id').equals(catId).delete()
     }
     await db.categories.where('id').anyOf(subcats.map(c => c.id!)).delete()
     await db.categories.delete(id)
+
+    // Write tombstones
+    const now = new Date().toISOString()
+    const allSyncIds = [...catSyncIds, ...choreSyncIds, ...evtSyncIds]
+    if (allSyncIds.length > 0) {
+      await db.tombstones.bulkPut(allSyncIds.map(sid => ({ id: sid, deleted_at: now })))
+    }
   })
 }
 
@@ -81,11 +133,20 @@ export async function getChoresForCategory(categoryId: number): Promise<ChoreWit
 }
 
 export async function createChore(
-  data: Omit<Chore, 'id' | 'sort_order' | 'created_at' | 'updated_at'>
+  data: Omit<Chore, 'id' | 'sort_order' | 'created_at' | 'updated_at' | 'sync_id' | 'category_sync_id'>
 ): Promise<number> {
   const now = dayjs().toISOString()
   const count = await db.chores.where('category_id').equals(data.category_id).count()
-  return db.chores.add({ ...data, sort_order: count, created_at: now, updated_at: now } as Chore)
+  const cat = await db.categories.get(data.category_id)
+  const category_sync_id = cat?.sync_id ?? null
+  return db.chores.add({
+    ...data,
+    sort_order: count,
+    created_at: now,
+    updated_at: now,
+    sync_id: crypto.randomUUID(),
+    category_sync_id,
+  } as Chore)
 }
 
 export async function reorderChores(orderedIds: number[]): Promise<void> {
@@ -108,9 +169,22 @@ export async function updateChore(
 }
 
 export async function deleteChore(id: number): Promise<void> {
-  await db.transaction('rw', db.chores, db.completionEvents, async () => {
+  await db.transaction('rw', db.chores, db.completionEvents, db.tombstones, async () => {
+    const chore = await db.chores.get(id)
+    const evts = await db.completionEvents.where('chore_id').equals(id).toArray()
+    const evtSyncIds = evts.map(e => e.sync_id).filter(Boolean)
     await db.completionEvents.where('chore_id').equals(id).delete()
     await db.chores.delete(id)
+
+    // Write tombstones
+    const now = new Date().toISOString()
+    const syncIds = [
+      ...(chore?.sync_id ? [chore.sync_id] : []),
+      ...evtSyncIds,
+    ]
+    if (syncIds.length > 0) {
+      await db.tombstones.bulkPut(syncIds.map(sid => ({ id: sid, deleted_at: now })))
+    }
   })
 }
 
@@ -125,6 +199,7 @@ export async function logCompletion(
     completed_at: opts.completedAt ?? dayjs().toISOString(),
     note: opts.note ?? null,
     source: opts.source ?? 'manual',
+    sync_id: crypto.randomUUID(),
   } as CompletionEvent)
 }
 
@@ -140,7 +215,11 @@ export async function getCompletionHistory(
 }
 
 export async function deleteCompletion(id: number): Promise<void> {
+  const evt = await db.completionEvents.get(id)
   await db.completionEvents.delete(id)
+  if (evt?.sync_id) {
+    await writeTombstone(evt.sync_id)
+  }
 }
 
 // Backup / restore
@@ -163,12 +242,30 @@ export async function exportBackup(): Promise<BackupPayload> {
 }
 
 export async function importBackup(payload: BackupPayload): Promise<void> {
-  await db.transaction('rw', db.categories, db.chores, db.completionEvents, async () => {
+  await db.transaction('rw', db.categories, db.chores, db.completionEvents, db.tombstones, async () => {
     await db.completionEvents.clear()
     await db.chores.clear()
     await db.categories.clear()
-    await db.categories.bulkAdd(payload.categories)
-    await db.chores.bulkAdd(payload.chores)
-    await db.completionEvents.bulkAdd(payload.completionEvents)
+    await db.tombstones.clear()
+    const now = new Date().toISOString()
+    // Backfill sync_ids for records that may lack them (pre-v5 backups)
+    const categories = payload.categories.map(c => ({
+      ...c,
+      sync_id: c.sync_id ?? crypto.randomUUID(),
+      parent_sync_id: c.parent_sync_id ?? null,
+      updated_at: c.updated_at ?? now,
+    }))
+    const chores = payload.chores.map(c => ({
+      ...c,
+      sync_id: c.sync_id ?? crypto.randomUUID(),
+      category_sync_id: c.category_sync_id ?? null,
+    }))
+    const completionEvents = payload.completionEvents.map(e => ({
+      ...e,
+      sync_id: e.sync_id ?? crypto.randomUUID(),
+    }))
+    await db.categories.bulkAdd(categories)
+    await db.chores.bulkAdd(chores)
+    await db.completionEvents.bulkAdd(completionEvents)
   })
 }
