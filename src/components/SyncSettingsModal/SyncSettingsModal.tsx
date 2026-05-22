@@ -206,6 +206,9 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
                 placeholder="https://your-server.com/"
                 className="w-full bg-slate-100 dark:bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
               />
+              <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
+                Nextcloud: <span className="font-mono">https://your-server/remote.php/dav/files/username/</span>
+              </p>
             </div>
 
             <div>
