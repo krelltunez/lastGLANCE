@@ -3,8 +3,8 @@ export function buildAuthHeader(username: string, password: string): string {
 }
 
 function withProxy(url: string): string {
-  const proxy = import.meta.env.VITE_WEBDAV_PROXY_URL
-  return proxy ? `${proxy}/api/webdav-proxy/?url=${encodeURIComponent(url)}` : url
+  const proxy = import.meta.env.VITE_WEBDAV_PROXY_URL ?? ''
+  return `${proxy}/api/webdav-proxy/?url=${encodeURIComponent(url)}`
 }
 
 function buildFolderUrl(baseUrl: string, folderPath: string): string {
