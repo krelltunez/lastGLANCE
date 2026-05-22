@@ -1,13 +1,17 @@
-import { useState, useEffect, useCallback } from 'react'
-import { Pencil, Check, Sun, Moon, Archive, Plug } from 'lucide-react'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { Pencil, Check, Sun, Moon, Archive, Plug, Cloud, CloudOff, RefreshCw } from 'lucide-react'
 import { Ribbon } from '@/components/Ribbon/Ribbon'
 import { BackupModal } from '@/components/BackupModal/BackupModal'
 import { IntegrationSettingsModal } from '@/components/IntegrationSettingsModal/IntegrationSettingsModal'
+import { SyncSettingsModal } from '@/components/SyncSettingsModal/SyncSettingsModal'
+import { PassphraseModal } from '@/components/PassphraseModal/PassphraseModal'
 import { ToastProvider } from '@/components/Toast/Toast'
 import { useNotifications } from '@/hooks/useNotifications'
 import { useIntentsPoller } from '@/hooks/useIntentsPoller'
 import { IntentsProvider, useIntents } from '@/intents/IntentsContext'
 import { getAllCompletionCounts } from '@/db/queries'
+import { createEngine, initSessionKey, setupEncryptionKey, runAutoBackups, CRYPTO_CONFIG } from '@/sync/engine'
+import type { SyncEngine, SyncStatus } from '@glance-apps/sync'
 import dayjs from 'dayjs'
 
 // ── Header heatmap ─────────────────────────────────────────────────────────────
@@ -100,6 +104,8 @@ function AppInner() {
   const [editMode, setEditMode] = useState(false)
   const [showBackup, setShowBackup] = useState(false)
   const [showIntegration, setShowIntegration] = useState(false)
+  const [showSyncSettings, setShowSyncSettings] = useState(false)
+  const [showPassphrase, setShowPassphrase] = useState(false)
   const [ribbonKey, setRibbonKey] = useState(0)
   const [heatmapWeeks, setHeatmapWeeks] = useState<HeatDay[][]>([])
   const [waveKey, setWaveKey] = useState(0)
@@ -107,10 +113,48 @@ function AppInner() {
     document.documentElement.classList.contains('dark')
   )
 
+  // Sync engine
+  const engineRef = useRef<SyncEngine | null>(null)
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle')
+  const [syncError, setSyncError] = useState<string | null>(null)
+  const [syncHalted, setSyncHalted] = useState(false)
+
   useEffect(() => {
     document.documentElement.classList.toggle('dark', isDark)
     localStorage.setItem('theme', isDark ? 'dark' : 'light')
   }, [isDark])
+
+  // Initialize sync engine on mount
+  useEffect(() => {
+    initSessionKey(CRYPTO_CONFIG).catch(() => {/* non-fatal */})
+    const engine = createEngine(import.meta.env.VITE_WEBDAV_PROXY_URL, {
+      onStatusChange: (status) => {
+        setSyncStatus(status)
+        if (status === 'success' && engineRef.current) {
+          runAutoBackups(engineRef.current).catch(() => {/* non-fatal */})
+        }
+      },
+      onError: (msg, _code, isHardStop) => {
+        setSyncError(msg)
+        if (isHardStop) setSyncHalted(true)
+      },
+      onLastSyncedChange: () => {/* last synced stored internally */},
+      onPassphraseRequired: () => setShowPassphrase(true),
+    })
+    engineRef.current = engine
+    engine.sync().catch(() => {/* errors surfaced via onError */})
+  }, [])
+
+  // Re-sync on tab focus
+  useEffect(() => {
+    function handleVisibility() {
+      if (document.visibilityState === 'visible') {
+        engineRef.current?.sync().catch(() => {/* errors surfaced via onError */})
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+    return () => document.removeEventListener('visibilitychange', handleVisibility)
+  }, [])
 
   const loadHeatmap = useCallback(async () => {
     const counts = await getAllCompletionCounts()
@@ -125,6 +169,11 @@ function AppInner() {
   useEffect(() => {
     window.addEventListener('lg:chore-logged', loadHeatmap)
     return () => window.removeEventListener('lg:chore-logged', loadHeatmap)
+  }, [loadHeatmap])
+
+  useEffect(() => {
+    window.addEventListener('lg:sync-applied', loadHeatmap)
+    return () => window.removeEventListener('lg:sync-applied', loadHeatmap)
   }, [loadHeatmap])
 
   function toggleTheme() {
@@ -174,6 +223,22 @@ function AppInner() {
             <Plug size={15} />
           </button>
           <button
+            onClick={() => setShowSyncSettings(true)}
+            className={`p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors ${
+              syncHalted || syncError
+                ? 'text-amber-400 dark:text-amber-400'
+                : 'text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200'
+            }`}
+            aria-label="Cloud Sync"
+          >
+            {syncStatus === 'uploading' || syncStatus === 'downloading'
+              ? <RefreshCw size={15} className="animate-spin" />
+              : syncHalted || syncError
+                ? <CloudOff size={15} />
+                : <Cloud size={15} />
+            }
+          </button>
+          <button
             onClick={() => setShowBackup(true)}
             className="p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors"
             aria-label="Backup & Restore"
@@ -210,6 +275,24 @@ function AppInner() {
         <IntegrationSettingsModal
           onClose={() => setShowIntegration(false)}
           onSaved={() => { refreshConfig(); setShowIntegration(false) }}
+        />
+      )}
+
+      {showSyncSettings && (
+        <SyncSettingsModal
+          engine={engineRef.current}
+          onClose={() => setShowSyncSettings(false)}
+        />
+      )}
+
+      {showPassphrase && (
+        <PassphraseModal
+          onSubmit={async (passphrase) => {
+            await setupEncryptionKey(passphrase, CRYPTO_CONFIG)
+            setShowPassphrase(false)
+            engineRef.current?.sync().catch(() => {/* errors surfaced via onError */})
+          }}
+          onClose={() => setShowPassphrase(false)}
         />
       )}
     </div>

@@ -2,6 +2,11 @@ export function buildAuthHeader(username: string, password: string): string {
   return 'Basic ' + btoa(`${username}:${password}`)
 }
 
+function withProxy(url: string): string {
+  const proxy = import.meta.env.VITE_WEBDAV_PROXY_URL
+  return proxy ? `${proxy}/api/webdav-proxy/?url=${encodeURIComponent(url)}` : url
+}
+
 function buildFolderUrl(baseUrl: string, folderPath: string): string {
   const base = baseUrl.replace(/\/$/, '')
   const folder = folderPath.replace(/^\//, '').replace(/\/$/, '')
@@ -16,7 +21,7 @@ export async function ensureFolder(baseUrl: string, folderPath: string, authHead
     current = current ? `${current}/${segment}` : segment
     const url = `${base}/${current}`
     try {
-      await fetch(url, {
+      await fetch(withProxy(url), {
         method: 'MKCOL',
         headers: { Authorization: authHeader },
       })
@@ -29,7 +34,7 @@ export async function ensureFolder(baseUrl: string, folderPath: string, authHead
 export async function putFile(baseUrl: string, folderPath: string, filename: string, content: string, authHeader: string): Promise<void> {
   const folderUrl = buildFolderUrl(baseUrl, folderPath)
   const url = `${folderUrl}/${filename}`
-  const res = await fetch(url, {
+  const res = await fetch(withProxy(url), {
     method: 'PUT',
     headers: {
       Authorization: authHeader,
@@ -47,7 +52,7 @@ const HREF_RE = /<[^>]*:href[^>]*>([^<]*)<\/[^>]*:href>/gi
 export async function listFiles(baseUrl: string, folderPath: string, authHeader: string): Promise<string[]> {
   const folderUrl = buildFolderUrl(baseUrl, folderPath)
   try {
-    const res = await fetch(folderUrl, {
+    const res = await fetch(withProxy(folderUrl), {
       method: 'PROPFIND',
       headers: {
         Authorization: authHeader,
@@ -77,7 +82,7 @@ export async function listFiles(baseUrl: string, folderPath: string, authHeader:
 export async function getFile(baseUrl: string, folderPath: string, filename: string, authHeader: string): Promise<string> {
   const folderUrl = buildFolderUrl(baseUrl, folderPath)
   const url = `${folderUrl}/${filename}`
-  const res = await fetch(url, {
+  const res = await fetch(withProxy(url), {
     method: 'GET',
     headers: { Authorization: authHeader },
   })
@@ -91,7 +96,7 @@ export async function testConnection(baseUrl: string, folderPath: string, userna
   const authHeader = buildAuthHeader(username, password)
   const folderUrl = buildFolderUrl(baseUrl, folderPath)
   try {
-    const res = await fetch(folderUrl, {
+    const res = await fetch(withProxy(folderUrl), {
       method: 'PROPFIND',
       headers: {
         Authorization: authHeader,

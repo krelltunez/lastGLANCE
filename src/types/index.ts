@@ -4,6 +4,9 @@ export interface Category {
   sort_order: number
   icon?: string
   parent_category_id?: number
+  sync_id: string
+  parent_sync_id: string | null
+  updated_at: string
 }
 
 export interface Chore {
@@ -18,6 +21,8 @@ export interface Chore {
   created_at: string
   updated_at: string
   icon?: string
+  sync_id: string
+  category_sync_id: string | null
 }
 
 export interface CompletionEvent {
@@ -26,6 +31,12 @@ export interface CompletionEvent {
   completed_at: string
   note: string | null
   source: 'manual' | 'dayglance'
+  sync_id: string
+}
+
+export interface Tombstone {
+  id: string
+  deleted_at: string
 }
 
 export interface ChoreWithLastCompletion extends Chore {
