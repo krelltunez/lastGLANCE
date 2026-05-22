@@ -74,9 +74,10 @@ export const mergePayloads = (
   const cutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)
   const tombstones = pruneTombstones(allTombstones, cutoff)
 
-  const catMerge = mergeArrayById(l.categories ?? [], r.categories ?? [], tombstones, null, { idField: 'id', timestampField: 'updatedAt' })
-  const choreMerge = mergeArrayById(l.chores ?? [], r.chores ?? [], tombstones, null, { idField: 'id', timestampField: 'updatedAt' })
-  const evtMerge = mergeArrayById(l.completionEvents ?? [], r.completionEvents ?? [], tombstones, null, { idField: 'id', timestampField: 'completedAt' })
+  type R = Record<string, unknown>
+  const catMerge = mergeArrayById(l.categories as R[] ?? [], r.categories as R[] ?? [], tombstones, null, { idField: 'id', timestampField: 'updatedAt' })
+  const choreMerge = mergeArrayById(l.chores as R[] ?? [], r.chores as R[] ?? [], tombstones, null, { idField: 'id', timestampField: 'updatedAt' })
+  const evtMerge = mergeArrayById(l.completionEvents as R[] ?? [], r.completionEvents as R[] ?? [], tombstones, null, { idField: 'id', timestampField: 'completedAt' })
 
   return {
     data: {
@@ -84,7 +85,7 @@ export const mergePayloads = (
       chores: choreMerge.merged,
       completionEvents: evtMerge.merged,
       tombstones,
-    } as SyncPayload,
+    } as unknown as SyncPayload,
     localChanged: catMerge.localChanged || choreMerge.localChanged || evtMerge.localChanged,
     remoteChanged: catMerge.remoteChanged || choreMerge.remoteChanged || evtMerge.remoteChanged,
   }
