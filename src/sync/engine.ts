@@ -225,8 +225,18 @@ export const applyPayload = async (rawData: unknown, { allowEmpty }: { allowEmpt
 }
 
 const BACKUP_LS_KEY = (freq: BackupFrequency) => `lastglance_backup_last_${freq}`
+export const REMOTE_BACKUPS_ENABLED_KEY = 'lastglance_remote_backups_enabled'
+
+export function getRemoteBackupsEnabled(): boolean {
+  return localStorage.getItem(REMOTE_BACKUPS_ENABLED_KEY) === 'true'
+}
+
+export function setRemoteBackupsEnabled(enabled: boolean): void {
+  localStorage.setItem(REMOTE_BACKUPS_ENABLED_KEY, String(enabled))
+}
 
 export async function runAutoBackups(engine: SyncEngine): Promise<void> {
+  if (!getRemoteBackupsEnabled()) return
   const now = Date.now()
   for (const freq of ['hourly', 'daily', 'weekly'] as BackupFrequency[]) {
     const lastRun = parseInt(localStorage.getItem(BACKUP_LS_KEY(freq)) ?? '0', 10)
