@@ -1,9 +1,12 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Pencil, Check, Sun, Moon, Archive } from 'lucide-react'
+import { Pencil, Check, Sun, Moon, Archive, Plug } from 'lucide-react'
 import { Ribbon } from '@/components/Ribbon/Ribbon'
 import { BackupModal } from '@/components/BackupModal/BackupModal'
+import { IntegrationSettingsModal } from '@/components/IntegrationSettingsModal/IntegrationSettingsModal'
 import { ToastProvider } from '@/components/Toast/Toast'
 import { useNotifications } from '@/hooks/useNotifications'
+import { useIntentsPoller } from '@/hooks/useIntentsPoller'
+import { IntentsProvider, useIntents } from '@/intents/IntentsContext'
 import { getAllCompletionCounts } from '@/db/queries'
 import dayjs from 'dayjs'
 
@@ -93,8 +96,10 @@ function HeaderHeatmap({ weeks }: { weeks: HeatDay[][] }) {
 
 function AppInner() {
   useNotifications()
+  const { refreshConfig } = useIntents()
   const [editMode, setEditMode] = useState(false)
   const [showBackup, setShowBackup] = useState(false)
+  const [showIntegration, setShowIntegration] = useState(false)
   const [ribbonKey, setRibbonKey] = useState(0)
   const [heatmapWeeks, setHeatmapWeeks] = useState<HeatDay[][]>([])
   const [waveKey, setWaveKey] = useState(0)
@@ -112,6 +117,8 @@ function AppInner() {
     setHeatmapWeeks(buildHeaderHeatmap(counts))
     setWaveKey(k => k + 1)
   }, [])
+
+  useIntentsPoller(loadHeatmap)
 
   useEffect(() => { loadHeatmap() }, [loadHeatmap])
 
@@ -160,6 +167,13 @@ function AppInner() {
             {isDark ? <Sun size={15} /> : <Moon size={15} />}
           </button>
           <button
+            onClick={() => setShowIntegration(true)}
+            className="p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors"
+            aria-label="dayGLANCE Integration"
+          >
+            <Plug size={15} />
+          </button>
+          <button
             onClick={() => setShowBackup(true)}
             className="p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors"
             aria-label="Backup & Restore"
@@ -191,14 +205,23 @@ function AppInner() {
           onImported={() => { loadHeatmap(); setRibbonKey(k => k + 1) }}
         />
       )}
+
+      {showIntegration && (
+        <IntegrationSettingsModal
+          onClose={() => setShowIntegration(false)}
+          onSaved={() => { refreshConfig(); setShowIntegration(false) }}
+        />
+      )}
     </div>
   )
 }
 
 export default function App() {
   return (
-    <ToastProvider>
-      <AppInner />
-    </ToastProvider>
+    <IntentsProvider>
+      <ToastProvider>
+        <AppInner />
+      </ToastProvider>
+    </IntentsProvider>
   )
 }
