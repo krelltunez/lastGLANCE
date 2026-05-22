@@ -266,6 +266,7 @@ function AppInner() {
 
       {showBackup && (
         <BackupModal
+          engine={engineRef.current}
           onClose={() => setShowBackup(false)}
           onImported={() => { loadHeatmap(); setRibbonKey(k => k + 1) }}
         />
