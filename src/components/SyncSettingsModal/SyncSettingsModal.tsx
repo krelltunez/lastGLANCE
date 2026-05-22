@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
-import { X, Loader, AlertTriangle } from 'lucide-react'
+import { X, Loader, AlertTriangle, CheckCircle, XCircle } from 'lucide-react'
 import type { SyncEngine } from '@glance-apps/sync'
 import { setupEncryptionKey, clearEncryptionKey, CRYPTO_CONFIG } from '@/sync/engine'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
@@ -11,6 +11,7 @@ interface Props {
 }
 
 type TestStatus = 'idle' | 'testing' | 'ok' | 'fail'
+type SyncResult = 'idle' | 'ok' | 'error'
 
 export function SyncSettingsModal({ engine, onClose }: Props) {
   const existingConfig = engine?.getConfig() ?? null
@@ -29,22 +30,30 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
   const [encError, setEncError] = useState('')
 
   const [syncing, setSyncing] = useState(false)
+  const [syncResult, setSyncResult] = useState<SyncResult>('idle')
+  const [syncResultMsg, setSyncResultMsg] = useState('')
+  const [lastSynced, setLastSynced] = useState(() => engine?.getLastSynced() ?? null)
 
   const halted = engine?.isHardStopped() ?? false
 
-  useEscapeKey(onClose)
-
-  function handleSaveConnection() {
+  function saveConfig() {
     if (!engine) return
-    engine.setConfig(webdavUrl ? { provider: 'webdav', webdavUrl, username, appPassword } : null)
+    engine.setConfig(webdavUrl.trim() ? { provider: 'webdav', webdavUrl: webdavUrl.trim(), username, appPassword } : null)
   }
+
+  function handleClose() {
+    saveConfig()
+    onClose()
+  }
+
+  useEscapeKey(handleClose)
 
   async function handleTest() {
     if (!engine || !webdavUrl) return
     setTestStatus('testing')
     setTestError('')
     try {
-      const result = await engine.test({ provider: 'webdav', webdavUrl, username, appPassword })
+      const result = await engine.test({ provider: 'webdav', webdavUrl: webdavUrl.trim(), username, appPassword })
       if (result.success) {
         setTestStatus('ok')
       } else {
@@ -89,24 +98,38 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
   async function handleSyncNow() {
     if (!engine) return
     setSyncing(true)
+    setSyncResult('idle')
+    setSyncResultMsg('')
     try {
       await engine.sync()
+      const ts = engine.getLastSynced()
+      setLastSynced(ts)
+      setSyncResult('ok')
+    } catch (err) {
+      setSyncResult('error')
+      setSyncResultMsg(err instanceof Error ? err.message : 'Sync failed')
     } finally {
       setSyncing(false)
     }
   }
 
+  function formatLastSynced(iso: string | null): string {
+    if (!iso) return 'Never'
+    const d = new Date(iso)
+    return d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
+  }
+
   return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 dark:bg-black/60 backdrop-blur-sm"
-      onClick={e => { if (e.target === e.currentTarget) onClose() }}
+      onClick={e => { if (e.target === e.currentTarget) handleClose() }}
     >
       <div className="w-full sm:max-w-md bg-white dark:bg-slate-800 rounded-t-2xl sm:rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700/50 flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-6 pb-4 shrink-0">
           <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100">Cloud Sync</h2>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
           >
             <X size={18} />
@@ -140,6 +163,7 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
             <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
               WebDAV Connection
             </h3>
+            <p className="text-xs text-slate-400 dark:text-slate-500">Settings are saved automatically when you close this dialog.</p>
 
             <div>
               <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
@@ -183,13 +207,6 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
             </div>
 
             <div className="flex items-center gap-3 pt-1">
-              <button
-                onClick={handleSaveConnection}
-                disabled={!engine}
-                className="px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-40 transition-colors"
-              >
-                Save
-              </button>
               <button
                 onClick={handleTest}
                 disabled={testStatus === 'testing' || !webdavUrl}
@@ -270,14 +287,33 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
             <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
               Manual Sync
             </h3>
-            <button
-              onClick={handleSyncNow}
-              disabled={!engine || syncing || engine.isSyncing()}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-40 transition-colors"
-            >
-              {syncing && <Loader size={14} className="animate-spin" />}
-              Sync now
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleSyncNow}
+                disabled={!engine || syncing || engine.isSyncing()}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-40 transition-colors"
+              >
+                {syncing && <Loader size={14} className="animate-spin" />}
+                Sync now
+              </button>
+              {syncResult === 'ok' && (
+                <span className="flex items-center gap-1.5 text-xs text-green-500 dark:text-green-400">
+                  <CheckCircle size={13} />
+                  Synced {formatLastSynced(lastSynced)}
+                </span>
+              )}
+              {syncResult === 'error' && (
+                <span className="flex items-center gap-1.5 text-xs text-red-500 dark:text-red-400">
+                  <XCircle size={13} />
+                  {syncResultMsg || 'Sync failed'}
+                </span>
+              )}
+            </div>
+            {syncResult === 'idle' && lastSynced && (
+              <p className="text-xs text-slate-400 dark:text-slate-500">
+                Last synced: {formatLastSynced(lastSynced)}
+              </p>
+            )}
           </div>
 
         </div>
@@ -285,10 +321,10 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
         {/* Footer */}
         <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-700/40 shrink-0">
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="w-full py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
           >
-            Close
+            Save & Close
           </button>
         </div>
       </div>
