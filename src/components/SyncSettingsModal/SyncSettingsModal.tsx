@@ -15,9 +15,9 @@ type TestStatus = 'idle' | 'testing' | 'ok' | 'fail'
 export function SyncSettingsModal({ engine, onClose }: Props) {
   const existingConfig = engine?.getConfig() ?? null
 
-  const [url, setUrl] = useState(() => (existingConfig?.url as string) ?? '')
+  const [webdavUrl, setWebdavUrl] = useState(() => (existingConfig?.webdavUrl as string) ?? '')
   const [username, setUsername] = useState(() => (existingConfig?.username as string) ?? '')
-  const [password, setPassword] = useState(() => (existingConfig?.password as string) ?? '')
+  const [appPassword, setAppPassword] = useState(() => (existingConfig?.appPassword as string) ?? '')
 
   const [testStatus, setTestStatus] = useState<TestStatus>('idle')
   const [testError, setTestError] = useState('')
@@ -36,15 +36,15 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
 
   function handleSaveConnection() {
     if (!engine) return
-    engine.setConfig(url ? { url, username, password } : null)
+    engine.setConfig(webdavUrl ? { provider: 'webdav', webdavUrl, username, appPassword } : null)
   }
 
   async function handleTest() {
-    if (!engine || !url) return
+    if (!engine || !webdavUrl) return
     setTestStatus('testing')
     setTestError('')
     try {
-      const result = await engine.test({ url, username, password })
+      const result = await engine.test({ provider: 'webdav', webdavUrl, username, appPassword })
       if (result.success) {
         setTestStatus('ok')
       } else {
@@ -147,8 +147,8 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
               </label>
               <input
                 type="url"
-                value={url}
-                onChange={e => setUrl(e.target.value)}
+                value={webdavUrl}
+                onChange={e => setWebdavUrl(e.target.value)}
                 placeholder="https://your-server.com/remote.php/dav/files/user/"
                 className="w-full bg-slate-100 dark:bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
               />
@@ -174,8 +174,8 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
               </label>
               <input
                 type="password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
+                value={appPassword}
+                onChange={e => setAppPassword(e.target.value)}
                 placeholder="••••••••"
                 autoComplete="current-password"
                 className="w-full bg-slate-100 dark:bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
@@ -192,7 +192,7 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
               </button>
               <button
                 onClick={handleTest}
-                disabled={testStatus === 'testing' || !url}
+                disabled={testStatus === 'testing' || !webdavUrl}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-40 transition-colors"
               >
                 {testStatus === 'testing' && <Loader size={12} className="animate-spin" />}

@@ -5,8 +5,9 @@ import {
   initSessionKey,
   setupEncryptionKey,
   clearEncryptionKey,
+  AUTO_BACKUP_INTERVALS,
 } from '@glance-apps/sync'
-import type { SyncEngine, SyncStatus, SyncErrorCode } from '@glance-apps/sync'
+import type { SyncEngine, SyncStatus, SyncErrorCode, BackupFrequency } from '@glance-apps/sync'
 import { db } from '@/db/client'
 import type { SyncPayload } from './types'
 
@@ -220,6 +221,23 @@ export const applyPayload = async (rawData: unknown, { allowEmpty }: { allowEmpt
   // Notify UI to refresh
   window.dispatchEvent(new CustomEvent('lg:sync-applied'))
   window.dispatchEvent(new CustomEvent('lg:chore-logged'))
+}
+
+const BACKUP_LS_KEY = (freq: BackupFrequency) => `lastglance_backup_last_${freq}`
+
+export async function runAutoBackups(engine: SyncEngine): Promise<void> {
+  const now = Date.now()
+  for (const freq of ['hourly', 'daily', 'weekly'] as BackupFrequency[]) {
+    const lastRun = parseInt(localStorage.getItem(BACKUP_LS_KEY(freq)) ?? '0', 10)
+    if (now - lastRun >= AUTO_BACKUP_INTERVALS[freq] * 1000) {
+      try {
+        await engine.runBackup(freq)
+        localStorage.setItem(BACKUP_LS_KEY(freq), String(now))
+      } catch {
+        // backup failures are non-fatal
+      }
+    }
+  }
 }
 
 interface EngineCallbacks {

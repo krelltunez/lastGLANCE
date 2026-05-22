@@ -10,7 +10,7 @@ import { useNotifications } from '@/hooks/useNotifications'
 import { useIntentsPoller } from '@/hooks/useIntentsPoller'
 import { IntentsProvider, useIntents } from '@/intents/IntentsContext'
 import { getAllCompletionCounts } from '@/db/queries'
-import { createEngine, initSessionKey, setupEncryptionKey, CRYPTO_CONFIG } from '@/sync/engine'
+import { createEngine, initSessionKey, setupEncryptionKey, runAutoBackups, CRYPTO_CONFIG } from '@/sync/engine'
 import type { SyncEngine, SyncStatus } from '@glance-apps/sync'
 import dayjs from 'dayjs'
 
@@ -128,7 +128,12 @@ function AppInner() {
   useEffect(() => {
     initSessionKey(CRYPTO_CONFIG).catch(() => {/* non-fatal */})
     const engine = createEngine(import.meta.env.VITE_WEBDAV_PROXY_URL, {
-      onStatusChange: setSyncStatus,
+      onStatusChange: (status) => {
+        setSyncStatus(status)
+        if (status === 'success' && engineRef.current) {
+          runAutoBackups(engineRef.current).catch(() => {/* non-fatal */})
+        }
+      },
       onError: (msg, _code, isHardStop) => {
         setSyncError(msg)
         if (isHardStop) setSyncHalted(true)
