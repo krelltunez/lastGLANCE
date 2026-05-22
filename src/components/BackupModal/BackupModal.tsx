@@ -1,21 +1,31 @@
 import { useRef, useState } from 'react'
-import { Download, Upload, X } from 'lucide-react'
+import { Download, Upload, Cloud, X, Loader } from 'lucide-react'
 import { exportBackup, importBackup, type BackupPayload } from '@/db/queries'
+import { applyPayload } from '@/sync/engine'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
+import type { SyncEngine } from '@glance-apps/sync'
 import dayjs from 'dayjs'
 
 interface Props {
+  engine: SyncEngine | null
   onClose: () => void
   onImported: () => void
 }
 
-type State = 'idle' | 'exporting' | 'confirm' | 'importing' | 'error'
+type RemoteFile = { filename: string; lastModified: string | null }
+type State = 'idle' | 'exporting' | 'confirm' | 'importing' | 'remote-list' | 'remote-loading' | 'remote-confirm' | 'error'
 
-export function BackupModal({ onClose, onImported }: Props) {
+export function BackupModal({ engine, onClose, onImported }: Props) {
   const [state, setState] = useState<State>('idle')
   const [errorMsg, setErrorMsg] = useState('')
   const [pending, setPending] = useState<BackupPayload | null>(null)
+  const [remoteFiles, setRemoteFiles] = useState<RemoteFile[]>([])
+  const [selectedRemote, setSelectedRemote] = useState<RemoteFile | null>(null)
+  const [remotePending, setRemotePending] = useState<unknown>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+
+  const syncConfig = engine?.getConfig() ?? null
+  const hasRemote = Boolean(syncConfig?.enabled && syncConfig?.webdavUrl)
 
   useEscapeKey(onClose)
 
@@ -69,6 +79,52 @@ export function BackupModal({ onClose, onImported }: Props) {
     }
   }
 
+  async function handleListRemote() {
+    if (!engine || !syncConfig) return
+    setState('remote-list')
+    try {
+      const provider = engine.autoBackupProviders[syncConfig.provider as string] ?? engine.autoBackupProviders.webdav
+      const files = await provider.listBackups(syncConfig as Record<string, unknown>)
+      setRemoteFiles(files)
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : 'Failed to list remote backups.')
+      setState('error')
+    }
+  }
+
+  async function handleSelectRemote(file: RemoteFile) {
+    if (!engine || !syncConfig) return
+    setSelectedRemote(file)
+    setState('remote-loading')
+    try {
+      const provider = engine.autoBackupProviders[syncConfig.provider as string] ?? engine.autoBackupProviders.webdav
+      const data = await provider.downloadBackup(syncConfig as Record<string, unknown>, file.filename)
+      setRemotePending(data)
+      setState('remote-confirm')
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : 'Failed to download backup.')
+      setState('error')
+    }
+  }
+
+  async function handleRemoteConfirm() {
+    if (!remotePending) return
+    setState('importing')
+    try {
+      await applyPayload(remotePending, { allowEmpty: true })
+      onImported()
+      onClose()
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : 'Restore failed.')
+      setState('error')
+    }
+  }
+
+  function formatDate(iso: string | null) {
+    if (!iso) return 'Unknown date'
+    return dayjs(iso).format('MMM D, YYYY h:mm A')
+  }
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 dark:bg-black/60 backdrop-blur-sm"
@@ -94,30 +150,75 @@ export function BackupModal({ onClose, onImported }: Props) {
               {pending.categories.length} categories · {pending.chores.length} chores · {pending.completionEvents.length} completion events
             </p>
             <div className="flex gap-3 pt-1">
-              <button
-                onClick={() => setState('idle')}
-                className="flex-1 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
-              >
+              <button onClick={() => setState('idle')} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
                 Cancel
               </button>
-              <button
-                onClick={handleConfirm}
-                className="flex-1 py-2.5 rounded-xl text-sm font-medium text-white bg-green-500 hover:bg-green-400 transition-colors"
-              >
+              <button onClick={handleConfirm} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-white bg-green-500 hover:bg-green-400 transition-colors">
                 Restore
               </button>
             </div>
           </div>
+
+        ) : state === 'remote-list' ? (
+          <div className="space-y-3">
+            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Remote Backups</p>
+            {remoteFiles.length === 0 ? (
+              <p className="text-sm text-slate-500 dark:text-slate-400">No remote backups found.</p>
+            ) : (
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                {remoteFiles.map(f => (
+                  <button
+                    key={f.filename}
+                    onClick={() => handleSelectRemote(f)}
+                    className="w-full text-left px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-600/40 transition-colors"
+                  >
+                    <p className="text-xs font-medium text-slate-700 dark:text-slate-200">{formatDate(f.lastModified)}</p>
+                    <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5 truncate">{f.filename}</p>
+                  </button>
+                ))}
+              </div>
+            )}
+            <button onClick={() => setState('idle')} className="w-full py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
+              Cancel
+            </button>
+          </div>
+
+        ) : state === 'remote-loading' ? (
+          <div className="flex items-center justify-center gap-2 py-6 text-sm text-slate-500 dark:text-slate-400">
+            <Loader size={14} className="animate-spin" />
+            Downloading backup…
+          </div>
+
+        ) : state === 'remote-confirm' && selectedRemote ? (
+          <div className="space-y-4">
+            <p className="text-sm text-slate-700 dark:text-slate-300">
+              This will <strong>replace all current data</strong> with the remote backup.
+            </p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">{formatDate(selectedRemote.lastModified)}</p>
+            <div className="flex gap-3 pt-1">
+              <button onClick={() => setState('idle')} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
+                Cancel
+              </button>
+              <button onClick={handleRemoteConfirm} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-white bg-green-500 hover:bg-green-400 transition-colors">
+                Restore
+              </button>
+            </div>
+          </div>
+
+        ) : state === 'importing' ? (
+          <div className="flex items-center justify-center gap-2 py-6 text-sm text-slate-500 dark:text-slate-400">
+            <Loader size={14} className="animate-spin" />
+            Restoring…
+          </div>
+
         ) : state === 'error' ? (
           <div className="space-y-4">
             <p className="text-sm text-red-500 dark:text-red-400">{errorMsg}</p>
-            <button
-              onClick={() => setState('idle')}
-              className="w-full py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
-            >
+            <button onClick={() => setState('idle')} className="w-full py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
               OK
             </button>
           </div>
+
         ) : (
           <div className="space-y-3">
             <button
@@ -136,17 +237,27 @@ export function BackupModal({ onClose, onImported }: Props) {
 
             <button
               onClick={() => fileRef.current?.click()}
-              disabled={state === 'importing'}
-              className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-600/40 transition-colors text-left disabled:opacity-50"
+              className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-600/40 transition-colors text-left"
             >
               <Upload size={16} className="text-green-400 shrink-0" />
               <div>
-                <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
-                  {state === 'importing' ? 'Importing…' : 'Import backup'}
-                </p>
-                <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Restore from a JSON file</p>
+                <p className="text-sm font-medium text-slate-700 dark:text-slate-200">Import backup</p>
+                <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Restore from a local JSON file</p>
               </div>
             </button>
+
+            {hasRemote && (
+              <button
+                onClick={handleListRemote}
+                className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-600/40 transition-colors text-left"
+              >
+                <Cloud size={16} className="text-green-400 shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-slate-700 dark:text-slate-200">Restore remote backup</p>
+                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Browse and restore from WebDAV</p>
+                </div>
+              </button>
+            )}
 
             <input ref={fileRef} type="file" accept=".json,application/json" className="hidden" onChange={handleFileChange} />
           </div>

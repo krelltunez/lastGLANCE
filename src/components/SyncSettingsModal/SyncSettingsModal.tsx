@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { X, Loader, AlertTriangle, CheckCircle, XCircle } from 'lucide-react'
 import type { SyncEngine } from '@glance-apps/sync'
-import { setupEncryptionKey, clearEncryptionKey, CRYPTO_CONFIG } from '@/sync/engine'
+import { setupEncryptionKey, clearEncryptionKey, CRYPTO_CONFIG, getRemoteBackupsEnabled, setRemoteBackupsEnabled } from '@/sync/engine'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
 
 interface Props {
@@ -55,6 +55,8 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
   const [showPassphraseInput, setShowPassphraseInput] = useState(false)
   const [encSaving, setEncSaving] = useState(false)
   const [encError, setEncError] = useState('')
+
+  const [remoteBackupsEnabled, setRemoteBackupsEnabledState] = useState(() => getRemoteBackupsEnabled())
 
   const [syncing, setSyncing] = useState(false)
   const [syncResult, setSyncResult] = useState<SyncResult>('idle')
@@ -326,6 +328,34 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
             {encError && (
               <p className="text-xs text-red-500 dark:text-red-400">{encError}</p>
             )}
+          </div>
+
+          {/* Remote backups section */}
+          <div className="space-y-3">
+            <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+              Remote Backups
+            </h3>
+            <div className="flex items-center justify-between py-1">
+              <div>
+                <p className="text-sm text-slate-700 dark:text-slate-300">Auto-backup to WebDAV</p>
+                <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
+                  Enable on one device only to avoid duplicate backups.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  const next = !remoteBackupsEnabled
+                  setRemoteBackupsEnabled(next)
+                  setRemoteBackupsEnabledState(next)
+                }}
+                className={`relative w-10 h-6 rounded-full transition-colors ${remoteBackupsEnabled ? 'bg-green-400' : 'bg-slate-300 dark:bg-slate-600'}`}
+                aria-checked={remoteBackupsEnabled}
+                role="switch"
+              >
+                <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${remoteBackupsEnabled ? 'translate-x-4' : ''}`} />
+              </button>
+            </div>
           </div>
 
           {/* Manual sync section */}
