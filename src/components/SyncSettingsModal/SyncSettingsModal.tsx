@@ -38,7 +38,7 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
 
   function saveConfig() {
     if (!engine) return
-    engine.setConfig(webdavUrl.trim() ? { provider: 'webdav', webdavUrl: webdavUrl.trim(), username, appPassword } : null)
+    engine.setConfig(webdavUrl.trim() ? { provider: 'webdav', webdavUrl: webdavUrl.trim(), username, appPassword, enabled: true } : null)
   }
 
   function handleClose() {
@@ -97,6 +97,7 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
 
   async function handleSyncNow() {
     if (!engine) return
+    saveConfig()
     setSyncing(true)
     setSyncResult('idle')
     setSyncResultMsg('')

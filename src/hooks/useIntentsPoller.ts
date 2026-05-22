@@ -21,7 +21,7 @@ import {
   getPollingCursor,
   setPollingCursor,
 } from '@/intents/config'
-import { buildAuthHeader, listFiles, getFile } from '@/intents/webdav'
+import { buildAuthHeader, ensureFolder, listFiles, getFile } from '@/intents/webdav'
 import dayjs from 'dayjs'
 
 export function useIntentsPoller(onNewCompletion?: () => void): void {
@@ -143,6 +143,13 @@ export function useIntentsPoller(onNewCompletion?: () => void): void {
       addActivityEntry({ type: 'received', message: `"${chore.name}" completed in dayGLANCE` })
       window.dispatchEvent(new CustomEvent('lg:chore-logged'))
       onNewCompletionRef.current?.()
+    }
+
+    // Ensure the intents folder exists so the first PROPFIND doesn't 403
+    const initConfig = getIntentsConfig()
+    if (isIntentsConfigured(initConfig)) {
+      const initAuth = buildAuthHeader(initConfig.webdavUsername, initConfig.webdavPassword)
+      ensureFolder(initConfig.webdavUrl, initConfig.folderPath, initAuth).catch(() => {/* non-fatal */})
     }
 
     poll()
