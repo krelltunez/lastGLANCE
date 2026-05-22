@@ -75,9 +75,9 @@ export const mergePayloads = (
   const tombstones = pruneTombstones(allTombstones, cutoff)
 
   type R = Record<string, unknown>
-  const catMerge = mergeArrayById(l.categories as R[] ?? [], r.categories as R[] ?? [], tombstones, null, { idField: 'id', timestampField: 'updatedAt' })
-  const choreMerge = mergeArrayById(l.chores as R[] ?? [], r.chores as R[] ?? [], tombstones, null, { idField: 'id', timestampField: 'updatedAt' })
-  const evtMerge = mergeArrayById(l.completionEvents as R[] ?? [], r.completionEvents as R[] ?? [], tombstones, null, { idField: 'id', timestampField: 'completedAt' })
+  const catMerge = mergeArrayById(l.categories as unknown as R[] ?? [], r.categories as unknown as R[] ?? [], tombstones, null, { idField: 'id', timestampField: 'updatedAt' })
+  const choreMerge = mergeArrayById(l.chores as unknown as R[] ?? [], r.chores as unknown as R[] ?? [], tombstones, null, { idField: 'id', timestampField: 'updatedAt' })
+  const evtMerge = mergeArrayById(l.completionEvents as unknown as R[] ?? [], r.completionEvents as unknown as R[] ?? [], tombstones, null, { idField: 'id', timestampField: 'completedAt' })
 
   return {
     data: {
