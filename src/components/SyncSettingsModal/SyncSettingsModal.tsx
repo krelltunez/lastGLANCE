@@ -13,10 +13,37 @@ interface Props {
 type TestStatus = 'idle' | 'testing' | 'ok' | 'fail'
 type SyncResult = 'idle' | 'ok' | 'error'
 
+const DEFAULT_FOLDER = 'GLANCE/lastglance'
+
+function splitWebdavUrl(fullUrl: string): { serverUrl: string; folderPath: string } {
+  if (!fullUrl) return { serverUrl: '', folderPath: DEFAULT_FOLDER }
+  try {
+    const url = new URL(fullUrl)
+    const pathname = url.pathname.replace(/\/+$/, '')
+    if (!pathname) return { serverUrl: fullUrl, folderPath: DEFAULT_FOLDER }
+    const idx = pathname.toUpperCase().indexOf('/GLANCE/')
+    if (idx !== -1) {
+      url.pathname = pathname.slice(0, idx) + '/'
+      return { serverUrl: url.toString(), folderPath: pathname.slice(idx + 1) }
+    }
+    return { serverUrl: fullUrl, folderPath: DEFAULT_FOLDER }
+  } catch {
+    return { serverUrl: fullUrl, folderPath: DEFAULT_FOLDER }
+  }
+}
+
+function buildWebdavUrl(serverUrl: string, folderPath: string): string {
+  const base = serverUrl.replace(/\/+$/, '')
+  const folder = folderPath.replace(/^\/+/, '').replace(/\/+$/, '')
+  return folder ? `${base}/${folder}` : base
+}
+
 export function SyncSettingsModal({ engine, onClose }: Props) {
   const existingConfig = engine?.getConfig() ?? null
+  const { serverUrl: initServer, folderPath: initFolder } = splitWebdavUrl((existingConfig?.webdavUrl as string) ?? '')
 
-  const [webdavUrl, setWebdavUrl] = useState(() => (existingConfig?.webdavUrl as string) ?? '')
+  const [serverUrl, setServerUrl] = useState(() => initServer)
+  const [folderPath, setFolderPath] = useState(() => initFolder)
   const [username, setUsername] = useState(() => (existingConfig?.username as string) ?? '')
   const [appPassword, setAppPassword] = useState(() => (existingConfig?.appPassword as string) ?? '')
 
@@ -38,7 +65,8 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
 
   function saveConfig() {
     if (!engine) return
-    engine.setConfig(webdavUrl.trim() ? { provider: 'webdav', webdavUrl: webdavUrl.trim(), username, appPassword, enabled: true } : null)
+    const webdavUrl = buildWebdavUrl(serverUrl, folderPath)
+    engine.setConfig(serverUrl.trim() ? { provider: 'webdav', webdavUrl, username, appPassword, enabled: true } : null)
   }
 
   function handleClose() {
@@ -49,11 +77,12 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
   useEscapeKey(handleClose)
 
   async function handleTest() {
-    if (!engine || !webdavUrl) return
+    if (!engine || !serverUrl) return
     setTestStatus('testing')
     setTestError('')
     try {
-      const result = await engine.test({ provider: 'webdav', webdavUrl: webdavUrl.trim(), username, appPassword })
+      const webdavUrl = buildWebdavUrl(serverUrl, folderPath)
+      const result = await engine.test({ provider: 'webdav', webdavUrl, username, appPassword })
       if (result.success) {
         setTestStatus('ok')
       } else {
@@ -172,9 +201,22 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
               </label>
               <input
                 type="url"
-                value={webdavUrl}
-                onChange={e => setWebdavUrl(e.target.value)}
-                placeholder="https://your-server.com/remote.php/dav/files/user/"
+                value={serverUrl}
+                onChange={e => setServerUrl(e.target.value)}
+                placeholder="https://your-server.com/"
+                className="w-full bg-slate-100 dark:bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+                Folder
+              </label>
+              <input
+                type="text"
+                value={folderPath}
+                onChange={e => setFolderPath(e.target.value)}
+                placeholder={DEFAULT_FOLDER}
                 className="w-full bg-slate-100 dark:bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
               />
             </div>
@@ -210,7 +252,7 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
             <div className="flex items-center gap-3 pt-1">
               <button
                 onClick={handleTest}
-                disabled={testStatus === 'testing' || !webdavUrl}
+                disabled={testStatus === 'testing' || !serverUrl}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-40 transition-colors"
               >
                 {testStatus === 'testing' && <Loader size={12} className="animate-spin" />}
