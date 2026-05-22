@@ -9,6 +9,7 @@ export interface ToastOptions {
   duration?: number
   onAction?: () => Promise<void> | void
   onDetails?: () => void
+  onSendToDayGlance?: () => Promise<boolean>
 }
 
 interface ToastItem extends ToastOptions {
@@ -29,12 +30,16 @@ export function useToast() {
 
 const MAX_TOASTS = 4
 
-function WarningActions({ onAction, onDetails, onExit }: {
+type SendState = 'idle' | 'saving' | 'done' | 'error'
+
+function WarningActions({ onAction, onDetails, onSendToDayGlance, onExit }: {
   onAction?: () => Promise<void> | void
   onDetails?: () => void
+  onSendToDayGlance?: () => Promise<boolean>
   onExit: () => void
 }) {
   const [saving, setSaving] = useState(false)
+  const [sendState, setSendState] = useState<SendState>('idle')
 
   async function handleDone() {
     if (saving) return
@@ -47,8 +52,42 @@ function WarningActions({ onAction, onDetails, onExit }: {
     onExit()
   }
 
+  async function handleSendToDayGlance() {
+    if (sendState !== 'idle') return
+    setSendState('saving')
+    try {
+      const ok = await onSendToDayGlance!()
+      setSendState(ok ? 'done' : 'error')
+    } catch {
+      setSendState('error')
+    }
+  }
+
   return (
     <div className="mt-2.5 flex items-center gap-3">
+      {onSendToDayGlance && (
+        <button
+          onClick={handleSendToDayGlance}
+          disabled={sendState === 'saving'}
+          className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors disabled:opacity-50 ${
+            sendState === 'done'
+              ? 'text-green-500 dark:text-green-400 border-green-400/50'
+              : sendState === 'error'
+                ? 'text-red-500 dark:text-red-400 border-red-400/50'
+                : 'text-blue-500 dark:text-blue-400 border-blue-400/50 hover:bg-blue-400/10'
+          }`}
+        >
+          {sendState === 'saving' ? (
+            <Loader size={11} className="animate-spin" />
+          ) : sendState === 'done' ? (
+            '✓ dG'
+          ) : sendState === 'error' ? (
+            '✗ dG'
+          ) : (
+            '→ dG'
+          )}
+        </button>
+      )}
       <button
         onClick={handleDone}
         disabled={saving}
@@ -107,7 +146,7 @@ function ToastCard({ toast, onDismiss }: { toast: ToastItem; onDismiss: () => vo
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{toast.body}</p>
         )}
         {toast.type === 'warning' && (
-          <WarningActions onAction={toast.onAction} onDetails={toast.onDetails} onExit={exit} />
+          <WarningActions onAction={toast.onAction} onDetails={toast.onDetails} onSendToDayGlance={toast.onSendToDayGlance} onExit={exit} />
         )}
       </div>
       <button
