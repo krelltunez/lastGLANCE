@@ -21,7 +21,7 @@ export const DEFAULT_CONFIG: IntentsConfig = {
   webdavUrl: '',
   webdavUsername: '',
   webdavPassword: '',
-  folderPath: 'GLANCE/intents',
+  folderPath: 'GLANCE/events',
   pollIntervalMinutes: 15,
   encryptionEnabled: false,
 }
