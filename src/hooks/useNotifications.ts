@@ -1,9 +1,12 @@
 import { useEffect, useRef } from 'react'
 import { getCategories, getChoresForCategory, logCompletion } from '@/db/queries'
 import { useToast, type ToastOptions } from '@/components/Toast/Toast'
+import { useIntents } from '@/intents/IntentsContext'
+import { emitCreateIntent } from '@/intents/emitter'
 import dayjs from 'dayjs'
 
 const STORAGE_KEY = (choreId: number) => `lg_notified_${choreId}`
+const AUTO_SCHED_KEY = (choreId: number) => `lg_autosched_${choreId}`
 
 async function fireBrowserNotification(title: string, body: string) {
   if (Notification.permission !== 'granted') return
@@ -32,6 +35,10 @@ export function useNotifications() {
   const showToastRef = useRef<(opts: ToastOptions) => void>(showToast)
   useEffect(() => { showToastRef.current = showToast }, [showToast])
 
+  const { isConfigured } = useIntents()
+  const isConfiguredRef = useRef<boolean>(isConfigured)
+  useEffect(() => { isConfiguredRef.current = isConfigured }, [isConfigured])
+
   useEffect(() => {
     async function checkAndNotify() {
       const today = dayjs().format('YYYY-MM-DD')
@@ -39,35 +46,59 @@ export function useNotifications() {
       const allChores = (await Promise.all(categories.map(c => getChoresForCategory(c.id)))).flat()
 
       for (const chore of allChores) {
-        if (!chore.notify_when_overdue) continue
-        if (!chore.target_cadence_days) continue
-        if (chore.elapsed_days === null || chore.elapsed_days < chore.target_cadence_days) continue
-        if (localStorage.getItem(STORAGE_KEY(chore.id!)) === today) continue
+        const isOverdue = chore.notify_when_overdue &&
+          chore.target_cadence_days &&
+          chore.elapsed_days !== null &&
+          chore.elapsed_days >= chore.target_cadence_days
 
-        const overdue = Math.floor(chore.elapsed_days - chore.target_cadence_days)
-        const body = overdue > 0
-          ? `${overdue} day${overdue > 1 ? 's' : ''} overdue`
-          : 'Due today'
+        if (isOverdue) {
+          if (localStorage.getItem(STORAGE_KEY(chore.id!)) !== today) {
+            const overdue = Math.floor(chore.elapsed_days! - chore.target_cadence_days!)
+            const body = overdue > 0
+              ? `${overdue} day${overdue > 1 ? 's' : ''} overdue`
+              : 'Due today'
 
-        if (document.visibilityState === 'visible') {
-          const choreId = chore.id!
-          showToastRef.current({
-            title: chore.name,
-            body,
-            type: 'warning',
-            onAction: async () => {
-              await logCompletion(choreId)
-              window.dispatchEvent(new CustomEvent('lg:chore-logged'))
-            },
-            onDetails: () => {
-              window.dispatchEvent(new CustomEvent('lg:open-chore', { detail: { choreId } }))
-            },
-          })
-        } else {
-          await fireBrowserNotification(chore.name, body)
+            if (document.visibilityState === 'visible') {
+              const choreId = chore.id!
+              const toastOpts: ToastOptions = {
+                title: chore.name,
+                body,
+                type: 'warning',
+                onAction: async () => {
+                  await logCompletion(choreId)
+                  window.dispatchEvent(new CustomEvent('lg:chore-logged'))
+                },
+                onDetails: () => {
+                  window.dispatchEvent(new CustomEvent('lg:open-chore', { detail: { choreId } }))
+                },
+              }
+              if (isConfiguredRef.current) {
+                toastOpts.onSendToDayGlance = async () => emitCreateIntent(chore)
+              }
+              showToastRef.current(toastOpts)
+            } else {
+              await fireBrowserNotification(chore.name, body)
+            }
+
+            localStorage.setItem(STORAGE_KEY(chore.id!), today)
+          }
         }
 
-        localStorage.setItem(STORAGE_KEY(chore.id!), today)
+        // Auto-schedule: emit at most once per day when overdue
+        if (
+          chore.auto_schedule_to_dayglance &&
+          isConfiguredRef.current &&
+          chore.target_cadence_days &&
+          chore.elapsed_days !== null &&
+          chore.elapsed_days >= chore.target_cadence_days
+        ) {
+          if (localStorage.getItem(AUTO_SCHED_KEY(chore.id!)) !== today) {
+            localStorage.setItem(AUTO_SCHED_KEY(chore.id!), today)
+            emitCreateIntent(chore).catch(() => {
+              // ignore errors — activity log captures them
+            })
+          }
+        }
       }
     }
 

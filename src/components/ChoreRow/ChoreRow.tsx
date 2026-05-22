@@ -1,9 +1,11 @@
 import { useState } from 'react'
-import { Check, Pencil, Trash2, GripVertical, Bell } from 'lucide-react'
+import { Check, Pencil, Trash2, GripVertical, Bell, ArrowUpRight } from 'lucide-react'
 import type { ChoreWithLastCompletion } from '@/types'
 import { getFillRatio, getCadenceColor, formatElapsed } from '@/utils/cadence'
 import { logCompletion } from '@/db/queries'
 import { ICON_REGISTRY } from '@/icons/registry'
+import { useIntents } from '@/intents/IntentsContext'
+import { emitCreateIntent } from '@/intents/emitter'
 
 interface Props {
   chore: ChoreWithLastCompletion
@@ -17,9 +19,12 @@ interface Props {
 }
 
 type LogState = 'idle' | 'saving' | 'done'
+type SendState = 'idle' | 'saving' | 'done' | 'error'
 
 export function ChoreRow({ chore, editMode, onTap, onEdit, onDelete, onRefresh, onDragHandlePointerDown, isDragging }: Props) {
   const [logState, setLogState] = useState<LogState>('idle')
+  const [sendState, setSendState] = useState<SendState>('idle')
+  const { isConfigured } = useIntents()
 
   const hasCadence = chore.target_cadence_days !== null
   const ratio = hasCadence && chore.elapsed_days !== null
@@ -30,6 +35,20 @@ export function ChoreRow({ chore, editMode, onTap, onEdit, onDelete, onRefresh, 
   const elapsedText = formatElapsed(chore.elapsed_days, chore.last_completed_at)
 
   const ChoreIcon = chore.icon ? ICON_REGISTRY[chore.icon] : null
+
+  async function handleSendToDayGlance(e: React.MouseEvent) {
+    e.stopPropagation()
+    if (sendState !== 'idle') return
+    setSendState('saving')
+    try {
+      const ok = await emitCreateIntent(chore)
+      setSendState(ok ? 'done' : 'error')
+      setTimeout(() => setSendState('idle'), 2000)
+    } catch {
+      setSendState('error')
+      setTimeout(() => setSendState('idle'), 2000)
+    }
+  }
 
   async function handleQuickLog(e: React.MouseEvent) {
     e.stopPropagation()
@@ -119,6 +138,27 @@ export function ChoreRow({ chore, editMode, onTap, onEdit, onDelete, onRefresh, 
           </p>
           <p className="text-xs text-slate-400 dark:text-slate-500 tabular-nums mt-0.5">{elapsedText}</p>
         </div>
+
+        {/* Send to dayGLANCE button */}
+        {isConfigured && hasCadence && ratio !== null && ratio >= 1 && (
+          <button
+            onClick={handleSendToDayGlance}
+            disabled={sendState === 'saving'}
+            aria-label={`Send ${chore.name} to dayGLANCE`}
+            className={`
+              shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium
+              transition-all duration-200 border
+              ${sendState === 'done'
+                ? 'bg-green-500/20 border-green-500/40 text-green-500 dark:text-green-400'
+                : sendState === 'error'
+                  ? 'bg-red-500/20 border-red-500/40 text-red-500 dark:text-red-400'
+                  : 'text-blue-500 dark:text-blue-400 border-blue-400/50 hover:bg-blue-400/10'}
+            `}
+          >
+            <ArrowUpRight size={11} strokeWidth={2.5} />
+            <span>{sendState === 'done' ? 'Sent!' : sendState === 'error' ? 'Err' : '→ dG'}</span>
+          </button>
+        )}
 
         {/* Quick-log button */}
         <button
