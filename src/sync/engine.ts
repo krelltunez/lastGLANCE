@@ -252,6 +252,12 @@ export async function runAutoBackups(engine: SyncEngine): Promise<void> {
   }
 }
 
+let _ensuredForUrl = ''
+
+export function resetEnsuredFolder(): void {
+  _ensuredForUrl = ''
+}
+
 export async function ensureSyncFolder(engine: SyncEngine): Promise<void> {
   const config = engine.getConfig() as Record<string, unknown> | null
   if (!config?.enabled || !config.webdavUrl) return
@@ -259,11 +265,14 @@ export async function ensureSyncFolder(engine: SyncEngine): Promise<void> {
   const username = (config.username as string) ?? ''
   const appPassword = (config.appPassword as string) ?? ''
   if (!webdavUrl || !username) return
+  // Only run MKCOL once per unique folder URL to avoid flooding the server
+  if (_ensuredForUrl === webdavUrl) return
   try {
     const url = new URL(webdavUrl)
     const baseUrl = `${url.protocol}//${url.host}`
     const folderPath = url.pathname.replace(/^\//, '').replace(/\/+$/, '')
     await ensureFolder(baseUrl, folderPath, buildAuthHeader(username, appPassword))
+    _ensuredForUrl = webdavUrl
   } catch {
     // non-fatal — if we can't create the folder the sync will surface its own error
   }

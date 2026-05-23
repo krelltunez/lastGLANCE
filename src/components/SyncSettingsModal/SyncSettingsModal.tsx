@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { X, Loader, AlertTriangle, CheckCircle, XCircle } from 'lucide-react'
 import type { SyncEngine } from '@glance-apps/sync'
-import { setupEncryptionKey, clearEncryptionKey, ensureSyncFolder, CRYPTO_CONFIG, getRemoteBackupsEnabled, setRemoteBackupsEnabled } from '@/sync/engine'
+import { setupEncryptionKey, clearEncryptionKey, ensureSyncFolder, resetEnsuredFolder, CRYPTO_CONFIG, getRemoteBackupsEnabled, setRemoteBackupsEnabled } from '@/sync/engine'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
 
 interface Props {
@@ -35,7 +35,10 @@ function splitWebdavUrl(fullUrl: string): { serverUrl: string; folderPath: strin
 function buildWebdavUrl(serverUrl: string, folderPath: string): string {
   const base = serverUrl.replace(/\/+$/, '')
   const folder = folderPath.replace(/^\/+/, '').replace(/\/+$/, '')
-  return folder ? `${base}/${folder}` : base
+  if (!folder) return base
+  // If the user pasted the full path into the server URL field, don't double it
+  if (base.endsWith('/' + folder)) return base
+  return `${base}/${folder}`
 }
 
 export function SyncSettingsModal({ engine, onClose }: Props) {
@@ -69,6 +72,7 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
     if (!engine) return
     const webdavUrl = buildWebdavUrl(serverUrl, folderPath)
     engine.setConfig(serverUrl.trim() ? { provider: 'webdav', webdavUrl, username, appPassword, enabled: true } : null)
+    resetEnsuredFolder()
   }
 
   function handleClose() {
