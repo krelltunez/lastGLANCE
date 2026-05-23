@@ -19,7 +19,7 @@ export async function ensureFolder(baseUrl: string, folderPath: string, authHead
   let current = ''
   for (const segment of segments) {
     current = current ? `${current}/${segment}` : segment
-    const url = `${base}/${current}`
+    const url = `${base}/${current}/`
     try {
       await fetch(withProxy(url), {
         method: 'MKCOL',
