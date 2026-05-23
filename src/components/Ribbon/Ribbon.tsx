@@ -454,7 +454,7 @@ export function Ribbon({ editMode, onLogged }: Props) {
               <Plus size={15} />
               Add category
             </button>
-            <p className="text-center text-xs text-slate-400 dark:text-slate-600">v{__APP_VERSION__}</p>
+            <p className="text-center text-xs text-slate-400 dark:text-slate-600">v{__APP_VERSION__} · {__BUILD_TIME__}</p>
           </div>
         )}
       </div>
@@ -513,7 +513,7 @@ export function Ribbon({ editMode, onLogged }: Props) {
                   <Plus size={15} />
                   Add category
                 </button>
-                <p className="text-center text-xs text-slate-400 dark:text-slate-600">v{__APP_VERSION__}</p>
+                <p className="text-center text-xs text-slate-400 dark:text-slate-600">v{__APP_VERSION__} · {__BUILD_TIME__}</p>
               </div>
             )}
           </div>

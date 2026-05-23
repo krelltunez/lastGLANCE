@@ -5,10 +5,12 @@ import path from 'path'
 import { readFileSync } from 'fs'
 
 const { version } = JSON.parse(readFileSync('./package.json', 'utf-8'))
+const buildTime = new Date().toISOString()
 
 export default defineConfig({
   define: {
     __APP_VERSION__: JSON.stringify(version),
+    __BUILD_TIME__: JSON.stringify(buildTime),
   },
   plugins: [
     react(),
