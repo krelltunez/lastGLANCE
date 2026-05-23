@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@glance-apps/intents": "^1.1.0",
-    "@glance-apps/sync": "^1.0.2",
+    "@glance-apps/sync": "^1.0.3",
     "dayjs": "^1.11.13",
     "dexie": "^4.4.2",
     "lucide-react": "^1.14.0",
