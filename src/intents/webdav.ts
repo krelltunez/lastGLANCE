@@ -49,6 +49,8 @@ export async function putFile(baseUrl: string, folderPath: string, filename: str
 
 const HREF_RE = /<[^>]*:href[^>]*>([^<]*)<\/[^>]*:href>/gi
 
+const PROPFIND_BODY = '<?xml version="1.0" encoding="utf-8"?><propfind xmlns="DAV:"><allprop/></propfind>'
+
 export async function listFiles(baseUrl: string, folderPath: string, authHeader: string): Promise<string[]> {
   const folderUrl = buildFolderUrl(baseUrl, folderPath)
   try {
@@ -59,6 +61,7 @@ export async function listFiles(baseUrl: string, folderPath: string, authHeader:
         Depth: '1',
         'Content-Type': 'application/xml',
       },
+      body: PROPFIND_BODY,
     })
     if (res.status === 404) return []
     if (!res.ok) return []
@@ -103,6 +106,7 @@ export async function testConnection(baseUrl: string, folderPath: string, userna
         Depth: '0',
         'Content-Type': 'application/xml',
       },
+      body: PROPFIND_BODY,
     })
     if (res.status === 401) return { success: false, error: 'Authentication failed' }
     if (res.status === 403) return { success: false, error: 'Access denied' }
