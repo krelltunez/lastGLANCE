@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { X, Loader, AlertTriangle, CheckCircle, XCircle } from 'lucide-react'
 import type { SyncEngine } from '@glance-apps/sync'
-import { setupEncryptionKey, clearEncryptionKey, CRYPTO_CONFIG, getRemoteBackupsEnabled, setRemoteBackupsEnabled } from '@/sync/engine'
+import { setupEncryptionKey, clearEncryptionKey, ensureSyncFolder, CRYPTO_CONFIG, getRemoteBackupsEnabled, setRemoteBackupsEnabled } from '@/sync/engine'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
 
 interface Props {
@@ -133,6 +133,7 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
     setSyncResult('idle')
     setSyncResultMsg('')
     try {
+      await ensureSyncFolder(engine)
       await engine.sync()
       const ts = engine.getLastSynced()
       setLastSynced(ts)

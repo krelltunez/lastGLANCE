@@ -9,6 +9,7 @@ import {
 } from '@glance-apps/sync'
 import type { SyncEngine, SyncStatus, SyncErrorCode, BackupFrequency } from '@glance-apps/sync'
 import { db } from '@/db/client'
+import { buildAuthHeader, ensureFolder } from '@/intents/webdav'
 import type { SyncPayload } from './types'
 
 export const CRYPTO_CONFIG = { cryptoDBName: 'lastglance-crypto' }
@@ -248,6 +249,23 @@ export async function runAutoBackups(engine: SyncEngine): Promise<void> {
         // backup failures are non-fatal
       }
     }
+  }
+}
+
+export async function ensureSyncFolder(engine: SyncEngine): Promise<void> {
+  const config = engine.getConfig() as Record<string, unknown> | null
+  if (!config?.enabled || !config.webdavUrl) return
+  const webdavUrl = config.webdavUrl as string
+  const username = (config.username as string) ?? ''
+  const appPassword = (config.appPassword as string) ?? ''
+  if (!webdavUrl || !username) return
+  try {
+    const url = new URL(webdavUrl)
+    const baseUrl = `${url.protocol}//${url.host}`
+    const folderPath = url.pathname.replace(/^\//, '').replace(/\/+$/, '')
+    await ensureFolder(baseUrl, folderPath, buildAuthHeader(username, appPassword))
+  } catch {
+    // non-fatal — if we can't create the folder the sync will surface its own error
   }
 }
 

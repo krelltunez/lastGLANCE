@@ -10,7 +10,7 @@ import { useNotifications } from '@/hooks/useNotifications'
 import { useIntentsPoller } from '@/hooks/useIntentsPoller'
 import { IntentsProvider, useIntents } from '@/intents/IntentsContext'
 import { getAllCompletionCounts } from '@/db/queries'
-import { createEngine, initSessionKey, setupEncryptionKey, runAutoBackups, CRYPTO_CONFIG } from '@/sync/engine'
+import { createEngine, initSessionKey, setupEncryptionKey, runAutoBackups, ensureSyncFolder, CRYPTO_CONFIG } from '@/sync/engine'
 import type { SyncEngine, SyncStatus } from '@glance-apps/sync'
 import dayjs from 'dayjs'
 
@@ -142,14 +142,15 @@ function AppInner() {
       onPassphraseRequired: () => setShowPassphrase(true),
     })
     engineRef.current = engine
-    engine.sync().catch(() => {/* errors surfaced via onError */})
+    ensureSyncFolder(engine).then(() => engine.sync()).catch(() => {/* errors surfaced via onError */})
   }, [])
 
   // Re-sync on tab focus
   useEffect(() => {
     function handleVisibility() {
-      if (document.visibilityState === 'visible') {
-        engineRef.current?.sync().catch(() => {/* errors surfaced via onError */})
+      if (document.visibilityState === 'visible' && engineRef.current) {
+        const eng = engineRef.current
+        ensureSyncFolder(eng).then(() => eng.sync()).catch(() => {/* errors surfaced via onError */})
       }
     }
     document.addEventListener('visibilitychange', handleVisibility)
@@ -291,7 +292,10 @@ function AppInner() {
           onSubmit={async (passphrase) => {
             await setupEncryptionKey(passphrase, CRYPTO_CONFIG)
             setShowPassphrase(false)
-            engineRef.current?.sync().catch(() => {/* errors surfaced via onError */})
+            if (engineRef.current) {
+              const eng = engineRef.current
+              ensureSyncFolder(eng).then(() => eng.sync()).catch(() => {/* errors surfaced via onError */})
+            }
           }}
           onClose={() => setShowPassphrase(false)}
         />
