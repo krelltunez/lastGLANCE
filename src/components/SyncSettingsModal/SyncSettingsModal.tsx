@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { X, Loader, AlertTriangle, CheckCircle, XCircle } from 'lucide-react'
 import type { SyncEngine } from '@glance-apps/sync'
-import { setupEncryptionKey, clearEncryptionKey, ensureSyncFolder, resetEnsuredFolder, CRYPTO_CONFIG, getRemoteBackupsEnabled, setRemoteBackupsEnabled } from '@/sync/engine'
+import { setupEncryptionKey, clearEncryptionKey, ensureSyncFolder, resetEnsuredFolder, CRYPTO_CONFIG, getRemoteBackupsEnabled, setRemoteBackupsEnabled, APP_FOLDER_NAME } from '@/sync/engine'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
 
 interface Props {
@@ -13,29 +13,22 @@ interface Props {
 type TestStatus = 'idle' | 'testing' | 'ok' | 'fail'
 type SyncResult = 'idle' | 'ok' | 'error'
 
-const DEFAULT_FOLDER = 'GLANCE/lastglance'
-// The sync library appends this as a subfolder to webdavUrl, so it must be
-// stripped from the stored URL and added back for display.
-const APP_FOLDER_NAME = 'lastglance'
+const DEFAULT_FOLDER = APP_FOLDER_NAME
 
 function splitWebdavUrl(fullUrl: string): { serverUrl: string; folderPath: string } {
   if (!fullUrl) return { serverUrl: '', folderPath: DEFAULT_FOLDER }
   try {
     const url = new URL(fullUrl)
+    // Strip any GLANCE or GLANCE/lastglance suffix from the path — webdavUrl is
+    // now stored as the bare server root; APP_FOLDER_NAME is passed to the library directly.
     const pathname = url.pathname.replace(/\/+$/, '')
-    if (!pathname) return { serverUrl: fullUrl, folderPath: DEFAULT_FOLDER }
-    const idx = pathname.toUpperCase().indexOf('/GLANCE')
-    if (idx !== -1) {
-      const afterGlance = pathname[idx + '/GLANCE'.length]
-      if (afterGlance === undefined || afterGlance === '/') {
-        url.pathname = pathname.slice(0, idx) + '/'
-        let folderPath = pathname.slice(idx + 1)
-        // webdavUrl is stored without the appFolderName (the library appends it),
-        // so add it back for display
-        if (!folderPath.endsWith('/' + APP_FOLDER_NAME)) {
-          folderPath = folderPath + '/' + APP_FOLDER_NAME
-        }
-        return { serverUrl: url.toString(), folderPath }
+    const upper = pathname.toUpperCase()
+    const glanceIdx = upper.lastIndexOf('/GLANCE')
+    if (glanceIdx !== -1) {
+      const rest = upper.slice(glanceIdx + '/GLANCE'.length)
+      if (rest === '' || rest.startsWith('/LASTGLANCE')) {
+        url.pathname = pathname.slice(0, glanceIdx) || '/'
+        return { serverUrl: url.toString(), folderPath: DEFAULT_FOLDER }
       }
     }
     return { serverUrl: fullUrl, folderPath: DEFAULT_FOLDER }
@@ -44,15 +37,10 @@ function splitWebdavUrl(fullUrl: string): { serverUrl: string; folderPath: strin
   }
 }
 
-function buildWebdavUrl(serverUrl: string, folderPath: string): string {
-  const base = serverUrl.replace(/\/+$/, '')
-  let folder = folderPath.replace(/^\/+/, '').replace(/\/+$/, '')
-  // Strip appFolderName from the end — the sync library appends it automatically
-  if (folder === APP_FOLDER_NAME) folder = ''
-  else if (folder.endsWith('/' + APP_FOLDER_NAME)) folder = folder.slice(0, -(APP_FOLDER_NAME.length + 1))
-  if (!folder) return base
-  if (base.endsWith('/' + folder)) return base
-  return `${base}/${folder}`
+function buildWebdavUrl(serverUrl: string, _folderPath: string): string {
+  // APP_FOLDER_NAME ('GLANCE/lastglance') is passed to the library via engine config;
+  // webdavUrl must be the bare server root only.
+  return serverUrl.replace(/\/+$/, '')
 }
 
 export function SyncSettingsModal({ engine, onClose }: Props) {
@@ -239,12 +227,11 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
               <input
                 type="text"
                 value={folderPath}
-                onChange={e => setFolderPath(e.target.value)}
-                placeholder={DEFAULT_FOLDER}
-                className="w-full bg-slate-100 dark:bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
+                readOnly
+                className="w-full bg-slate-100 dark:bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-600 opacity-60 cursor-default"
               />
               <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
-                Path on your WebDAV server where sync files are stored.
+                Fixed path — sync files are always stored here.
               </p>
             </div>
 
