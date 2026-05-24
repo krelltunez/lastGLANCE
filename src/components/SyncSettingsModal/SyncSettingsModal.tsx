@@ -47,6 +47,7 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
 
   const [encEnabled, setEncEnabled] = useState(() => engine?.hasEncryptionReady() ?? false)
   const [passphrase, setPassphrase] = useState('')
+  const [confirmPassphrase, setConfirmPassphrase] = useState('')
   const [showPassphraseInput, setShowPassphraseInput] = useState(false)
   const [encSaving, setEncSaving] = useState(false)
   const [encError, setEncError] = useState('')
@@ -100,6 +101,10 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
 
   async function handleEnableEncryption() {
     if (!passphrase.trim()) return
+    if (passphrase !== confirmPassphrase) {
+      setEncError('Passphrases do not match')
+      return
+    }
     setEncSaving(true)
     setEncError('')
     try {
@@ -107,6 +112,7 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
       setEncEnabled(true)
       setShowPassphraseInput(false)
       setPassphrase('')
+      setConfirmPassphrase('')
     } catch (err) {
       setEncError(err instanceof Error ? err.message : 'Failed to set passphrase')
     } finally {
@@ -297,6 +303,9 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
                     handleDisableEncryption()
                   } else {
                     setShowPassphraseInput(p => !p)
+                    setPassphrase('')
+                    setConfirmPassphrase('')
+                    setEncError('')
                   }
                 }}
                 disabled={encSaving}
@@ -309,19 +318,41 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
             </div>
 
             {showPassphraseInput && !encEnabled && (
-              <div className="space-y-2">
-                <input
-                  type="password"
-                  value={passphrase}
-                  onChange={e => setPassphrase(e.target.value)}
-                  placeholder="Enter passphrase"
-                  autoComplete="new-password"
-                  onKeyDown={e => { if (e.key === 'Enter') handleEnableEncryption() }}
-                  className="w-full bg-slate-100 dark:bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
-                />
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+                    Sync passphrase
+                  </label>
+                  <input
+                    type="password"
+                    value={passphrase}
+                    onChange={e => setPassphrase(e.target.value)}
+                    placeholder="Choose a strong passphrase"
+                    autoComplete="new-password"
+                    className="w-full bg-slate-100 dark:bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+                    Confirm passphrase
+                  </label>
+                  <input
+                    type="password"
+                    value={confirmPassphrase}
+                    onChange={e => setConfirmPassphrase(e.target.value)}
+                    placeholder="Re-enter your passphrase"
+                    autoComplete="new-password"
+                    onKeyDown={e => { if (e.key === 'Enter') handleEnableEncryption() }}
+                    className="w-full bg-slate-100 dark:bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
+                  />
+                </div>
+                <div className="rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/40 px-4 py-3 space-y-1">
+                  <p className="text-xs font-semibold text-amber-600 dark:text-amber-400">Important — store your passphrase safely</p>
+                  <p className="text-xs text-amber-700 dark:text-amber-300">This passphrase cannot be recovered. You will need it to set up sync on new devices. Store it in a password manager.</p>
+                </div>
                 <button
                   onClick={handleEnableEncryption}
-                  disabled={!passphrase.trim() || encSaving}
+                  disabled={!passphrase.trim() || !confirmPassphrase.trim() || encSaving}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-green-400 text-white hover:bg-green-300 disabled:opacity-40 transition-colors"
                 >
                   {encSaving && <Loader size={12} className="animate-spin" />}

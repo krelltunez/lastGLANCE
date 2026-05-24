@@ -16,31 +16,6 @@ export const CRYPTO_CONFIG = { cryptoDBName: 'lastglance-crypto' }
 export const DEFAULT_SYNC_FOLDER = 'GLANCE/lastglance'
 export const SYNC_FOLDER_KEY = 'lastglance-cloud-sync-folder'
 
-// One-time migration: old format stored the parent path inside webdavUrl
-// (e.g. "https://server/GLANCE"). New format stores bare server root and
-// keeps the full folder path in SYNC_FOLDER_KEY.
-export function migrateCloudSyncConfig(): void {
-  const configKey = 'lastglance-cloud-sync-config'
-  const raw = localStorage.getItem(configKey)
-  if (!raw) return
-  try {
-    const cfg = JSON.parse(raw)
-    if (!cfg?.webdavUrl) return
-    const url = new URL(cfg.webdavUrl)
-    const pathname = url.pathname.replace(/\/+$/, '')
-    if (!pathname || pathname === '/') return  // already bare — nothing to do
-    // Save the reconstructed full folder path if not already stored
-    if (!localStorage.getItem(SYNC_FOLDER_KEY)) {
-      const parent = pathname.replace(/^\//, '')
-      localStorage.setItem(SYNC_FOLDER_KEY, `${parent}/lastglance`)
-    }
-    // Strip path from stored webdavUrl
-    url.pathname = '/'
-    cfg.webdavUrl = url.toString().replace(/\/$/, '')
-    localStorage.setItem(configKey, JSON.stringify(cfg))
-  } catch { /* non-fatal */ }
-}
-
 export { initSessionKey, setupEncryptionKey, clearEncryptionKey }
 
 // buildPayload: read all Dexie tables, map to sync shapes
