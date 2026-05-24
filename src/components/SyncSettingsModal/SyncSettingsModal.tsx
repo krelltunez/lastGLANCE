@@ -13,7 +13,9 @@ interface Props {
 type TestStatus = 'idle' | 'testing' | 'ok' | 'fail'
 type SyncResult = 'idle' | 'ok' | 'error'
 
-const DEFAULT_FOLDER = 'GLANCE/lastglance'
+const DEFAULT_FOLDER = 'GLANCE'
+// The sync library appends this name as a subfolder to webdavUrl automatically.
+const APP_FOLDER_NAME = 'lastglance'
 
 function splitWebdavUrl(fullUrl: string): { serverUrl: string; folderPath: string } {
   if (!fullUrl) return { serverUrl: '', folderPath: DEFAULT_FOLDER }
@@ -21,10 +23,18 @@ function splitWebdavUrl(fullUrl: string): { serverUrl: string; folderPath: strin
     const url = new URL(fullUrl)
     const pathname = url.pathname.replace(/\/+$/, '')
     if (!pathname) return { serverUrl: fullUrl, folderPath: DEFAULT_FOLDER }
-    const idx = pathname.toUpperCase().indexOf('/GLANCE/')
+    const idx = pathname.toUpperCase().indexOf('/GLANCE')
     if (idx !== -1) {
-      url.pathname = pathname.slice(0, idx) + '/'
-      return { serverUrl: url.toString(), folderPath: pathname.slice(idx + 1) }
+      const afterGlance = pathname[idx + '/GLANCE'.length]
+      if (afterGlance === undefined || afterGlance === '/') {
+        url.pathname = pathname.slice(0, idx) + '/'
+        let folderPath = pathname.slice(idx + 1)
+        // Migrate old configs where webdavUrl included the appFolderName segment
+        if (folderPath.endsWith('/' + APP_FOLDER_NAME)) {
+          folderPath = folderPath.slice(0, -(APP_FOLDER_NAME.length + 1))
+        }
+        return { serverUrl: url.toString(), folderPath }
+      }
     }
     return { serverUrl: fullUrl, folderPath: DEFAULT_FOLDER }
   } catch {
