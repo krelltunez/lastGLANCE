@@ -13,7 +13,7 @@ import { buildAuthHeader, ensureFolder } from '@/intents/webdav'
 import type { SyncPayload } from './types'
 
 export const CRYPTO_CONFIG = { cryptoDBName: 'lastglance-crypto' }
-export const APP_FOLDER_NAME = 'GLANCE/lastglance'
+export const APP_FOLDER_NAME = 'lastglance'
 
 export { initSessionKey, setupEncryptionKey, clearEncryptionKey }
 
@@ -270,8 +270,10 @@ export async function ensureSyncFolder(engine: SyncEngine): Promise<void> {
   if (_ensuredForUrl === webdavUrl) return
   try {
     const url = new URL(webdavUrl)
-    const baseUrl = `${url.protocol}//${url.host}${url.pathname.replace(/\/+$/, '')}`
-    await ensureFolder(baseUrl, APP_FOLDER_NAME, buildAuthHeader(username, appPassword))
+    const baseUrl = `${url.protocol}//${url.host}`
+    const parentPath = url.pathname.replace(/^\//, '').replace(/\/+$/, '')
+    const folderPath = parentPath ? `${parentPath}/${APP_FOLDER_NAME}` : APP_FOLDER_NAME
+    await ensureFolder(baseUrl, folderPath, buildAuthHeader(username, appPassword))
     _ensuredForUrl = webdavUrl
   } catch {
     // non-fatal — if we can't create the folder the sync will surface its own error

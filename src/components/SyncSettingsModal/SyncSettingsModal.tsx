@@ -13,34 +13,35 @@ interface Props {
 type TestStatus = 'idle' | 'testing' | 'ok' | 'fail'
 type SyncResult = 'idle' | 'ok' | 'error'
 
-const DEFAULT_FOLDER = APP_FOLDER_NAME
+const DEFAULT_FOLDER = `GLANCE/${APP_FOLDER_NAME}`
 
 function splitWebdavUrl(fullUrl: string): { serverUrl: string; folderPath: string } {
   if (!fullUrl) return { serverUrl: '', folderPath: DEFAULT_FOLDER }
   try {
     const url = new URL(fullUrl)
-    // Strip any GLANCE or GLANCE/lastglance suffix from the path — webdavUrl is
-    // now stored as the bare server root; APP_FOLDER_NAME is passed to the library directly.
     const pathname = url.pathname.replace(/\/+$/, '')
-    const upper = pathname.toUpperCase()
-    const glanceIdx = upper.lastIndexOf('/GLANCE')
-    if (glanceIdx !== -1) {
-      const rest = upper.slice(glanceIdx + '/GLANCE'.length)
-      if (rest === '' || rest.startsWith('/LASTGLANCE')) {
-        url.pathname = pathname.slice(0, glanceIdx) || '/'
-        return { serverUrl: url.toString(), folderPath: DEFAULT_FOLDER }
-      }
-    }
-    return { serverUrl: fullUrl, folderPath: DEFAULT_FOLDER }
+    if (!pathname || pathname === '/') return { serverUrl: fullUrl, folderPath: DEFAULT_FOLDER }
+    // webdavUrl is stored without APP_FOLDER_NAME (the library appends it).
+    // Add it back for display so the user sees the full path.
+    const suffix = '/' + APP_FOLDER_NAME
+    const folderPath = pathname.endsWith(suffix)
+      ? pathname.slice(1)                        // already has the suffix somehow — show as-is
+      : pathname.slice(1) + suffix               // normal case: add it back
+    url.pathname = '/'
+    return { serverUrl: url.toString(), folderPath }
   } catch {
     return { serverUrl: fullUrl, folderPath: DEFAULT_FOLDER }
   }
 }
 
-function buildWebdavUrl(serverUrl: string, _folderPath: string): string {
-  // APP_FOLDER_NAME ('GLANCE/lastglance') is passed to the library via engine config;
-  // webdavUrl must be the bare server root only.
-  return serverUrl.replace(/\/+$/, '')
+function buildWebdavUrl(serverUrl: string, folderPath: string): string {
+  const base = serverUrl.replace(/\/+$/, '')
+  let folder = folderPath.replace(/^\/+/, '').replace(/\/+$/, '')
+  // Strip APP_FOLDER_NAME from the end — the library appends it automatically.
+  const suffix = '/' + APP_FOLDER_NAME
+  if (folder === APP_FOLDER_NAME) folder = ''
+  else if (folder.endsWith(suffix)) folder = folder.slice(0, -suffix.length)
+  return folder ? `${base}/${folder}` : base
 }
 
 export function SyncSettingsModal({ engine, onClose }: Props) {
@@ -227,11 +228,12 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
               <input
                 type="text"
                 value={folderPath}
-                readOnly
-                className="w-full bg-slate-100 dark:bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-600 opacity-60 cursor-default"
+                onChange={e => setFolderPath(e.target.value)}
+                placeholder={DEFAULT_FOLDER}
+                className="w-full bg-slate-100 dark:bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
               />
               <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
-                Fixed path — sync files are always stored here.
+                Path on your WebDAV server where sync files are stored.
               </p>
             </div>
 
