@@ -13,8 +13,9 @@ interface Props {
 type TestStatus = 'idle' | 'testing' | 'ok' | 'fail'
 type SyncResult = 'idle' | 'ok' | 'error'
 
-const DEFAULT_FOLDER = 'GLANCE'
-// The sync library appends this name as a subfolder to webdavUrl automatically.
+const DEFAULT_FOLDER = 'GLANCE/lastglance'
+// The sync library appends this as a subfolder to webdavUrl, so it must be
+// stripped from the stored URL and added back for display.
 const APP_FOLDER_NAME = 'lastglance'
 
 function splitWebdavUrl(fullUrl: string): { serverUrl: string; folderPath: string } {
@@ -29,9 +30,10 @@ function splitWebdavUrl(fullUrl: string): { serverUrl: string; folderPath: strin
       if (afterGlance === undefined || afterGlance === '/') {
         url.pathname = pathname.slice(0, idx) + '/'
         let folderPath = pathname.slice(idx + 1)
-        // Migrate old configs where webdavUrl included the appFolderName segment
-        if (folderPath.endsWith('/' + APP_FOLDER_NAME)) {
-          folderPath = folderPath.slice(0, -(APP_FOLDER_NAME.length + 1))
+        // webdavUrl is stored without the appFolderName (the library appends it),
+        // so add it back for display
+        if (!folderPath.endsWith('/' + APP_FOLDER_NAME)) {
+          folderPath = folderPath + '/' + APP_FOLDER_NAME
         }
         return { serverUrl: url.toString(), folderPath }
       }
@@ -44,9 +46,11 @@ function splitWebdavUrl(fullUrl: string): { serverUrl: string; folderPath: strin
 
 function buildWebdavUrl(serverUrl: string, folderPath: string): string {
   const base = serverUrl.replace(/\/+$/, '')
-  const folder = folderPath.replace(/^\/+/, '').replace(/\/+$/, '')
+  let folder = folderPath.replace(/^\/+/, '').replace(/\/+$/, '')
+  // Strip appFolderName from the end — the sync library appends it automatically
+  if (folder === APP_FOLDER_NAME) folder = ''
+  else if (folder.endsWith('/' + APP_FOLDER_NAME)) folder = folder.slice(0, -(APP_FOLDER_NAME.length + 1))
   if (!folder) return base
-  // If the user pasted the full path into the server URL field, don't double it
   if (base.endsWith('/' + folder)) return base
   return `${base}/${folder}`
 }
@@ -239,6 +243,9 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
                 placeholder={DEFAULT_FOLDER}
                 className="w-full bg-slate-100 dark:bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
               />
+              <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
+                Path on your WebDAV server where sync files are stored.
+              </p>
             </div>
 
             <div>
