@@ -136,8 +136,11 @@ export default async function handler(req, res) {
     // Some WebDAV servers return 200 HTML (error page) for missing resources
     // instead of a proper 404. Normalise these so the sync library can treat
     // them as "file not found" rather than crashing on JSON.parse('<').
+    // Check both the Content-Type header and the body itself since some servers
+    // omit the header or use a non-standard value.
     const contentType = response.headers.get('content-type') || '';
-    if (req.method === 'GET' && response.ok && contentType.includes('text/html')) {
+    if (req.method === 'GET' && response.ok &&
+        (contentType.includes('text/html') || body.trimStart().startsWith('<'))) {
       return res.status(404).end();
     }
 
