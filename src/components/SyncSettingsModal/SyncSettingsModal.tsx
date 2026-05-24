@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { X, Loader, AlertTriangle, CheckCircle, XCircle } from 'lucide-react'
 import type { SyncEngine } from '@glance-apps/sync'
-import { setupEncryptionKey, clearEncryptionKey, ensureSyncFolder, resetEnsuredFolder, CRYPTO_CONFIG, getRemoteBackupsEnabled, setRemoteBackupsEnabled } from '@/sync/engine'
+import { setupEncryptionKey, clearEncryptionKey, ensureSyncFolder, resetEnsuredFolder, CRYPTO_CONFIG, getRemoteBackupsEnabled, setRemoteBackupsEnabled, DEFAULT_SYNC_FOLDER, SYNC_FOLDER_KEY } from '@/sync/engine'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
 
 interface Props {
@@ -13,54 +13,32 @@ interface Props {
 type TestStatus = 'idle' | 'testing' | 'ok' | 'fail'
 type SyncResult = 'idle' | 'ok' | 'error'
 
-const DEFAULT_FOLDER = 'GLANCE/lastglance'
-// The sync library appends this as a subfolder to webdavUrl, so it must be
-// stripped from the stored URL and added back for display.
-const APP_FOLDER_NAME = 'lastglance'
-
-function splitWebdavUrl(fullUrl: string): { serverUrl: string; folderPath: string } {
-  if (!fullUrl) return { serverUrl: '', folderPath: DEFAULT_FOLDER }
+function splitWebdavUrl(fullUrl: string): { serverUrl: string } {
+  if (!fullUrl) return { serverUrl: '' }
   try {
+    // webdavUrl is always the bare server root — strip any leftover path
+    // (handles migration from the old format that baked the folder into the URL)
     const url = new URL(fullUrl)
-    const pathname = url.pathname.replace(/\/+$/, '')
-    if (!pathname) return { serverUrl: fullUrl, folderPath: DEFAULT_FOLDER }
-    const idx = pathname.toUpperCase().indexOf('/GLANCE')
-    if (idx !== -1) {
-      const afterGlance = pathname[idx + '/GLANCE'.length]
-      if (afterGlance === undefined || afterGlance === '/') {
-        url.pathname = pathname.slice(0, idx) + '/'
-        let folderPath = pathname.slice(idx + 1)
-        // webdavUrl is stored without the appFolderName (the library appends it),
-        // so add it back for display
-        if (!folderPath.endsWith('/' + APP_FOLDER_NAME)) {
-          folderPath = folderPath + '/' + APP_FOLDER_NAME
-        }
-        return { serverUrl: url.toString(), folderPath }
-      }
-    }
-    return { serverUrl: fullUrl, folderPath: DEFAULT_FOLDER }
+    url.pathname = '/'
+    return { serverUrl: url.toString() }
   } catch {
-    return { serverUrl: fullUrl, folderPath: DEFAULT_FOLDER }
+    return { serverUrl: fullUrl }
   }
 }
 
-function buildWebdavUrl(serverUrl: string, folderPath: string): string {
-  const base = serverUrl.replace(/\/+$/, '')
-  let folder = folderPath.replace(/^\/+/, '').replace(/\/+$/, '')
-  // Strip appFolderName from the end — the sync library appends it automatically
-  if (folder === APP_FOLDER_NAME) folder = ''
-  else if (folder.endsWith('/' + APP_FOLDER_NAME)) folder = folder.slice(0, -(APP_FOLDER_NAME.length + 1))
-  if (!folder) return base
-  if (base.endsWith('/' + folder)) return base
-  return `${base}/${folder}`
+function buildWebdavUrl(serverUrl: string): string {
+  // The full folder path is stored separately (SYNC_FOLDER_KEY) and passed to
+  // the engine as appFolderName — webdavUrl is the bare server root only.
+  return serverUrl.replace(/\/+$/, '')
 }
 
 export function SyncSettingsModal({ engine, onClose }: Props) {
   const existingConfig = engine?.getConfig() ?? null
-  const { serverUrl: initServer, folderPath: initFolder } = splitWebdavUrl((existingConfig?.webdavUrl as string) ?? '')
+  const { serverUrl: initServer } = splitWebdavUrl((existingConfig?.webdavUrl as string) ?? '')
 
   const [serverUrl, setServerUrl] = useState(() => initServer)
-  const [folderPath, setFolderPath] = useState(() => initFolder)
+  const [folderPath, setFolderPath] = useState(() => localStorage.getItem(SYNC_FOLDER_KEY) ?? DEFAULT_SYNC_FOLDER)
+  const originalFolder = useRef(localStorage.getItem(SYNC_FOLDER_KEY) ?? DEFAULT_SYNC_FOLDER)
   const [username, setUsername] = useState(() => (existingConfig?.username as string) ?? '')
   const [appPassword, setAppPassword] = useState(() => (existingConfig?.appPassword as string) ?? '')
 
@@ -69,6 +47,7 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
 
   const [encEnabled, setEncEnabled] = useState(() => engine?.hasEncryptionReady() ?? false)
   const [passphrase, setPassphrase] = useState('')
+  const [confirmPassphrase, setConfirmPassphrase] = useState('')
   const [showPassphraseInput, setShowPassphraseInput] = useState(false)
   const [encSaving, setEncSaving] = useState(false)
   const [encError, setEncError] = useState('')
@@ -84,9 +63,14 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
 
   function saveConfig() {
     if (!engine) return
-    const webdavUrl = buildWebdavUrl(serverUrl, folderPath)
+    const webdavUrl = buildWebdavUrl(serverUrl)
     engine.setConfig(serverUrl.trim() ? { provider: 'webdav', webdavUrl, username, appPassword, enabled: true } : null)
+    localStorage.setItem(SYNC_FOLDER_KEY, folderPath)
     resetEnsuredFolder()
+    // appFolderName is fixed at engine creation — reload so the new folder takes effect
+    if (folderPath !== originalFolder.current) {
+      window.location.reload()
+    }
   }
 
   function handleClose() {
@@ -101,7 +85,7 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
     setTestStatus('testing')
     setTestError('')
     try {
-      const webdavUrl = buildWebdavUrl(serverUrl, folderPath)
+      const webdavUrl = buildWebdavUrl(serverUrl)
       const result = await engine.test({ provider: 'webdav', webdavUrl, username, appPassword })
       if (result.success) {
         setTestStatus('ok')
@@ -117,6 +101,10 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
 
   async function handleEnableEncryption() {
     if (!passphrase.trim()) return
+    if (passphrase !== confirmPassphrase) {
+      setEncError('Passphrases do not match')
+      return
+    }
     setEncSaving(true)
     setEncError('')
     try {
@@ -124,6 +112,7 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
       setEncEnabled(true)
       setShowPassphraseInput(false)
       setPassphrase('')
+      setConfirmPassphrase('')
     } catch (err) {
       setEncError(err instanceof Error ? err.message : 'Failed to set passphrase')
     } finally {
@@ -240,7 +229,7 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
                 type="text"
                 value={folderPath}
                 onChange={e => setFolderPath(e.target.value)}
-                placeholder={DEFAULT_FOLDER}
+                placeholder={DEFAULT_SYNC_FOLDER}
                 className="w-full bg-slate-100 dark:bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
               />
               <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
@@ -314,6 +303,9 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
                     handleDisableEncryption()
                   } else {
                     setShowPassphraseInput(p => !p)
+                    setPassphrase('')
+                    setConfirmPassphrase('')
+                    setEncError('')
                   }
                 }}
                 disabled={encSaving}
@@ -326,19 +318,41 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
             </div>
 
             {showPassphraseInput && !encEnabled && (
-              <div className="space-y-2">
-                <input
-                  type="password"
-                  value={passphrase}
-                  onChange={e => setPassphrase(e.target.value)}
-                  placeholder="Enter passphrase"
-                  autoComplete="new-password"
-                  onKeyDown={e => { if (e.key === 'Enter') handleEnableEncryption() }}
-                  className="w-full bg-slate-100 dark:bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
-                />
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+                    Sync passphrase
+                  </label>
+                  <input
+                    type="password"
+                    value={passphrase}
+                    onChange={e => setPassphrase(e.target.value)}
+                    placeholder="Choose a strong passphrase"
+                    autoComplete="new-password"
+                    className="w-full bg-slate-100 dark:bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+                    Confirm passphrase
+                  </label>
+                  <input
+                    type="password"
+                    value={confirmPassphrase}
+                    onChange={e => setConfirmPassphrase(e.target.value)}
+                    placeholder="Re-enter your passphrase"
+                    autoComplete="new-password"
+                    onKeyDown={e => { if (e.key === 'Enter') handleEnableEncryption() }}
+                    className="w-full bg-slate-100 dark:bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
+                  />
+                </div>
+                <div className="rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/40 px-4 py-3 space-y-1">
+                  <p className="text-xs font-semibold text-amber-600 dark:text-amber-400">Important — store your passphrase safely</p>
+                  <p className="text-xs text-amber-700 dark:text-amber-300">This passphrase cannot be recovered. You will need it to set up sync on new devices. Store it in a password manager.</p>
+                </div>
                 <button
                   onClick={handleEnableEncryption}
-                  disabled={!passphrase.trim() || encSaving}
+                  disabled={!passphrase.trim() || !confirmPassphrase.trim() || encSaving}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-green-400 text-white hover:bg-green-300 disabled:opacity-40 transition-colors"
                 >
                   {encSaving && <Loader size={12} className="animate-spin" />}
