@@ -133,7 +133,15 @@ export default async function handler(req, res) {
     const response = await fetch(url, fetchOptions);
     const body = await response.text();
 
-    res.setHeader('Content-Type', response.headers.get('content-type') || 'text/plain');
+    // Some WebDAV servers return 200 HTML (error page) for missing resources
+    // instead of a proper 404. Normalise these so the sync library can treat
+    // them as "file not found" rather than crashing on JSON.parse('<').
+    const contentType = response.headers.get('content-type') || '';
+    if (req.method === 'GET' && response.ok && contentType.includes('text/html')) {
+      return res.status(404).end();
+    }
+
+    res.setHeader('Content-Type', contentType || 'text/plain');
     res.setHeader('Cache-Control', 'no-store');
     const etag = response.headers.get('etag');
     if (etag) res.setHeader('ETag', etag);
