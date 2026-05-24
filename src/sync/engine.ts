@@ -13,7 +13,33 @@ import { buildAuthHeader, ensureFolder } from '@/intents/webdav'
 import type { SyncPayload } from './types'
 
 export const CRYPTO_CONFIG = { cryptoDBName: 'lastglance-crypto' }
-export const APP_FOLDER_NAME = 'lastglance'
+export const DEFAULT_SYNC_FOLDER = 'GLANCE/lastglance'
+export const SYNC_FOLDER_KEY = 'lastglance-cloud-sync-folder'
+
+// One-time migration: old format stored the parent path inside webdavUrl
+// (e.g. "https://server/GLANCE"). New format stores bare server root and
+// keeps the full folder path in SYNC_FOLDER_KEY.
+export function migrateCloudSyncConfig(): void {
+  const configKey = 'lastglance-cloud-sync-config'
+  const raw = localStorage.getItem(configKey)
+  if (!raw) return
+  try {
+    const cfg = JSON.parse(raw)
+    if (!cfg?.webdavUrl) return
+    const url = new URL(cfg.webdavUrl)
+    const pathname = url.pathname.replace(/\/+$/, '')
+    if (!pathname || pathname === '/') return  // already bare — nothing to do
+    // Save the reconstructed full folder path if not already stored
+    if (!localStorage.getItem(SYNC_FOLDER_KEY)) {
+      const parent = pathname.replace(/^\//, '')
+      localStorage.setItem(SYNC_FOLDER_KEY, `${parent}/lastglance`)
+    }
+    // Strip path from stored webdavUrl
+    url.pathname = '/'
+    cfg.webdavUrl = url.toString().replace(/\/$/, '')
+    localStorage.setItem(configKey, JSON.stringify(cfg))
+  } catch { /* non-fatal */ }
+}
 
 export { initSessionKey, setupEncryptionKey, clearEncryptionKey }
 
@@ -270,10 +296,9 @@ export async function ensureSyncFolder(engine: SyncEngine): Promise<void> {
   if (_ensuredForUrl === webdavUrl) return
   try {
     const url = new URL(webdavUrl)
-    const baseUrl = `${url.protocol}//${url.host}`
-    const parentPath = url.pathname.replace(/^\//, '').replace(/\/+$/, '')
-    const folderPath = parentPath ? `${parentPath}/${APP_FOLDER_NAME}` : APP_FOLDER_NAME
-    await ensureFolder(baseUrl, folderPath, buildAuthHeader(username, appPassword))
+    const baseUrl = `${url.protocol}//${url.host}${url.pathname.replace(/\/+$/, '')}`
+    const folder = localStorage.getItem(SYNC_FOLDER_KEY) || DEFAULT_SYNC_FOLDER
+    await ensureFolder(baseUrl, folder, buildAuthHeader(username, appPassword))
     _ensuredForUrl = webdavUrl
   } catch {
     // non-fatal — if we can't create the folder the sync will surface its own error
@@ -288,12 +313,13 @@ interface EngineCallbacks {
 }
 
 export function createEngine(proxyUrl: string | undefined, callbacks: EngineCallbacks): SyncEngine {
+  const appFolderName = localStorage.getItem(SYNC_FOLDER_KEY) || DEFAULT_SYNC_FOLDER
   return createSyncEngine({
     storageKeyPrefix: 'lastglance',
     cryptoDBName: 'lastglance-crypto',
     autoBackupDBName: 'lastglance-auto-backups',
     syncFilename: 'lastglance-sync.json',
-    appFolderName: APP_FOLDER_NAME,
+    appFolderName,
     backupFilenamePrefix: 'lastglance-backup-',
     appId: 'lastglance',
     appName: 'lastGLANCE',

@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { X, Loader, AlertTriangle, CheckCircle, XCircle } from 'lucide-react'
 import type { SyncEngine } from '@glance-apps/sync'
-import { setupEncryptionKey, clearEncryptionKey, ensureSyncFolder, resetEnsuredFolder, CRYPTO_CONFIG, getRemoteBackupsEnabled, setRemoteBackupsEnabled, APP_FOLDER_NAME } from '@/sync/engine'
+import { setupEncryptionKey, clearEncryptionKey, ensureSyncFolder, resetEnsuredFolder, CRYPTO_CONFIG, getRemoteBackupsEnabled, setRemoteBackupsEnabled, DEFAULT_SYNC_FOLDER, SYNC_FOLDER_KEY } from '@/sync/engine'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
 
 interface Props {
@@ -13,43 +13,32 @@ interface Props {
 type TestStatus = 'idle' | 'testing' | 'ok' | 'fail'
 type SyncResult = 'idle' | 'ok' | 'error'
 
-const DEFAULT_FOLDER = `GLANCE/${APP_FOLDER_NAME}`
-
-function splitWebdavUrl(fullUrl: string): { serverUrl: string; folderPath: string } {
-  if (!fullUrl) return { serverUrl: '', folderPath: DEFAULT_FOLDER }
+function splitWebdavUrl(fullUrl: string): { serverUrl: string } {
+  if (!fullUrl) return { serverUrl: '' }
   try {
+    // webdavUrl is always the bare server root — strip any leftover path
+    // (handles migration from the old format that baked the folder into the URL)
     const url = new URL(fullUrl)
-    const pathname = url.pathname.replace(/\/+$/, '')
-    if (!pathname || pathname === '/') return { serverUrl: fullUrl, folderPath: DEFAULT_FOLDER }
-    // webdavUrl is stored without APP_FOLDER_NAME (the library appends it).
-    // Add it back for display so the user sees the full path.
-    const suffix = '/' + APP_FOLDER_NAME
-    const folderPath = pathname.endsWith(suffix)
-      ? pathname.slice(1)                        // already has the suffix somehow — show as-is
-      : pathname.slice(1) + suffix               // normal case: add it back
     url.pathname = '/'
-    return { serverUrl: url.toString(), folderPath }
+    return { serverUrl: url.toString() }
   } catch {
-    return { serverUrl: fullUrl, folderPath: DEFAULT_FOLDER }
+    return { serverUrl: fullUrl }
   }
 }
 
-function buildWebdavUrl(serverUrl: string, folderPath: string): string {
-  const base = serverUrl.replace(/\/+$/, '')
-  let folder = folderPath.replace(/^\/+/, '').replace(/\/+$/, '')
-  // Strip APP_FOLDER_NAME from the end — the library appends it automatically.
-  const suffix = '/' + APP_FOLDER_NAME
-  if (folder === APP_FOLDER_NAME) folder = ''
-  else if (folder.endsWith(suffix)) folder = folder.slice(0, -suffix.length)
-  return folder ? `${base}/${folder}` : base
+function buildWebdavUrl(serverUrl: string): string {
+  // The full folder path is stored separately (SYNC_FOLDER_KEY) and passed to
+  // the engine as appFolderName — webdavUrl is the bare server root only.
+  return serverUrl.replace(/\/+$/, '')
 }
 
 export function SyncSettingsModal({ engine, onClose }: Props) {
   const existingConfig = engine?.getConfig() ?? null
-  const { serverUrl: initServer, folderPath: initFolder } = splitWebdavUrl((existingConfig?.webdavUrl as string) ?? '')
+  const { serverUrl: initServer } = splitWebdavUrl((existingConfig?.webdavUrl as string) ?? '')
 
   const [serverUrl, setServerUrl] = useState(() => initServer)
-  const [folderPath, setFolderPath] = useState(() => initFolder)
+  const [folderPath, setFolderPath] = useState(() => localStorage.getItem(SYNC_FOLDER_KEY) ?? DEFAULT_SYNC_FOLDER)
+  const originalFolder = useRef(localStorage.getItem(SYNC_FOLDER_KEY) ?? DEFAULT_SYNC_FOLDER)
   const [username, setUsername] = useState(() => (existingConfig?.username as string) ?? '')
   const [appPassword, setAppPassword] = useState(() => (existingConfig?.appPassword as string) ?? '')
 
@@ -73,9 +62,14 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
 
   function saveConfig() {
     if (!engine) return
-    const webdavUrl = buildWebdavUrl(serverUrl, folderPath)
+    const webdavUrl = buildWebdavUrl(serverUrl)
     engine.setConfig(serverUrl.trim() ? { provider: 'webdav', webdavUrl, username, appPassword, enabled: true } : null)
+    localStorage.setItem(SYNC_FOLDER_KEY, folderPath)
     resetEnsuredFolder()
+    // appFolderName is fixed at engine creation — reload so the new folder takes effect
+    if (folderPath !== originalFolder.current) {
+      window.location.reload()
+    }
   }
 
   function handleClose() {
@@ -90,7 +84,7 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
     setTestStatus('testing')
     setTestError('')
     try {
-      const webdavUrl = buildWebdavUrl(serverUrl, folderPath)
+      const webdavUrl = buildWebdavUrl(serverUrl)
       const result = await engine.test({ provider: 'webdav', webdavUrl, username, appPassword })
       if (result.success) {
         setTestStatus('ok')
@@ -229,7 +223,7 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
                 type="text"
                 value={folderPath}
                 onChange={e => setFolderPath(e.target.value)}
-                placeholder={DEFAULT_FOLDER}
+                placeholder={DEFAULT_SYNC_FOLDER}
                 className="w-full bg-slate-100 dark:bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
               />
               <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
