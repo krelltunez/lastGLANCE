@@ -289,6 +289,13 @@ interface EngineCallbacks {
 
 export function createEngine(proxyUrl: string | undefined, callbacks: EngineCallbacks): SyncEngine {
   const appFolderName = localStorage.getItem(SYNC_FOLDER_KEY) || DEFAULT_SYNC_FOLDER
+  // If this device has never synced, seed the last-synced timestamp so the
+  // engine skips the conflict-dialog path (which lastGLANCE doesn't implement)
+  // and goes straight to the normal CRDT merge on first contact with the server.
+  const KEY_LAST_SYNCED = 'lastglance-cloud-sync-last-synced'
+  if (!localStorage.getItem(KEY_LAST_SYNCED)) {
+    localStorage.setItem(KEY_LAST_SYNCED, new Date(Date.now() - 60_000).toISOString())
+  }
   return createSyncEngine({
     storageKeyPrefix: 'lastglance',
     cryptoDBName: 'lastglance-crypto',
