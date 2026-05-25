@@ -2,7 +2,7 @@
 
 **when did you last...?**
 
-![Version](https://img.shields.io/badge/version-0.1.15-green) ![License](https://img.shields.io/badge/license-MIT-blue)
+![Version](https://img.shields.io/badge/version-0.1.16-green) ![License](https://img.shields.io/badge/license-MIT-blue)
 
 lastGLANCE is a chore-tracking progressive web app that answers one question: *when did I last do this?* It tracks recency, not schedules. The emotional register is information, not guilt.
 
