@@ -90,7 +90,7 @@ export function useIntentsPoller(onNewCompletion?: () => void): void {
             if (err instanceof NoKeyError) {
               message = 'No encryption key available to decrypt intent'
             } else if (err instanceof WrongKeyError) {
-              message = 'Wrong encryption key for intent file'
+              message = 'decryption failed (wrong passphrase — verify same passphrase used in both apps)'
             } else if (err instanceof NotEncryptedError) {
               message = 'File is not encrypted as expected'
             } else if (err instanceof MalformedEnvelopeError) {
