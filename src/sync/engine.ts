@@ -326,7 +326,7 @@ export function createEngine(proxyUrl: string | undefined, callbacks: EngineCall
   // The generic webdav auto-backup provider targets the WebDAV root URL instead
   // of the sync folder's backups/ subdirectory. Patch it to match the nextcloud
   // provider and the dayGLANCE convention: {syncFolder}/backups/.
-  const webdavBackup = engine.autoBackupProviders.webdav as Record<string, unknown>
+  const webdavBackup = engine.autoBackupProviders.webdav as unknown as Record<string, unknown>
   webdavBackup._getBackupDirUrl = (providerConfig: Record<string, string>) =>
     `${providerConfig.webdavUrl.replace(/\/+$/, '')}/${appFolderName}/backups/`
 
