@@ -5,6 +5,7 @@ export interface IntentsConfig {
   webdavPassword: string
   folderPath: string
   pollIntervalMinutes: number
+  encryptionEnabled: boolean
 }
 
 export interface ActivityEntry {
@@ -22,6 +23,7 @@ export const DEFAULT_CONFIG: IntentsConfig = {
   webdavPassword: '',
   folderPath: 'GLANCE/events',
   pollIntervalMinutes: 15,
+  encryptionEnabled: false,
 }
 
 const CONFIG_KEY = 'lg_intents_config'

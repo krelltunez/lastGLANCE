@@ -4,9 +4,14 @@ import {
   EVENTS,
   SOURCE_APPS,
   parseEnvelope,
+  parseEncryptedEnvelope,
   parseFilename,
+  NoKeyError,
+  WrongKeyError,
+  NotEncryptedError,
   MalformedEnvelopeError,
 } from '@glance-apps/intents'
+import { hasEncryptionReady, getSessionKey } from '@glance-apps/sync'
 import { db } from '@/db/client'
 import { logCompletion } from '@/db/queries'
 import {
@@ -40,6 +45,7 @@ export function useIntentsPoller(onNewCompletion?: () => void): void {
         return
       }
 
+      // Filter by parseFilename and cursor, sort ascending
       const parsed = filenames
         .map(f => ({ filename: f, parsed: parseFilename(f) }))
         .filter(({ parsed: p }) => p !== null && (!cursor || p!.timestamp > cursor))
@@ -66,27 +72,49 @@ export function useIntentsPoller(onNewCompletion?: () => void): void {
           continue
         }
 
+        // Check if encrypted
         const isEncrypted = typeof data === 'object' && data !== null && (data as Record<string, unknown>).encrypted === true
+
         if (isEncrypted) {
-          addActivityEntry({ type: 'error', message: `Skipped encrypted intent file ${filename} — cross-app encryption is not supported` })
-          newCursor = parsedFilename!.timestamp
-          continue
-        }
-
-        let envelope
-        try {
-          envelope = parseEnvelope(data)
-        } catch (err) {
-          if (!(err instanceof MalformedEnvelopeError)) {
-            const message = err instanceof Error ? err.message : String(err)
-            addActivityEntry({ type: 'error', message: `Failed to parse intent file ${filename}`, detail: message })
+          if (!config.encryptionEnabled || !hasEncryptionReady()) {
+            addActivityEntry({ type: 'error', message: 'Encrypted intent received but encryption not configured' })
+            newCursor = parsedFilename!.timestamp
+            continue
           }
-          newCursor = parsedFilename!.timestamp
-          continue
-        }
 
-        await processEnvelope(envelope)
-        newCursor = parsedFilename!.timestamp
+          let envelope
+          try {
+            envelope = await parseEncryptedEnvelope(data, getSessionKey()!)
+          } catch (err) {
+            let message = 'Failed to decrypt intent file'
+            if (err instanceof NoKeyError) {
+              message = 'No encryption key available to decrypt intent'
+            } else if (err instanceof WrongKeyError) {
+              message = 'Wrong encryption key for intent file'
+            } else if (err instanceof NotEncryptedError) {
+              message = 'File is not encrypted as expected'
+            } else if (err instanceof MalformedEnvelopeError) {
+              message = 'Malformed encrypted envelope'
+            }
+            addActivityEntry({ type: 'error', message, detail: err instanceof Error ? err.message : String(err) })
+            newCursor = parsedFilename!.timestamp
+            continue
+          }
+
+          await processEnvelope(envelope)
+          newCursor = parsedFilename!.timestamp
+        } else {
+          let envelope
+          try {
+            envelope = parseEnvelope(data)
+          } catch {
+            newCursor = parsedFilename!.timestamp
+            continue
+          }
+
+          await processEnvelope(envelope)
+          newCursor = parsedFilename!.timestamp
+        }
       }
 
       if (newCursor && newCursor !== cursor) {
@@ -125,7 +153,9 @@ export function useIntentsPoller(onNewCompletion?: () => void): void {
     const interval = setInterval(poll, intervalMs)
 
     function onVisibilityChange() {
-      if (document.visibilityState === 'visible') poll()
+      if (document.visibilityState === 'visible') {
+        poll()
+      }
     }
     document.addEventListener('visibilitychange', onVisibilityChange)
 
