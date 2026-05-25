@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { Pencil, Check, Sun, Moon, Archive, Plug, Cloud, CloudOff, RefreshCw } from 'lucide-react'
 import { Ribbon } from '@/components/Ribbon/Ribbon'
 import { BackupModal } from '@/components/BackupModal/BackupModal'
+import { WelcomeModal } from '@/components/WelcomeModal/WelcomeModal'
+import { clearSeedData } from '@/db/queries'
 import { IntegrationSettingsModal } from '@/components/IntegrationSettingsModal/IntegrationSettingsModal'
 import { SyncSettingsModal } from '@/components/SyncSettingsModal/SyncSettingsModal'
 import { PassphraseModal } from '@/components/PassphraseModal/PassphraseModal'
@@ -102,6 +104,8 @@ function AppInner() {
   useNotifications()
   const { refreshConfig } = useIntents()
   const [editMode, setEditMode] = useState(false)
+  const [showWelcome, setShowWelcome] = useState(() => !localStorage.getItem('lg-welcome-dismissed'))
+  const [welcomeClearing, setWelcomeClearing] = useState(false)
   const [showBackup, setShowBackup] = useState(false)
   const [showIntegration, setShowIntegration] = useState(false)
   const [showSyncSettings, setShowSyncSettings] = useState(false)
@@ -264,6 +268,29 @@ function AppInner() {
       <main className="flex-1 flex flex-col overflow-hidden">
         <Ribbon key={ribbonKey} editMode={editMode} onLogged={loadHeatmap} />
       </main>
+
+      {showWelcome && (
+        <WelcomeModal
+          clearing={welcomeClearing}
+          onGetStarted={() => {
+            localStorage.setItem('lg-welcome-dismissed', '1')
+            setShowWelcome(false)
+          }}
+          onClearSample={async () => {
+            setWelcomeClearing(true)
+            try {
+              await clearSeedData()
+              localStorage.setItem('lg-welcome-dismissed', '1')
+              localStorage.setItem('lg-seed-cleared', '1')
+              setShowWelcome(false)
+              setRibbonKey(k => k + 1)
+              loadHeatmap()
+            } finally {
+              setWelcomeClearing(false)
+            }
+          }}
+        />
+      )}
 
       {showBackup && (
         <BackupModal
