@@ -526,6 +526,7 @@ export function Ribbon({ editMode, onLogged }: Props) {
           onClick={() => setShowSearch(true)}
           className="min-[1060px]:hidden fixed bottom-6 right-6 z-40 flex items-center justify-center w-13 h-13 rounded-full bg-slate-800 dark:bg-slate-700 text-slate-100 shadow-lg border border-slate-700 dark:border-slate-600 hover:bg-slate-700 dark:hover:bg-slate-600 active:scale-95 transition-all"
           aria-label="Search chores"
+          title="Search (/)"
         >
           <Search size={20} />
         </button>

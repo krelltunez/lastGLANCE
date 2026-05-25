@@ -70,6 +70,10 @@ export function addActivityEntry(entry: Omit<ActivityEntry, 'id' | 'timestamp'>)
   localStorage.setItem(ACTIVITY_KEY, JSON.stringify(updated))
 }
 
+export function clearActivityLog(): void {
+  localStorage.removeItem(ACTIVITY_KEY)
+}
+
 export function getPollingCursor(): string | null {
   return localStorage.getItem(CURSOR_KEY)
 }
