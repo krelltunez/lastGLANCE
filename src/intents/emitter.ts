@@ -1,5 +1,5 @@
 import { ACTIONS, SOURCE_APPS, buildEnvelope, buildEncryptedEnvelope, filenameFor } from '@glance-apps/intents'
-import { hasEncryptionReady, getSessionKey } from '@glance-apps/sync'
+import { hasEncryptionReady, deriveKeyForSalt } from '@glance-apps/sync'
 import type { ChoreWithLastCompletion } from '@/types'
 import { getIntentsConfig, isIntentsConfigured, addActivityEntry } from './config'
 import { buildAuthHeader, ensureFolder, putFile } from './webdav'
@@ -22,10 +22,9 @@ export async function emitCreateIntent(chore: ChoreWithLastCompletion): Promise<
 
     let envelope: Awaited<ReturnType<typeof buildEncryptedEnvelope>> | ReturnType<typeof buildEnvelope>
     if (config.encryptionEnabled && hasEncryptionReady()) {
-      const key = getSessionKey()!
       envelope = await buildEncryptedEnvelope(
         { action: ACTIONS.CREATE, payload, emittedBy: SOURCE_APPS.LASTGLANCE },
-        key
+        deriveKeyForSalt
       )
     } else {
       envelope = buildEnvelope({ action: ACTIONS.CREATE, payload, emittedBy: SOURCE_APPS.LASTGLANCE })
