@@ -1,4 +1,4 @@
-import { db } from './client'
+import { db, SEED_CAT_SYNC_IDS, SEED_CHORE_SYNC_IDS } from './client'
 import type { Category, Chore, ChoreWithLastCompletion, CompletionEvent } from '@/types'
 import dayjs from 'dayjs'
 
@@ -268,4 +268,27 @@ export async function importBackup(payload: BackupPayload): Promise<void> {
     await db.chores.bulkAdd(chores)
     await db.completionEvents.bulkAdd(completionEvents)
   })
+}
+
+// ── Seed data helpers ─────────────────────────────────────────────────────────
+
+export async function hasSeedData(): Promise<boolean> {
+  const count = await db.categories.where('sync_id').anyOf(SEED_CAT_SYNC_IDS).count()
+  return count > 0
+}
+
+export async function seedChoresUsed(): Promise<boolean> {
+  const choreIds = (
+    await db.chores.where('sync_id').anyOf(SEED_CHORE_SYNC_IDS).primaryKeys()
+  ) as number[]
+  if (choreIds.length === 0) return false
+  const count = await db.completionEvents.where('chore_id').anyOf(choreIds).count()
+  return count > 0
+}
+
+export async function clearSeedData(): Promise<void> {
+  const cats = await db.categories.where('sync_id').anyOf(SEED_CAT_SYNC_IDS).toArray()
+  for (const cat of cats) {
+    await deleteCategory(cat.id)
+  }
 }

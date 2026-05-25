@@ -1,6 +1,6 @@
-import { useRef, useState } from 'react'
-import { Download, Upload, Cloud, X, Loader } from 'lucide-react'
-import { exportBackup, importBackup, type BackupPayload } from '@/db/queries'
+import { useRef, useState, useEffect } from 'react'
+import { Download, Upload, Cloud, X, Loader, Trash2 } from 'lucide-react'
+import { exportBackup, importBackup, hasSeedData, seedChoresUsed, clearSeedData, type BackupPayload } from '@/db/queries'
 import { applyPayload } from '@/sync/engine'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
 import type { SyncEngine } from '@glance-apps/sync'
@@ -22,7 +22,19 @@ export function BackupModal({ engine, onClose, onImported }: Props) {
   const [remoteFiles, setRemoteFiles] = useState<RemoteFile[]>([])
   const [selectedRemote, setSelectedRemote] = useState<RemoteFile | null>(null)
   const [remotePending, setRemotePending] = useState<unknown>(null)
+  const [showClearSample, setShowClearSample] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (localStorage.getItem('lg-seed-cleared')) return
+    hasSeedData().then(has => {
+      if (!has) return
+      seedChoresUsed().then(used => {
+        if (used) { localStorage.setItem('lg-seed-cleared', '1'); return }
+        setShowClearSample(true)
+      })
+    })
+  }, [])
 
   const syncConfig = engine?.getConfig() ?? null
   const hasRemote = Boolean(syncConfig?.enabled && syncConfig?.webdavUrl)
@@ -255,6 +267,31 @@ export function BackupModal({ engine, onClose, onImported }: Props) {
                 <div>
                   <p className="text-sm font-medium text-slate-700 dark:text-slate-200">Restore remote backup</p>
                   <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Browse and restore from WebDAV</p>
+                </div>
+              </button>
+            )}
+
+            {showClearSample && (
+              <button
+                onClick={async () => {
+                  setState('importing')
+                  try {
+                    await clearSeedData()
+                    localStorage.setItem('lg-seed-cleared', '1')
+                    setShowClearSample(false)
+                    onImported()
+                    onClose()
+                  } catch {
+                    setErrorMsg('Failed to clear sample data.')
+                    setState('error')
+                  }
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-600/40 transition-colors text-left"
+              >
+                <Trash2 size={16} className="text-slate-400 shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-slate-700 dark:text-slate-200">Clear sample data</p>
+                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Remove the example categories and chores</p>
                 </div>
               </button>
             )}
