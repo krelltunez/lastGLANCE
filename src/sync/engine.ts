@@ -302,7 +302,7 @@ export function createEngine(proxyUrl: string | undefined, callbacks: EngineCall
   if (!localStorage.getItem(KEY_LAST_SYNCED)) {
     localStorage.setItem(KEY_LAST_SYNCED, new Date(Date.now() - 60_000).toISOString())
   }
-  return createSyncEngine({
+  const engine = createSyncEngine({
     storageKeyPrefix: 'lastglance',
     cryptoDBName: 'lastglance-crypto',
     autoBackupDBName: 'lastglance-auto-backups',
@@ -322,4 +322,13 @@ export function createEngine(proxyUrl: string | undefined, callbacks: EngineCall
     },
     ...callbacks,
   })
+
+  // The generic webdav auto-backup provider targets the WebDAV root URL instead
+  // of the sync folder's backups/ subdirectory. Patch it to match the nextcloud
+  // provider and the dayGLANCE convention: {syncFolder}/backups/.
+  const webdavBackup = engine.autoBackupProviders.webdav as Record<string, unknown>
+  webdavBackup._getBackupDirUrl = (providerConfig: Record<string, string>) =>
+    `${providerConfig.webdavUrl.replace(/\/+$/, '')}/${appFolderName}/backups/`
+
+  return engine
 }
