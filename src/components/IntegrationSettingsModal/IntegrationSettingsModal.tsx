@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { X, RefreshCw, Loader } from 'lucide-react'
-import { hasEncryptionReady } from '@glance-apps/sync'
+import { hasEncryptionReady, getSyncPassphrase } from '@glance-apps/sync'
 import {
   type IntentsConfig,
   type ActivityEntry,
@@ -11,6 +11,8 @@ import {
   clearActivityLog,
 } from '@/intents/config'
 import { testConnection } from '@/intents/webdav'
+import { loadIntentsRootKey, clearIntentsRootKey } from '@/intents/intentsKeyStore'
+import { setupIntentsEncryption } from '@/intents/setupIntentsEncryption'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
 
 interface Props {
@@ -36,13 +38,34 @@ export function IntegrationSettingsModal({ onClose, onSaved }: Props) {
   const [testStatus, setTestStatus] = useState<TestStatus>('idle')
   const [testError, setTestError] = useState('')
   const [activityLog, setActivityLog] = useState<ActivityEntry[]>(() => getActivityLog())
+  const [rootKeyReady, setRootKeyReady] = useState<boolean | null>(null)
+  const [showPassphraseInput, setShowPassphraseInput] = useState(false)
+  const [passphraseInput, setPassphraseInput] = useState('')
+  const [setupError, setSetupError] = useState('')
+  const [saving, setSaving] = useState(false)
 
   const encReady = hasEncryptionReady()
+
+  useEffect(() => {
+    loadIntentsRootKey().then(key => setRootKeyReady(key !== null))
+  }, [])
 
   useEscapeKey(onClose)
 
   function set<K extends keyof LocalConfig>(key: K, value: LocalConfig[K]) {
     setLocalConfig(prev => ({ ...prev, [key]: value }))
+  }
+
+  function handleEncryptionToggle() {
+    const newEnabled = !localConfig.encryptionEnabled
+    set('encryptionEnabled', newEnabled)
+    setSetupError('')
+    if (newEnabled && !rootKeyReady) {
+      setShowPassphraseInput(getSyncPassphrase() === null)
+    } else {
+      setShowPassphraseInput(false)
+      setPassphraseInput('')
+    }
   }
 
   async function handleTestConnection() {
@@ -67,10 +90,32 @@ export function IntegrationSettingsModal({ onClose, onSaved }: Props) {
     }
   }
 
-  function handleSave() {
-    saveIntentsConfig(localConfig)
-    onSaved()
-    onClose()
+  async function handleSave() {
+    setSaving(true)
+    setSetupError('')
+    try {
+      if (localConfig.encryptionEnabled && !rootKeyReady) {
+        const passphrase = getSyncPassphrase() ?? passphraseInput.trim()
+        if (!passphrase) {
+          setSetupError('Enter your sync passphrase to complete setup')
+          return
+        }
+        await setupIntentsEncryption(localConfig, passphrase)
+        setRootKeyReady(true)
+        setShowPassphraseInput(false)
+        setPassphraseInput('')
+      } else if (!localConfig.encryptionEnabled && rootKeyReady) {
+        await clearIntentsRootKey()
+        setRootKeyReady(false)
+      }
+      saveIntentsConfig(localConfig)
+      onSaved()
+      onClose()
+    } catch (err) {
+      setSetupError(err instanceof Error ? err.message : 'Setup failed')
+    } finally {
+      setSaving(false)
+    }
   }
 
   function refreshActivity() {
@@ -234,14 +279,16 @@ export function IntegrationSettingsModal({ onClose, onSaved }: Props) {
                 </p>
                 <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
                   {encReady
-                    ? 'Uses your cloud sync passphrase. Each event is independently re-keyed; no setup beyond entering the passphrase.'
+                    ? rootKeyReady
+                      ? 'Encryption active. Set up once; remains active across sessions.'
+                      : 'Uses your cloud sync passphrase. Set up once; remains active across sessions.'
                     : 'Requires cloud sync encryption to be enabled first'}
                 </p>
               </div>
               <button
                 type="button"
-                disabled={!encReady}
-                onClick={() => set('encryptionEnabled', !localConfig.encryptionEnabled)}
+                disabled={!encReady || saving}
+                onClick={handleEncryptionToggle}
                 className={`relative w-10 h-6 rounded-full transition-colors disabled:opacity-40 shrink-0 mt-0.5 ${localConfig.encryptionEnabled && encReady ? 'bg-green-400' : 'bg-slate-300 dark:bg-slate-600'}`}
                 aria-checked={localConfig.encryptionEnabled && encReady}
                 role="switch"
@@ -249,6 +296,30 @@ export function IntegrationSettingsModal({ onClose, onSaved }: Props) {
                 <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${localConfig.encryptionEnabled && encReady ? 'translate-x-4' : ''}`} />
               </button>
             </div>
+
+            {/* Inline passphrase prompt for first-time setup */}
+            {localConfig.encryptionEnabled && encReady && !rootKeyReady && showPassphraseInput && (
+              <div>
+                <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+                  Sync passphrase
+                </label>
+                <input
+                  type="password"
+                  value={passphraseInput}
+                  onChange={e => setPassphraseInput(e.target.value)}
+                  placeholder="Enter your sync passphrase"
+                  autoComplete="current-password"
+                  className="w-full bg-slate-100 dark:bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
+                />
+                <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
+                  Used once to set up encryption. Not stored after save.
+                </p>
+              </div>
+            )}
+
+            {setupError && (
+              <p className="text-xs text-red-500 dark:text-red-400">{setupError}</p>
+            )}
           </div>
 
           {/* Activity log */}
@@ -316,14 +387,17 @@ export function IntegrationSettingsModal({ onClose, onSaved }: Props) {
         <div className="flex gap-3 px-6 py-4 border-t border-slate-100 dark:border-slate-700/40 shrink-0">
           <button
             onClick={onClose}
-            className="flex-1 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+            disabled={saving}
+            className="flex-1 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-40 transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
-            className="flex-1 py-2.5 rounded-xl text-sm font-medium text-green-400 border border-green-400/40 hover:text-green-300 hover:bg-green-400/10 hover:border-green-400/60 transition-colors"
+            disabled={saving}
+            className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium text-green-400 border border-green-400/40 hover:text-green-300 hover:bg-green-400/10 hover:border-green-400/60 disabled:opacity-40 transition-colors"
           >
+            {saving && <Loader size={14} className="animate-spin" />}
             Save
           </button>
         </div>
