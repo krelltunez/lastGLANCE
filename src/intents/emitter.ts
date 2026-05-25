@@ -1,5 +1,4 @@
-import { ACTIONS, SOURCE_APPS, buildEnvelope, buildEncryptedEnvelope, filenameFor } from '@glance-apps/intents'
-import { hasEncryptionReady, getSessionKey } from '@glance-apps/sync'
+import { ACTIONS, SOURCE_APPS, buildEnvelope, filenameFor } from '@glance-apps/intents'
 import type { ChoreWithLastCompletion } from '@/types'
 import { getIntentsConfig, isIntentsConfigured, addActivityEntry } from './config'
 import { buildAuthHeader, ensureFolder, putFile } from './webdav'
@@ -20,16 +19,7 @@ export async function emitCreateIntent(chore: ChoreWithLastCompletion): Promise<
       source_entity_id: String(chore.id),
     }
 
-    let envelope: Awaited<ReturnType<typeof buildEncryptedEnvelope>> | ReturnType<typeof buildEnvelope>
-    if (config.encryptionEnabled && hasEncryptionReady()) {
-      const key = getSessionKey()!
-      envelope = await buildEncryptedEnvelope(
-        { action: ACTIONS.CREATE, payload, emittedBy: SOURCE_APPS.LASTGLANCE },
-        key
-      )
-    } else {
-      envelope = buildEnvelope({ action: ACTIONS.CREATE, payload, emittedBy: SOURCE_APPS.LASTGLANCE })
-    }
+    const envelope = buildEnvelope({ action: ACTIONS.CREATE, payload, emittedBy: SOURCE_APPS.LASTGLANCE })
 
     const filename = `${envelope.event_id}.json`
     const content = JSON.stringify(envelope)
