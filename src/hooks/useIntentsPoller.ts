@@ -11,7 +11,7 @@ import {
   NotEncryptedError,
   MalformedEnvelopeError,
 } from '@glance-apps/intents'
-import { hasEncryptionReady, deriveKeyForSalt } from '@glance-apps/sync'
+import { hasEncryptionReady, deriveKeyForSalt, getSyncPassphrase } from '@glance-apps/sync'
 import { db } from '@/db/client'
 import { logCompletion } from '@/db/queries'
 import {
@@ -78,6 +78,11 @@ export function useIntentsPoller(onNewCompletion?: () => void): void {
         if (isEncrypted) {
           if (!config.encryptionEnabled || !hasEncryptionReady()) {
             addActivityEntry({ type: 'error', message: 'Encrypted intent received but encryption not configured' })
+            newCursor = parsedFilename!.timestamp
+            continue
+          }
+          if (getSyncPassphrase() === null) {
+            addActivityEntry({ type: 'error', message: 'Encrypted intent received — enter your sync passphrase to decrypt' })
             newCursor = parsedFilename!.timestamp
             continue
           }
