@@ -234,7 +234,7 @@ export function IntegrationSettingsModal({ onClose, onSaved }: Props) {
                 </p>
                 <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
                   {encReady
-                    ? 'Uses the same key as cloud sync'
+                    ? 'Uses your cloud sync passphrase. Each event is independently re-keyed; no setup beyond entering the passphrase.'
                     : 'Requires cloud sync encryption to be enabled first'}
                 </p>
               </div>

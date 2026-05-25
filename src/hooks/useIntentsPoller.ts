@@ -11,7 +11,7 @@ import {
   NotEncryptedError,
   MalformedEnvelopeError,
 } from '@glance-apps/intents'
-import { hasEncryptionReady, getSessionKey } from '@glance-apps/sync'
+import { hasEncryptionReady, deriveKeyForSalt } from '@glance-apps/sync'
 import { db } from '@/db/client'
 import { logCompletion } from '@/db/queries'
 import {
@@ -84,13 +84,13 @@ export function useIntentsPoller(onNewCompletion?: () => void): void {
 
           let envelope
           try {
-            envelope = await parseEncryptedEnvelope(data, getSessionKey()!)
+            envelope = await parseEncryptedEnvelope(data, deriveKeyForSalt)
           } catch (err) {
             let message = 'Failed to decrypt intent file'
             if (err instanceof NoKeyError) {
               message = 'No encryption key available to decrypt intent'
             } else if (err instanceof WrongKeyError) {
-              message = 'Wrong encryption key for intent file'
+              message = 'decryption failed (wrong passphrase — verify same passphrase used in both apps)'
             } else if (err instanceof NotEncryptedError) {
               message = 'File is not encrypted as expected'
             } else if (err instanceof MalformedEnvelopeError) {
