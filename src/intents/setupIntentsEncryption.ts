@@ -10,10 +10,11 @@ async function fetchOrCreateSharedSalt(config: IntentsConfig, authHeader: string
 
   if (raw !== null) {
     const parsed = JSON.parse(raw) as { salt: string }
-    return Uint8Array.from(atob(parsed.salt), c => c.charCodeAt(0))
+    const bytes = Uint8Array.from(atob(parsed.salt), c => c.charCodeAt(0))
+    return new Uint8Array(bytes.buffer as ArrayBuffer)
   }
 
-  const salt = crypto.getRandomValues(new Uint8Array(16))
+  const salt = crypto.getRandomValues(new Uint8Array(new ArrayBuffer(16)))
   const b64 = btoa(String.fromCharCode(...salt))
   const body = JSON.stringify({ version: 1, salt: b64, created_at: new Date().toISOString() })
   await putFile(config.webdavUrl, config.folderPath, SALT_FILENAME, body, authHeader)
