@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
-import { X, Smile, Bell, ArrowUpRight } from 'lucide-react'
+import { X, Smile, Bell, ArrowUpRight, Leaf } from 'lucide-react'
 import type { Chore, Category } from '@/types'
 import { createChore, updateChore } from '@/db/queries'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
@@ -15,6 +15,23 @@ interface Props {
   chore?: Chore
   onClose: () => void
   onSaved: () => void
+}
+
+const MONTHS = [
+  ['01', 'Jan'], ['02', 'Feb'], ['03', 'Mar'], ['04', 'Apr'],
+  ['05', 'May'], ['06', 'Jun'], ['07', 'Jul'], ['08', 'Aug'],
+  ['09', 'Sep'], ['10', 'Oct'], ['11', 'Nov'], ['12', 'Dec'],
+] as const
+
+const DAYS = Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, '0'))
+
+function parseMD(s: string | null | undefined, fallback: string): { month: string; day: string } {
+  if (!s) {
+    const [m, d] = fallback.split('-')
+    return { month: m, day: d }
+  }
+  const [m, d] = s.split('-')
+  return { month: m ?? '01', day: d ?? '01' }
 }
 
 // Sort categories hierarchically: root → its children → next root → its children…
@@ -47,6 +64,14 @@ export function ChoreFormModal({ category, allCategories, chore, onClose, onSave
   const [error, setError] = useState('')
   const { isConfigured } = useIntents()
 
+  const [isSeasonal, setIsSeasonal] = useState(Boolean(chore?.seasonal_start))
+  const initStart = parseMD(chore?.seasonal_start, '04-01')
+  const initEnd = parseMD(chore?.seasonal_end, '10-31')
+  const [startMonth, setStartMonth] = useState(initStart.month)
+  const [startDay, setStartDay] = useState(initStart.day)
+  const [endMonth, setEndMonth] = useState(initEnd.month)
+  const [endDay, setEndDay] = useState(initEnd.day)
+
   useEscapeKey(showIconPicker ? () => setShowIconPicker(false) : onClose)
 
   async function handleSave() {
@@ -56,10 +81,12 @@ export function ChoreFormModal({ category, allCategories, chore, onClose, onSave
     if (cadence.trim() && (isNaN(cadenceDays!) || cadenceDays! < 1)) {
       setError('Cadence must be a whole number of days'); return
     }
+    const seasonal_start = isSeasonal ? `${startMonth}-${startDay}` : null
+    const seasonal_end = isSeasonal ? `${endMonth}-${endDay}` : null
     setSaving(true)
     try {
       if (isEdit && chore) {
-        await updateChore(chore.id, { name: trimmed, target_cadence_days: cadenceDays, notify_when_overdue: notify, auto_schedule_to_dayglance: autoSchedule, icon, category_id: selectedCategoryId })
+        await updateChore(chore.id, { name: trimmed, target_cadence_days: cadenceDays, notify_when_overdue: notify, auto_schedule_to_dayglance: autoSchedule, icon, category_id: selectedCategoryId, seasonal_start, seasonal_end })
       } else {
         await createChore({
           name: trimmed,
@@ -68,6 +95,8 @@ export function ChoreFormModal({ category, allCategories, chore, onClose, onSave
           notify_when_overdue: notify,
           auto_schedule_to_dayglance: autoSchedule,
           preferred_schedule_behavior: null,
+          seasonal_start,
+          seasonal_end,
           icon,
         })
       }
@@ -204,6 +233,58 @@ export function ChoreFormModal({ category, allCategories, chore, onClose, onSave
                 </button>
               </div>
             )}
+
+            <div className="pt-2 border-t border-slate-100 dark:border-slate-700/40 space-y-2">
+              <div className="flex items-center justify-between py-1">
+                <div className="flex items-center gap-2">
+                  <Leaf size={13} className={isSeasonal ? 'text-green-400' : 'text-slate-400 dark:text-slate-500'} />
+                  <span className="text-sm text-slate-600 dark:text-slate-300">Seasonal</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsSeasonal(v => !v)}
+                  className={`relative w-10 h-6 rounded-full transition-colors ${isSeasonal ? 'bg-green-400' : 'bg-slate-300 dark:bg-slate-600'}`}
+                  aria-checked={isSeasonal}
+                  role="switch"
+                >
+                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${isSeasonal ? 'translate-x-4' : ''}`} />
+                </button>
+              </div>
+
+              {isSeasonal && (
+                <div className="space-y-2">
+                  {(['From', 'To'] as const).map(label => {
+                    const isFrom = label === 'From'
+                    const month = isFrom ? startMonth : endMonth
+                    const day = isFrom ? startDay : endDay
+                    const setMonth = isFrom ? setStartMonth : setEndMonth
+                    const setDay = isFrom ? setStartDay : setEndDay
+                    return (
+                      <div key={label} className="flex items-center gap-2">
+                        <span className="text-xs text-slate-500 dark:text-slate-400 w-7 shrink-0">{label}</span>
+                        <select
+                          value={month}
+                          onChange={e => setMonth(e.target.value)}
+                          className="flex-1 bg-slate-100 dark:bg-slate-700 rounded-lg px-2 py-1.5 text-sm text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
+                        >
+                          {MONTHS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                        </select>
+                        <select
+                          value={day}
+                          onChange={e => setDay(e.target.value)}
+                          className="w-16 bg-slate-100 dark:bg-slate-700 rounded-lg px-2 py-1.5 text-sm text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
+                        >
+                          {DAYS.map(d => <option key={d} value={d}>{parseInt(d)}</option>)}
+                        </select>
+                      </div>
+                    )
+                  })}
+                  <p className="text-xs text-slate-400 dark:text-slate-500">
+                    Only shown in the main view within this date range each year.
+                  </p>
+                </div>
+              )}
+            </div>
 
             {error && <p className="text-xs text-red-500">{error}</p>}
           </div>

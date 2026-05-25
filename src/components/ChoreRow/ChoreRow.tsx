@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Check, Pencil, Trash2, GripVertical, Bell, ArrowUpRight } from 'lucide-react'
+import { Check, Pencil, Trash2, GripVertical, Bell, ArrowUpRight, Leaf } from 'lucide-react'
 import type { ChoreWithLastCompletion } from '@/types'
 import { getFillRatio, getCadenceColor, formatElapsed } from '@/utils/cadence'
 import { logCompletion } from '@/db/queries'
@@ -83,6 +83,9 @@ export function ChoreRow({ chore, editMode, onTap, onEdit, onDelete, onRefresh, 
         <span className="text-sm text-slate-700 dark:text-slate-300 truncate flex-1 min-w-0">{chore.name}</span>
         {chore.target_cadence_days != null && (
           <span className="text-xs text-slate-400 dark:text-slate-600 shrink-0">every {chore.target_cadence_days}d</span>
+        )}
+        {chore.seasonal_start && (
+          <Leaf size={11} className="text-green-400/60 shrink-0" title={`Seasonal: ${chore.seasonal_start} – ${chore.seasonal_end}`} />
         )}
         <button
           onClick={onEdit}

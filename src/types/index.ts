@@ -18,6 +18,8 @@ export interface Chore {
   notify_when_overdue: boolean
   auto_schedule_to_dayglance: boolean
   preferred_schedule_behavior: 'today' | 'next_weekend' | 'next_free_day' | null
+  seasonal_start: string | null  // "MM-DD", e.g. "04-01"
+  seasonal_end: string | null    // "MM-DD", e.g. "10-31"
   created_at: string
   updated_at: string
   icon?: string
