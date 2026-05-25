@@ -85,7 +85,9 @@ export function ChoreRow({ chore, editMode, onTap, onEdit, onDelete, onRefresh, 
           <span className="text-xs text-slate-400 dark:text-slate-600 shrink-0">every {chore.target_cadence_days}d</span>
         )}
         {chore.seasonal_start && (
-          <Leaf size={11} className="text-green-400/60 shrink-0" title={`Seasonal: ${chore.seasonal_start} – ${chore.seasonal_end}`} />
+          <span title={`Seasonal: ${chore.seasonal_start} – ${chore.seasonal_end}`}>
+            <Leaf size={11} className="text-green-400/60" />
+          </span>
         )}
         <button
           onClick={onEdit}
