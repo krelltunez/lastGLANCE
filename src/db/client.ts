@@ -86,17 +86,11 @@ class LastGlanceDB extends Dexie {
       })
 
     this.on('populate', async () => {
-      const seedNow = new Date().toISOString()
-
-      // Assign sync_ids upfront for seed categories so we can use them for chores
-      const seedCatSyncIds = SEED_CATEGORIES.map(() => crypto.randomUUID())
-
       const catIds = (await this.categories.bulkAdd(
-        SEED_CATEGORIES.map((cat, i) => ({
+        SEED_CATEGORIES.map((cat) => ({
           ...cat,
-          sync_id: seedCatSyncIds[i],
           parent_sync_id: null,
-          updated_at: seedNow,
+          updated_at: SEED_TIMESTAMP,
         })) as unknown as Category[],
         { allKeys: true }
       )) as unknown as number[]
@@ -106,34 +100,35 @@ class LastGlanceDB extends Dexie {
           ...rest,
           sort_order: i,
           category_id: catIds[_catIndex],
-          sync_id: crypto.randomUUID(),
-          category_sync_id: seedCatSyncIds[_catIndex],
+          category_sync_id: SEED_CATEGORIES[_catIndex].sync_id,
         })) as unknown as Chore[]
       )
     })
   }
 }
 
-const now = new Date().toISOString()
+// Stable timestamp and sync_ids for seed data — every fresh install produces
+// identical records so cross-device merges deduplicate instead of doubling.
+const SEED_TIMESTAMP = '2024-01-01T00:00:00.000Z'
 
-const SEED_CATEGORIES: Omit<Category, 'id' | 'sync_id' | 'parent_sync_id' | 'updated_at'>[] = [
-  { name: 'Home',       sort_order: 0 },
-  { name: 'Pets',       sort_order: 1 },
-  { name: 'Vehicle',    sort_order: 2 },
-  { name: 'Deep clean', sort_order: 3 },
+const SEED_CATEGORIES: Omit<Category, 'id' | 'parent_sync_id' | 'updated_at'>[] = [
+  { name: 'Home',       sort_order: 0, sync_id: '00000000-0000-0000-0000-000000000001' },
+  { name: 'Pets',       sort_order: 1, sync_id: '00000000-0000-0000-0000-000000000002' },
+  { name: 'Vehicle',    sort_order: 2, sync_id: '00000000-0000-0000-0000-000000000003' },
+  { name: 'Deep clean', sort_order: 3, sync_id: '00000000-0000-0000-0000-000000000004' },
 ]
 
-const SEED_CHORES: (Omit<Chore, 'id' | 'category_id' | 'sort_order' | 'sync_id' | 'category_sync_id'> & { _catIndex: number })[] = [
-  { name: 'Mop kitchen',        _catIndex: 0, target_cadence_days: 14, notify_when_overdue: false, auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, created_at: now, updated_at: now },
-  { name: 'Clean bathrooms',    _catIndex: 0, target_cadence_days: 7,  notify_when_overdue: false, auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, created_at: now, updated_at: now },
-  { name: 'Vacuum',             _catIndex: 0, target_cadence_days: 7,  notify_when_overdue: false, auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, created_at: now, updated_at: now },
-  { name: 'Take out trash',     _catIndex: 0, target_cadence_days: 3,  notify_when_overdue: false, auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, created_at: now, updated_at: now },
-  { name: 'Change cat litter',  _catIndex: 1, target_cadence_days: 2,  notify_when_overdue: false, auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, created_at: now, updated_at: now },
-  { name: 'Feed fish',          _catIndex: 1, target_cadence_days: 1,  notify_when_overdue: false, auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, created_at: now, updated_at: now },
-  { name: 'Oil change',         _catIndex: 2, target_cadence_days: 90, notify_when_overdue: false, auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, created_at: now, updated_at: now },
-  { name: 'Wash car',           _catIndex: 2, target_cadence_days: 30, notify_when_overdue: false, auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, created_at: now, updated_at: now },
-  { name: 'Clean oven',         _catIndex: 3, target_cadence_days: 60, notify_when_overdue: false, auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, created_at: now, updated_at: now },
-  { name: 'Wipe down cabinets', _catIndex: 3, target_cadence_days: 30, notify_when_overdue: false, auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, created_at: now, updated_at: now },
+const SEED_CHORES: (Omit<Chore, 'id' | 'category_id' | 'sort_order' | 'category_sync_id'> & { _catIndex: number })[] = [
+  { name: 'Mop kitchen',        _catIndex: 0, sync_id: '00000000-0000-0000-0000-000000000011', target_cadence_days: 14, notify_when_overdue: false, auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, created_at: SEED_TIMESTAMP, updated_at: SEED_TIMESTAMP },
+  { name: 'Clean bathrooms',    _catIndex: 0, sync_id: '00000000-0000-0000-0000-000000000012', target_cadence_days: 7,  notify_when_overdue: false, auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, created_at: SEED_TIMESTAMP, updated_at: SEED_TIMESTAMP },
+  { name: 'Vacuum',             _catIndex: 0, sync_id: '00000000-0000-0000-0000-000000000013', target_cadence_days: 7,  notify_when_overdue: false, auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, created_at: SEED_TIMESTAMP, updated_at: SEED_TIMESTAMP },
+  { name: 'Take out trash',     _catIndex: 0, sync_id: '00000000-0000-0000-0000-000000000014', target_cadence_days: 3,  notify_when_overdue: false, auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, created_at: SEED_TIMESTAMP, updated_at: SEED_TIMESTAMP },
+  { name: 'Change cat litter',  _catIndex: 1, sync_id: '00000000-0000-0000-0000-000000000021', target_cadence_days: 2,  notify_when_overdue: false, auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, created_at: SEED_TIMESTAMP, updated_at: SEED_TIMESTAMP },
+  { name: 'Feed fish',          _catIndex: 1, sync_id: '00000000-0000-0000-0000-000000000022', target_cadence_days: 1,  notify_when_overdue: false, auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, created_at: SEED_TIMESTAMP, updated_at: SEED_TIMESTAMP },
+  { name: 'Oil change',         _catIndex: 2, sync_id: '00000000-0000-0000-0000-000000000031', target_cadence_days: 90, notify_when_overdue: false, auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, created_at: SEED_TIMESTAMP, updated_at: SEED_TIMESTAMP },
+  { name: 'Wash car',           _catIndex: 2, sync_id: '00000000-0000-0000-0000-000000000032', target_cadence_days: 30, notify_when_overdue: false, auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, created_at: SEED_TIMESTAMP, updated_at: SEED_TIMESTAMP },
+  { name: 'Clean oven',         _catIndex: 3, sync_id: '00000000-0000-0000-0000-000000000041', target_cadence_days: 60, notify_when_overdue: false, auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, created_at: SEED_TIMESTAMP, updated_at: SEED_TIMESTAMP },
+  { name: 'Wipe down cabinets', _catIndex: 3, sync_id: '00000000-0000-0000-0000-000000000042', target_cadence_days: 30, notify_when_overdue: false, auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, created_at: SEED_TIMESTAMP, updated_at: SEED_TIMESTAMP },
 ]
 
 export const db = new LastGlanceDB()
