@@ -13,13 +13,18 @@ interface Props {
 type TestStatus = 'idle' | 'testing' | 'ok' | 'fail'
 type SyncResult = 'idle' | 'ok' | 'error'
 
-function splitWebdavUrl(fullUrl: string): { serverUrl: string } {
+function splitWebdavUrl(fullUrl: string, folderPath: string): { serverUrl: string } {
   if (!fullUrl) return { serverUrl: '' }
   try {
-    // webdavUrl is always the bare server root — strip any leftover path
-    // (handles migration from the old format that baked the folder into the URL)
     const url = new URL(fullUrl)
-    url.pathname = '/'
+    // Migration from the pre-1.0.3 format that baked the sync folder into the
+    // URL: strip the folder suffix if present. The WebDAV endpoint path itself
+    // (e.g. /remote.php/dav/files/username/ for Nextcloud) must be preserved.
+    const folder = folderPath.replace(/^\//, '').replace(/\/+$/, '')
+    const cleanPath = url.pathname.replace(/\/+$/, '')
+    if (folder && cleanPath.endsWith('/' + folder)) {
+      url.pathname = cleanPath.slice(0, -(folder.length + 1)) + '/'
+    }
     return { serverUrl: url.toString() }
   } catch {
     return { serverUrl: fullUrl }
@@ -34,11 +39,12 @@ function buildWebdavUrl(serverUrl: string): string {
 
 export function SyncSettingsModal({ engine, onClose }: Props) {
   const existingConfig = engine?.getConfig() ?? null
-  const { serverUrl: initServer } = splitWebdavUrl((existingConfig?.webdavUrl as string) ?? '')
+  const initFolder = localStorage.getItem(SYNC_FOLDER_KEY) ?? DEFAULT_SYNC_FOLDER
+  const { serverUrl: initServer } = splitWebdavUrl((existingConfig?.webdavUrl as string) ?? '', initFolder)
 
   const [serverUrl, setServerUrl] = useState(() => initServer)
-  const [folderPath, setFolderPath] = useState(() => localStorage.getItem(SYNC_FOLDER_KEY) ?? DEFAULT_SYNC_FOLDER)
-  const originalFolder = useRef(localStorage.getItem(SYNC_FOLDER_KEY) ?? DEFAULT_SYNC_FOLDER)
+  const [folderPath, setFolderPath] = useState(() => initFolder)
+  const originalFolder = useRef(initFolder)
   const [username, setUsername] = useState(() => (existingConfig?.username as string) ?? '')
   const [appPassword, setAppPassword] = useState(() => (existingConfig?.appPassword as string) ?? '')
 
