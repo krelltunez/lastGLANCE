@@ -227,7 +227,7 @@ export function IntegrationSettingsModal({ onClose, onSaved }: Props) {
             <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
               Encryption
             </h3>
-            <div className="flex items-center justify-between py-1">
+            <div className="flex items-start justify-between py-1">
               <div>
                 <p className={`text-sm ${encReady ? 'text-slate-700 dark:text-slate-300' : 'text-slate-400 dark:text-slate-500'}`}>
                   Encrypt intent files
@@ -242,7 +242,7 @@ export function IntegrationSettingsModal({ onClose, onSaved }: Props) {
                 type="button"
                 disabled={!encReady}
                 onClick={() => set('encryptionEnabled', !localConfig.encryptionEnabled)}
-                className={`relative w-10 h-6 rounded-full transition-colors disabled:opacity-40 ${localConfig.encryptionEnabled && encReady ? 'bg-green-400' : 'bg-slate-300 dark:bg-slate-600'}`}
+                className={`relative w-10 h-6 rounded-full transition-colors disabled:opacity-40 shrink-0 mt-0.5 ${localConfig.encryptionEnabled && encReady ? 'bg-green-400' : 'bg-slate-300 dark:bg-slate-600'}`}
                 aria-checked={localConfig.encryptionEnabled && encReady}
                 role="switch"
               >
