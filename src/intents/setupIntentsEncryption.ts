@@ -5,7 +5,7 @@ import { storeIntentsRootKey } from './intentsKeyStore'
 
 const SALT_FILENAME = 'intents-encryption-salt.json'
 
-async function fetchOrCreateSharedSalt(config: IntentsConfig, authHeader: string): Promise<Uint8Array> {
+async function fetchOrCreateSharedSalt(config: IntentsConfig, authHeader: string): Promise<Uint8Array<ArrayBuffer>> {
   const raw = await getFileOrNull(config.webdavUrl, config.folderPath, SALT_FILENAME, authHeader)
 
   if (raw !== null) {
@@ -14,11 +14,12 @@ async function fetchOrCreateSharedSalt(config: IntentsConfig, authHeader: string
     return new Uint8Array(bytes.buffer as ArrayBuffer)
   }
 
-  const salt = crypto.getRandomValues(new Uint8Array(new ArrayBuffer(16)))
+  const buf = new ArrayBuffer(16)
+  const salt = crypto.getRandomValues(new Uint8Array(buf))
   const b64 = btoa(String.fromCharCode(...salt))
   const body = JSON.stringify({ version: 1, salt: b64, created_at: new Date().toISOString() })
   await putFile(config.webdavUrl, config.folderPath, SALT_FILENAME, body, authHeader)
-  return salt
+  return new Uint8Array(buf)
 }
 
 export async function setupIntentsEncryption(config: IntentsConfig, passphrase: string): Promise<void> {
