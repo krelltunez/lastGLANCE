@@ -95,6 +95,18 @@ export async function getFile(baseUrl: string, folderPath: string, filename: str
   return res.text()
 }
 
+export async function getFileOrNull(baseUrl: string, folderPath: string, filename: string, authHeader: string): Promise<string | null> {
+  const folderUrl = buildFolderUrl(baseUrl, folderPath)
+  const url = `${folderUrl}/${filename}`
+  const res = await fetch(withProxy(url), {
+    method: 'GET',
+    headers: { 'X-WebDAV-Auth': authHeader },
+  })
+  if (res.status === 404) return null
+  if (!res.ok) throw new Error(`GET ${filename} failed: ${res.status} ${res.statusText}`)
+  return res.text()
+}
+
 export async function testConnection(baseUrl: string, folderPath: string, username: string, password: string): Promise<{ success: boolean; error?: string }> {
   const authHeader = buildAuthHeader(username, password)
   const folderUrl = buildFolderUrl(baseUrl, folderPath)

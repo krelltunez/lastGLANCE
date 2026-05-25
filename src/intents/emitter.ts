@@ -1,8 +1,8 @@
-import { ACTIONS, SOURCE_APPS, buildEnvelope, buildEncryptedEnvelope, filenameFor } from '@glance-apps/intents'
-import { deriveKeyForSalt, getSyncPassphrase } from '@glance-apps/sync'
+import { ACTIONS, SOURCE_APPS, buildEnvelope, buildEncryptedEnvelope, filenameFor, deriveEnvelopeKey } from '@glance-apps/intents'
 import type { ChoreWithLastCompletion } from '@/types'
 import { getIntentsConfig, isIntentsConfigured, addActivityEntry } from './config'
 import { buildAuthHeader, ensureFolder, putFile } from './webdav'
+import { loadIntentsRootKey } from './intentsKeyStore'
 import dayjs from 'dayjs'
 
 export async function emitCreateIntent(chore: ChoreWithLastCompletion): Promise<boolean> {
@@ -21,10 +21,15 @@ export async function emitCreateIntent(chore: ChoreWithLastCompletion): Promise<
     }
 
     let envelope: Awaited<ReturnType<typeof buildEncryptedEnvelope>> | ReturnType<typeof buildEnvelope>
-    if (config.encryptionEnabled && getSyncPassphrase() !== null) {
+    if (config.encryptionEnabled) {
+      const rootKey = await loadIntentsRootKey()
+      if (!rootKey) {
+        addActivityEntry({ type: 'error', message: 'intents encryption setup incomplete — open Settings to complete setup' })
+        return false
+      }
       envelope = await buildEncryptedEnvelope(
         { action: ACTIONS.CREATE, payload, emittedBy: SOURCE_APPS.LASTGLANCE },
-        deriveKeyForSalt
+        (salt) => deriveEnvelopeKey(rootKey, salt)
       )
     } else {
       envelope = buildEnvelope({ action: ACTIONS.CREATE, payload, emittedBy: SOURCE_APPS.LASTGLANCE })
