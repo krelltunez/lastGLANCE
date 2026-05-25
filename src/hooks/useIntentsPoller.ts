@@ -10,8 +10,8 @@ import {
   WrongKeyError,
   NotEncryptedError,
   MalformedEnvelopeError,
+  deriveEnvelopeKey,
 } from '@glance-apps/intents'
-import { hasEncryptionReady, deriveKeyForSalt, getSyncPassphrase } from '@glance-apps/sync'
 import { db } from '@/db/client'
 import { logCompletion } from '@/db/queries'
 import {
@@ -22,6 +22,7 @@ import {
   setPollingCursor,
 } from '@/intents/config'
 import { buildAuthHeader, listFiles, getFile } from '@/intents/webdav'
+import { loadIntentsRootKey } from '@/intents/intentsKeyStore'
 import dayjs from 'dayjs'
 
 export function useIntentsPoller(onNewCompletion?: () => void): void {
@@ -76,26 +77,22 @@ export function useIntentsPoller(onNewCompletion?: () => void): void {
         const isEncrypted = typeof data === 'object' && data !== null && (data as Record<string, unknown>).encrypted === true
 
         if (isEncrypted) {
-          if (!config.encryptionEnabled || !hasEncryptionReady()) {
-            addActivityEntry({ type: 'error', message: 'Encrypted intent received but encryption not configured' })
-            newCursor = parsedFilename!.timestamp
-            continue
-          }
-          if (getSyncPassphrase() === null) {
-            addActivityEntry({ type: 'error', message: 'Encrypted intent received — enter your sync passphrase to decrypt' })
+          const rootKey = await loadIntentsRootKey()
+          if (!rootKey) {
+            addActivityEntry({ type: 'error', message: 'encrypted intent received but intents encryption not set up on this device' })
             newCursor = parsedFilename!.timestamp
             continue
           }
 
           let envelope
           try {
-            envelope = await parseEncryptedEnvelope(data, deriveKeyForSalt)
+            envelope = await parseEncryptedEnvelope(data, (salt) => deriveEnvelopeKey(rootKey, salt))
           } catch (err) {
             let message = 'Failed to decrypt intent file'
             if (err instanceof NoKeyError) {
               message = 'No encryption key available to decrypt intent'
             } else if (err instanceof WrongKeyError) {
-              message = 'decryption failed (wrong passphrase — verify same passphrase used in both apps)'
+              message = 'decryption failed (root key mismatch — try re-running intents encryption setup)'
             } else if (err instanceof NotEncryptedError) {
               message = 'File is not encrypted as expected'
             } else if (err instanceof MalformedEnvelopeError) {
