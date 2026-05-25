@@ -396,7 +396,19 @@ export function CategorySection({
   const [addingSubcategory, setAddingSubcategory] = useState(false)
   const [confirmDeleteCategory, setConfirmDeleteCategory] = useState(false)
   const [iconPickerOpen, setIconPickerOpen] = useState(false)
-  const [collapsedSubs, setCollapsedSubs] = useState<Set<number>>(new Set())
+  const lsKey = `lastglance-collapsed-subs-${data.category.id}`
+  const [collapsedSubs, setCollapsedSubs] = useState<Set<number>>(() => {
+    try {
+      const stored = localStorage.getItem(lsKey)
+      if (stored) return new Set(JSON.parse(stored) as number[])
+    } catch {}
+    return new Set()
+  })
+
+  useEffect(() => {
+    if (collapsedSubs.size === 0) localStorage.removeItem(lsKey)
+    else localStorage.setItem(lsKey, JSON.stringify([...collapsedSubs]))
+  }, [collapsedSubs, lsKey])
   const [externalHoverTargetId, setExternalHoverTargetId] = useState<number | null>(null)
 
   function toggleSubCollapse(id: number) {

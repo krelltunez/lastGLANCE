@@ -253,6 +253,7 @@ export function ChoreFormModal({ category, allCategories, chore, onClose, onSave
 
               {isSeasonal && (
                 <div className="space-y-2">
+                  <div className="flex items-center gap-2">
                   {(['From', 'To'] as const).map(label => {
                     const isFrom = label === 'From'
                     const month = isFrom ? startMonth : endMonth
@@ -260,25 +261,26 @@ export function ChoreFormModal({ category, allCategories, chore, onClose, onSave
                     const setMonth = isFrom ? setStartMonth : setEndMonth
                     const setDay = isFrom ? setStartDay : setEndDay
                     return (
-                      <div key={label} className="flex items-center gap-2">
-                        <span className="text-xs text-slate-500 dark:text-slate-400 w-7 shrink-0">{label}</span>
+                      <div key={label} className="flex items-center gap-1.5">
+                        <span className="text-xs text-slate-500 dark:text-slate-400 shrink-0">{label}</span>
                         <select
                           value={month}
                           onChange={e => setMonth(e.target.value)}
-                          className="flex-1 bg-slate-100 dark:bg-slate-700 rounded-lg px-2 py-1.5 text-sm text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
+                          className="w-20 bg-slate-100 dark:bg-slate-700 rounded-lg px-2 py-1.5 text-sm text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
                         >
                           {MONTHS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                         </select>
                         <select
                           value={day}
                           onChange={e => setDay(e.target.value)}
-                          className="w-16 bg-slate-100 dark:bg-slate-700 rounded-lg px-2 py-1.5 text-sm text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
+                          className="w-14 bg-slate-100 dark:bg-slate-700 rounded-lg px-2 py-1.5 text-sm text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
                         >
                           {DAYS.map(d => <option key={d} value={d}>{parseInt(d)}</option>)}
                         </select>
                       </div>
                     )
                   })}
+                  </div>
                   <p className="text-xs text-slate-400 dark:text-slate-500">
                     Only shown in the main view within this date range each year.
                   </p>
