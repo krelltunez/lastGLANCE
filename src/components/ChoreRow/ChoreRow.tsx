@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Check, Pencil, Trash2, GripVertical, Bell, ArrowUpRight, Leaf } from 'lucide-react'
+import { Check, Pencil, Trash2, GripVertical, Bell, Leaf } from 'lucide-react'
 import type { ChoreWithLastCompletion } from '@/types'
 import { getFillRatio, getCadenceColor, formatElapsed } from '@/utils/cadence'
 import { logCompletion } from '@/db/queries'
@@ -160,8 +160,7 @@ export function ChoreRow({ chore, editMode, onTap, onEdit, onDelete, onRefresh, 
                   : 'text-blue-500 dark:text-blue-400 border-blue-400/50 hover:bg-blue-400/10'}
             `}
           >
-            <ArrowUpRight size={11} strokeWidth={2.5} />
-            <span>{sendState === 'done' ? 'Sent!' : sendState === 'error' ? 'Err' : '→ dG'}</span>
+            {sendState === 'done' ? 'Sent!' : sendState === 'error' ? 'Err' : '→ dG'}
           </button>
         )}
 
