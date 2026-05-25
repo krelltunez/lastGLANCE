@@ -23,6 +23,15 @@ interface Props {
   wrapChores?: boolean
 }
 
+function isInSeasonalWindow(chore: ChoreWithLastCompletion): boolean {
+  if (!chore.seasonal_start || !chore.seasonal_end) return true
+  const now = new Date()
+  const today = `${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  const { seasonal_start: s, seasonal_end: e } = chore
+  // If start <= end it's a same-year window; otherwise it wraps the new year
+  return s <= e ? today >= s && today <= e : today >= s || today <= e
+}
+
 // ── ChoreList ─────────────────────────────────────────────────────────────────
 
 interface ChoreListProps {
@@ -159,6 +168,8 @@ function ChoreList({
     setDraggingId(choreId)
   }
 
+  const visibleChores = editMode ? localChores : localChores.filter(isInSeasonalWindow)
+
   return (
     <>
       <div
@@ -171,7 +182,7 @@ function ChoreList({
             No chores yet — tap Edit to add one.
           </p>
         )}
-        {localChores.map(chore => (
+        {visibleChores.map(chore => (
           <div
             key={chore.id}
             data-chore-id={chore.id}

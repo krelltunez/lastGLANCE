@@ -85,6 +85,20 @@ class LastGlanceDB extends Dexie {
         })
       })
 
+    // Adds seasonal_start and seasonal_end fields.
+    this.version(6)
+      .stores({})
+      .upgrade(tx =>
+        tx.table('chores').toCollection().modify((chore: Chore) => {
+          if ((chore as { seasonal_start?: string | null }).seasonal_start === undefined) {
+            chore.seasonal_start = null
+          }
+          if ((chore as { seasonal_end?: string | null }).seasonal_end === undefined) {
+            chore.seasonal_end = null
+          }
+        })
+      )
+
     this.on('populate', async () => {
       const catIds = (await this.categories.bulkAdd(
         SEED_CATEGORIES.map((cat) => ({
@@ -119,16 +133,16 @@ const SEED_CATEGORIES: Omit<Category, 'id' | 'parent_sync_id' | 'updated_at'>[] 
 ]
 
 const SEED_CHORES: (Omit<Chore, 'id' | 'category_id' | 'sort_order' | 'category_sync_id'> & { _catIndex: number })[] = [
-  { name: 'Mop kitchen',        _catIndex: 0, sync_id: '00000000-0000-0000-0000-000000000011', target_cadence_days: 14, notify_when_overdue: false, auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, created_at: SEED_TIMESTAMP, updated_at: SEED_TIMESTAMP },
-  { name: 'Clean bathrooms',    _catIndex: 0, sync_id: '00000000-0000-0000-0000-000000000012', target_cadence_days: 7,  notify_when_overdue: false, auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, created_at: SEED_TIMESTAMP, updated_at: SEED_TIMESTAMP },
-  { name: 'Vacuum',             _catIndex: 0, sync_id: '00000000-0000-0000-0000-000000000013', target_cadence_days: 7,  notify_when_overdue: false, auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, created_at: SEED_TIMESTAMP, updated_at: SEED_TIMESTAMP },
-  { name: 'Take out trash',     _catIndex: 0, sync_id: '00000000-0000-0000-0000-000000000014', target_cadence_days: 3,  notify_when_overdue: false, auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, created_at: SEED_TIMESTAMP, updated_at: SEED_TIMESTAMP },
-  { name: 'Change cat litter',  _catIndex: 1, sync_id: '00000000-0000-0000-0000-000000000021', target_cadence_days: 2,  notify_when_overdue: false, auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, created_at: SEED_TIMESTAMP, updated_at: SEED_TIMESTAMP },
-  { name: 'Feed fish',          _catIndex: 1, sync_id: '00000000-0000-0000-0000-000000000022', target_cadence_days: 1,  notify_when_overdue: false, auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, created_at: SEED_TIMESTAMP, updated_at: SEED_TIMESTAMP },
-  { name: 'Oil change',         _catIndex: 2, sync_id: '00000000-0000-0000-0000-000000000031', target_cadence_days: 90, notify_when_overdue: false, auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, created_at: SEED_TIMESTAMP, updated_at: SEED_TIMESTAMP },
-  { name: 'Wash car',           _catIndex: 2, sync_id: '00000000-0000-0000-0000-000000000032', target_cadence_days: 30, notify_when_overdue: false, auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, created_at: SEED_TIMESTAMP, updated_at: SEED_TIMESTAMP },
-  { name: 'Clean oven',         _catIndex: 3, sync_id: '00000000-0000-0000-0000-000000000041', target_cadence_days: 60, notify_when_overdue: false, auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, created_at: SEED_TIMESTAMP, updated_at: SEED_TIMESTAMP },
-  { name: 'Wipe down cabinets', _catIndex: 3, sync_id: '00000000-0000-0000-0000-000000000042', target_cadence_days: 30, notify_when_overdue: false, auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, created_at: SEED_TIMESTAMP, updated_at: SEED_TIMESTAMP },
+  { name: 'Mop kitchen',        _catIndex: 0, sync_id: '00000000-0000-0000-0000-000000000011', target_cadence_days: 14, notify_when_overdue: false, auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, seasonal_start: null, seasonal_end: null, created_at: SEED_TIMESTAMP, updated_at: SEED_TIMESTAMP },
+  { name: 'Clean bathrooms',    _catIndex: 0, sync_id: '00000000-0000-0000-0000-000000000012', target_cadence_days: 7,  notify_when_overdue: false, auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, seasonal_start: null, seasonal_end: null, created_at: SEED_TIMESTAMP, updated_at: SEED_TIMESTAMP },
+  { name: 'Vacuum',             _catIndex: 0, sync_id: '00000000-0000-0000-0000-000000000013', target_cadence_days: 7,  notify_when_overdue: false, auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, seasonal_start: null, seasonal_end: null, created_at: SEED_TIMESTAMP, updated_at: SEED_TIMESTAMP },
+  { name: 'Take out trash',     _catIndex: 0, sync_id: '00000000-0000-0000-0000-000000000014', target_cadence_days: 3,  notify_when_overdue: false, auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, seasonal_start: null, seasonal_end: null, created_at: SEED_TIMESTAMP, updated_at: SEED_TIMESTAMP },
+  { name: 'Change cat litter',  _catIndex: 1, sync_id: '00000000-0000-0000-0000-000000000021', target_cadence_days: 2,  notify_when_overdue: false, auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, seasonal_start: null, seasonal_end: null, created_at: SEED_TIMESTAMP, updated_at: SEED_TIMESTAMP },
+  { name: 'Feed fish',          _catIndex: 1, sync_id: '00000000-0000-0000-0000-000000000022', target_cadence_days: 1,  notify_when_overdue: false, auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, seasonal_start: null, seasonal_end: null, created_at: SEED_TIMESTAMP, updated_at: SEED_TIMESTAMP },
+  { name: 'Oil change',         _catIndex: 2, sync_id: '00000000-0000-0000-0000-000000000031', target_cadence_days: 90, notify_when_overdue: false, auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, seasonal_start: null, seasonal_end: null, created_at: SEED_TIMESTAMP, updated_at: SEED_TIMESTAMP },
+  { name: 'Wash car',           _catIndex: 2, sync_id: '00000000-0000-0000-0000-000000000032', target_cadence_days: 30, notify_when_overdue: false, auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, seasonal_start: null, seasonal_end: null, created_at: SEED_TIMESTAMP, updated_at: SEED_TIMESTAMP },
+  { name: 'Clean oven',         _catIndex: 3, sync_id: '00000000-0000-0000-0000-000000000041', target_cadence_days: 60, notify_when_overdue: false, auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, seasonal_start: null, seasonal_end: null, created_at: SEED_TIMESTAMP, updated_at: SEED_TIMESTAMP },
+  { name: 'Wipe down cabinets', _catIndex: 3, sync_id: '00000000-0000-0000-0000-000000000042', target_cadence_days: 30, notify_when_overdue: false, auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, seasonal_start: null, seasonal_end: null, created_at: SEED_TIMESTAMP, updated_at: SEED_TIMESTAMP },
 ]
 
 export const db = new LastGlanceDB()

@@ -5,6 +5,7 @@ import { hasEncryptionReady } from '@glance-apps/sync'
 import {
   type IntentsConfig,
   type ActivityEntry,
+  DEFAULT_CONFIG,
   saveIntentsConfig,
   getActivityLog,
 } from '@/intents/config'
@@ -24,35 +25,10 @@ export function IntegrationSettingsModal({ onClose, onSaved }: Props) {
   const [localConfig, setLocalConfig] = useState<LocalConfig>(() => {
     try {
       const raw = localStorage.getItem('lg_intents_config')
-      if (!raw) return {
-        enabled: false,
-        webdavUrl: '',
-        webdavUsername: '',
-        webdavPassword: '',
-        folderPath: 'GLANCE/intents',
-        pollIntervalMinutes: 15,
-        encryptionEnabled: false,
-      }
-      return {
-        enabled: false,
-        webdavUrl: '',
-        webdavUsername: '',
-        webdavPassword: '',
-        folderPath: 'GLANCE/intents',
-        pollIntervalMinutes: 15,
-        encryptionEnabled: false,
-        ...JSON.parse(raw),
-      }
+      if (!raw) return { ...DEFAULT_CONFIG }
+      return { ...DEFAULT_CONFIG, ...JSON.parse(raw) }
     } catch {
-      return {
-        enabled: false,
-        webdavUrl: '',
-        webdavUsername: '',
-        webdavPassword: '',
-        folderPath: 'GLANCE/intents',
-        pollIntervalMinutes: 15,
-        encryptionEnabled: false,
-      }
+      return { ...DEFAULT_CONFIG }
     }
   })
 

@@ -7,6 +7,8 @@ export interface SyncChore {
   notifyWhenOverdue: boolean
   autoScheduleToDayglance: boolean
   preferredScheduleBehavior: 'today' | 'next_weekend' | 'next_free_day' | null
+  seasonalStart: string | null | undefined
+  seasonalEnd: string | null | undefined
   icon: string | undefined
   createdAt: string
   updatedAt: string             // maps to chore.updated_at
