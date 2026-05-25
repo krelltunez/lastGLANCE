@@ -175,10 +175,11 @@ export const applyPayload = async (rawData: unknown, { allowEmpty }: { allowEmpt
           updated_at: chore.updatedAt,
         })
       } else {
+        if (!category_id) continue  // category was deleted; skip rather than store category_id: 0
         await db.chores.add({
           sync_id: chore.id,
           name: chore.name,
-          category_id: category_id ?? 0,
+          category_id,
           category_sync_id: chore.categorySyncId,
           sort_order: chore.sortOrder,
           target_cadence_days: chore.targetCadenceDays,

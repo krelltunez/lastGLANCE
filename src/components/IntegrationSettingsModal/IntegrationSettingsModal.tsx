@@ -8,6 +8,7 @@ import {
   DEFAULT_CONFIG,
   saveIntentsConfig,
   getActivityLog,
+  clearActivityLog,
 } from '@/intents/config'
 import { testConnection } from '@/intents/webdav'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
@@ -256,13 +257,23 @@ export function IntegrationSettingsModal({ onClose, onSaved }: Props) {
               <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                 Activity log
               </h3>
-              <button
-                onClick={refreshActivity}
-                className="flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
-              >
-                <RefreshCw size={11} />
-                Refresh
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={refreshActivity}
+                  className="flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+                >
+                  <RefreshCw size={11} />
+                  Refresh
+                </button>
+                {activityLog.length > 0 && (
+                  <button
+                    onClick={() => { clearActivityLog(); setActivityLog([]) }}
+                    className="text-xs text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 transition-colors"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
             </div>
 
             {recentLog.length === 0 ? (
@@ -292,6 +303,11 @@ export function IntegrationSettingsModal({ onClose, onSaved }: Props) {
                   </div>
                 ))}
               </div>
+            )}
+            {activityLog.length > recentLog.length && (
+              <p className="text-xs text-slate-400 dark:text-slate-500 italic">
+                Showing {recentLog.length} of {activityLog.length} entries (50 max)
+              </p>
             )}
           </div>
         </div>

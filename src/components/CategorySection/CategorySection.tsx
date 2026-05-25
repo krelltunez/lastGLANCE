@@ -182,6 +182,11 @@ function ChoreList({
             No chores yet — tap Edit to add one.
           </p>
         )}
+        {localChores.length > 0 && visibleChores.length === 0 && !editMode && (
+          <p className="text-sm text-slate-400 dark:text-slate-600 py-3 text-center">
+            {localChores.length} chore{localChores.length !== 1 ? 's' : ''} hidden (out of season)
+          </p>
+        )}
         {visibleChores.map(chore => (
           <div
             key={chore.id}

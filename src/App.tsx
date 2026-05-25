@@ -211,57 +211,63 @@ function AppInner() {
           )}
         </div>
 
-        {/* Controls */}
-        <div className="flex items-center gap-2 shrink-0">
-          <button
-            onClick={toggleTheme}
-            className="p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors"
-            aria-label="Toggle theme"
-          >
-            {isDark ? <Sun size={15} /> : <Moon size={15} />}
-          </button>
-          <button
-            onClick={() => setShowIntegration(true)}
-            className="p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors"
-            aria-label="dayGLANCE Integration"
-          >
-            <Plug size={15} />
-          </button>
-          <button
-            onClick={() => setShowSyncSettings(true)}
-            className={`p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors ${
-              syncHalted || syncError
-                ? 'text-amber-400 dark:text-amber-400'
-                : 'text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200'
-            }`}
-            aria-label="Cloud Sync"
-          >
-            {syncStatus === 'uploading' || syncStatus === 'downloading'
-              ? <RefreshCw size={15} className="animate-spin" />
-              : syncHalted || syncError
-                ? <CloudOff size={15} />
-                : <Cloud size={15} />
-            }
-          </button>
-          <button
-            onClick={() => setShowBackup(true)}
-            className="p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors"
-            aria-label="Backup & Restore"
-          >
-            <Archive size={15} />
-          </button>
-          <button
-            onClick={() => setEditMode(e => !e)}
-            className={`
-              flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors border
-              ${editMode
-                ? 'text-green-400 border-green-400/40 hover:text-green-300 hover:bg-green-400/10 hover:border-green-400/60'
-                : 'text-slate-500 dark:text-slate-500 border-slate-200 dark:border-slate-700 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'}
-            `}
-            aria-label={editMode ? 'Done editing' : 'Edit categories and chores'}
-          >
-            {editMode ? <><Check size={14} /> Done</> : <><Pencil size={14} /> Edit</>}
-          </button>
+        {/* Controls — two rows to keep the header compact */}
+        <div className="flex flex-col items-end gap-1.5 shrink-0">
+          {/* Row 1: theme + edit */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors"
+              aria-label="Toggle theme"
+            >
+              {isDark ? <Sun size={15} /> : <Moon size={15} />}
+            </button>
+            <button
+              onClick={() => setEditMode(e => !e)}
+              className={`
+                flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors border
+                ${editMode
+                  ? 'text-green-400 border-green-400/40 hover:text-green-300 hover:bg-green-400/10 hover:border-green-400/60'
+                  : 'text-slate-500 dark:text-slate-500 border-slate-200 dark:border-slate-700 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'}
+              `}
+              aria-label={editMode ? 'Done editing' : 'Edit categories and chores'}
+            >
+              {editMode ? <><Check size={14} /> Done</> : <><Pencil size={14} /> Edit</>}
+            </button>
+          </div>
+          {/* Row 2: intents, sync, archive */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowIntegration(true)}
+              className="p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors"
+              aria-label="dayGLANCE Integration"
+            >
+              <Plug size={15} />
+            </button>
+            <button
+              onClick={() => setShowSyncSettings(true)}
+              className={`p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors ${
+                syncHalted || syncError
+                  ? 'text-amber-400 dark:text-amber-400'
+                  : 'text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200'
+              }`}
+              aria-label="Cloud Sync"
+            >
+              {syncStatus === 'uploading' || syncStatus === 'downloading'
+                ? <RefreshCw size={15} className="animate-spin" />
+                : syncHalted || syncError
+                  ? <CloudOff size={15} />
+                  : <Cloud size={15} />
+              }
+            </button>
+            <button
+              onClick={() => setShowBackup(true)}
+              className="p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors"
+              aria-label="Backup & Restore"
+            >
+              <Archive size={15} />
+            </button>
+          </div>
         </div>
       </header>
 
