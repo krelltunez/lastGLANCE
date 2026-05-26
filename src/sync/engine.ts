@@ -245,19 +245,27 @@ export function setRemoteBackupsEnabled(enabled: boolean): void {
   localStorage.setItem(REMOTE_BACKUPS_ENABLED_KEY, String(enabled))
 }
 
+let _backupInProgress = false
+
 export async function runAutoBackups(engine: SyncEngine): Promise<void> {
   if (!getRemoteBackupsEnabled()) return
-  const now = Date.now()
-  for (const freq of ['hourly', 'daily', 'weekly'] as BackupFrequency[]) {
-    const lastRun = parseInt(localStorage.getItem(BACKUP_LS_KEY(freq)) ?? '0', 10)
-    if (now - lastRun >= AUTO_BACKUP_INTERVALS[freq] * 1000) {
-      try {
-        await engine.runBackup(freq)
-        localStorage.setItem(BACKUP_LS_KEY(freq), String(now))
-      } catch {
-        // backup failures are non-fatal
+  if (_backupInProgress) return
+  _backupInProgress = true
+  try {
+    const now = Date.now()
+    for (const freq of ['hourly', 'daily', 'weekly'] as BackupFrequency[]) {
+      const lastRun = parseInt(localStorage.getItem(BACKUP_LS_KEY(freq)) ?? '0', 10)
+      if (now - lastRun >= AUTO_BACKUP_INTERVALS[freq] * 1000) {
+        try {
+          await engine.runBackup(freq)
+          localStorage.setItem(BACKUP_LS_KEY(freq), String(now))
+        } catch {
+          // backup failures are non-fatal
+        }
       }
     }
+  } finally {
+    _backupInProgress = false
   }
 }
 
