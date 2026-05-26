@@ -157,4 +157,13 @@ Two delivery modes are available per chore:
 
 ## License
 
-[MIT](LICENSE) © krelltunez
+[MIT](LICENSE) — free to use, self-host, modify, and distribute.
+
+---
+
+## Support
+
+If lastGLANCE has been useful to you, consider supporting its development:
+
+[![GitHub Sponsors](https://img.shields.io/badge/GitHub_Sponsors-EA4AAA?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/krelltunez)
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-F16061?logo=kofi&logoColor=white)](https://ko-fi.com/krelltunez)
