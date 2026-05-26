@@ -149,7 +149,7 @@ Primary transport is the WebDAV event log (cross-platform, cross-network, cross-
 
 **Inbound to lastGLANCE:** subscribes to `notify` events (by polling the WebDAV event log, by registering for `app.dayglance.NOTIFY` Android broadcasts when on Android with both apps installed, or both). Filters on `source_app=app.lastglance`. Reacts to `event=completed` by logging a CompletionEvent with `source="dayglance"`. Other events (`uncompleted`, `rescheduled`, `deleted`, `updated`) are accepted by the package's schema but ignored by lastGLANCE in v1. If a user wants to remove a completion that originated from a dayGLANCE un-completion, they delete the CompletionEvent manually in lastGLANCE.
 
-**Encryption (optional):** the WebDAV intent transport supports optional AES-GCM encryption of event payloads, per the protocol's Phase 2.5 envelope spec. Encryption is gated on cloud sync encryption being enabled (same passphrase derives the same key, used for both features). When intents encryption is on, lastGLANCE writes encrypted envelopes via the package's `buildEnvelope` helper and decrypts incoming events via `parseEnvelope`. Plaintext and encrypted events coexist in the same directory; consumers without a key skip encrypted events and log a warning. The Android intent transport remains plaintext (intra-device, OS-level access controls apply); encryption only affects the WebDAV path. See `dayglance-intents-package.md` Phase 2.5 for the full envelope spec.
+**Encryption (optional):** the WebDAV intent transport supports optional AES-GCM encryption of event payloads. Encryption is gated on cloud sync encryption being enabled. At intents-encryption setup, lastGLANCE derives an intents-owned HKDF root key from the cloud sync passphrase plus a shared root salt stored on the WebDAV endpoint, caches that root key non-extractably in IndexedDB, and discards the passphrase. After setup, every envelope encrypts with a unique AES-GCM key derived via HKDF from the cached root key plus a fresh per-envelope salt; the passphrase is never needed again. The cross-app shared root salt means both lastGLANCE and dayGLANCE derive the same root key, so they can encrypt and decrypt each other's envelopes without coordinating sessions. Plaintext and encrypted events coexist in the same directory; consumers without a configured root key skip encrypted events and log a warning. The Android intent transport remains plaintext (intra-device, OS-level access controls apply); encryption only affects the WebDAV path. See `dayglance-intents-package.md` Phase 2.7 for the envelope spec and the rationale.
 
 ### Duplicate prevention
 
@@ -201,20 +201,20 @@ Track when you last did stuff. If you want, set a cadence and it'll schedule its
 
 ## Status
 
-**As of May 2026 — active development at v0.1.4, web PWA leading to v1.0.0 multi-platform release.**
+**v1.0.0 shipped May 2026** — web PWA with full dayGLANCE integration (encrypted intent transport via Phase 2.7 of the intents package) and cloud sync with remote backup. Released in coordination with dayGLANCE v2.12.0.
 
-### Decisions made
+### Locked architectural decisions
 
 - **Storage: Dexie (IndexedDB) for web, native SQLite for Android.** SQLite WASM requires `Atomics.wait()` which is blocked on the browser main thread; OPFS persistence is only possible from a dedicated worker. Dexie provides equivalent local-first persistence via IndexedDB with no worker or special HTTP headers required. The TypeScript data model is identical across both targets.
-- **Standalone web-first, then Android, iOS, and Electron all ship as v1.0.0.** Web PWA is the lead surface and proves the product; platform wrappers follow.
+- **Standalone web-first, then Android, iOS, and Electron as separate releases.** Web PWA is the lead surface and is the v1.0.0 release; platform wrappers follow as their own version trains.
 - **React 19 + Vite + Tailwind CSS + TypeScript.** Consistent with dayGLANCE stack.
 - **Full PWA support from day one.** Service worker, offline precache, installable.
-- **Shared `@glance-apps/intents` package for protocol implementation.** Following the `@glance-apps/sync` precedent, lastGLANCE consumes the published package rather than re-implementing protocol logic. Schema decisions and package build plan are in `dayglance-intents-package.md`.
-- **Optional encryption for WebDAV intent transport.** Gated on cloud sync encryption being enabled; same passphrase derives the same key. AES-GCM cipher matching cloud sync. Independent toggle in integration settings. Android intent transport stays plaintext (intra-device).
+- **Shared `@glance-apps/intents` package for protocol implementation.** lastGLANCE consumes the published package rather than re-implementing protocol logic. Schema decisions and package build history are in `dayglance-intents-package.md`.
+- **Optional encryption for WebDAV intent transport.** Gated on cloud sync encryption being enabled. Uses an intents-owned HKDF root key derived once at intents-encryption setup from the cloud sync passphrase plus a shared root salt stored on the WebDAV endpoint. Per-envelope encryption key is derived via HKDF from the cached root key plus a fresh per-envelope salt; passphrase is needed only at setup. Set-and-forget UX across app sessions. AES-GCM cipher. Independent toggle in integration settings. Android intent transport stays plaintext (intra-device).
 - **AI is BYO key, deferred past v1.0.0.** See "AI" section above.
-- **Visual identity is locked** (terminal-phosphor green wordmark, dark palette, masonry layout, contribution-graph header strip, color-gradient ribbon encoding). Design work for v1.0.0 is essentially complete; remaining UI work is bug-fix-tier rather than identity-establishing.
+- **Visual identity is locked** (terminal-phosphor green wordmark, dark palette, masonry layout, contribution-graph header strip, color-gradient ribbon encoding).
 
-### What's built
+### Shipped in v1.0.0
 
 - Project scaffold: Vite + React 19 + TypeScript, Tailwind, vite-plugin-pwa
 - Dexie data layer: schema, all CRUD queries for Category, Chore, CompletionEvent
@@ -228,37 +228,17 @@ Track when you last did stuff. If you want, set a cadence and it'll schedule its
 - Per-chore edit modal: name, icon, category, optional cadence (days), "Notify when overdue" toggle (only appears when cadence is set — progressive disclosure)
 - Per-chore detail view (modal overlay over darkened dashboard): stats row (Total, Avg interval, Target), past-year contribution graph, history list with absolute timestamps, per-completion notes, "Done earlier?" backdate field
 - Full PWA asset set: app icons at all standard sizes, maskable variants, apple-touch-icon, favicon, manifest configured
-- Docker + docker-compose.yml for self-hosters, consistent with dayGLANCE and lifeGLANCE distribution (running in production for dogfooding)
+- Docker + docker-compose.yml for self-hosters, consistent with dayGLANCE and lifeGLANCE distribution
 - Responsive layout across small phones, tablets, desktop widths
-- Seed data: 4 categories, 10 chores
 - Search and subcategories
+- **dayGLANCE intent integration:** card-level `+ dG` button when cadence threshold crossed, "Send to dayGLANCE" button in overdue notification popup, per-chore `auto_schedule_to_dayglance` toggle in edit form. Outbound `create` action on user trigger or auto-schedule. Inbound subscription to `notify` events over WebDAV that logs a CompletionEvent with `source="dayglance"` for `event=completed`. Detects dayGLANCE absence and WebDAV absence independently at runtime; hides integration UI accordingly.
+- **Optional intents encryption** via Phase 2.7 of the intents package: HKDF-per-envelope key derivation against an intents-owned cached root key. Set-and-forget UX (passphrase needed only at intents-encryption setup, never on subsequent app sessions). Cross-app key agreement via shared root salt stored on the WebDAV endpoint.
+- **Cloud sync via `@glance-apps/sync`:** local-first with optional WebDAV-backed sync. Encryption keyed on a passphrase; derived non-extractable `CryptoKey` cached in IndexedDB.
+- **Remote backup to WebDAV.**
 
-### What's not built yet (v1 remaining)
+### Roadmap beyond v1.0.0
 
-- **dayGLANCE intent integration:** card-level `+ dG` button when cadence threshold crossed, "Send to dayGLANCE" button in overdue notification popup, per-chore `auto_schedule_to_dayglance` toggle in edit form. Outbound `create` action on user trigger or auto-schedule; inbound `notify` loopback over WebDAV (Android broadcast on Android when applicable). Includes optional intents-encryption toggle gated on cloud sync encryption (same key). See "Build plan" below.
-- **Cloud sync / remote backup:** following the dayGLANCE model. Ships in v1.0.0 alongside intents integration.
-- **v1.0.0 release** (web)
-- **Android wrapper:** WebView shell, native SQLite swap-in, intent protocol wiring, Obtainium distribution
-- **iOS app:** PWA-shell or wrapped, follows the standalone Android version
-- **Electron app:** desktop build, consistent with dayGLANCE Desktop pattern
-
-## Build plan
-
-Remaining v1 work in order:
-
-1. **dayGLANCE intent integration** — adopt `@glance-apps/intents@1.1.0` for schemas, normalizers, idempotency keys, and WebDAV envelope helpers (including optional AES-GCM encryption support added in package Phase 2.5). Three UI surfaces for outbound `create`:
-   - Card-level `+ dG` button on chore cards when cadence threshold crossed (primary discoverability)
-   - "Send to dayGLANCE" button in overdue notification popup (moment-of-action)
-   - Per-chore `auto_schedule_to_dayglance` toggle in chore edit form (set-and-forget option)
-
-   Inbound subscription to `notify` events (WebDAV poll on web/iOS/Electron, Android broadcast on Android when applicable) that logs a CompletionEvent with `source="dayglance"` for `event=completed`. Other events accepted defensively but ignored in v1. Detect dayGLANCE absence and WebDAV absence independently at runtime; hide integration UI accordingly. WebDAV endpoint config lives in app settings, independently configurable from any sync endpoint lastGLANCE may have. Optional intents-encryption toggle in integration settings, gated on cloud sync encryption being enabled; same passphrase derives the same key for both. PR sequencing in `dayglance-intents-package.md` (Phase 3).
-
-2. **Cloud sync / remote backup** — following the dayGLANCE model and the `@glance-apps/sync` precedent. Ships in v1.0.0; intents integration and cloud sync together are the two pieces gating the v1.0.0 release.
-
-3. **v1.0.0 web release** — once intents integration and cloud sync are in, ship v1.0.0 of the web PWA. r/selfhosted launch follows the lifeGLANCE precedent.
-
-4. **Android wrapper** — WebView shell, native SQLite swap-in replacing Dexie, intent protocol wiring for dayGLANCE integration (Android intent transport in addition to WebDAV), Obtainium distribution, eventual Google Play presence.
-
-5. **iOS app** — PWA-shell or native wrapper, follows the standalone Android version. WebDAV transport is the integration path on iOS (no Android intent equivalent). Background polling caveats apply.
-
-6. **Electron app** — desktop build, consistent with the dayGLANCE Desktop pattern. WebDAV transport for cross-app integration; no local server needed unless lastGLANCE later gains an integration that requires one (none planned for v1).
+1. **Android wrapper** — WebView shell, native SQLite swap-in replacing Dexie, intent protocol wiring for dayGLANCE integration (Android intent transport in addition to WebDAV), Obtainium distribution, eventual Google Play presence.
+2. **iOS app** — PWA-shell or native wrapper. WebDAV transport is the integration path on iOS (no Android intent equivalent). Background polling caveats apply.
+3. **Electron app** — desktop build, consistent with the dayGLANCE Desktop pattern. WebDAV transport for cross-app integration.
+4. **AI (BYO key)** — see "AI" section above. Deferred past v1.0.0 release. Triggers and surface design specced; provider integration and prompt engineering remain.
