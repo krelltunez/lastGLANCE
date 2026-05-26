@@ -29,6 +29,8 @@ Part of the [GLANCE family](https://github.com/krelltunez) alongside dayGLANCE a
 - **PWA** — installable, works offline, auto-updates
 - **Dark/light mode**
 
+![lastGLANCE details view](public/screenshot_details.png)
+
 ---
 
 ## Tech stack
