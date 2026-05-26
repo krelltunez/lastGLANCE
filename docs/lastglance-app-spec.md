@@ -53,25 +53,36 @@ Detail view contents:
 
 This is also where AI features will live in the future (see "AI" section below).
 
-## Data model (draft)
+## Data model
 
 ### Chore
-- `id`
+- `id` (local auto-increment PK)
+- `sync_id` (UUID, stable cross-device identifier)
 - `name` (e.g. "Mop kitchen")
-- `category_id` (FK)
+- `category_id` (FK → Category.id), `category_sync_id` (FK → Category.sync_id)
+- `sort_order`
+- `icon` (optional Lucide icon name)
 - `target_cadence_days` (nullable — null means no target)
+- `notify_when_overdue` (bool, only meaningful when `target_cadence_days` is set)
 - `auto_schedule_to_dayglance` (bool, requires `target_cadence_days` to be set)
-- `preferred_schedule_behavior` (enum: "today" | "next_weekend" | "next_free_day" — TBD)
+- `preferred_schedule_behavior` (enum: "today" | "next_weekend" | "next_free_day" | null)
+- `seasonal_start`, `seasonal_end` (nullable "MM-DD" strings — chore is only active within this window each year)
 - `created_at`, `updated_at`
 
 ### Category
-- `id`
+- `id` (local auto-increment PK)
+- `sync_id` (UUID, stable cross-device identifier)
 - `name` (e.g. "Home", "Pets", "Vehicle", "Deep clean")
 - `sort_order`
+- `icon` (optional Lucide icon name)
+- `parent_category_id` (nullable FK → Category.id — enables subcategories one level deep)
+- `parent_sync_id` (nullable FK → Category.sync_id)
+- `updated_at`
 
 ### CompletionEvent
-- `id`
-- `chore_id` (FK)
+- `id` (local auto-increment PK)
+- `sync_id` (UUID, stable cross-device identifier)
+- `chore_id` (FK → Chore.id)
 - `completed_at` (timestamp)
 - `note` (optional, free text — "did both tanks", "only the front bathroom")
 - `source` (enum: "manual" | "dayglance" — tracks whether completion came from the lastGLANCE app directly or via the dayGLANCE integration loopback)
@@ -182,10 +193,10 @@ Cost acknowledged: full integration layer (intents, completion loopback, duplica
 
 - Local-first, privacy-first, consistent with rest of GLANCE family
 - Reuses WebView hybrid Android pattern from dayGLANCE
-- SQLite schema on Android, Dexie/IndexedDB on web (no cloud sync for lastGLANCE's own data in v1; cross-app integration is via WebDAV per the intent protocol)
+- SQLite schema on Android, Dexie/IndexedDB on web; cloud sync and remote backup via `@glance-apps/sync` over WebDAV
 - Docker + Vercel deployment pattern for the web version, consistent with dayGLANCE and lifeGLANCE
 - GitHub distribution via Obtainium for Android, potential Play Store presence
-- Web, Android, iOS, and Electron all ship as v1.0.0 in the multi-platform release
+- Web PWA is the v1.0.0 release; Android, iOS, and Electron follow as separate version trains
 
 ## What's NOT in v1
 
