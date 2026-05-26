@@ -4,6 +4,8 @@
 
 ![Version](https://img.shields.io/badge/version-1.0.0-green) ![License](https://img.shields.io/badge/license-MIT-blue)
 
+![lastGLANCE dashboard](public/screenshot.png)
+
 lastGLANCE is a chore-tracking progressive web app that answers one question: *when did I last do this?* It tracks recency, not schedules. The emotional register is information, not guilt.
 
 Part of the [GLANCE family](https://github.com/krelltunez) alongside dayGLANCE and lifeGLANCE.
