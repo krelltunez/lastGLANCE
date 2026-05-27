@@ -96,7 +96,9 @@ export function useIntentsPoller(onNewCompletion?: () => void): void {
             } else if (err instanceof NotEncryptedError) {
               message = 'File is not encrypted as expected'
             } else if (err instanceof MalformedEnvelopeError) {
-              message = 'Malformed encrypted envelope'
+              addActivityEntry({ type: 'warning', message: 'Malformed encrypted envelope', detail: err instanceof Error ? err.message : String(err) })
+              newCursor = parsedFilename!.timestamp
+              continue
             }
             addActivityEntry({ type: 'error', message, detail: err instanceof Error ? err.message : String(err) })
             newCursor = parsedFilename!.timestamp

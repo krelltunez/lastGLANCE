@@ -11,7 +11,7 @@ export interface IntentsConfig {
 export interface ActivityEntry {
   id: string
   timestamp: string
-  type: 'sent' | 'received' | 'error'
+  type: 'sent' | 'received' | 'warning' | 'error'
   message: string
   detail?: string
 }
