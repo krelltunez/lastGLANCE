@@ -6,6 +6,8 @@ import {
   type IntentsConfig,
   DEFAULT_CONFIG,
   saveIntentsConfig,
+  clearActivityLog,
+  getActivityLog,
 } from '@/intents/config'
 import { ActivityLogModal } from '@/components/ActivityLogModal/ActivityLogModal'
 import { testConnection } from '@/intents/webdav'
@@ -36,6 +38,7 @@ export function IntegrationSettingsModal({ onClose, onSaved }: Props) {
   const [testStatus, setTestStatus] = useState<TestStatus>('idle')
   const [testError, setTestError] = useState('')
   const [showActivityLog, setShowActivityLog] = useState(false)
+  const [hasActivity, setHasActivity] = useState(() => getActivityLog().length > 0)
   const [rootKeyReady, setRootKeyReady] = useState<boolean | null>(null)
   const [showPassphraseInput, setShowPassphraseInput] = useState(false)
   const [passphraseInput, setPassphraseInput] = useState('')
@@ -319,12 +322,22 @@ export function IntegrationSettingsModal({ onClose, onSaved }: Props) {
             <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
               Activity Log
             </h3>
-            <button
-              onClick={() => setShowActivityLog(true)}
-              className="text-xs text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
-            >
-              View log →
-            </button>
+            <div className="flex items-center gap-3">
+              {hasActivity && (
+                <button
+                  onClick={() => { clearActivityLog(); setHasActivity(false) }}
+                  className="text-xs text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 transition-colors"
+                >
+                  Clear
+                </button>
+              )}
+              <button
+                onClick={() => setShowActivityLog(true)}
+                className="text-xs text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+              >
+                View log →
+              </button>
+            </div>
           </div>
         </div>
 
