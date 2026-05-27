@@ -1,15 +1,13 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { X, RefreshCw, Loader } from 'lucide-react'
+import { X, Loader } from 'lucide-react'
 import { hasEncryptionReady, getSyncPassphrase } from '@glance-apps/sync'
 import {
   type IntentsConfig,
-  type ActivityEntry,
   DEFAULT_CONFIG,
   saveIntentsConfig,
-  getActivityLog,
-  clearActivityLog,
 } from '@/intents/config'
+import { ActivityLogModal } from '@/components/ActivityLogModal/ActivityLogModal'
 import { testConnection } from '@/intents/webdav'
 import { loadIntentsRootKey, clearIntentsRootKey } from '@/intents/intentsKeyStore'
 import { setupIntentsEncryption } from '@/intents/setupIntentsEncryption'
@@ -37,7 +35,7 @@ export function IntegrationSettingsModal({ onClose, onSaved }: Props) {
 
   const [testStatus, setTestStatus] = useState<TestStatus>('idle')
   const [testError, setTestError] = useState('')
-  const [activityLog, setActivityLog] = useState<ActivityEntry[]>(() => getActivityLog())
+  const [showActivityLog, setShowActivityLog] = useState(false)
   const [rootKeyReady, setRootKeyReady] = useState<boolean | null>(null)
   const [showPassphraseInput, setShowPassphraseInput] = useState(false)
   const [passphraseInput, setPassphraseInput] = useState('')
@@ -50,7 +48,7 @@ export function IntegrationSettingsModal({ onClose, onSaved }: Props) {
     loadIntentsRootKey().then(key => setRootKeyReady(key !== null))
   }, [])
 
-  useEscapeKey(onClose)
+  useEscapeKey(showActivityLog ? () => {} : onClose)
 
   function set<K extends keyof LocalConfig>(key: K, value: LocalConfig[K]) {
     setLocalConfig(prev => ({ ...prev, [key]: value }))
@@ -118,13 +116,7 @@ export function IntegrationSettingsModal({ onClose, onSaved }: Props) {
     }
   }
 
-  function refreshActivity() {
-    setActivityLog(getActivityLog())
-  }
-
-  const recentLog = activityLog.slice(0, 20)
-
-  return createPortal(
+  const modal = createPortal(
     <div
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 dark:bg-black/60 backdrop-blur-sm"
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
@@ -323,63 +315,16 @@ export function IntegrationSettingsModal({ onClose, onSaved }: Props) {
           </div>
 
           {/* Activity log */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-                Activity log
-              </h3>
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={refreshActivity}
-                  className="flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
-                >
-                  <RefreshCw size={11} />
-                  Refresh
-                </button>
-                {activityLog.length > 0 && (
-                  <button
-                    onClick={() => { clearActivityLog(); setActivityLog([]) }}
-                    className="text-xs text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 transition-colors"
-                  >
-                    Clear
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {recentLog.length === 0 ? (
-              <p className="text-xs text-slate-400 dark:text-slate-500 italic">No activity yet.</p>
-            ) : (
-              <div className="space-y-1 max-h-48 overflow-y-auto">
-                {recentLog.map(entry => (
-                  <div key={entry.id} className="flex items-start gap-2 text-xs py-1 border-b border-slate-100 dark:border-slate-700/40 last:border-0">
-                    <span className="text-slate-400 dark:text-slate-500 tabular-nums shrink-0">
-                      {new Date(entry.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                    <span className={`shrink-0 px-1 py-0.5 rounded text-[10px] font-medium uppercase tracking-wide ${
-                      entry.type === 'sent'
-                        ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
-                        : entry.type === 'received'
-                          ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
-                          : 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'
-                    }`}>
-                      {entry.type}
-                    </span>
-                    <span className="text-slate-600 dark:text-slate-300 break-words min-w-0">
-                      {entry.message}
-                      {entry.detail && (
-                        <span className="text-slate-400 dark:text-slate-500 ml-1">— {entry.detail}</span>
-                      )}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-            {activityLog.length > recentLog.length && (
-              <p className="text-xs text-slate-400 dark:text-slate-500 italic">
-                Showing {recentLog.length} of {activityLog.length} entries (50 max)
-              </p>
-            )}
+          <div className="flex items-center justify-between py-1">
+            <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+              Activity Log
+            </h3>
+            <button
+              onClick={() => setShowActivityLog(true)}
+              className="text-xs text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+            >
+              View log →
+            </button>
           </div>
         </div>
 
@@ -404,5 +349,12 @@ export function IntegrationSettingsModal({ onClose, onSaved }: Props) {
       </div>
     </div>,
     document.body
+  )
+
+  return (
+    <>
+      {modal}
+      {showActivityLog && <ActivityLogModal onClose={() => setShowActivityLog(false)} />}
+    </>
   )
 }
