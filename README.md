@@ -2,7 +2,7 @@
 
 **when did you last...?**
 
-![Version](https://img.shields.io/badge/version-1.0.0-green) ![License](https://img.shields.io/badge/license-MIT-blue)
+![Version](https://img.shields.io/badge/version-1.0.1-green) ![License](https://img.shields.io/badge/license-MIT-blue)
 
 ![lastGLANCE dashboard](public/screenshot.png)
 
