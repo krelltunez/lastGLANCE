@@ -57,6 +57,8 @@ function packMasonry(
   return { positions, containerHeight: maxH > gap ? maxH - gap : maxH }
 }
 
+const ADD_CAT_ID = -1
+
 export function Ribbon({ editMode, onLogged }: Props) {
   const { data, loading, refresh } = useChores()
   const [localData, setLocalData] = useState<CategoryWithChores[]>([])
@@ -259,8 +261,12 @@ export function Ribbon({ editMode, onLogged }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [localData.length])
 
-  // Card ResizeObservers — re-created only when the set of category IDs changes (add/remove, not reorder)
-  const sortedCatIdsKey = localData.map(d => d.category.id).sort((a, b) => a - b).join(',')
+  // Card ResizeObservers — re-created only when the set of category IDs changes (add/remove, not reorder).
+  // ADD_CAT_ID is included when editMode is on so the ghost card is measured.
+  const sortedCatIdsKey = [
+    ...localData.map(d => d.category.id),
+    ...(editMode && !showEmpty ? [ADD_CAT_ID] : []),
+  ].sort((a, b) => a - b).join(',')
   useEffect(() => {
     const grid = desktopGridRef.current
     if (!grid) return
@@ -389,8 +395,11 @@ export function Ribbon({ editMode, onLogged }: Props) {
   const cardWidth = colCount > 0 && containerWidth > 0
     ? (containerWidth - MASONRY_GAP * (colCount - 1)) / colCount
     : 0
+  const packIds = editMode && !showEmpty
+    ? [...localData.map(d => d.category.id), ADD_CAT_ID]
+    : localData.map(d => d.category.id)
   const { positions, containerHeight } = packMasonry(
-    localData.map(d => d.category.id),
+    packIds,
     colCount,
     cardHeightsRef.current,
     cardWidth,
@@ -431,6 +440,15 @@ export function Ribbon({ editMode, onLogged }: Props) {
                 {d.category.name}
               </button>
             ))}
+            {editMode && (
+              <button
+                onClick={() => setAddingCategory(true)}
+                className="shrink-0 flex items-center px-3 py-2.5 text-slate-400 dark:text-slate-500 hover:text-green-400 transition-colors border-l border-slate-200 dark:border-slate-700/60"
+                aria-label="Add category"
+              >
+                <Plus size={13} />
+              </button>
+            )}
           </div>
         )}
 
@@ -470,17 +488,6 @@ export function Ribbon({ editMode, onLogged }: Props) {
           </div>
         )}
 
-        {editMode && !showEmpty && (
-          <div className="shrink-0 border-t border-slate-200 dark:border-slate-700/60 p-3">
-            <button
-              onClick={() => setAddingCategory(true)}
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/40 border border-slate-200 dark:border-slate-700/60 transition-colors"
-            >
-              <Plus size={15} />
-              Add category
-            </button>
-          </div>
-        )}
       </div>
 
       {/* ── Desktop: true masonry layout ── */}
@@ -528,17 +535,32 @@ export function Ribbon({ editMode, onLogged }: Props) {
               })}
             </div>
 
-            {editMode && (
-              <div className="mt-5">
-                <button
-                  onClick={() => setAddingCategory(true)}
-                  className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl text-sm text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/30 border border-dashed border-slate-300 dark:border-slate-700/60 hover:border-slate-400 dark:hover:border-slate-600 transition-colors"
+            {editMode && (() => {
+              const pos = positions.get(ADD_CAT_ID)
+              return (
+                <div
+                  data-cat-card-id={ADD_CAT_ID}
+                  className="absolute rounded-2xl border border-dashed border-slate-300 dark:border-slate-700/60"
+                  style={{
+                    top: 0,
+                    left: 0,
+                    width: cardWidth > 0 ? cardWidth : undefined,
+                    transform: pos ? `translate(${pos.x}px,${pos.y}px)` : undefined,
+                    visibility: packPhase >= 1 && pos ? 'visible' : 'hidden',
+                    transition: packPhase >= 2 && draggingCatId === null ? 'transform 300ms ease' : 'none',
+                    willChange: 'transform',
+                  }}
                 >
-                  <Plus size={15} />
-                  Add category
-                </button>
-              </div>
-            )}
+                  <button
+                    onClick={() => setAddingCategory(true)}
+                    className="w-full h-full flex items-center justify-center gap-2 p-5 py-8 text-sm text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors"
+                  >
+                    <Plus size={15} />
+                    Add category
+                  </button>
+                </div>
+              )
+            })()}
           </div>
         )}
       </div>
