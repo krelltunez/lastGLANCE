@@ -13,7 +13,7 @@ function ExternalLinkRow({ href, label }: { href: string; label: string }) {
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="flex items-center gap-2 text-sm text-blue-500 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-300 transition-colors"
+      className="flex items-center gap-2 text-sm text-green-400 hover:text-green-300 transition-colors"
     >
       <ExternalLink size={14} className="shrink-0" />
       {label}
@@ -52,7 +52,7 @@ export function HelpModal({ onClose }: Props) {
       <div className="w-full sm:max-w-sm bg-white dark:bg-slate-800 rounded-t-2xl sm:rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700/50 flex flex-col">
         {/* Header */}
         <div className="flex items-center gap-3 px-6 pt-5 pb-4 border-b border-slate-100 dark:border-slate-700/40">
-          <HelpCircle size={20} className="text-blue-500 dark:text-blue-400 shrink-0" />
+          <HelpCircle size={20} className="text-slate-400 dark:text-slate-500 shrink-0" />
           <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100 flex-1">
             Help &amp; Feedback
           </h2>
