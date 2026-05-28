@@ -537,6 +537,7 @@ export function Ribbon({ editMode, onLogged }: Props) {
                 const pos = positions.get(ADD_CAT_ID)
                 return (
                   <div
+                    key="add-category"
                     data-cat-card-id={ADD_CAT_ID}
                     className="absolute rounded-2xl border border-dashed border-slate-300 dark:border-slate-700/60"
                     style={{
@@ -559,6 +560,7 @@ export function Ribbon({ editMode, onLogged }: Props) {
                   </div>
                 )
               })()}
+            </div>
           </div>
         )}
       </div>
