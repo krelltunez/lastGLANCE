@@ -533,34 +533,32 @@ export function Ribbon({ editMode, onLogged }: Props) {
                   </div>
                 )
               })}
-            </div>
-
-            {editMode && (() => {
-              const pos = positions.get(ADD_CAT_ID)
-              return (
-                <div
-                  data-cat-card-id={ADD_CAT_ID}
-                  className="absolute rounded-2xl border border-dashed border-slate-300 dark:border-slate-700/60"
-                  style={{
-                    top: 0,
-                    left: 0,
-                    width: cardWidth > 0 ? cardWidth : undefined,
-                    transform: pos ? `translate(${pos.x}px,${pos.y}px)` : undefined,
-                    visibility: packPhase >= 1 && pos ? 'visible' : 'hidden',
-                    transition: packPhase >= 2 && draggingCatId === null ? 'transform 300ms ease' : 'none',
-                    willChange: 'transform',
-                  }}
-                >
-                  <button
-                    onClick={() => setAddingCategory(true)}
-                    className="w-full h-full flex items-center justify-center gap-2 p-5 py-8 text-sm text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors"
+              {editMode && (() => {
+                const pos = positions.get(ADD_CAT_ID)
+                return (
+                  <div
+                    data-cat-card-id={ADD_CAT_ID}
+                    className="absolute rounded-2xl border border-dashed border-slate-300 dark:border-slate-700/60"
+                    style={{
+                      top: 0,
+                      left: 0,
+                      width: cardWidth > 0 ? cardWidth : undefined,
+                      transform: pos ? `translate(${pos.x}px,${pos.y}px)` : undefined,
+                      visibility: packPhase >= 1 && pos ? 'visible' : 'hidden',
+                      transition: packPhase >= 2 && draggingCatId === null ? 'transform 300ms ease' : 'none',
+                      willChange: 'transform',
+                    }}
                   >
-                    <Plus size={15} />
-                    Add category
-                  </button>
-                </div>
-              )
-            })()}
+                    <button
+                      onClick={() => setAddingCategory(true)}
+                      className="w-full h-full flex items-center justify-center gap-2 p-5 py-8 text-sm text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors"
+                    >
+                      <Plus size={15} />
+                      Add category
+                    </button>
+                  </div>
+                )
+              })()}
           </div>
         )}
       </div>
