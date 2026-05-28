@@ -148,7 +148,7 @@ export function Ribbon({ editMode, onLogged }: Props) {
         setActiveCategoryIndex(i => Math.min(localDataRef.current.length - 1, i + 1))
       } else if (e.key === 'n' || e.key === 'N') {
         const cat = localDataRef.current[activeCategoryIndexRef.current]?.category
-        if (cat) setNewChoreCategory(cat)
+        if (cat) { e.preventDefault(); setNewChoreCategory(cat) }
       }
     }
     window.addEventListener('keydown', onKey)
