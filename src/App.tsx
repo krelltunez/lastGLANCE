@@ -9,6 +9,7 @@ import { SyncSettingsModal } from '@/components/SyncSettingsModal/SyncSettingsMo
 import { PassphraseModal } from '@/components/PassphraseModal/PassphraseModal'
 import { HelpModal } from '@/components/HelpModal/HelpModal'
 import { ShortcutsModal } from '@/components/ShortcutsModal/ShortcutsModal'
+import { ActivityLogModal } from '@/components/ActivityLogModal/ActivityLogModal'
 import { ToastProvider } from '@/components/Toast/Toast'
 import { useNotifications } from '@/hooks/useNotifications'
 import { useIntentsPoller } from '@/hooks/useIntentsPoller'
@@ -114,6 +115,7 @@ function AppInner() {
   const [showPassphrase, setShowPassphrase] = useState(false)
   const [showHelp, setShowHelp] = useState(false)
   const [showShortcuts, setShowShortcuts] = useState(false)
+  const [showActivityLog, setShowActivityLog] = useState(false)
   const [ribbonKey, setRibbonKey] = useState(0)
   const [heatmapWeeks, setHeatmapWeeks] = useState<HeatDay[][]>([])
   const [waveKey, setWaveKey] = useState(0)
@@ -188,6 +190,33 @@ function AppInner() {
   function toggleTheme() {
     setIsDark(d => !d)
   }
+
+  // Global keyboard shortcuts (D, E, I, S, A, L, ?)
+  // Uses a ref for the "any modal open" guard so the effect never re-registers.
+  const anyModalOpenRef = useRef(false)
+  anyModalOpenRef.current = (
+    showWelcome || showBackup || showIntegration || showSyncSettings ||
+    showPassphrase || showHelp || showShortcuts || showActivityLog
+  )
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const tag = (e.target as HTMLElement).tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (e.target as HTMLElement).isContentEditable) return
+      if (anyModalOpenRef.current || e.metaKey || e.ctrlKey || e.altKey) return
+      switch (e.key) {
+        case 'd': case 'D': setIsDark(d => !d); break
+        case 'e': case 'E': setEditMode(m => !m); break
+        case 'i': case 'I': setShowIntegration(true); break
+        case 's': case 'S': setShowSyncSettings(true); break
+        case 'a': case 'A': setShowBackup(true); break
+        case 'l': case 'L': setShowActivityLog(true); break
+        case '?':           setShowShortcuts(true); break
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col">
@@ -336,6 +365,10 @@ function AppInner() {
           onClose={() => setShowHelp(false)}
           onOpenShortcuts={() => setShowShortcuts(true)}
         />
+      )}
+
+      {showActivityLog && (
+        <ActivityLogModal onClose={() => setShowActivityLog(false)} />
       )}
 
       {showShortcuts && (

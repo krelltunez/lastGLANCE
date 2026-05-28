@@ -5,8 +5,9 @@ import { reorderCategories } from '@/db/queries'
 import { CategorySection } from '@/components/CategorySection/CategorySection'
 import { LogModal } from '@/components/LogModal/LogModal'
 import { CategoryFormModal } from '@/components/CategoryFormModal/CategoryFormModal'
+import { ChoreFormModal } from '@/components/ChoreFormModal/ChoreFormModal'
 import { SearchModal } from '@/components/SearchModal/SearchModal'
-import type { ChoreWithLastCompletion } from '@/types'
+import type { Category, ChoreWithLastCompletion } from '@/types'
 import type { CategoryWithChores } from '@/hooks/useChores'
 
 interface Props {
@@ -62,6 +63,7 @@ export function Ribbon({ editMode, onLogged }: Props) {
   const [activeCategoryIndex, setActiveCategoryIndex] = useState(0)
   const [selectedChore, setSelectedChore] = useState<ChoreWithLastCompletion | null>(null)
   const [addingCategory, setAddingCategory] = useState(false)
+  const [newChoreCategory, setNewChoreCategory] = useState<Category | null>(null)
 
   // Category drag
   const [showSearch, setShowSearch] = useState(false)
@@ -116,20 +118,43 @@ export function Ribbon({ editMode, onLogged }: Props) {
     return () => window.removeEventListener('lg:open-chore', handleOpenChore)
   }, [])
 
-  // Keyboard shortcut: Cmd/Ctrl+K or / opens search
+  // Stable refs so shortcut handlers don't need to re-register on state changes
+  const activeCategoryIndexRef = useRef(0)
+  activeCategoryIndexRef.current = activeCategoryIndex
+  const ribbonModalOpenRef = useRef(false)
+  ribbonModalOpenRef.current = showSearch || selectedChore !== null || addingCategory || newChoreCategory !== null
+
+  // Keyboard shortcuts owned by Ribbon: search, category nav, new chore
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (showSearch) return
       const tag = (e.target as HTMLElement).tagName
-      const editable = tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement).isContentEditable
-      if ((e.key === 'k' && (e.metaKey || e.ctrlKey)) || (e.key === '/' && !editable)) {
+      const editable = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (e.target as HTMLElement).isContentEditable
+
+      // Search: ⌘K or / (when not in an input)
+      if ((e.key === 'k' && (e.metaKey || e.ctrlKey)) || (e.key === '/' && !editable && !ribbonModalOpenRef.current)) {
         e.preventDefault()
         setShowSearch(true)
+        return
+      }
+
+      if (editable || ribbonModalOpenRef.current || e.metaKey || e.ctrlKey || e.altKey) return
+
+      // Category navigation: mobile layout only
+      if (e.key === 'ArrowLeft' && window.innerWidth < 1060) {
+        e.preventDefault()
+        setActiveCategoryIndex(i => Math.max(0, i - 1))
+      } else if (e.key === 'ArrowRight' && window.innerWidth < 1060) {
+        e.preventDefault()
+        setActiveCategoryIndex(i => Math.min(localDataRef.current.length - 1, i + 1))
+      } else if (e.key === 'n' || e.key === 'N') {
+        const cat = localDataRef.current[activeCategoryIndexRef.current]?.category
+        if (cat) setNewChoreCategory(cat)
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [showSearch])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Sync localData from server when not dragging categories
   useEffect(() => {
@@ -550,6 +575,15 @@ export function Ribbon({ editMode, onLogged }: Props) {
         <CategoryFormModal
           onClose={() => setAddingCategory(false)}
           onSaved={() => { setAddingCategory(false); refresh() }}
+        />
+      )}
+
+      {newChoreCategory && (
+        <ChoreFormModal
+          category={newChoreCategory}
+          allCategories={localData.flatMap(d => [d.category, ...d.subcategories.map(s => s.category)])}
+          onClose={() => setNewChoreCategory(null)}
+          onSaved={() => { setNewChoreCategory(null); refresh() }}
         />
       )}
     </>

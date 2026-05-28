@@ -66,7 +66,9 @@ export function ShortcutsModal({ onClose }: Props) {
             </p>
             <div className="divide-y divide-slate-100 dark:divide-slate-700/40">
               <ShortcutRow keys={['⌘K', '/']} label="Search" />
-              <ShortcutRow keys={['←', '→']} label="Navigate categories" />
+              <div className="min-[1060px]:hidden">
+                <ShortcutRow keys={['←', '→']} label="Navigate categories" />
+              </div>
             </div>
           </div>
 
