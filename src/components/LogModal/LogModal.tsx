@@ -69,7 +69,7 @@ export function LogModal({ chore, onClose, onLogged }: Props) {
         w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/50 shadow-2xl
         rounded-t-2xl max-h-[90svh] overflow-hidden flex flex-col
         sm:rounded-2xl sm:max-w-xl
-        lg:max-w-5xl lg:max-h-[85svh] lg:flex-row lg:items-start
+        lg:max-w-5xl lg:max-h-[85svh] lg:flex-row
       ">
 
         {/* ── Left / top: log form ── */}
@@ -133,7 +133,7 @@ export function LogModal({ chore, onClose, onLogged }: Props) {
             <StatCell label="Target" value={chore.target_cadence_days ? `${chore.target_cadence_days}d` : '—'} />
           </div>
 
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 min-h-0 overflow-y-auto">
             <div className="px-5 pt-4 pb-3">
               <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-3">Past year</p>
               <div ref={heatmapRef} className="overflow-x-auto scrollbar-none">

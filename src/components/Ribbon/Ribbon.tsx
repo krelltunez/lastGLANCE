@@ -265,7 +265,7 @@ export function Ribbon({ editMode, onLogged }: Props) {
   // ADD_CAT_ID is included when editMode is on so the ghost card is measured.
   const sortedCatIdsKey = [
     ...localData.map(d => d.category.id),
-    ...(editMode && !showEmpty ? [ADD_CAT_ID] : []),
+    ...(editMode && localData.length > 0 ? [ADD_CAT_ID] : []),
   ].sort((a, b) => a - b).join(',')
   useEffect(() => {
     const grid = desktopGridRef.current
