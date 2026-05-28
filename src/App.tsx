@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Pencil, Check, Sun, Moon, Archive, Plug, Cloud, CloudOff, RefreshCw } from 'lucide-react'
+import { Pencil, Check, Sun, Moon, Archive, Plug, Cloud, CloudOff, RefreshCw, HelpCircle } from 'lucide-react'
 import { Ribbon } from '@/components/Ribbon/Ribbon'
 import { BackupModal } from '@/components/BackupModal/BackupModal'
 import { WelcomeModal } from '@/components/WelcomeModal/WelcomeModal'
@@ -7,6 +7,7 @@ import { clearSeedData } from '@/db/queries'
 import { IntegrationSettingsModal } from '@/components/IntegrationSettingsModal/IntegrationSettingsModal'
 import { SyncSettingsModal } from '@/components/SyncSettingsModal/SyncSettingsModal'
 import { PassphraseModal } from '@/components/PassphraseModal/PassphraseModal'
+import { HelpModal } from '@/components/HelpModal/HelpModal'
 import { ToastProvider } from '@/components/Toast/Toast'
 import { useNotifications } from '@/hooks/useNotifications'
 import { useIntentsPoller } from '@/hooks/useIntentsPoller'
@@ -110,6 +111,7 @@ function AppInner() {
   const [showIntegration, setShowIntegration] = useState(false)
   const [showSyncSettings, setShowSyncSettings] = useState(false)
   const [showPassphrase, setShowPassphrase] = useState(false)
+  const [showHelp, setShowHelp] = useState(false)
   const [ribbonKey, setRibbonKey] = useState(0)
   const [heatmapWeeks, setHeatmapWeeks] = useState<HeatDay[][]>([])
   const [waveKey, setWaveKey] = useState(0)
@@ -235,7 +237,7 @@ function AppInner() {
               {editMode ? <><Check size={14} /> Done</> : <><Pencil size={14} /> Edit</>}
             </button>
           </div>
-          {/* Row 2: intents, sync, archive */}
+          {/* Row 2: intents, sync, archive, help */}
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowIntegration(true)}
@@ -266,6 +268,13 @@ function AppInner() {
               aria-label="Backup & Restore"
             >
               <Archive size={15} />
+            </button>
+            <button
+              onClick={() => setShowHelp(true)}
+              className="p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors"
+              aria-label="Help & Feedback"
+            >
+              <HelpCircle size={15} />
             </button>
           </div>
         </div>
@@ -318,6 +327,10 @@ function AppInner() {
           engine={engineRef.current}
           onClose={() => setShowSyncSettings(false)}
         />
+      )}
+
+      {showHelp && (
+        <HelpModal onClose={() => setShowHelp(false)} />
       )}
 
       {showPassphrase && (

@@ -446,7 +446,7 @@ export function Ribbon({ editMode, onLogged }: Props) {
         )}
 
         {editMode && !showEmpty && (
-          <div className="shrink-0 border-t border-slate-200 dark:border-slate-700/60 p-3 flex flex-col gap-2">
+          <div className="shrink-0 border-t border-slate-200 dark:border-slate-700/60 p-3">
             <button
               onClick={() => setAddingCategory(true)}
               className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/40 border border-slate-200 dark:border-slate-700/60 transition-colors"
@@ -454,7 +454,6 @@ export function Ribbon({ editMode, onLogged }: Props) {
               <Plus size={15} />
               Add category
             </button>
-            <p className="text-center text-xs text-slate-400 dark:text-slate-600">v{__APP_VERSION__} · built {new Date(__BUILD_TIME__).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}</p>
           </div>
         )}
       </div>
@@ -505,7 +504,7 @@ export function Ribbon({ editMode, onLogged }: Props) {
             </div>
 
             {editMode && (
-              <div className="mt-5 flex flex-col gap-2">
+              <div className="mt-5">
                 <button
                   onClick={() => setAddingCategory(true)}
                   className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl text-sm text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/30 border border-dashed border-slate-300 dark:border-slate-700/60 hover:border-slate-400 dark:hover:border-slate-600 transition-colors"
@@ -513,7 +512,6 @@ export function Ribbon({ editMode, onLogged }: Props) {
                   <Plus size={15} />
                   Add category
                 </button>
-                <p className="text-center text-xs text-slate-400 dark:text-slate-600">v{__APP_VERSION__} · built {new Date(__BUILD_TIME__).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}</p>
               </div>
             )}
           </div>
