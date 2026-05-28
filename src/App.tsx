@@ -8,6 +8,7 @@ import { IntegrationSettingsModal } from '@/components/IntegrationSettingsModal/
 import { SyncSettingsModal } from '@/components/SyncSettingsModal/SyncSettingsModal'
 import { PassphraseModal } from '@/components/PassphraseModal/PassphraseModal'
 import { HelpModal } from '@/components/HelpModal/HelpModal'
+import { ShortcutsModal } from '@/components/ShortcutsModal/ShortcutsModal'
 import { ToastProvider } from '@/components/Toast/Toast'
 import { useNotifications } from '@/hooks/useNotifications'
 import { useIntentsPoller } from '@/hooks/useIntentsPoller'
@@ -112,6 +113,7 @@ function AppInner() {
   const [showSyncSettings, setShowSyncSettings] = useState(false)
   const [showPassphrase, setShowPassphrase] = useState(false)
   const [showHelp, setShowHelp] = useState(false)
+  const [showShortcuts, setShowShortcuts] = useState(false)
   const [ribbonKey, setRibbonKey] = useState(0)
   const [heatmapWeeks, setHeatmapWeeks] = useState<HeatDay[][]>([])
   const [waveKey, setWaveKey] = useState(0)
@@ -330,7 +332,14 @@ function AppInner() {
       )}
 
       {showHelp && (
-        <HelpModal onClose={() => setShowHelp(false)} />
+        <HelpModal
+          onClose={() => setShowHelp(false)}
+          onOpenShortcuts={() => setShowShortcuts(true)}
+        />
+      )}
+
+      {showShortcuts && (
+        <ShortcutsModal onClose={() => setShowShortcuts(false)} />
       )}
 
       {showPassphrase && (

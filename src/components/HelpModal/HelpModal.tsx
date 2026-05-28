@@ -5,6 +5,7 @@ import { useEscapeKey } from '@/hooks/useEscapeKey'
 
 interface Props {
   onClose: () => void
+  onOpenShortcuts: () => void
 }
 
 function ExternalLinkRow({ href, label }: { href: string; label: string }) {
@@ -21,7 +22,7 @@ function ExternalLinkRow({ href, label }: { href: string; label: string }) {
   )
 }
 
-export function HelpModal({ onClose }: Props) {
+export function HelpModal({ onClose, onOpenShortcuts }: Props) {
   const [storage, setStorage] = useState<{ used: number; quota: number } | null>(null)
 
   useEscapeKey(onClose)
@@ -76,16 +77,25 @@ export function HelpModal({ onClose }: Props) {
 
           <div className="border-t border-slate-100 dark:border-slate-700/40" />
 
-          {/* Build info */}
-          <div className="space-y-1">
-            {storage && (
+          {/* Build info + shortcuts button */}
+          <div className="flex items-end justify-between gap-4">
+            <div className="space-y-1">
+              {storage && (
+                <p className="text-xs text-slate-400 dark:text-slate-500">
+                  Storage: {fmtBytes(storage.used)} / ~{fmtBytes(storage.quota)}
+                </p>
+              )}
               <p className="text-xs text-slate-400 dark:text-slate-500">
-                Storage: {fmtBytes(storage.used)} / ~{fmtBytes(storage.quota)}
+                v{__APP_VERSION__} · {buildDate}
               </p>
-            )}
-            <p className="text-xs text-slate-400 dark:text-slate-500">
-              v{__APP_VERSION__} · {buildDate}
-            </p>
+            </div>
+            <button
+              onClick={() => { onClose(); onOpenShortcuts() }}
+              className="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+            >
+              <kbd className="inline-flex items-center justify-center w-4 h-4 rounded bg-slate-300 dark:bg-slate-500 text-[10px] font-mono text-slate-600 dark:text-slate-200 leading-none">?</kbd>
+              <span className="text-xs text-slate-500 dark:text-slate-400">shortcuts</span>
+            </button>
           </div>
         </div>
       </div>
