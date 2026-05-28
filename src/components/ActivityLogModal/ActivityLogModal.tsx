@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
-import { X, RefreshCw } from 'lucide-react'
+import { X, RefreshCw, ChevronRight, ChevronDown } from 'lucide-react'
 import { type ActivityEntry, getActivityLog, clearActivityLog } from '@/intents/config'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
 
@@ -19,11 +19,20 @@ function badgeClass(type: ActivityEntry['type']): string {
 
 export function ActivityLogModal({ onClose }: Props) {
   const [log, setLog] = useState<ActivityEntry[]>(() => getActivityLog())
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
 
   useEscapeKey(onClose)
 
   function refresh() { setLog(getActivityLog()) }
-  function clear() { clearActivityLog(); setLog([]) }
+  function clear() { clearActivityLog(); setLog([]); setExpandedIds(new Set()) }
+
+  function toggleExpanded(id: string) {
+    setExpandedIds(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
 
   return createPortal(
     <div
@@ -64,30 +73,44 @@ export function ActivityLogModal({ onClose }: Props) {
             <p className="text-xs text-slate-400 dark:text-slate-500 italic">No activity yet.</p>
           ) : (
             <div className="space-y-1">
-              {log.map(entry => (
-                <div
-                  key={entry.id}
-                  className="flex items-start gap-2 text-xs py-2 border-b border-slate-100 dark:border-slate-700/40 last:border-0"
-                >
-                  <span className="text-slate-400 dark:text-slate-500 tabular-nums shrink-0 pt-0.5">
-                    {new Date(entry.timestamp).toLocaleString([], {
-                      month: 'short', day: 'numeric',
-                      hour: '2-digit', minute: '2-digit',
-                    })}
-                  </span>
-                  <span className={`shrink-0 px-1 py-0.5 rounded text-[10px] font-medium uppercase tracking-wide ${badgeClass(entry.type)}`}>
-                    {entry.type}
-                  </span>
-                  <div className="min-w-0 break-words">
-                    <span className="text-slate-600 dark:text-slate-300">{entry.message}</span>
-                    {entry.detail && (
-                      <p className="text-[10px] font-mono text-slate-400 dark:text-slate-500 mt-1 leading-relaxed whitespace-pre-wrap break-all">
+              {log.map(entry => {
+                const expanded = expandedIds.has(entry.id)
+                return (
+                  <div
+                    key={entry.id}
+                    className="text-xs py-2 border-b border-slate-100 dark:border-slate-700/40 last:border-0"
+                  >
+                    <div className="flex items-start gap-2">
+                      <span className="text-slate-400 dark:text-slate-500 tabular-nums shrink-0 pt-0.5">
+                        {new Date(entry.timestamp).toLocaleString([], {
+                          month: 'short', day: 'numeric',
+                          hour: '2-digit', minute: '2-digit',
+                        })}
+                      </span>
+                      <span className={`shrink-0 px-1 py-0.5 rounded text-[10px] font-medium uppercase tracking-wide ${badgeClass(entry.type)}`}>
+                        {entry.type}
+                      </span>
+                      <div className="min-w-0 break-words flex-1">
+                        <span className="text-slate-600 dark:text-slate-300">{entry.message}</span>
+                      </div>
+                      {entry.detail && (
+                        <button
+                          onClick={() => toggleExpanded(entry.id)}
+                          className="shrink-0 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+                          aria-label={expanded ? 'Collapse details' : 'Expand details'}
+                        >
+                          {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                        </button>
+                      )}
+                    </div>
+                    {entry.detail && expanded && (
+                      <p className="text-[10px] font-mono text-slate-400 dark:text-slate-500 mt-1 leading-relaxed whitespace-pre-wrap break-all pl-0">
                         {entry.detail}
                       </p>
                     )}
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </div>

@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { Pencil, Trash2, Plus, Smile, GripVertical, ChevronDown, ChevronRight, FolderPlus } from 'lucide-react'
+import { Pencil, Trash2, Plus, Smile, GripVertical, ChevronDown, ChevronRight, ChevronUp, FolderPlus } from 'lucide-react'
 import type { CategoryWithChores } from '@/hooks/useChores'
 import type { Category, ChoreWithLastCompletion } from '@/types'
 import { ChoreRow } from '@/components/ChoreRow/ChoreRow'
 import { ChoreFormModal } from '@/components/ChoreFormModal/ChoreFormModal'
 import { CategoryFormModal } from '@/components/CategoryFormModal/CategoryFormModal'
 import { IconPicker } from '@/components/IconPicker/IconPicker'
-import { deleteCategory, deleteChore, updateCategory, updateChore, reorderChores } from '@/db/queries'
+import { deleteCategory, deleteChore, updateCategory, updateChore, reorderChores, reorderCategories } from '@/db/queries'
 import { ICON_REGISTRY } from '@/icons/registry'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
 
@@ -265,11 +265,14 @@ interface SubcategorySectionProps {
   onExternalHover: (categoryId: number | null) => void
   onCrossListDrop: (choreId: number, targetCategoryId: number) => void
   compact?: boolean
+  onMoveUp?: () => void
+  onMoveDown?: () => void
 }
 
 function SubcategorySection({
   data, allCategories, rootCategories, editMode, onChoreTab, onRefresh, onLogged,
   wrapChores, collapsed, onToggleCollapse, isDropTarget, onExternalHover, onCrossListDrop, compact,
+  onMoveUp, onMoveDown,
 }: SubcategorySectionProps) {
   const [catForm, setCatForm] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -320,6 +323,24 @@ function SubcategorySection({
 
         {editMode && (
           <div className="flex items-center gap-1 shrink-0">
+            {onMoveUp && (
+              <button
+                onClick={onMoveUp}
+                className="p-1 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                aria-label="Move subcategory up"
+              >
+                <ChevronUp size={12} />
+              </button>
+            )}
+            {onMoveDown && (
+              <button
+                onClick={onMoveDown}
+                className="p-1 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                aria-label="Move subcategory down"
+              >
+                <ChevronDown size={12} />
+              </button>
+            )}
             <button
               onClick={() => setCatForm(true)}
               className="p-1 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
@@ -547,6 +568,18 @@ export function CategorySection({
             isDropTarget={externalHoverTargetId === sub.category.id}
             onExternalHover={setExternalHoverTargetId}
             onCrossListDrop={handleCrossListDrop}
+            onMoveUp={idx > 0 ? async () => {
+              const ids = data.subcategories.map(s => s.category.id)
+              ;[ids[idx - 1], ids[idx]] = [ids[idx], ids[idx - 1]]
+              await reorderCategories(ids)
+              onRefresh()
+            } : undefined}
+            onMoveDown={idx < data.subcategories.length - 1 ? async () => {
+              const ids = data.subcategories.map(s => s.category.id)
+              ;[ids[idx], ids[idx + 1]] = [ids[idx + 1], ids[idx]]
+              await reorderCategories(ids)
+              onRefresh()
+            } : undefined}
           />
         ))}
       </div>
