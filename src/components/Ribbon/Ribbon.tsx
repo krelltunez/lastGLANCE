@@ -5,8 +5,9 @@ import { reorderCategories } from '@/db/queries'
 import { CategorySection } from '@/components/CategorySection/CategorySection'
 import { LogModal } from '@/components/LogModal/LogModal'
 import { CategoryFormModal } from '@/components/CategoryFormModal/CategoryFormModal'
+import { ChoreFormModal } from '@/components/ChoreFormModal/ChoreFormModal'
 import { SearchModal } from '@/components/SearchModal/SearchModal'
-import type { ChoreWithLastCompletion } from '@/types'
+import type { Category, ChoreWithLastCompletion } from '@/types'
 import type { CategoryWithChores } from '@/hooks/useChores'
 
 interface Props {
@@ -56,12 +57,15 @@ function packMasonry(
   return { positions, containerHeight: maxH > gap ? maxH - gap : maxH }
 }
 
+const ADD_CAT_ID = -1
+
 export function Ribbon({ editMode, onLogged }: Props) {
   const { data, loading, refresh } = useChores()
   const [localData, setLocalData] = useState<CategoryWithChores[]>([])
   const [activeCategoryIndex, setActiveCategoryIndex] = useState(0)
   const [selectedChore, setSelectedChore] = useState<ChoreWithLastCompletion | null>(null)
   const [addingCategory, setAddingCategory] = useState(false)
+  const [newChoreCategory, setNewChoreCategory] = useState<Category | null>(null)
 
   // Category drag
   const [showSearch, setShowSearch] = useState(false)
@@ -116,20 +120,43 @@ export function Ribbon({ editMode, onLogged }: Props) {
     return () => window.removeEventListener('lg:open-chore', handleOpenChore)
   }, [])
 
-  // Keyboard shortcut: Cmd/Ctrl+K or / opens search
+  // Stable refs so shortcut handlers don't need to re-register on state changes
+  const activeCategoryIndexRef = useRef(0)
+  activeCategoryIndexRef.current = activeCategoryIndex
+  const ribbonModalOpenRef = useRef(false)
+  ribbonModalOpenRef.current = showSearch || selectedChore !== null || addingCategory || newChoreCategory !== null
+
+  // Keyboard shortcuts owned by Ribbon: search, category nav, new chore
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (showSearch) return
       const tag = (e.target as HTMLElement).tagName
-      const editable = tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement).isContentEditable
-      if ((e.key === 'k' && (e.metaKey || e.ctrlKey)) || (e.key === '/' && !editable)) {
+      const editable = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (e.target as HTMLElement).isContentEditable
+
+      // Search: ⌘K or / (when not in an input)
+      if ((e.key === 'k' && (e.metaKey || e.ctrlKey)) || (e.key === '/' && !editable && !ribbonModalOpenRef.current)) {
         e.preventDefault()
         setShowSearch(true)
+        return
+      }
+
+      if (editable || ribbonModalOpenRef.current || e.metaKey || e.ctrlKey || e.altKey) return
+
+      // Category navigation: mobile layout only
+      if (e.key === 'ArrowLeft' && window.innerWidth < 1060) {
+        e.preventDefault()
+        setActiveCategoryIndex(i => Math.max(0, i - 1))
+      } else if (e.key === 'ArrowRight' && window.innerWidth < 1060) {
+        e.preventDefault()
+        setActiveCategoryIndex(i => Math.min(localDataRef.current.length - 1, i + 1))
+      } else if (e.key === 'n' || e.key === 'N') {
+        const cat = localDataRef.current[activeCategoryIndexRef.current]?.category
+        if (cat) { e.preventDefault(); setNewChoreCategory(cat) }
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [showSearch])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Sync localData from server when not dragging categories
   useEffect(() => {
@@ -234,8 +261,12 @@ export function Ribbon({ editMode, onLogged }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [localData.length])
 
-  // Card ResizeObservers — re-created only when the set of category IDs changes (add/remove, not reorder)
-  const sortedCatIdsKey = localData.map(d => d.category.id).sort((a, b) => a - b).join(',')
+  // Card ResizeObservers — re-created only when the set of category IDs changes (add/remove, not reorder).
+  // ADD_CAT_ID is included when editMode is on so the ghost card is measured.
+  const sortedCatIdsKey = [
+    ...localData.map(d => d.category.id),
+    ...(editMode && localData.length > 0 ? [ADD_CAT_ID] : []),
+  ].sort((a, b) => a - b).join(',')
   useEffect(() => {
     const grid = desktopGridRef.current
     if (!grid) return
@@ -364,8 +395,11 @@ export function Ribbon({ editMode, onLogged }: Props) {
   const cardWidth = colCount > 0 && containerWidth > 0
     ? (containerWidth - MASONRY_GAP * (colCount - 1)) / colCount
     : 0
+  const packIds = editMode && !showEmpty
+    ? [...localData.map(d => d.category.id), ADD_CAT_ID]
+    : localData.map(d => d.category.id)
   const { positions, containerHeight } = packMasonry(
-    localData.map(d => d.category.id),
+    packIds,
     colCount,
     cardHeightsRef.current,
     cardWidth,
@@ -406,6 +440,15 @@ export function Ribbon({ editMode, onLogged }: Props) {
                 {d.category.name}
               </button>
             ))}
+            {editMode && (
+              <button
+                onClick={() => setAddingCategory(true)}
+                className="shrink-0 flex items-center px-3 py-2.5 text-slate-400 dark:text-slate-500 hover:text-green-400 transition-colors border-l border-slate-200 dark:border-slate-700/60"
+                aria-label="Add category"
+              >
+                <Plus size={13} />
+              </button>
+            )}
           </div>
         )}
 
@@ -445,18 +488,6 @@ export function Ribbon({ editMode, onLogged }: Props) {
           </div>
         )}
 
-        {editMode && !showEmpty && (
-          <div className="shrink-0 border-t border-slate-200 dark:border-slate-700/60 p-3 flex flex-col gap-2">
-            <button
-              onClick={() => setAddingCategory(true)}
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/40 border border-slate-200 dark:border-slate-700/60 transition-colors"
-            >
-              <Plus size={15} />
-              Add category
-            </button>
-            <p className="text-center text-xs text-slate-400 dark:text-slate-600">v{__APP_VERSION__} · built {new Date(__BUILD_TIME__).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}</p>
-          </div>
-        )}
       </div>
 
       {/* ── Desktop: true masonry layout ── */}
@@ -502,20 +533,34 @@ export function Ribbon({ editMode, onLogged }: Props) {
                   </div>
                 )
               })}
+              {editMode && (() => {
+                const pos = positions.get(ADD_CAT_ID)
+                return (
+                  <div
+                    key="add-category"
+                    data-cat-card-id={ADD_CAT_ID}
+                    className="absolute rounded-2xl border border-dashed border-slate-300 dark:border-slate-700/60"
+                    style={{
+                      top: 0,
+                      left: 0,
+                      width: cardWidth > 0 ? cardWidth : undefined,
+                      transform: pos ? `translate(${pos.x}px,${pos.y}px)` : undefined,
+                      visibility: packPhase >= 1 && pos ? 'visible' : 'hidden',
+                      transition: packPhase >= 2 && draggingCatId === null ? 'transform 300ms ease' : 'none',
+                      willChange: 'transform',
+                    }}
+                  >
+                    <button
+                      onClick={() => setAddingCategory(true)}
+                      className="w-full h-full flex items-center justify-center gap-2 p-5 py-8 text-sm text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors"
+                    >
+                      <Plus size={15} />
+                      Add category
+                    </button>
+                  </div>
+                )
+              })()}
             </div>
-
-            {editMode && (
-              <div className="mt-5 flex flex-col gap-2">
-                <button
-                  onClick={() => setAddingCategory(true)}
-                  className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl text-sm text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/30 border border-dashed border-slate-300 dark:border-slate-700/60 hover:border-slate-400 dark:hover:border-slate-600 transition-colors"
-                >
-                  <Plus size={15} />
-                  Add category
-                </button>
-                <p className="text-center text-xs text-slate-400 dark:text-slate-600">v{__APP_VERSION__} · built {new Date(__BUILD_TIME__).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}</p>
-              </div>
-            )}
           </div>
         )}
       </div>
@@ -552,6 +597,15 @@ export function Ribbon({ editMode, onLogged }: Props) {
         <CategoryFormModal
           onClose={() => setAddingCategory(false)}
           onSaved={() => { setAddingCategory(false); refresh() }}
+        />
+      )}
+
+      {newChoreCategory && (
+        <ChoreFormModal
+          category={newChoreCategory}
+          allCategories={localData.flatMap(d => [d.category, ...d.subcategories.map(s => s.category)])}
+          onClose={() => setNewChoreCategory(null)}
+          onSaved={() => { setNewChoreCategory(null); refresh() }}
         />
       )}
     </>
