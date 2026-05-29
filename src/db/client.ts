@@ -99,6 +99,25 @@ class LastGlanceDB extends Dexie {
         })
       )
 
+    // Re-derives category_sync_id from category_id for all chores, fixing cases
+    // where updateChore was called with a new category_id but category_sync_id
+    // was not updated alongside it.
+    this.version(7)
+      .stores({})
+      .upgrade(async tx => {
+        const categories = await tx.table('categories').toArray()
+        const catSyncIdMap = new Map<number, string>(
+          categories.map((c: Category) => [c.id as number, c.sync_id as string])
+        )
+        const chores = await tx.table('chores').toArray()
+        for (const chore of chores) {
+          const category_sync_id = chore.category_id != null
+            ? (catSyncIdMap.get(chore.category_id as number) ?? null)
+            : null
+          await tx.table('chores').update(chore.id as number, { category_sync_id })
+        }
+      })
+
     this.on('populate', async () => {
       const catIds = (await this.categories.bulkAdd(
         SEED_CATEGORIES.map((cat) => ({
