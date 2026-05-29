@@ -201,7 +201,8 @@ export function Ribbon({ editMode, onLogged }: Props) {
       if (toIdx === -1) return
 
       const next = [...cur]
-      ;[next[fromIdx], next[toIdx]] = [next[toIdx], next[fromIdx]]
+      const [dragged] = next.splice(fromIdx, 1)
+      next.splice(toIdx, 0, dragged)
       localDataRef.current = next
       setLocalData(next)
     }
