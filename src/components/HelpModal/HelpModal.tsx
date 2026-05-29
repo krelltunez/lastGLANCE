@@ -24,6 +24,7 @@ function ExternalLinkRow({ href, label }: { href: string; label: string }) {
 
 export function HelpModal({ onClose, onOpenShortcuts }: Props) {
   const [storage, setStorage] = useState<{ used: number; quota: number } | null>(null)
+  const [persisted, setPersisted] = useState<boolean | null>(null)
 
   useEscapeKey(onClose)
 
@@ -33,6 +34,7 @@ export function HelpModal({ onClose, onOpenShortcuts }: Props) {
         setStorage({ used: est.usage, quota: est.quota })
       }
     }).catch(() => {})
+    navigator.storage?.persisted?.().then(p => setPersisted(p ?? null)).catch(() => {})
   }, [])
 
   function fmtBytes(n: number): string {
@@ -76,6 +78,28 @@ export function HelpModal({ onClose, onOpenShortcuts }: Props) {
           </div>
 
           <div className="border-t border-slate-100 dark:border-slate-700/40" />
+
+          {/* Persistent storage notice */}
+          {persisted === false && (
+            <>
+              <div className="border-t border-slate-100 dark:border-slate-700/40" />
+              <div className="rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/40 px-3 py-2.5 space-y-2">
+                <p className="text-xs text-amber-800 dark:text-amber-300 leading-snug">
+                  Your browser may clear app data under storage pressure. Allow persistent storage to protect your data.
+                </p>
+                <button
+                  onClick={() => {
+                    navigator.storage?.persist?.().then(granted => {
+                      if (granted) setPersisted(true)
+                    }).catch(() => {})
+                  }}
+                  className="text-xs font-medium px-2.5 py-1 rounded-md bg-amber-100 dark:bg-amber-800/40 text-amber-900 dark:text-amber-200 hover:bg-amber-200 dark:hover:bg-amber-700/50 transition-colors"
+                >
+                  Allow persistent storage
+                </button>
+              </div>
+            </>
+          )}
 
           {/* Build info + shortcuts button */}
           <div className="flex items-end justify-between gap-4">

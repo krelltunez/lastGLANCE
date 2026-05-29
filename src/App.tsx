@@ -136,6 +136,7 @@ function AppInner() {
 
   // Initialize sync engine on mount
   useEffect(() => {
+    navigator.storage?.persist?.()
     initSessionKey(CRYPTO_CONFIG).catch(() => {/* non-fatal */})
     const engine = createEngine(import.meta.env.VITE_WEBDAV_PROXY_URL, {
       onStatusChange: (status) => {
