@@ -1,39 +1,42 @@
-# last*GLANCE*
+# lastGLANCE
 
-**when did you last...?**
+**when did you last...?** A privacy-first recency tracker for the chores and upkeep that don't fit a calendar. Runs in your browser, with no account and no server unless you bring your own.
 
-![Version](https://img.shields.io/badge/version-1.1.1-green) ![License](https://img.shields.io/badge/license-MIT-blue)
+Part of the **GLANCE family**: focused, standalone apps connected through a shared intent protocol. See also [dayGLANCE](https://github.com/krelltunez/dayGLANCE) (today), lastGLANCE (recent upkeep), and [lifeGLANCE](https://github.com/krelltunez/lifeGLANCE) (your whole timeline).
+
+[![Version](https://img.shields.io/badge/version-1.0.1-green.svg)](../../releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
+---
 
 ![lastGLANCE dashboard](public/screenshot.png)
 
 lastGLANCE is a chore-tracking progressive web app that answers one question: *when did I last do this?* It tracks recency, not schedules. The emotional register is information, not guilt.
 
-Part of the [GLANCE family](https://github.com/krelltunez) alongside dayGLANCE and lifeGLANCE.
-
 ---
 
 ## Features
 
-- **Recency tracking** — each chore shows how long ago it was last done, encoded as a color gradient from fresh green through amber to red
-- **Cadence** — set a target interval in days; overdue chores sort to the top automatically
-- **Categories & subcategories** — organize chores into collapsible groups with custom icons
-- **Freeform masonry layout** — category cards size to their content and arrange across columns; your spatial organization is preserved
-- **Activity heatmap** — a GitHub-style contribution graph in the header gives an at-a-glance view of completion history
-- **Completion history** — per-chore stats (total completions, average interval vs. target), a per-chore contribution graph, and a timestamped log with per-entry notes
-- **Backdate entry** — log completions in the past to bootstrap history from day one
-- **Reminders** — browser notifications when a chore is overdue (opt-in per chore)
-- **Seasonal chores** — hide chores outside their active date range each year
-- **Cloud sync** — keep data in sync across devices via WebDAV or Nextcloud (CRDT merge, end-to-end encryption optional)
-- **Auto-backups** — periodic remote snapshots (hourly/daily/weekly) in a `backups/` subfolder alongside the sync file
-- **dayGLANCE integration** — send overdue chores as tasks to dayGLANCE via WebDAV intents
-- **PWA** — installable, works offline, auto-updates
+- **Recency tracking**: each chore shows how long ago it was last done, encoded as a color gradient from fresh green through amber to red
+- **Cadence**: set a target interval in days; overdue chores sort to the top automatically
+- **Categories & subcategories**: organize chores into collapsible groups with custom icons
+- **Freeform masonry layout**: category cards size to their content and arrange across columns; your spatial organization is preserved
+- **Activity heatmap**: a GitHub-style contribution graph in the header gives an at-a-glance view of completion history
+- **Completion history**: per-chore stats (total completions, average interval vs. target), a per-chore contribution graph, and a timestamped log with per-entry notes
+- **Backdate entry**: log completions in the past to bootstrap history from day one
+- **Reminders**: browser notifications when a chore is overdue (opt-in per chore)
+- **Seasonal chores**: hide chores outside their active date range each year
+- **Cloud sync**: keep data in sync across devices via WebDAV or Nextcloud (CRDT merge, end-to-end encryption optional)
+- **Auto-backups**: periodic remote snapshots (hourly/daily/weekly) in a `backups/` subfolder alongside the sync file
+- **dayGLANCE integration**: send overdue chores as tasks to dayGLANCE via WebDAV intents
+- **PWA**: installable, works offline, auto-updates
 - **Dark/light mode**
 
 ![lastGLANCE details view](public/screenshot_details.png)
 
 ---
 
-## Tech stack
+## Tech Stack
 
 | Layer | Technology |
 |---|---|
@@ -47,9 +50,9 @@ Part of the [GLANCE family](https://github.com/krelltunez) alongside dayGLANCE a
 
 ---
 
-## Deployment
+## Quick Start
 
-### Docker (recommended)
+### Self-host with Docker
 
 ```bash
 docker run -d \
@@ -69,7 +72,9 @@ services:
     restart: unless-stopped
 ```
 
-### Self-hosted (static files)
+Available at `http://localhost:3000`.
+
+### Self-host (static files)
 
 ```bash
 npm install
@@ -79,9 +84,7 @@ npm run build
 
 > **Note:** lastGLANCE makes WebDAV requests from the browser. If your WebDAV server does not allow cross-origin requests (CORS), you will need the WebDAV proxy (see [Configuration](#configuration)).
 
----
-
-## Development
+### Build from Source
 
 ```bash
 npm install
@@ -107,13 +110,13 @@ Create a `.env.local` for local development:
 VITE_WEBDAV_PROXY_URL=https://your-proxy.example.com
 ```
 
-### WebDAV proxy
+### WebDAV Proxy
 
 The `api/` directory contains a lightweight server-side proxy (`webdav-proxy.js`) for deployments where CORS is a constraint. It accepts requests at `/api/webdav-proxy/?url=<encoded-target>` and forwards them to the target WebDAV server, stripping the `X-WebDAV-Auth` header into a standard `Authorization` header on the way out.
 
 ---
 
-## Sync & storage
+## Sync & Storage
 
 All data is stored locally in IndexedDB (via Dexie). Cloud sync is optional and configured in-app under the **Cloud** button.
 
@@ -132,32 +135,40 @@ GLANCE/lastglance/
     lastglance-backup-weekly-...json
 ```
 
-**Encryption:** end-to-end AES-GCM-256 encryption is optional. When enabled, the sync file and all backup files are encrypted before upload. The passphrase never leaves the device; there is no recovery mechanism, so store it somewhere safe.
+**Encryption:** end-to-end AES-256-GCM encryption is optional. When enabled, the sync file and all backup files are encrypted before upload. The passphrase never leaves the device, and there is no recovery mechanism, so store it somewhere safe.
 
 ---
 
-## dayGLANCE integration
+## Integrations
+
+### dayGLANCE
 
 lastGLANCE can send overdue chores to [dayGLANCE](https://github.com/krelltunez/dayGLANCE) as scheduled tasks via the GLANCE intents protocol. Configure the integration under the **Plug** button.
 
 Two delivery modes are available per chore:
-- **Manual** — the -> dG button on a chore card sends it immediately
-- **Auto** — the chore is sent once per day whenever it's overdue (requires the intents poller to be running)
+- **Manual**: the -> dG button on a chore card sends it immediately
+- **Auto**: the chore is sent once per day whenever it's overdue (requires the intents poller to be running)
 
 ---
 
-## Data & backups
+## Data & Backups
 
-- **Export** — download a full JSON backup at any time from the Archive menu
-- **Import** — restore from a local JSON file (replaces all current data)
-- **Remote restore** — browse and restore from any auto-backup on your WebDAV server
-- **Clear sample data** — remove the example categories and chores from a fresh install (also offered in the welcome modal)
+- **Export**: download a full JSON backup at any time from the Archive menu
+- **Import**: restore from a local JSON file (replaces all current data)
+- **Remote restore**: browse and restore from any auto-backup on your WebDAV server
+- **Clear sample data**: remove the example categories and chores from a fresh install (also offered in the welcome modal)
+
+---
+
+## Privacy
+
+lastGLANCE has no backend, no analytics, and no accounts. All data is stored locally on your device. Cloud sync is optional, goes only to a server you control, and can be end-to-end encrypted so the server never sees plaintext.
 
 ---
 
 ## License
 
-[MIT](LICENSE) — free to use, self-host, modify, and distribute.
+[MIT](LICENSE): free to use, self-host, modify, and distribute.
 
 ---
 
