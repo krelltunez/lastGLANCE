@@ -12,6 +12,7 @@ Thanks for your interest in contributing! Whether you're fixing a typo, squashin
 - [Making a pull request](#making-a-pull-request)
 - [Reporting security issues](#reporting-security-issues)
 - [Reporting bugs](#reporting-bugs)
+- [License](#license)
 
 ---
 
@@ -146,4 +147,7 @@ Please [open an issue](https://github.com/krelltunez/lastGLANCE/issues) and incl
 - **Steps to reproduce**: the more specific, the better
 - **Environment:** browser and OS version
 
+## License
+
+By contributing, you agree that your contributions will be licensed under the [MIT License](LICENSE).
 If you're not sure whether something is a bug or by design, open an issue anyway and we'll figure it out together.
