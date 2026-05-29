@@ -18,7 +18,7 @@ Thanks for your interest in contributing! Whether you're fixing a typo, squashin
 
 ## Running the app locally
 
-**Prerequisites:** Node.js 18+ and npm.
+**Prerequisites:** Node.js 20+ and npm.
 
 ```bash
 git clone https://github.com/krelltunez/lastGLANCE.git
