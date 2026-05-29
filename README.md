@@ -166,6 +166,12 @@ lastGLANCE has no backend, no analytics, and no accounts. All data is stored loc
 
 ---
 
+## Contributing
+
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for how to run the app locally, project structure, pull request guidelines, and how to report bugs or security issues.
+
+---
+
 ## License
 
 [MIT](LICENSE): free to use, self-host, modify, and distribute.
