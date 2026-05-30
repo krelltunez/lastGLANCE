@@ -165,7 +165,12 @@ export async function updateChore(
   id: number,
   data: Partial<Omit<Chore, 'id' | 'created_at' | 'updated_at'>> & { icon?: string }
 ): Promise<void> {
-  await db.chores.update(id, { ...data, updated_at: dayjs().toISOString() })
+  let extra: { category_sync_id?: string | null } = {}
+  if (data.category_id != null) {
+    const cat = await db.categories.get(data.category_id)
+    extra = { category_sync_id: cat?.sync_id ?? null }
+  }
+  await db.chores.update(id, { ...data, ...extra, updated_at: dayjs().toISOString() })
 }
 
 export async function deleteChore(id: number): Promise<void> {
