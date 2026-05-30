@@ -192,14 +192,14 @@ export async function deleteChore(id: number): Promise<void> {
 
 export async function logCompletion(
   choreId: number,
-  opts: { note?: string; completedAt?: string; source?: 'manual' | 'dayglance' } = {}
+  opts: { note?: string; completedAt?: string; source?: 'manual' | 'dayglance'; syncId?: string } = {}
 ): Promise<number> {
   return db.completionEvents.add({
     chore_id: choreId,
     completed_at: opts.completedAt ?? dayjs().toISOString(),
     note: opts.note ?? null,
     source: opts.source ?? 'manual',
-    sync_id: crypto.randomUUID(),
+    sync_id: opts.syncId ?? crypto.randomUUID(),
   } as CompletionEvent)
 }
 
