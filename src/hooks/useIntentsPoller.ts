@@ -1,5 +1,8 @@
 import { useEffect, useRef } from 'react'
 import {
+  ACTIONS,
+  EVENTS,
+  SOURCE_APPS,
   parseEnvelope,
   parseEncryptedEnvelope,
   parseFilename,
@@ -20,7 +23,7 @@ import {
 } from '@/intents/config'
 import { buildAuthHeader, listFiles, getFile } from '@/intents/webdav'
 import { loadIntentsRootKey } from '@/intents/intentsKeyStore'
-import { processNotifyEnvelope } from '@/intents/processNotifyEnvelope'
+import dayjs from 'dayjs'
 
 export function useIntentsPoller(onNewCompletion?: () => void): void {
   const onNewCompletionRef = useRef<(() => void) | undefined>(onNewCompletion)
@@ -124,13 +127,26 @@ export function useIntentsPoller(onNewCompletion?: () => void): void {
     }
 
     async function processEnvelope(envelope: Awaited<ReturnType<typeof parseEnvelope>>) {
-      await processNotifyEnvelope(envelope, {
-        getChore: (id) => db.chores.get(id),
-        logCompletion,
-        addActivityEntry,
-        dispatchChoreLogged: () => window.dispatchEvent(new CustomEvent('lg:chore-logged')),
-        onNewCompletion: () => onNewCompletionRef.current?.(),
+      if (envelope.action !== ACTIONS.NOTIFY) return
+
+      const payload = envelope.payload
+      if (payload.source_app !== SOURCE_APPS.LASTGLANCE) return
+      if (payload.event !== EVENTS.COMPLETED) return
+
+      const choreId = parseInt(payload.source_entity_id, 10)
+      if (isNaN(choreId)) return
+
+      const chore = await db.chores.get(choreId)
+      if (!chore) return
+
+      await logCompletion(choreId, {
+        completedAt: payload.completed_at ?? dayjs().toISOString(),
+        source: 'dayglance',
       })
+
+      addActivityEntry({ type: 'received', message: `"${chore.name}" completed in dayGLANCE` })
+      window.dispatchEvent(new CustomEvent('lg:chore-logged'))
+      onNewCompletionRef.current?.()
     }
 
     poll()
