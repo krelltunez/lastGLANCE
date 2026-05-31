@@ -47,7 +47,6 @@ export async function putFile(baseUrl: string, folderPath: string, filename: str
   }
 }
 
-const HREF_RE = /<[^>]*:href[^>]*>([^<]*)<\/[^>]*:href>/gi
 
 const PROPFIND_BODY = '<?xml version="1.0" encoding="utf-8"?><propfind xmlns="DAV:"><allprop/></propfind>'
 
@@ -67,9 +66,9 @@ export async function listFiles(baseUrl: string, folderPath: string, authHeader:
     if (!res.ok) return []
     const text = await res.text()
     const filenames: string[] = []
+    const hrefRe = /<[^>]*:href[^>]*>([^<]*)<\/[^>]*:href>/gi
     let match: RegExpExecArray | null
-    HREF_RE.lastIndex = 0
-    while ((match = HREF_RE.exec(text)) !== null) {
+    while ((match = hrefRe.exec(text)) !== null) {
       const href = decodeURIComponent(match[1].trim())
       const filename = href.split('/').pop() ?? ''
       if (filename.endsWith('.json')) {

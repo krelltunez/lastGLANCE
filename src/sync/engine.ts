@@ -245,12 +245,12 @@ export function setRemoteBackupsEnabled(enabled: boolean): void {
   localStorage.setItem(REMOTE_BACKUPS_ENABLED_KEY, String(enabled))
 }
 
-let _backupInProgress = false
+const _backupInProgress = new WeakSet<SyncEngine>()
 
 export async function runAutoBackups(engine: SyncEngine): Promise<void> {
   if (!getRemoteBackupsEnabled()) return
-  if (_backupInProgress) return
-  _backupInProgress = true
+  if (_backupInProgress.has(engine)) return
+  _backupInProgress.add(engine)
   try {
     const now = Date.now()
     for (const freq of ['hourly', 'daily', 'weekly'] as BackupFrequency[]) {
@@ -265,7 +265,7 @@ export async function runAutoBackups(engine: SyncEngine): Promise<void> {
       }
     }
   } finally {
-    _backupInProgress = false
+    _backupInProgress.delete(engine)
   }
 }
 
