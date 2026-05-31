@@ -246,7 +246,34 @@ export async function exportBackup(): Promise<BackupPayload> {
   return { version: 1, exportedAt: new Date().toISOString(), categories, chores, completionEvents }
 }
 
+function validateBackupPayload(payload: BackupPayload): void {
+  const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+  const isoRe = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/
+  const mmddRe = /^\d{2}-\d{2}$/
+  for (const c of payload.categories) {
+    if (typeof c.name !== 'string' || c.name.length === 0 || c.name.length > 500) throw new Error('invalid category name')
+    if (typeof c.sort_order !== 'number') throw new Error('invalid category sort_order')
+    if (c.sync_id !== undefined && !uuidRe.test(c.sync_id)) throw new Error('invalid category sync_id')
+    if (c.updated_at !== undefined && !isoRe.test(c.updated_at)) throw new Error('invalid category updated_at')
+  }
+  for (const c of payload.chores) {
+    if (typeof c.name !== 'string' || c.name.length === 0 || c.name.length > 500) throw new Error('invalid chore name')
+    if (typeof c.sort_order !== 'number') throw new Error('invalid chore sort_order')
+    if (c.sync_id !== undefined && !uuidRe.test(c.sync_id)) throw new Error('invalid chore sync_id')
+    if (!isoRe.test(c.created_at)) throw new Error('invalid chore created_at')
+    if (!isoRe.test(c.updated_at)) throw new Error('invalid chore updated_at')
+    if (c.seasonal_start !== null && c.seasonal_start !== undefined && !mmddRe.test(c.seasonal_start)) throw new Error('invalid chore seasonal_start')
+    if (c.seasonal_end !== null && c.seasonal_end !== undefined && !mmddRe.test(c.seasonal_end)) throw new Error('invalid chore seasonal_end')
+  }
+  for (const e of payload.completionEvents) {
+    if (e.sync_id !== undefined && !uuidRe.test(e.sync_id)) throw new Error('invalid completionEvent sync_id')
+    if (!isoRe.test(e.completed_at)) throw new Error('invalid completionEvent completed_at')
+    if (e.source !== 'manual' && e.source !== 'dayglance') throw new Error('invalid completionEvent source')
+  }
+}
+
 export async function importBackup(payload: BackupPayload): Promise<void> {
+  validateBackupPayload(payload)
   await db.transaction('rw', db.categories, db.chores, db.completionEvents, db.tombstones, async () => {
     await db.completionEvents.clear()
     await db.chores.clear()

@@ -96,10 +96,42 @@ export const mergePayloads = (
   }
 }
 
+function validateSyncPayload(data: SyncPayload): void {
+  const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+  const isoRe = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/
+  const mmddRe = /^\d{2}-\d{2}$/
+  for (const c of (data.categories ?? [])) {
+    if (!uuidRe.test(c.id)) throw new Error('invalid category id')
+    if (typeof c.name !== 'string' || c.name.length === 0 || c.name.length > 500) throw new Error('invalid category name')
+    if (typeof c.sortOrder !== 'number') throw new Error('invalid category sortOrder')
+    if (!isoRe.test(c.updatedAt)) throw new Error('invalid category updatedAt')
+  }
+  for (const c of (data.chores ?? [])) {
+    if (!uuidRe.test(c.id)) throw new Error('invalid chore id')
+    if (typeof c.name !== 'string' || c.name.length === 0 || c.name.length > 500) throw new Error('invalid chore name')
+    if (typeof c.sortOrder !== 'number') throw new Error('invalid chore sortOrder')
+    if (!isoRe.test(c.createdAt)) throw new Error('invalid chore createdAt')
+    if (!isoRe.test(c.updatedAt)) throw new Error('invalid chore updatedAt')
+    if (c.seasonalStart != null && !mmddRe.test(c.seasonalStart)) throw new Error('invalid chore seasonalStart')
+    if (c.seasonalEnd != null && !mmddRe.test(c.seasonalEnd)) throw new Error('invalid chore seasonalEnd')
+  }
+  for (const e of (data.completionEvents ?? [])) {
+    if (!uuidRe.test(e.id)) throw new Error('invalid completionEvent id')
+    if (!uuidRe.test(e.choreSyncId)) throw new Error('invalid completionEvent choreSyncId')
+    if (!isoRe.test(e.completedAt)) throw new Error('invalid completionEvent completedAt')
+    if (e.source !== 'manual' && e.source !== 'dayglance') throw new Error('invalid completionEvent source')
+  }
+  for (const [syncId, deletedAt] of Object.entries(data.tombstones ?? {})) {
+    if (!uuidRe.test(syncId)) throw new Error('invalid tombstone id')
+    if (!isoRe.test(deletedAt)) throw new Error('invalid tombstone deletedAt')
+  }
+}
+
 // applyPayload: write merged data back to Dexie (two-pass for categories)
 export const applyPayload = async (rawData: unknown, { allowEmpty }: { allowEmpty: boolean }): Promise<void> => {
   const data = rawData as SyncPayload
   if (!allowEmpty && !data?.chores?.length && !data?.categories?.length && !data?.completionEvents?.length) return
+  validateSyncPayload(data)
 
   await db.transaction('rw', db.categories, db.chores, db.completionEvents, db.tombstones, async () => {
     // ── CATEGORIES pass 1: upsert by sync_id ──
@@ -245,12 +277,12 @@ export function setRemoteBackupsEnabled(enabled: boolean): void {
   localStorage.setItem(REMOTE_BACKUPS_ENABLED_KEY, String(enabled))
 }
 
-let _backupInProgress = false
+const _backupInProgress = new WeakSet<SyncEngine>()
 
 export async function runAutoBackups(engine: SyncEngine): Promise<void> {
   if (!getRemoteBackupsEnabled()) return
-  if (_backupInProgress) return
-  _backupInProgress = true
+  if (_backupInProgress.has(engine)) return
+  _backupInProgress.add(engine)
   try {
     const now = Date.now()
     for (const freq of ['hourly', 'daily', 'weekly'] as BackupFrequency[]) {
@@ -265,7 +297,7 @@ export async function runAutoBackups(engine: SyncEngine): Promise<void> {
       }
     }
   } finally {
-    _backupInProgress = false
+    _backupInProgress.delete(engine)
   }
 }
 

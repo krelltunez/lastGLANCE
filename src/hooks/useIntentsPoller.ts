@@ -140,7 +140,7 @@ export function useIntentsPoller(onNewCompletion?: () => void): void {
       if (!chore) return
 
       await logCompletion(choreId, {
-        completedAt: payload.completed_at ?? dayjs().toISOString(),
+        completedAt: dayjs(payload.completed_at).isValid() ? payload.completed_at : dayjs().toISOString(),
         source: 'dayglance',
       })
 
