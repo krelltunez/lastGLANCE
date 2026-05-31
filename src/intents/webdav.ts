@@ -65,11 +65,10 @@ export async function listFiles(baseUrl: string, folderPath: string, authHeader:
     if (res.status === 404) return []
     if (!res.ok) return []
     const text = await res.text()
+    const doc = new DOMParser().parseFromString(text, 'application/xml')
     const filenames: string[] = []
-    const hrefRe = /<[^>]*:href[^>]*>([^<]*)<\/[^>]*:href>/gi
-    let match: RegExpExecArray | null
-    while ((match = hrefRe.exec(text)) !== null) {
-      const href = decodeURIComponent(match[1].trim())
+    for (const el of Array.from(doc.getElementsByTagNameNS('DAV:', 'href'))) {
+      const href = decodeURIComponent((el.textContent ?? '').trim())
       const filename = href.split('/').pop() ?? ''
       if (filename.endsWith('.json')) {
         filenames.push(filename)
