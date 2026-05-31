@@ -156,7 +156,7 @@ function AppInner() {
     ensureSyncFolder(engine).then(() => engine.sync()).catch(() => {/* errors surfaced via onError */})
   }, [])
 
-  // Re-sync on tab focus
+  // Re-sync on tab focus and on a recurring interval
   useEffect(() => {
     function handleVisibility() {
       if (document.visibilityState === 'visible' && engineRef.current) {
@@ -165,7 +165,18 @@ function AppInner() {
       }
     }
     document.addEventListener('visibilitychange', handleVisibility)
-    return () => document.removeEventListener('visibilitychange', handleVisibility)
+
+    const interval = setInterval(() => {
+      if (engineRef.current) {
+        const eng = engineRef.current
+        ensureSyncFolder(eng).then(() => eng.sync()).catch(() => {/* errors surfaced via onError */})
+      }
+    }, 5 * 60 * 1000)
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility)
+      clearInterval(interval)
+    }
   }, [])
 
   const loadHeatmap = useCallback(async () => {
