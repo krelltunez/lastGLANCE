@@ -40,17 +40,21 @@ export function UsersModal({ onClose }: Props) {
     if (users.some(u => u.name.toLowerCase() === name.toLowerCase())) {
       setError('A user with that name already exists'); return
     }
-    const id = await createUser(name)
-    setAddingName('')
-    setIsAdding(false)
-    setError('')
-    await loadUsers()
-    // Auto-set as "me" if this is the first user
-    const fresh = await getUsers()
-    const created = fresh.find(u => u.id === id)
-    if (created && fresh.length === 1) {
-      setMeUserSyncId(created.sync_id)
-      setMeId(created.sync_id)
+    try {
+      const id = await createUser(name)
+      setAddingName('')
+      setIsAdding(false)
+      setError('')
+      const fresh = await getUsers()
+      setUsers(fresh)
+      // Auto-set as "me" if this is the first user
+      const created = fresh.find(u => u.id === id)
+      if (created && fresh.length === 1) {
+        setMeUserSyncId(created.sync_id)
+        setMeId(created.sync_id)
+      }
+    } catch (e) {
+      setError(`Failed to save user: ${e instanceof Error ? e.message : String(e)}`)
     }
   }
 
@@ -60,11 +64,15 @@ export function UsersModal({ onClose }: Props) {
     if (users.some(u => u.name.toLowerCase() === name.toLowerCase() && u.id !== editingId)) {
       setError('A user with that name already exists'); return
     }
-    await updateUser(editingId!, { name })
-    setEditingId(null)
-    setEditingName('')
-    setError('')
-    await loadUsers()
+    try {
+      await updateUser(editingId!, { name })
+      setEditingId(null)
+      setEditingName('')
+      setError('')
+      setUsers(await getUsers())
+    } catch (e) {
+      setError(`Failed to save: ${e instanceof Error ? e.message : String(e)}`)
+    }
   }
 
   async function handleDelete(user: User) {

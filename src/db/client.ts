@@ -127,13 +127,13 @@ class LastGlanceDB extends Dexie {
         chores: '++id, category_id, sort_order, sync_id',
         completionEvents: '++id, chore_id, completed_at, sync_id',
       })
-      .upgrade(tx => {
-        tx.table('chores').toCollection().modify((chore: Chore) => {
+      .upgrade(async tx => {
+        await tx.table('chores').toCollection().modify((chore: Chore) => {
           if ((chore as { assigned_user_sync_ids?: string[] }).assigned_user_sync_ids === undefined) {
             chore.assigned_user_sync_ids = []
           }
         })
-        tx.table('completionEvents').toCollection().modify((evt: CompletionEvent) => {
+        await tx.table('completionEvents').toCollection().modify((evt: CompletionEvent) => {
           if ((evt as { completed_by_user_sync_id?: string | null }).completed_by_user_sync_id === undefined) {
             evt.completed_by_user_sync_id = null
           }

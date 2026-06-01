@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { X, Smile, Bell, ArrowUpRight, Leaf, Users } from 'lucide-react'
-import type { Chore, Category, User } from '@/types'
-import { createChore, updateChore, getUsers } from '@/db/queries'
-import { getMultiUserEnabled } from '@/multiuser/settings'
+import type { Chore, Category } from '@/types'
+import { createChore, updateChore } from '@/db/queries'
+import { useUsersContext } from '@/multiuser/UsersContext'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
 import { IconPicker } from '@/components/IconPicker/IconPicker'
 import { ICON_REGISTRY } from '@/icons/registry'
@@ -65,13 +65,8 @@ export function ChoreFormModal({ category, allCategories, chore, onClose, onSave
   const [error, setError] = useState('')
   const { isConfigured } = useIntents()
 
-  const multiUserEnabled = getMultiUserEnabled()
-  const [allUsers, setAllUsers] = useState<User[]>([])
+  const { multiUserEnabled, users: allUsers } = useUsersContext()
   const [assignedIds, setAssignedIds] = useState<string[]>(chore?.assigned_user_sync_ids ?? [])
-
-  useEffect(() => {
-    if (multiUserEnabled) getUsers().then(setAllUsers)
-  }, [multiUserEnabled])
 
   function toggleAssigned(syncId: string) {
     setAssignedIds(prev =>
