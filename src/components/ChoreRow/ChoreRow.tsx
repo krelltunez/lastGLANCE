@@ -3,6 +3,7 @@ import { Check, Pencil, Trash2, GripVertical, Bell, Leaf } from 'lucide-react'
 import type { ChoreWithLastCompletion } from '@/types'
 import { getFillRatio, getCadenceColor, formatElapsed } from '@/utils/cadence'
 import { logCompletion } from '@/db/queries'
+import { getMeUserSyncId } from '@/multiuser/settings'
 import { ICON_REGISTRY } from '@/icons/registry'
 import { useIntents } from '@/intents/IntentsContext'
 import { emitCreateIntent } from '@/intents/emitter'
@@ -57,7 +58,7 @@ export function ChoreRow({ chore, editMode, onTap, onEdit, onDelete, onRefresh, 
     if (logState !== 'idle') return
     setLogState('saving')
     try {
-      await logCompletion(chore.id)
+      await logCompletion(chore.id, { completedByUserSyncId: getMeUserSyncId() })
       setLogState('done')
       onRefresh()
       setTimeout(() => setLogState('idle'), 1500)

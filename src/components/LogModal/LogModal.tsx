@@ -3,6 +3,7 @@ import { X, Trash2 } from 'lucide-react'
 import dayjs from 'dayjs'
 import type { ChoreWithLastCompletion, CompletionEvent } from '@/types'
 import { logCompletion, getCompletionHistory, deleteCompletion } from '@/db/queries'
+import { getMeUserSyncId } from '@/multiuser/settings'
 import { formatElapsed } from '@/utils/cadence'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
 import { DateTimePicker } from '@/components/DateTimePicker/DateTimePicker'
@@ -43,6 +44,7 @@ export function LogModal({ chore, onClose, onLogged }: Props) {
         completedAt: backdateDate
           ? dayjs(backdateTime ? `${backdateDate}T${backdateTime}` : `${backdateDate}T12:00`).toISOString()
           : undefined,
+        completedByUserSyncId: getMeUserSyncId(),
       })
       onLogged()
     } finally {
