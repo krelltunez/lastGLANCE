@@ -130,11 +130,6 @@ export function UsersModal({ onClose }: Props) {
 
           {enabled && (
             <>
-              {/* "Me" explainer */}
-              <p className="text-xs text-slate-400 dark:text-slate-500 -mt-2">
-                Mark one user as <span className="text-green-400 font-medium">Me</span> to enable filtering to your tasks. This setting is per-device and not synced.
-              </p>
-
               {/* User list */}
               <div className="space-y-1.5">
                 {users.map(user => (
@@ -166,22 +161,25 @@ export function UsersModal({ onClose }: Props) {
                       </>
                     ) : (
                       <>
+                        <span className={`shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
+                          meId === user.sync_id
+                            ? 'bg-green-400 text-white'
+                            : 'bg-slate-200 dark:bg-slate-600 text-slate-500 dark:text-slate-400'
+                        }`}>
+                          {user.name.charAt(0).toUpperCase()}
+                        </span>
+                        <span className="text-sm text-slate-700 dark:text-slate-200 truncate flex-1 min-w-0">{user.name}</span>
                         <button
                           onClick={() => handleSetMe(user)}
-                          title={meId === user.sync_id ? 'This is you — click to unset' : 'Set as me on this device'}
-                          className={`shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors border ${
+                          className={`shrink-0 px-2 py-0.5 rounded-md text-xs font-medium border transition-colors ${
                             meId === user.sync_id
-                              ? 'bg-green-400 border-green-400 text-white'
-                              : 'bg-slate-200 dark:bg-slate-600 border-slate-300 dark:border-slate-500 text-slate-500 dark:text-slate-400 hover:border-green-400/60 hover:text-green-400'
+                              ? 'bg-green-400/15 border-green-400/50 text-green-500 dark:text-green-400'
+                              : 'border-slate-300 dark:border-slate-600 text-slate-400 dark:text-slate-500 hover:border-green-400/50 hover:text-green-500 dark:hover:text-green-400'
                           }`}
-                          aria-label={meId === user.sync_id ? 'Unset as me' : 'Set as me'}
+                          aria-label={meId === user.sync_id ? 'Unset as me' : 'Set as me on this device'}
                         >
-                          {user.name.charAt(0).toUpperCase()}
+                          {meId === user.sync_id ? '✓ Me' : 'Me'}
                         </button>
-                        <span className="text-sm text-slate-700 dark:text-slate-200 truncate flex-1 min-w-0">{user.name}</span>
-                        {meId === user.sync_id && (
-                          <span className="text-xs text-green-400 font-medium shrink-0">Me</span>
-                        )}
                         <button
                           onClick={() => { setEditingId(user.id); setEditingName(user.name); setError('') }}
                           className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors shrink-0"
