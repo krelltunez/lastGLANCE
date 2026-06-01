@@ -4,6 +4,7 @@ import dayjs from 'dayjs'
 import type { ChoreWithLastCompletion, CompletionEvent } from '@/types'
 import { logCompletion, getCompletionHistory, deleteCompletion } from '@/db/queries'
 import { getMeUserSyncId } from '@/multiuser/settings'
+import { useUsersContext } from '@/multiuser/UsersContext'
 import { formatElapsed } from '@/utils/cadence'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
 import { DateTimePicker } from '@/components/DateTimePicker/DateTimePicker'
@@ -15,6 +16,7 @@ interface Props {
 }
 
 export function LogModal({ chore, onClose, onLogged }: Props) {
+  const { users, multiUserEnabled } = useUsersContext()
   const [note, setNote] = useState('')
   const [backdateDate, setBackdateDate] = useState('')
   const [backdateTime, setBackdateTime] = useState('')
@@ -158,7 +160,13 @@ export function LogModal({ chore, onClose, onLogged }: Props) {
                       : null
                     return (
                       <div key={evt.id}>
-                        <CompletionRow evt={evt} onDelete={() => handleDelete(evt.id)} />
+                        <CompletionRow
+                          evt={evt}
+                          onDelete={() => handleDelete(evt.id)}
+                          userName={multiUserEnabled && evt.completed_by_user_sync_id
+                            ? (users.find(u => u.sync_id === evt.completed_by_user_sync_id)?.name ?? null)
+                            : null}
+                        />
                         {gapDays !== null && gapDays > 0 && (
                           <GapMarker days={gapDays} target={chore.target_cadence_days} />
                         )}
@@ -186,7 +194,7 @@ function StatCell({ label, value }: { label: string; value: string }) {
   )
 }
 
-function CompletionRow({ evt, onDelete }: { evt: CompletionEvent; onDelete: () => void }) {
+function CompletionRow({ evt, onDelete, userName }: { evt: CompletionEvent; onDelete: () => void; userName: string | null }) {
   const [confirming, setConfirming] = useState(false)
   const dt = dayjs(evt.completed_at)
   return (
@@ -195,6 +203,9 @@ function CompletionRow({ evt, onDelete }: { evt: CompletionEvent; onDelete: () =
         <div className="flex items-baseline gap-2 flex-wrap">
           <span className="text-sm font-medium text-slate-700 dark:text-slate-200">{dt.format('MMM D, YYYY')}</span>
           <span className="text-xs text-slate-400 dark:text-slate-500">{dt.format('h:mm A')}</span>
+          {userName && (
+            <span className="text-xs text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-700/60 px-1.5 py-0.5 rounded">{userName}</span>
+          )}
           {evt.source === 'dayglance' && (
             <span className="text-xs text-blue-500 dark:text-blue-400 bg-blue-50 dark:bg-blue-400/10 px-1.5 py-0.5 rounded">via dayGLANCE</span>
           )}
