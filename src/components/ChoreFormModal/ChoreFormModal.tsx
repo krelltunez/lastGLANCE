@@ -98,6 +98,7 @@ export function ChoreFormModal({ category, allCategories, chore, onClose, onSave
           seasonal_start,
           seasonal_end,
           icon,
+          assigned_user_sync_ids: [],
         })
       }
       onSaved()
