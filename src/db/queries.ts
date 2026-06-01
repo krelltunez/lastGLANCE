@@ -231,7 +231,8 @@ export async function deleteCompletion(id: number): Promise<void> {
 // Users
 
 export async function getUsers(): Promise<User[]> {
-  return db.users.orderBy('name').toArray()
+  const users = await db.users.toArray()
+  return users.sort((a, b) => a.name.localeCompare(b.name))
 }
 
 export async function createUser(name: string): Promise<number> {
