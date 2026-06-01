@@ -388,6 +388,12 @@ export function Ribbon({ editMode, onLogged }: Props) {
     snap(0)
   }
 
+  // Apply user filter at render time (unfiltered data drives layout measurement)
+  const displayData = useMemo(
+    () => filterCategoryData(localData, meId, filter),
+    [localData, meId, filter]
+  )
+
   function openChore(chore: ChoreWithLastCompletion) { setSelectedChore(chore) }
   function closeChore() { setSelectedChore(null) }
   function afterLog() { refresh(); onLogged?.() }
@@ -401,11 +407,6 @@ export function Ribbon({ editMode, onLogged }: Props) {
     )
   }
 
-  // Apply user filter at render time (unfiltered data drives layout measurement)
-  const displayData = useMemo(
-    () => filterCategoryData(localData, meId, filter),
-    [localData, meId, filter]
-  )
 
   const showEmpty = localData.length === 0
   const prevData = activeCategoryIndex > 0 ? displayData[activeCategoryIndex - 1] : null
