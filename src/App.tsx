@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Pencil, Check, Sun, Moon, Archive, Plug, Cloud, CloudOff, RefreshCw, HelpCircle } from 'lucide-react'
+import { Pencil, Check, Sun, Moon, Archive, Plug, Cloud, CloudOff, RefreshCw, HelpCircle, Users } from 'lucide-react'
 import { Ribbon } from '@/components/Ribbon/Ribbon'
 import { BackupModal } from '@/components/BackupModal/BackupModal'
 import { WelcomeModal } from '@/components/WelcomeModal/WelcomeModal'
@@ -11,6 +11,9 @@ import { HelpModal } from '@/components/HelpModal/HelpModal'
 import { ShortcutsModal } from '@/components/ShortcutsModal/ShortcutsModal'
 import { ActivityLogModal } from '@/components/ActivityLogModal/ActivityLogModal'
 import { ToastProvider } from '@/components/Toast/Toast'
+import { UsersModal } from '@/components/UsersModal/UsersModal'
+import { UsersContext } from '@/multiuser/UsersContext'
+import { useUsers } from '@/multiuser/useUsers'
 import { useNotifications } from '@/hooks/useNotifications'
 import { useIntentsPoller } from '@/hooks/useIntentsPoller'
 import { IntentsProvider, useIntents } from '@/intents/IntentsContext'
@@ -106,6 +109,7 @@ function HeaderHeatmap({ weeks }: { weeks: HeatDay[][] }) {
 function AppInner() {
   useNotifications()
   const { refreshConfig } = useIntents()
+  const usersCtx = useUsers()
   const [editMode, setEditMode] = useState(false)
   const [showWelcome, setShowWelcome] = useState(() => !localStorage.getItem('lg-welcome-dismissed'))
   const [welcomeClearing, setWelcomeClearing] = useState(false)
@@ -116,6 +120,7 @@ function AppInner() {
   const [showHelp, setShowHelp] = useState(false)
   const [showShortcuts, setShowShortcuts] = useState(false)
   const [showActivityLog, setShowActivityLog] = useState(false)
+  const [showUsers, setShowUsers] = useState(false)
   const [ribbonKey, setRibbonKey] = useState(0)
   const [heatmapWeeks, setHeatmapWeeks] = useState<HeatDay[][]>([])
   const [waveKey, setWaveKey] = useState(0)
@@ -208,7 +213,7 @@ function AppInner() {
   const anyModalOpenRef = useRef(false)
   anyModalOpenRef.current = (
     showWelcome || showBackup || showIntegration || showSyncSettings ||
-    showPassphrase || showHelp || showShortcuts || showActivityLog
+    showPassphrase || showHelp || showShortcuts || showActivityLog || showUsers
   )
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -231,6 +236,7 @@ function AppInner() {
   }, [])
 
   return (
+    <UsersContext.Provider value={usersCtx}>
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col">
       <header className="shrink-0 px-5 pt-5 pb-4 border-b border-slate-200 dark:border-slate-800/80 flex items-end justify-between gap-4">
         {/* Logo + heatmap */}
@@ -280,8 +286,15 @@ function AppInner() {
               {editMode ? <><Check size={14} /> Done</> : <><Pencil size={14} /> Edit</>}
             </button>
           </div>
-          {/* Row 2: intents, sync, archive, help */}
+          {/* Row 2: users, intents, sync, archive, help */}
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowUsers(true)}
+              className="p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors"
+              aria-label="Users"
+            >
+              <Users size={15} />
+            </button>
             <button
               onClick={() => setShowIntegration(true)}
               className="p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors"
@@ -400,7 +413,14 @@ function AppInner() {
           onClose={() => setShowPassphrase(false)}
         />
       )}
+
+      {showUsers && (
+        <UsersModal
+          onClose={() => { setShowUsers(false); usersCtx.reload() }}
+        />
+      )}
     </div>
+    </UsersContext.Provider>
   )
 }
 

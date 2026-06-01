@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from 'react'
-import { Plus, GripVertical, Search } from 'lucide-react'
+import { useState, useRef, useEffect, useMemo } from 'react'
+import { Plus, GripVertical, Search, UserCircle } from 'lucide-react'
 import { useChores } from '@/hooks/useChores'
 import { reorderCategories } from '@/db/queries'
 import { CategorySection } from '@/components/CategorySection/CategorySection'
@@ -7,6 +7,7 @@ import { LogModal } from '@/components/LogModal/LogModal'
 import { CategoryFormModal } from '@/components/CategoryFormModal/CategoryFormModal'
 import { ChoreFormModal } from '@/components/ChoreFormModal/ChoreFormModal'
 import { SearchModal } from '@/components/SearchModal/SearchModal'
+import { useUsersContext } from '@/multiuser/UsersContext'
 import type { Category, ChoreWithLastCompletion } from '@/types'
 import type { CategoryWithChores } from '@/hooks/useChores'
 
@@ -59,8 +60,25 @@ function packMasonry(
 
 const ADD_CAT_ID = -1
 
+function filterCategoryData(data: CategoryWithChores[], meId: string | null, filter: 'all' | 'mine'): CategoryWithChores[] {
+  if (filter !== 'mine' || !meId) return data
+  return data.map(cat => ({
+    ...cat,
+    chores: cat.chores.filter(c =>
+      c.assigned_user_sync_ids.length === 0 || c.assigned_user_sync_ids.includes(meId)
+    ),
+    subcategories: cat.subcategories.map(sub => ({
+      ...sub,
+      chores: sub.chores.filter(c =>
+        c.assigned_user_sync_ids.length === 0 || c.assigned_user_sync_ids.includes(meId)
+      ),
+    })),
+  }))
+}
+
 export function Ribbon({ editMode, onLogged }: Props) {
   const { data, loading, refresh } = useChores()
+  const { multiUserEnabled, meId, filter, setFilter } = useUsersContext()
   const [localData, setLocalData] = useState<CategoryWithChores[]>([])
   const [activeCategoryIndex, setActiveCategoryIndex] = useState(0)
   const [selectedChore, setSelectedChore] = useState<ChoreWithLastCompletion | null>(null)
@@ -383,10 +401,16 @@ export function Ribbon({ editMode, onLogged }: Props) {
     )
   }
 
+  // Apply user filter at render time (unfiltered data drives layout measurement)
+  const displayData = useMemo(
+    () => filterCategoryData(localData, meId, filter),
+    [localData, meId, filter]
+  )
+
   const showEmpty = localData.length === 0
-  const prevData = activeCategoryIndex > 0 ? localData[activeCategoryIndex - 1] : null
-  const currData = localData[activeCategoryIndex]
-  const nextData = activeCategoryIndex < localData.length - 1 ? localData[activeCategoryIndex + 1] : null
+  const prevData = activeCategoryIndex > 0 ? displayData[activeCategoryIndex - 1] : null
+  const currData = displayData[activeCategoryIndex]
+  const nextData = activeCategoryIndex < displayData.length - 1 ? displayData[activeCategoryIndex + 1] : null
 
   // Flat list of all categories (roots + subcategories) for form pickers
   const allCategories = localData.flatMap(d => [d.category, ...d.subcategories.map(s => s.category)])
@@ -413,6 +437,20 @@ export function Ribbon({ editMode, onLogged }: Props) {
       <div className="flex flex-col flex-1 overflow-hidden min-[1060px]:hidden">
         {!showEmpty && (
           <div ref={tabsRef} className="flex overflow-x-auto scrollbar-none border-b border-slate-200 dark:border-slate-700/60 bg-slate-100 dark:bg-slate-900 shrink-0">
+            {multiUserEnabled && meId && !editMode && (
+              <button
+                onClick={() => setFilter(filter === 'mine' ? 'all' : 'mine')}
+                className={`shrink-0 flex items-center gap-1 px-3 py-2.5 text-xs font-semibold transition-colors border-r border-slate-200 dark:border-slate-700/60 ${
+                  filter === 'mine'
+                    ? 'text-green-400 bg-green-400/10'
+                    : 'text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200'
+                }`}
+                aria-label="Toggle my tasks filter"
+              >
+                <UserCircle size={13} />
+                {filter === 'mine' ? 'Mine' : 'All'}
+              </button>
+            )}
             {localData.map((d, i) => (
               <button
                 key={d.category.id}
@@ -497,12 +535,28 @@ export function Ribbon({ editMode, onLogged }: Props) {
           <EmptyState onAdd={() => setAddingCategory(true)} />
         ) : (
           <div className="p-6">
+            {multiUserEnabled && meId && !editMode && (
+              <div className="flex items-center gap-2 mb-4">
+                <button
+                  onClick={() => setFilter(filter === 'mine' ? 'all' : 'mine')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                    filter === 'mine'
+                      ? 'bg-green-400/15 border-green-400/50 text-green-500 dark:text-green-400'
+                      : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-green-400/40 hover:text-green-500'
+                  }`}
+                  aria-label="Toggle my tasks filter"
+                >
+                  <UserCircle size={13} />
+                  {filter === 'mine' ? 'Showing: Mine' : 'Showing: All'}
+                </button>
+              </div>
+            )}
             {/* Masonry container: cards are absolutely positioned within */}
             <div
               ref={desktopGridRef}
               style={{ position: 'relative', height: containerHeight }}
             >
-              {localData.map(d => {
+              {displayData.map(d => {
                 const pos = positions.get(d.category.id)
                 return (
                   <div

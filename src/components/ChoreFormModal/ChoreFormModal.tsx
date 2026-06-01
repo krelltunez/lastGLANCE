@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { X, Smile, Bell, ArrowUpRight, Leaf } from 'lucide-react'
-import type { Chore, Category } from '@/types'
-import { createChore, updateChore } from '@/db/queries'
+import { X, Smile, Bell, ArrowUpRight, Leaf, Users } from 'lucide-react'
+import type { Chore, Category, User } from '@/types'
+import { createChore, updateChore, getUsers } from '@/db/queries'
+import { getMultiUserEnabled } from '@/multiuser/settings'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
 import { IconPicker } from '@/components/IconPicker/IconPicker'
 import { ICON_REGISTRY } from '@/icons/registry'
@@ -64,6 +65,20 @@ export function ChoreFormModal({ category, allCategories, chore, onClose, onSave
   const [error, setError] = useState('')
   const { isConfigured } = useIntents()
 
+  const multiUserEnabled = getMultiUserEnabled()
+  const [allUsers, setAllUsers] = useState<User[]>([])
+  const [assignedIds, setAssignedIds] = useState<string[]>(chore?.assigned_user_sync_ids ?? [])
+
+  useEffect(() => {
+    if (multiUserEnabled) getUsers().then(setAllUsers)
+  }, [multiUserEnabled])
+
+  function toggleAssigned(syncId: string) {
+    setAssignedIds(prev =>
+      prev.includes(syncId) ? prev.filter(id => id !== syncId) : [...prev, syncId]
+    )
+  }
+
   const [isSeasonal, setIsSeasonal] = useState(Boolean(chore?.seasonal_start))
   const initStart = parseMD(chore?.seasonal_start, '04-01')
   const initEnd = parseMD(chore?.seasonal_end, '10-31')
@@ -86,7 +101,7 @@ export function ChoreFormModal({ category, allCategories, chore, onClose, onSave
     setSaving(true)
     try {
       if (isEdit && chore) {
-        await updateChore(chore.id, { name: trimmed, target_cadence_days: cadenceDays, notify_when_overdue: notify, auto_schedule_to_dayglance: autoSchedule, icon, category_id: selectedCategoryId, seasonal_start, seasonal_end })
+        await updateChore(chore.id, { name: trimmed, target_cadence_days: cadenceDays, notify_when_overdue: notify, auto_schedule_to_dayglance: autoSchedule, icon, category_id: selectedCategoryId, seasonal_start, seasonal_end, assigned_user_sync_ids: assignedIds })
       } else {
         await createChore({
           name: trimmed,
@@ -98,7 +113,7 @@ export function ChoreFormModal({ category, allCategories, chore, onClose, onSave
           seasonal_start,
           seasonal_end,
           icon,
-          assigned_user_sync_ids: [],
+          assigned_user_sync_ids: assignedIds,
         })
       }
       onSaved()
@@ -232,6 +247,38 @@ export function ChoreFormModal({ category, allCategories, chore, onClose, onSave
                 >
                   <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${autoSchedule ? 'translate-x-4' : ''}`} />
                 </button>
+              </div>
+            )}
+
+            {multiUserEnabled && allUsers.length > 0 && (
+              <div className="pt-2 border-t border-slate-100 dark:border-slate-700/40 space-y-2">
+                <div className="flex items-center gap-2">
+                  <Users size={13} className="text-slate-400 dark:text-slate-500" />
+                  <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Assigned to</span>
+                  <span className="text-xs text-slate-400 dark:text-slate-500">(empty = everybody)</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {allUsers.map(user => {
+                    const active = assignedIds.includes(user.sync_id)
+                    return (
+                      <button
+                        key={user.sync_id}
+                        type="button"
+                        onClick={() => toggleAssigned(user.sync_id)}
+                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors ${
+                          active
+                            ? 'bg-green-400/15 border-green-400/50 text-green-500 dark:text-green-400'
+                            : 'bg-slate-100 dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:border-green-400/40 hover:text-green-500'
+                        }`}
+                      >
+                        <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${active ? 'bg-green-400 text-white' : 'bg-slate-300 dark:bg-slate-500 text-slate-600 dark:text-slate-300'}`}>
+                          {user.name.charAt(0).toUpperCase()}
+                        </span>
+                        {user.name}
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
             )}
 
