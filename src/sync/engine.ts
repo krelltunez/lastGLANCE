@@ -168,7 +168,7 @@ export const applyPayload = async (rawData: unknown, { allowEmpty }: { allowEmpt
     setMultiUserEnabled(data.settings.multiUserEnabled)
   }
 
-  await db.transaction('rw', db.categories, db.chores, db.completionEvents, db.tombstones, db.users, async () => {
+  await db.transaction('rw', [db.categories, db.chores, db.completionEvents, db.tombstones, db.users], async () => {
     // ── CATEGORIES pass 1: upsert by sync_id ──
     for (const cat of (data.categories ?? [])) {
       if (data.tombstones?.[cat.id]) continue
