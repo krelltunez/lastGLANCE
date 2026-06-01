@@ -1,11 +1,12 @@
 import Dexie, { type Table } from 'dexie'
-import type { Category, Chore, CompletionEvent, Tombstone } from '@/types'
+import type { Category, Chore, CompletionEvent, Tombstone, User } from '@/types'
 
 class LastGlanceDB extends Dexie {
   categories!: Table<Category, number>
   chores!: Table<Chore, number>
   completionEvents!: Table<CompletionEvent, number>
   tombstones!: Table<Tombstone, string>
+  users!: Table<User, number>
 
   constructor() {
     super('lastglance')
@@ -116,6 +117,27 @@ class LastGlanceDB extends Dexie {
             : null
           await tx.table('chores').update(chore.id as number, { category_sync_id })
         }
+      })
+
+    // Adds users table; adds assigned_user_sync_ids to chores;
+    // adds completed_by_user_sync_id to completionEvents.
+    this.version(8)
+      .stores({
+        users: '++id, sync_id',
+        chores: '++id, category_id, sort_order, sync_id',
+        completionEvents: '++id, chore_id, completed_at, sync_id',
+      })
+      .upgrade(tx => {
+        tx.table('chores').toCollection().modify((chore: Chore) => {
+          if ((chore as { assigned_user_sync_ids?: string[] }).assigned_user_sync_ids === undefined) {
+            chore.assigned_user_sync_ids = []
+          }
+        })
+        tx.table('completionEvents').toCollection().modify((evt: CompletionEvent) => {
+          if ((evt as { completed_by_user_sync_id?: string | null }).completed_by_user_sync_id === undefined) {
+            evt.completed_by_user_sync_id = null
+          }
+        })
       })
 
     this.on('populate', async () => {

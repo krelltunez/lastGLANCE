@@ -10,7 +10,8 @@ import {
 import type { SyncEngine, SyncStatus, SyncErrorCode, BackupFrequency } from '@glance-apps/sync'
 import { db } from '@/db/client'
 import { buildAuthHeader, ensureFolder } from '@/intents/webdav'
-import type { SyncPayload } from './types'
+import type { SyncPayload, SyncSettings } from './types'
+import { getMultiUserEnabled, setMultiUserEnabled } from '@/multiuser/settings'
 
 export const CRYPTO_CONFIG = { cryptoDBName: 'lastglance-crypto' }
 export const DEFAULT_SYNC_FOLDER = 'GLANCE/lastglance'
@@ -20,17 +21,22 @@ export { initSessionKey, setupEncryptionKey, clearEncryptionKey }
 
 // buildPayload: read all Dexie tables, map to sync shapes
 export const buildPayload = async (): Promise<SyncPayload> => {
-  const [categories, chores, completionEvents, tombstoneRows] = await Promise.all([
+  const [categories, chores, completionEvents, tombstoneRows, users] = await Promise.all([
     db.categories.toArray(),
     db.chores.toArray(),
     db.completionEvents.toArray(),
     db.tombstones.toArray(),
+    db.users.toArray(),
   ])
 
   const tombstones: Record<string, string> = {}
   for (const t of tombstoneRows) tombstones[t.id] = t.deleted_at
 
   const choreMap = new Map(chores.map(c => [c.id!, c.sync_id]))
+
+  const settings: SyncSettings = {
+    multiUserEnabled: getMultiUserEnabled(),
+  }
 
   return {
     categories: categories.map(c => ({
@@ -53,6 +59,7 @@ export const buildPayload = async (): Promise<SyncPayload> => {
       seasonalStart: c.seasonal_start ?? null,
       seasonalEnd: c.seasonal_end ?? null,
       icon: c.icon,
+      assignedUserSyncIds: c.assigned_user_sync_ids ?? [],
       createdAt: c.created_at,
       updatedAt: c.updated_at,
     })),
@@ -62,7 +69,14 @@ export const buildPayload = async (): Promise<SyncPayload> => {
       completedAt: e.completed_at,
       note: e.note,
       source: e.source,
+      completedByUserSyncId: e.completed_by_user_sync_id ?? null,
     })),
+    users: users.map(u => ({
+      id: u.sync_id,
+      name: u.name,
+      updatedAt: u.updated_at,
+    })),
+    settings,
     tombstones,
   }
 }
@@ -72,8 +86,8 @@ export const mergePayloads = (
   local: unknown,
   remote: unknown,
 ): { data: unknown; localChanged: boolean; remoteChanged: boolean } => {
-  const l = (local ?? { chores: [], categories: [], completionEvents: [], tombstones: {} }) as SyncPayload
-  const r = (remote ?? { chores: [], categories: [], completionEvents: [], tombstones: {} }) as SyncPayload
+  const l = (local ?? { chores: [], categories: [], completionEvents: [], users: [], settings: { multiUserEnabled: false }, tombstones: {} }) as SyncPayload
+  const r = (remote ?? { chores: [], categories: [], completionEvents: [], users: [], settings: { multiUserEnabled: false }, tombstones: {} }) as SyncPayload
 
   const allTombstones: Record<string, string> = { ...l.tombstones, ...r.tombstones }
   const cutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)
@@ -83,16 +97,26 @@ export const mergePayloads = (
   const catMerge = mergeArrayById(l.categories as unknown as R[] ?? [], r.categories as unknown as R[] ?? [], tombstones, null, { idField: 'id', timestampField: 'updatedAt' })
   const choreMerge = mergeArrayById(l.chores as unknown as R[] ?? [], r.chores as unknown as R[] ?? [], tombstones, null, { idField: 'id', timestampField: 'updatedAt' })
   const evtMerge = mergeArrayById(l.completionEvents as unknown as R[] ?? [], r.completionEvents as unknown as R[] ?? [], tombstones, null, { idField: 'id', timestampField: 'completedAt' })
+  const userMerge = mergeArrayById(l.users as unknown as R[] ?? [], r.users as unknown as R[] ?? [], tombstones, null, { idField: 'id', timestampField: 'updatedAt' })
+
+  // Settings: OR the multiUserEnabled flag (if either side turned it on, keep it on)
+  const mergedSettings: SyncSettings = {
+    multiUserEnabled: !!(l.settings?.multiUserEnabled || r.settings?.multiUserEnabled),
+  }
+  const settingsLocalChanged = !!(r.settings?.multiUserEnabled && !l.settings?.multiUserEnabled)
+  const settingsRemoteChanged = !!(l.settings?.multiUserEnabled && !r.settings?.multiUserEnabled)
 
   return {
     data: {
       categories: catMerge.merged,
       chores: choreMerge.merged,
       completionEvents: evtMerge.merged,
+      users: userMerge.merged,
+      settings: mergedSettings,
       tombstones,
     } as unknown as SyncPayload,
-    localChanged: catMerge.localChanged || choreMerge.localChanged || evtMerge.localChanged,
-    remoteChanged: catMerge.remoteChanged || choreMerge.remoteChanged || evtMerge.remoteChanged,
+    localChanged: catMerge.localChanged || choreMerge.localChanged || evtMerge.localChanged || userMerge.localChanged || settingsLocalChanged,
+    remoteChanged: catMerge.remoteChanged || choreMerge.remoteChanged || evtMerge.remoteChanged || userMerge.remoteChanged || settingsRemoteChanged,
   }
 }
 
@@ -120,6 +144,12 @@ function validateSyncPayload(data: SyncPayload): void {
     if (!uuidRe.test(e.choreSyncId)) throw new Error('invalid completionEvent choreSyncId')
     if (!isoRe.test(e.completedAt)) throw new Error('invalid completionEvent completedAt')
     if (e.source !== 'manual' && e.source !== 'dayglance') throw new Error('invalid completionEvent source')
+    if (e.completedByUserSyncId != null && !uuidRe.test(e.completedByUserSyncId)) throw new Error('invalid completionEvent completedByUserSyncId')
+  }
+  for (const u of (data.users ?? [])) {
+    if (!uuidRe.test(u.id)) throw new Error('invalid user id')
+    if (typeof u.name !== 'string' || u.name.length === 0 || u.name.length > 100) throw new Error('invalid user name')
+    if (!isoRe.test(u.updatedAt)) throw new Error('invalid user updatedAt')
   }
   for (const [syncId, deletedAt] of Object.entries(data.tombstones ?? {})) {
     if (!uuidRe.test(syncId)) throw new Error('invalid tombstone id')
@@ -130,10 +160,15 @@ function validateSyncPayload(data: SyncPayload): void {
 // applyPayload: write merged data back to Dexie (two-pass for categories)
 export const applyPayload = async (rawData: unknown, { allowEmpty }: { allowEmpty: boolean }): Promise<void> => {
   const data = rawData as SyncPayload
-  if (!allowEmpty && !data?.chores?.length && !data?.categories?.length && !data?.completionEvents?.length) return
+  if (!allowEmpty && !data?.chores?.length && !data?.categories?.length && !data?.completionEvents?.length && !data?.users?.length) return
   validateSyncPayload(data)
 
-  await db.transaction('rw', db.categories, db.chores, db.completionEvents, db.tombstones, async () => {
+  // Apply synced settings to localStorage (device-local "me" is NOT overwritten)
+  if (typeof data.settings?.multiUserEnabled === 'boolean') {
+    setMultiUserEnabled(data.settings.multiUserEnabled)
+  }
+
+  await db.transaction('rw', db.categories, db.chores, db.completionEvents, db.tombstones, db.users, async () => {
     // ── CATEGORIES pass 1: upsert by sync_id ──
     for (const cat of (data.categories ?? [])) {
       if (data.tombstones?.[cat.id]) continue
@@ -204,6 +239,7 @@ export const applyPayload = async (rawData: unknown, { allowEmpty }: { allowEmpt
           seasonal_start: chore.seasonalStart ?? null,
           seasonal_end: chore.seasonalEnd ?? null,
           icon: chore.icon,
+          assigned_user_sync_ids: chore.assignedUserSyncIds ?? [],
           updated_at: chore.updatedAt,
         })
       } else {
@@ -221,6 +257,7 @@ export const applyPayload = async (rawData: unknown, { allowEmpty }: { allowEmpt
           seasonal_start: chore.seasonalStart ?? null,
           seasonal_end: chore.seasonalEnd ?? null,
           icon: chore.icon,
+          assigned_user_sync_ids: chore.assignedUserSyncIds ?? [],
           created_at: chore.createdAt,
           updated_at: chore.updatedAt,
         } as any)
@@ -246,6 +283,7 @@ export const applyPayload = async (rawData: unknown, { allowEmpty }: { allowEmpt
         completed_at: evt.completedAt,
         note: evt.note,
         source: evt.source,
+        completed_by_user_sync_id: evt.completedByUserSyncId ?? null,
       } as any)
     }
 
@@ -253,6 +291,30 @@ export const applyPayload = async (rawData: unknown, { allowEmpty }: { allowEmpt
     for (const syncId of Object.keys(data.tombstones ?? {})) {
       const evt = await db.completionEvents.where('sync_id').equals(syncId).first()
       if (evt) await db.completionEvents.delete(evt.id!)
+    }
+
+    // ── USERS: upsert by sync_id ──
+    for (const user of (data.users ?? [])) {
+      if (data.tombstones?.[user.id]) continue
+      const existing = await db.users.where('sync_id').equals(user.id).first()
+      if (existing) {
+        await db.users.update(existing.id, {
+          name: user.name,
+          updated_at: user.updatedAt,
+        })
+      } else {
+        await db.users.add({
+          sync_id: user.id,
+          name: user.name,
+          updated_at: user.updatedAt,
+        } as any)
+      }
+    }
+
+    // ── Delete tombstoned users ──
+    for (const syncId of Object.keys(data.tombstones ?? {})) {
+      const user = await db.users.where('sync_id').equals(syncId).first()
+      if (user) await db.users.delete(user.id)
     }
 
     // ── Persist tombstones ──
