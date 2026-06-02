@@ -1,10 +1,33 @@
 const MULTI_USER_ENABLED_KEY = 'lg_multi_user_enabled'
-const ME_USER_SYNC_ID_KEY = 'lg_me_user_sync_id'
 const USER_FILTER_KEY = 'lg_user_filter'
-const USERS_PATH_KEY = 'lg_users_path'
-const DEFAULT_USERS_PATH = '/GLANCE/users/'
+const MULTIUSER_CONFIG_KEY = 'lg_multiuser_config'
+
+export const DEFAULT_USERS_PATH = '/GLANCE/users/'
 
 export type UserFilter = 'all' | 'mine'
+
+interface MultiUserConfig {
+  meUserSyncId: string | null
+  usersPath: string
+}
+
+function getMultiUserConfig(): MultiUserConfig {
+  try {
+    const raw = localStorage.getItem(MULTIUSER_CONFIG_KEY)
+    if (raw) return { meUserSyncId: null, usersPath: DEFAULT_USERS_PATH, ...JSON.parse(raw) }
+  } catch { /* ignore */ }
+  // Migrate from old separate keys if present
+  const legacyMe = localStorage.getItem('lg_me_user_sync_id')
+  const legacyPath = localStorage.getItem('lg_users_path')
+  return {
+    meUserSyncId: legacyMe ?? null,
+    usersPath: legacyPath ?? DEFAULT_USERS_PATH,
+  }
+}
+
+function saveMultiUserConfig(config: MultiUserConfig): void {
+  localStorage.setItem(MULTIUSER_CONFIG_KEY, JSON.stringify(config))
+}
 
 export function getMultiUserEnabled(): boolean {
   return localStorage.getItem(MULTI_USER_ENABLED_KEY) === 'true'
@@ -14,17 +37,12 @@ export function setMultiUserEnabled(enabled: boolean): void {
   localStorage.setItem(MULTI_USER_ENABLED_KEY, String(enabled))
 }
 
-/** The sync_id of the user designated as "me" on this device. Null if not set. */
 export function getMeUserSyncId(): string | null {
-  return localStorage.getItem(ME_USER_SYNC_ID_KEY)
+  return getMultiUserConfig().meUserSyncId
 }
 
 export function setMeUserSyncId(syncId: string | null): void {
-  if (syncId === null) {
-    localStorage.removeItem(ME_USER_SYNC_ID_KEY)
-  } else {
-    localStorage.setItem(ME_USER_SYNC_ID_KEY, syncId)
-  }
+  saveMultiUserConfig({ ...getMultiUserConfig(), meUserSyncId: syncId })
 }
 
 export function getUserFilter(): UserFilter {
@@ -36,9 +54,9 @@ export function setUserFilter(filter: UserFilter): void {
 }
 
 export function getUsersPath(): string {
-  return localStorage.getItem(USERS_PATH_KEY) ?? DEFAULT_USERS_PATH
+  return getMultiUserConfig().usersPath
 }
 
 export function setUsersPath(path: string): void {
-  localStorage.setItem(USERS_PATH_KEY, path)
+  saveMultiUserConfig({ ...getMultiUserConfig(), usersPath: path })
 }

@@ -3,7 +3,7 @@ import { Pencil, Check, Sun, Moon, Archive, Plug, Cloud, CloudOff, RefreshCw, He
 import { Ribbon } from '@/components/Ribbon/Ribbon'
 import { BackupModal } from '@/components/BackupModal/BackupModal'
 import { WelcomeModal } from '@/components/WelcomeModal/WelcomeModal'
-import { clearSeedData } from '@/db/queries'
+import { clearSeedData, getUsers as getDBUsers } from '@/db/queries'
 import { IntegrationSettingsModal } from '@/components/IntegrationSettingsModal/IntegrationSettingsModal'
 import { SyncSettingsModal } from '@/components/SyncSettingsModal/SyncSettingsModal'
 import { PassphraseModal } from '@/components/PassphraseModal/PassphraseModal'
@@ -18,8 +18,10 @@ import { useNotifications } from '@/hooks/useNotifications'
 import { useIntentsPoller } from '@/hooks/useIntentsPoller'
 import { IntentsProvider, useIntents } from '@/intents/IntentsContext'
 import { getAllCompletionCounts } from '@/db/queries'
-import { createEngine, initSessionKey, setupEncryptionKey, runAutoBackups, ensureSyncFolder, CRYPTO_CONFIG } from '@/sync/engine'
+import { createEngine, initSessionKey, setupEncryptionKey, runAutoBackups, ensureSyncFolder, CRYPTO_CONFIG, getSyncWebdavConfig } from '@/sync/engine'
 import type { SyncEngine, SyncStatus } from '@glance-apps/sync'
+import { syncSharedUsers } from '@/multiuser/sharedUsers'
+import { getUsersPath } from '@/multiuser/settings'
 import dayjs from 'dayjs'
 
 // ── Header heatmap ─────────────────────────────────────────────────────────────
@@ -161,6 +163,45 @@ function AppInner() {
     engineRef.current = engine
     ensureSyncFolder(engine).then(() => engine.sync()).catch(() => {/* errors surfaced via onError */})
   }, [])
+
+  // Shared user roster sync — fire-and-forget, non-fatal
+  const runSharedUserSync = useCallback(async () => {
+    const syncConfig = getSyncWebdavConfig(engineRef.current)
+    if (!syncConfig) return
+    try {
+      const localUsers = await getDBUsers()
+      const result = await syncSharedUsers(syncConfig, getUsersPath(), localUsers)
+      if (result) {
+        // Upsert remote-only or updated users into local DB
+        const { createUser, updateUser } = await import('@/db/queries')
+        for (const ru of result.merged) {
+          const existing = localUsers.find(u => u.sync_id === ru.id)
+          if (!existing) {
+            await createUser(ru.name)
+          } else if (ru.name !== existing.name && ru.updatedAt > existing.updated_at) {
+            await updateUser(existing.id, { name: ru.name })
+          }
+        }
+        usersCtx.reload()
+      }
+    } catch { /* non-fatal */ }
+  }, [usersCtx])
+
+  // Auto-sync on mount
+  useEffect(() => {
+    runSharedUserSync()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Auto-sync when user list changes (after add/edit/delete in UsersModal)
+  const prevUsersRef = useRef<string>('')
+  useEffect(() => {
+    const key = usersCtx.users.map(u => `${u.sync_id}:${u.name}:${u.updated_at}`).join(',')
+    if (prevUsersRef.current && key !== prevUsersRef.current) {
+      runSharedUserSync()
+    }
+    prevUsersRef.current = key
+  }, [usersCtx.users, runSharedUserSync])
 
   // Re-sync on tab focus and on a recurring interval
   useEffect(() => {
@@ -395,7 +436,7 @@ function AppInner() {
       {showSyncSettings && (
         <SyncSettingsModal
           engine={engineRef.current}
-          onClose={() => setShowSyncSettings(false)}
+          onClose={() => { setShowSyncSettings(false); runSharedUserSync() }}
         />
       )}
 
