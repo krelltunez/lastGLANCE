@@ -168,66 +168,79 @@ export const applyPayload = async (rawData: unknown, { allowEmpty }: { allowEmpt
     setMultiUserEnabled(data.settings.multiUserEnabled)
   }
 
+  const tombstoneIds = new Set(Object.keys(data.tombstones ?? {}))
+
   await db.transaction('rw', [db.categories, db.chores, db.completionEvents, db.tombstones, db.users], async () => {
+    // ── Bulk-fetch existing records into Maps for O(1) lookup ──
+    const [existingCats, existingChores, existingEvents, existingUsers] = await Promise.all([
+      db.categories.toArray(),
+      db.chores.toArray(),
+      db.completionEvents.toArray(),
+      db.users.toArray(),
+    ])
+    const catBySyncId    = new Map(existingCats.map(c => [c.sync_id,  c]))
+    const choreBySyncId  = new Map(existingChores.map(c => [c.sync_id, c]))
+    const eventBySyncId  = new Map(existingEvents.map(e => [e.sync_id, e]))
+    const userBySyncId   = new Map(existingUsers.map(u => [u.sync_id,  u]))
+
     // ── CATEGORIES pass 1: upsert by sync_id ──
+    const catsToAdd: any[] = []
+    const catsToUpdate: Array<[number, object]> = []
     for (const cat of (data.categories ?? [])) {
-      if (data.tombstones?.[cat.id]) continue
-      const existing = await db.categories.where('sync_id').equals(cat.id).first()
+      if (tombstoneIds.has(cat.id)) continue
+      const existing = catBySyncId.get(cat.id)
       if (existing) {
-        await db.categories.update(existing.id, {
-          name: cat.name,
-          sort_order: cat.sortOrder,
-          icon: cat.icon,
-          parent_sync_id: cat.parentId,
-          updated_at: cat.updatedAt,
-        })
+        catsToUpdate.push([existing.id!, {
+          name: cat.name, sort_order: cat.sortOrder, icon: cat.icon,
+          parent_sync_id: cat.parentId, updated_at: cat.updatedAt,
+        }])
       } else {
-        await db.categories.add({
-          sync_id: cat.id,
-          name: cat.name,
-          sort_order: cat.sortOrder,
-          icon: cat.icon,
-          parent_sync_id: cat.parentId,
-          parent_category_id: undefined,
-          updated_at: cat.updatedAt,
-        } as any)
+        catsToAdd.push({
+          sync_id: cat.id, name: cat.name, sort_order: cat.sortOrder,
+          icon: cat.icon, parent_sync_id: cat.parentId,
+          parent_category_id: undefined, updated_at: cat.updatedAt,
+        })
       }
     }
+    await Promise.all(catsToUpdate.map(([id, fields]) => db.categories.update(id, fields)))
+    await db.categories.bulkAdd(catsToAdd)
 
     // ── CATEGORIES pass 2: resolve parent_sync_id → parent_category_id ──
+    // Re-fetch after inserts so new categories are in the map
+    const allCatsAfterUpsert = await db.categories.toArray()
+    const catBySync2 = new Map(allCatsAfterUpsert.map(c => [c.sync_id, c]))
+    const parentUpdates: Array<[number, object]> = []
     for (const cat of (data.categories ?? [])) {
-      if (!cat.parentId || data.tombstones?.[cat.id]) continue
-      const child = await db.categories.where('sync_id').equals(cat.id).first()
+      if (!cat.parentId || tombstoneIds.has(cat.id)) continue
+      const child = catBySync2.get(cat.id)
       if (!child) continue
-      const parent = await db.categories.where('sync_id').equals(cat.parentId).first()
+      const parent = catBySync2.get(cat.parentId)
       if (parent) {
-        await db.categories.update(child.id, { parent_category_id: parent.id })
+        parentUpdates.push([child.id!, { parent_category_id: parent.id }])
       } else {
-        // parent tombstoned — promote to root
-        await db.categories.where('sync_id').equals(cat.id).modify((c: any) => {
-          delete c.parent_category_id
-          c.parent_sync_id = null
-        })
+        parentUpdates.push([child.id!, { parent_category_id: undefined, parent_sync_id: null }])
       }
     }
+    await Promise.all(parentUpdates.map(([id, fields]) => db.categories.update(id, fields)))
 
     // ── Delete tombstoned categories ──
-    for (const syncId of Object.keys(data.tombstones ?? {})) {
-      const cat = await db.categories.where('sync_id').equals(syncId).first()
-      if (cat) await db.categories.delete(cat.id)
-    }
+    const catTombstoneIds = [...tombstoneIds]
+      .map(sid => catBySyncId.get(sid)?.id)
+      .filter((id): id is number => id != null)
+    await db.categories.bulkDelete(catTombstoneIds)
 
     // ── CHORES: upsert by sync_id ──
+    // Re-fetch categories (tombstones may have been deleted) for category_id resolution
+    const allCatsForChores = await db.categories.toArray()
+    const catMapForChores = new Map(allCatsForChores.map(c => [c.sync_id, c]))
+    const choresToAdd: any[] = []
+    const choresToUpdate: Array<[number, object]> = []
     for (const chore of (data.chores ?? [])) {
-      if (data.tombstones?.[chore.id]) continue
-      let category_id: number | undefined
-      if (chore.categorySyncId) {
-        const cat = await db.categories.where('sync_id').equals(chore.categorySyncId).first()
-        category_id = cat?.id
-      }
-      const existing = await db.chores.where('sync_id').equals(chore.id).first()
+      if (tombstoneIds.has(chore.id)) continue
+      const category_id = chore.categorySyncId ? catMapForChores.get(chore.categorySyncId)?.id : undefined
+      const existing = choreBySyncId.get(chore.id)
       if (existing) {
-        await db.chores.update(existing.id, {
+        choresToUpdate.push([existing.id!, {
           name: chore.name,
           category_id: category_id ?? existing.category_id,
           category_sync_id: chore.categorySyncId,
@@ -241,13 +254,11 @@ export const applyPayload = async (rawData: unknown, { allowEmpty }: { allowEmpt
           icon: chore.icon,
           assigned_user_sync_ids: chore.assignedUserSyncIds ?? [],
           updated_at: chore.updatedAt,
-        })
+        }])
       } else {
         if (!category_id) continue  // category was deleted; skip rather than store category_id: 0
-        await db.chores.add({
-          sync_id: chore.id,
-          name: chore.name,
-          category_id,
+        choresToAdd.push({
+          sync_id: chore.id, name: chore.name, category_id,
           category_sync_id: chore.categorySyncId,
           sort_order: chore.sortOrder,
           target_cadence_days: chore.targetCadenceDays,
@@ -258,64 +269,63 @@ export const applyPayload = async (rawData: unknown, { allowEmpty }: { allowEmpt
           seasonal_end: chore.seasonalEnd ?? null,
           icon: chore.icon,
           assigned_user_sync_ids: chore.assignedUserSyncIds ?? [],
-          created_at: chore.createdAt,
-          updated_at: chore.updatedAt,
-        } as any)
+          created_at: chore.createdAt, updated_at: chore.updatedAt,
+        })
       }
     }
+    await Promise.all(choresToUpdate.map(([id, fields]) => db.chores.update(id, fields)))
+    await db.chores.bulkAdd(choresToAdd)
 
     // ── Delete tombstoned chores ──
-    for (const syncId of Object.keys(data.tombstones ?? {})) {
-      const chore = await db.chores.where('sync_id').equals(syncId).first()
-      if (chore) await db.chores.delete(chore.id)
-    }
+    const choreTombstoneIds = [...tombstoneIds]
+      .map(sid => choreBySyncId.get(sid)?.id)
+      .filter((id): id is number => id != null)
+    await db.chores.bulkDelete(choreTombstoneIds)
 
-    // ── COMPLETION EVENTS: upsert by sync_id ──
+    // ── COMPLETION EVENTS: insert new ones only (events are immutable) ──
+    // Re-fetch chores after upsert for chore_id resolution
+    const allChoresForEvents = await db.chores.toArray()
+    const choreMapForEvents = new Map(allChoresForEvents.map(c => [c.sync_id, c]))
+    const eventsToAdd: any[] = []
     for (const evt of (data.completionEvents ?? [])) {
-      if (data.tombstones?.[evt.id]) continue
-      const existing = await db.completionEvents.where('sync_id').equals(evt.id).first()
-      if (existing) continue  // events are immutable; skip if already present
-      const chore = await db.chores.where('sync_id').equals(evt.choreSyncId).first()
+      if (tombstoneIds.has(evt.id)) continue
+      if (eventBySyncId.has(evt.id)) continue  // immutable; already present
+      const chore = choreMapForEvents.get(evt.choreSyncId)
       if (!chore) continue  // chore was deleted; skip orphaned events
-      await db.completionEvents.add({
-        sync_id: evt.id,
-        chore_id: chore.id!,
-        completed_at: evt.completedAt,
-        note: evt.note,
-        source: evt.source,
+      eventsToAdd.push({
+        sync_id: evt.id, chore_id: chore.id!,
+        completed_at: evt.completedAt, note: evt.note, source: evt.source,
         completed_by_user_sync_id: evt.completedByUserSyncId ?? null,
-      } as any)
+      })
     }
+    await db.completionEvents.bulkAdd(eventsToAdd)
 
     // ── Delete tombstoned completion events ──
-    for (const syncId of Object.keys(data.tombstones ?? {})) {
-      const evt = await db.completionEvents.where('sync_id').equals(syncId).first()
-      if (evt) await db.completionEvents.delete(evt.id!)
-    }
+    const evtTombstoneIds = [...tombstoneIds]
+      .map(sid => eventBySyncId.get(sid)?.id)
+      .filter((id): id is number => id != null)
+    await db.completionEvents.bulkDelete(evtTombstoneIds)
 
     // ── USERS: upsert by sync_id ──
+    const usersToAdd: any[] = []
+    const usersToUpdate: Array<[number, object]> = []
     for (const user of (data.users ?? [])) {
-      if (data.tombstones?.[user.id]) continue
-      const existing = await db.users.where('sync_id').equals(user.id).first()
+      if (tombstoneIds.has(user.id)) continue
+      const existing = userBySyncId.get(user.id)
       if (existing) {
-        await db.users.update(existing.id, {
-          name: user.name,
-          updated_at: user.updatedAt,
-        })
+        usersToUpdate.push([existing.id!, { name: user.name, updated_at: user.updatedAt }])
       } else {
-        await db.users.add({
-          sync_id: user.id,
-          name: user.name,
-          updated_at: user.updatedAt,
-        } as any)
+        usersToAdd.push({ sync_id: user.id, name: user.name, updated_at: user.updatedAt })
       }
     }
+    await Promise.all(usersToUpdate.map(([id, fields]) => db.users.update(id, fields)))
+    await db.users.bulkAdd(usersToAdd)
 
     // ── Delete tombstoned users ──
-    for (const syncId of Object.keys(data.tombstones ?? {})) {
-      const user = await db.users.where('sync_id').equals(syncId).first()
-      if (user) await db.users.delete(user.id)
-    }
+    const userTombstoneIds = [...tombstoneIds]
+      .map(sid => userBySyncId.get(sid)?.id)
+      .filter((id): id is number => id != null)
+    await db.users.bulkDelete(userTombstoneIds)
 
     // ── Persist tombstones ──
     await db.tombstones.bulkPut(
