@@ -416,6 +416,7 @@ function AppInner() {
 
       {showUsers && (
         <UsersModal
+          engine={engineRef.current}
           onClose={() => { setShowUsers(false); usersCtx.reload() }}
         />
       )}

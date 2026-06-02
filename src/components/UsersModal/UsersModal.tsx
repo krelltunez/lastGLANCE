@@ -2,17 +2,19 @@ import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { X, Plus, Pencil, Trash2, Check, Users, RefreshCw } from 'lucide-react'
 import { getUsers, createUser, updateUser, deleteUser } from '@/db/queries'
-import { getMultiUserEnabled, setMultiUserEnabled, getMeUserSyncId, setMeUserSyncId } from '@/multiuser/settings'
-import { getIntentsConfig, saveIntentsConfig } from '@/intents/config'
-import { syncSharedUsers } from '@/multiuser/sharedUsers'
+import { getMultiUserEnabled, setMultiUserEnabled, getMeUserSyncId, setMeUserSyncId, getUsersPath, setUsersPath as saveUsersPath } from '@/multiuser/settings'
+import { syncSharedUsers, DEFAULT_USERS_PATH } from '@/multiuser/sharedUsers'
+import { getSyncWebdavConfig } from '@/sync/engine'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
+import type { SyncEngine } from '@glance-apps/sync'
 import type { User } from '@/types'
 
 interface Props {
+  engine: SyncEngine | null
   onClose: () => void
 }
 
-export function UsersModal({ onClose }: Props) {
+export function UsersModal({ engine, onClose }: Props) {
   const [enabled, setEnabled] = useState(getMultiUserEnabled)
   const [users, setUsers] = useState<User[]>([])
   const [meId, setMeId] = useState<string | null>(getMeUserSyncId)
@@ -21,7 +23,7 @@ export function UsersModal({ onClose }: Props) {
   const [addingName, setAddingName] = useState('')
   const [isAdding, setIsAdding] = useState(false)
   const [error, setError] = useState('')
-  const [usersPath, setUsersPath] = useState(() => getIntentsConfig().usersPath ?? '/GLANCE/users/')
+  const [usersPath, setUsersPath] = useState(() => getUsersPath())
   const [syncing, setSyncing] = useState(false)
   const [syncStatus, setSyncStatus] = useState<'idle' | 'ok' | 'error'>('idle')
 
@@ -97,17 +99,22 @@ export function UsersModal({ onClose }: Props) {
 
   function handleUsersPathChange(val: string) {
     setUsersPath(val)
-    const cfg = getIntentsConfig()
-    saveIntentsConfig({ ...cfg, usersPath: val })
+    saveUsersPath(val)
   }
 
   async function handleSyncNow() {
     setSyncing(true)
     setSyncStatus('idle')
     try {
-      const config = getIntentsConfig()
+      const syncConfig = getSyncWebdavConfig(engine)
+      if (!syncConfig) {
+        setError('Cloud sync is not configured. Set up WebDAV under Settings → Cloud Sync first.')
+        setSyncStatus('error')
+        setTimeout(() => setSyncStatus('idle'), 4000)
+        return
+      }
       const fresh = await getUsers()
-      const result = await syncSharedUsers(config, fresh)
+      const result = await syncSharedUsers(syncConfig, usersPath, fresh)
       if (result) {
         // Upsert any new/updated users from remote into local DB
         for (const ru of result.merged) {

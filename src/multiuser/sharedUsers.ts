@@ -1,6 +1,8 @@
 import { buildAuthHeader, getFileOrNull, ensureFolder, putFile } from '@/intents/webdav'
-import type { IntentsConfig } from '@/intents/config'
+import type { SyncWebdavConfig } from '@/sync/engine'
 import type { User } from '@/types'
+
+export const DEFAULT_USERS_PATH = '/GLANCE/users/'
 
 interface SharedUser {
   id: string      // sync_id
@@ -15,8 +17,8 @@ interface SharedRoster {
   updated_at: string
 }
 
-function usersFolder(config: IntentsConfig): string {
-  return (config.usersPath ?? '/GLANCE/users/').replace(/^\//, '').replace(/\/$/, '')
+function usersFolder(usersPath: string): string {
+  return (usersPath ?? DEFAULT_USERS_PATH).replace(/^\//, '').replace(/\/$/, '')
 }
 
 function mergeUsers(remote: SharedUser[], local: User[]): SharedUser[] {
@@ -36,14 +38,13 @@ export interface SyncSharedUsersResult {
 }
 
 export async function syncSharedUsers(
-  config: IntentsConfig,
+  syncConfig: SyncWebdavConfig,
+  usersPath: string,
   localUsers: User[]
 ): Promise<SyncSharedUsersResult | null> {
-  if (!config.webdavUrl || !config.webdavUsername || !config.webdavPassword) return null
-
-  const auth = buildAuthHeader(config.webdavUsername, config.webdavPassword)
-  const base = config.webdavUrl
-  const folder = usersFolder(config)
+  const auth = buildAuthHeader(syncConfig.username, syncConfig.appPassword)
+  const base = syncConfig.webdavUrl
+  const folder = usersFolder(usersPath)
   const filename = 'glance-users.json'
 
   // Fetch existing roster

@@ -1,6 +1,8 @@
 const MULTI_USER_ENABLED_KEY = 'lg_multi_user_enabled'
 const ME_USER_SYNC_ID_KEY = 'lg_me_user_sync_id'
 const USER_FILTER_KEY = 'lg_user_filter'
+const USERS_PATH_KEY = 'lg_users_path'
+const DEFAULT_USERS_PATH = '/GLANCE/users/'
 
 export type UserFilter = 'all' | 'mine'
 
@@ -31,4 +33,12 @@ export function getUserFilter(): UserFilter {
 
 export function setUserFilter(filter: UserFilter): void {
   localStorage.setItem(USER_FILTER_KEY, filter)
+}
+
+export function getUsersPath(): string {
+  return localStorage.getItem(USERS_PATH_KEY) ?? DEFAULT_USERS_PATH
+}
+
+export function setUsersPath(path: string): void {
+  localStorage.setItem(USERS_PATH_KEY, path)
 }

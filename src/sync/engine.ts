@@ -369,6 +369,22 @@ export function resetEnsuredFolder(): void {
   _ensuredForUrl = ''
 }
 
+export interface SyncWebdavConfig {
+  webdavUrl: string
+  username: string
+  appPassword: string
+}
+
+export function getSyncWebdavConfig(engine: SyncEngine | null): SyncWebdavConfig | null {
+  const config = engine?.getConfig() as Record<string, unknown> | null
+  if (!config?.webdavUrl || !config?.username) return null
+  return {
+    webdavUrl: config.webdavUrl as string,
+    username: config.username as string,
+    appPassword: (config.appPassword as string) ?? '',
+  }
+}
+
 export async function ensureSyncFolder(engine: SyncEngine): Promise<void> {
   const config = engine.getConfig() as Record<string, unknown> | null
   if (!config?.enabled || !config.webdavUrl) return
