@@ -81,6 +81,14 @@ export const buildPayload = async (): Promise<SyncPayload> => {
   }
 }
 
+// Deduplicate an array by a string key field, keeping the last occurrence.
+// Prevents bloated/corrupt sync files from causing O(N²) merge behaviour.
+function dedupeById<T extends Record<string, unknown>>(arr: T[], idField: string): T[] {
+  const seen = new Map<string, T>()
+  for (const item of arr) seen.set(item[idField] as string, item)
+  return Array.from(seen.values())
+}
+
 // mergePayloads: synchronous merge of local and remote payloads
 export const mergePayloads = (
   local: unknown,
@@ -94,10 +102,19 @@ export const mergePayloads = (
   const tombstones = pruneTombstones(allTombstones, cutoff)
 
   type R = Record<string, unknown>
-  const catMerge = mergeArrayById(l.categories as unknown as R[] ?? [], r.categories as unknown as R[] ?? [], tombstones, null, { idField: 'id', timestampField: 'updatedAt' })
-  const choreMerge = mergeArrayById(l.chores as unknown as R[] ?? [], r.chores as unknown as R[] ?? [], tombstones, null, { idField: 'id', timestampField: 'updatedAt' })
-  const evtMerge = mergeArrayById(l.completionEvents as unknown as R[] ?? [], r.completionEvents as unknown as R[] ?? [], tombstones, null, { idField: 'id', timestampField: 'completedAt' })
-  const userMerge = mergeArrayById(l.users as unknown as R[] ?? [], r.users as unknown as R[] ?? [], tombstones, null, { idField: 'id', timestampField: 'updatedAt' })
+  const lCats   = dedupeById(l.categories       as unknown as R[] ?? [], 'id')
+  const rCats   = dedupeById(r.categories       as unknown as R[] ?? [], 'id')
+  const lChores = dedupeById(l.chores           as unknown as R[] ?? [], 'id')
+  const rChores = dedupeById(r.chores           as unknown as R[] ?? [], 'id')
+  const lEvts   = dedupeById(l.completionEvents as unknown as R[] ?? [], 'id')
+  const rEvts   = dedupeById(r.completionEvents as unknown as R[] ?? [], 'id')
+  const lUsers  = dedupeById(l.users            as unknown as R[] ?? [], 'id')
+  const rUsers  = dedupeById(r.users            as unknown as R[] ?? [], 'id')
+
+  const catMerge  = mergeArrayById(lCats,   rCats,   tombstones, null, { idField: 'id', timestampField: 'updatedAt' })
+  const choreMerge = mergeArrayById(lChores, rChores, tombstones, null, { idField: 'id', timestampField: 'updatedAt' })
+  const evtMerge  = mergeArrayById(lEvts,   rEvts,   tombstones, null, { idField: 'id', timestampField: 'completedAt' })
+  const userMerge = mergeArrayById(lUsers,  rUsers,  tombstones, null, { idField: 'id', timestampField: 'updatedAt' })
 
   // Settings: OR the multiUserEnabled flag (if either side turned it on, keep it on)
   const mergedSettings: SyncSettings = {
