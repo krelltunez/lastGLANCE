@@ -377,16 +377,13 @@ export interface SyncWebdavConfig {
 
 export function getSyncWebdavConfig(engine: SyncEngine | null): SyncWebdavConfig | null {
   const config = engine?.getConfig() as Record<string, unknown> | null
-  if (!config) return null
+  if (!config?.enabled) return null
   // Support both generic WebDAV (webdavUrl) and Nextcloud (nextcloudUrl) provider shapes
   const webdavUrl = (config.webdavUrl ?? config.nextcloudUrl) as string | undefined
   const username = config.username as string | undefined
-  if (!webdavUrl || !username) return null
-  return {
-    webdavUrl,
-    username,
-    appPassword: (config.appPassword as string) ?? '',
-  }
+  const appPassword = config.appPassword as string | undefined
+  if (!webdavUrl || !username || !appPassword) return null
+  return { webdavUrl, username, appPassword }
 }
 
 export async function ensureSyncFolder(engine: SyncEngine): Promise<void> {
