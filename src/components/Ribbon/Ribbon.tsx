@@ -597,7 +597,7 @@ export function Ribbon({ editMode, onLogged }: Props) {
           {multiUserEnabled && meId && (
             <button
               onClick={() => setFilter(filter === 'mine' ? 'all' : 'mine')}
-              className={`min-[1060px]:hidden fixed bottom-22 right-6 z-40 flex items-center justify-center w-13 h-13 rounded-full shadow-lg border active:scale-95 transition-all ${
+              className={`min-[1060px]:hidden fixed bottom-24 right-6 z-40 flex items-center justify-center w-16 h-16 rounded-full shadow-lg border active:scale-95 transition-all ${
                 filter === 'mine'
                   ? 'bg-green-500 dark:bg-green-600 text-white border-green-400/50'
                   : 'bg-slate-800 dark:bg-slate-700 text-slate-100 border-slate-700 dark:border-slate-600 hover:bg-slate-700 dark:hover:bg-slate-600'
@@ -609,7 +609,7 @@ export function Ribbon({ editMode, onLogged }: Props) {
           )}
           <button
             onClick={() => setShowSearch(true)}
-            className="min-[1060px]:hidden fixed bottom-6 right-6 z-40 flex items-center justify-center w-13 h-13 rounded-full bg-slate-800 dark:bg-slate-700 text-slate-100 shadow-lg border border-slate-700 dark:border-slate-600 hover:bg-slate-700 dark:hover:bg-slate-600 active:scale-95 transition-all"
+            className="min-[1060px]:hidden fixed bottom-6 right-6 z-40 flex items-center justify-center w-16 h-16 rounded-full bg-slate-800 dark:bg-slate-700 text-slate-100 shadow-lg border border-slate-700 dark:border-slate-600 hover:bg-slate-700 dark:hover:bg-slate-600 active:scale-95 transition-all"
             aria-label="Search chores"
             title="Search (/)"
           >
