@@ -536,22 +536,6 @@ export function Ribbon({ editMode, onLogged }: Props) {
           <EmptyState onAdd={() => setAddingCategory(true)} />
         ) : (
           <div className="p-6">
-            {multiUserEnabled && meId && !editMode && (
-              <div className="flex items-center gap-2 mb-4">
-                <button
-                  onClick={() => setFilter(filter === 'mine' ? 'all' : 'mine')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
-                    filter === 'mine'
-                      ? 'bg-green-400/15 border-green-400/50 text-green-500 dark:text-green-400'
-                      : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-green-400/40 hover:text-green-500'
-                  }`}
-                  aria-label="Toggle my tasks filter"
-                >
-                  <UserCircle size={13} />
-                  {filter === 'mine' ? 'Showing: Mine' : 'Showing: All'}
-                </button>
-              </div>
-            )}
             {/* Masonry container: cards are absolutely positioned within */}
             <div
               ref={desktopGridRef}

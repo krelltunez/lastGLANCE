@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Pencil, Check, Sun, Moon, Archive, Plug, Cloud, CloudOff, RefreshCw, HelpCircle, Users, Settings } from 'lucide-react'
+import { Pencil, Check, Sun, Moon, Archive, Plug, Cloud, CloudOff, RefreshCw, HelpCircle, Users, Settings, UserCircle } from 'lucide-react'
 import { Ribbon } from '@/components/Ribbon/Ribbon'
 import { BackupModal } from '@/components/BackupModal/BackupModal'
 import { WelcomeModal } from '@/components/WelcomeModal/WelcomeModal'
@@ -113,6 +113,7 @@ function AppInner() {
   const { refreshConfig } = useIntents()
   const usersCtx = useUsers()
   const reloadUsers = usersCtx.reload
+  const { multiUserEnabled, meId, filter, setFilter } = usersCtx
   const [editMode, setEditMode] = useState(false)
   const [showWelcome, setShowWelcome] = useState(() => !localStorage.getItem('lg-welcome-dismissed'))
   const [welcomeClearing, setWelcomeClearing] = useState(false)
@@ -355,7 +356,7 @@ function AppInner() {
 
           {/* ── Desktop: two-row layout ── */}
           <div className="hidden sm:flex flex-col items-end gap-1.5">
-            {/* Row 1: theme + edit */}
+            {/* Row 1: theme + filter (if multi-user) + edit */}
             <div className="flex items-center gap-2">
               <button
                 onClick={toggleTheme}
@@ -364,6 +365,20 @@ function AppInner() {
               >
                 {isDark ? <Sun size={15} /> : <Moon size={15} />}
               </button>
+              {multiUserEnabled && meId && !editMode && (
+                <button
+                  onClick={() => setFilter(filter === 'mine' ? 'all' : 'mine')}
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors border ${
+                    filter === 'mine'
+                      ? 'text-green-400 border-green-400/40 hover:text-green-300 hover:bg-green-400/10 hover:border-green-400/60'
+                      : 'text-slate-500 dark:text-slate-500 border-slate-200 dark:border-slate-700 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  }`}
+                  aria-label="Toggle my tasks filter"
+                >
+                  <UserCircle size={14} />
+                  {filter === 'mine' ? 'Mine' : 'All'}
+                </button>
+              )}
               <button
                 onClick={() => setEditMode(e => !e)}
                 className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors border ${editMode ? 'text-green-400 border-green-400/40 hover:text-green-300 hover:bg-green-400/10 hover:border-green-400/60' : 'text-slate-500 dark:text-slate-500 border-slate-200 dark:border-slate-700 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
