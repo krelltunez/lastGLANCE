@@ -177,7 +177,7 @@ function AppInner() {
         for (const ru of result.merged) {
           const existing = localUsers.find(u => u.sync_id === ru.id)
           if (!existing) {
-            await createUser(ru.name)
+            await createUser(ru.name, ru.id)
           } else if (ru.name !== existing.name && ru.updatedAt > existing.updated_at) {
             await updateUser(existing.id, { name: ru.name })
           }

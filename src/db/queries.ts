@@ -235,11 +235,11 @@ export async function getUsers(): Promise<User[]> {
   return users.sort((a, b) => a.name.localeCompare(b.name))
 }
 
-export async function createUser(name: string): Promise<number> {
+export async function createUser(name: string, syncId?: string): Promise<number> {
   const now = new Date().toISOString()
   return db.users.add({
     name,
-    sync_id: crypto.randomUUID(),
+    sync_id: syncId ?? crypto.randomUUID(),
     updated_at: now,
   } as User)
 }
