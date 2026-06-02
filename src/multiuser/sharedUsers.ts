@@ -48,31 +48,29 @@ export async function syncSharedUsers(
 
   // Fetch existing roster
   let remote: SharedUser[] = []
+  let isNew = false
   try {
     const raw = await getFileOrNull(base, folder, filename, auth)
     if (raw) {
       const parsed = JSON.parse(raw) as SharedRoster
       if (Array.isArray(parsed.users)) remote = parsed.users
+    } else {
+      isNew = true
     }
   } catch {
-    // treat as empty / first write
+    isNew = true
   }
 
   const merged = mergeUsers(remote, localUsers)
   const roster: SharedRoster = { version: 1, users: merged, updated_at: new Date().toISOString() }
   const body = JSON.stringify(roster, null, 2)
 
-  try {
-    await putFile(base, folder, filename, body, auth)
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : ''
-    if (msg.includes('404') || msg.includes('409')) {
-      await ensureFolder(base, folder, auth)
-      await putFile(base, folder, filename, body, auth)
-    } else {
-      throw err
-    }
+  // If file didn't exist, ensure the directory exists before writing
+  if (isNew) {
+    await ensureFolder(base, folder, auth)
   }
+
+  await putFile(base, folder, filename, body, auth)
 
   return { merged: merged.filter(u => !u.deleted) }
 }
