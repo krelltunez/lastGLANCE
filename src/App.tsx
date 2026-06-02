@@ -112,6 +112,7 @@ function AppInner() {
   useNotifications()
   const { refreshConfig } = useIntents()
   const usersCtx = useUsers()
+  const reloadUsers = usersCtx.reload
   const [editMode, setEditMode] = useState(false)
   const [showWelcome, setShowWelcome] = useState(() => !localStorage.getItem('lg-welcome-dismissed'))
   const [welcomeClearing, setWelcomeClearing] = useState(false)
@@ -165,10 +166,13 @@ function AppInner() {
   }, [])
 
   // Shared user roster sync — fire-and-forget, non-fatal
+  const sharedUserSyncRunning = useRef(false)
   const runSharedUserSync = useCallback(async () => {
-    const syncConfig = getSyncWebdavConfig(engineRef.current)
-    if (!syncConfig) return
+    if (sharedUserSyncRunning.current) return
+    sharedUserSyncRunning.current = true
     try {
+      const syncConfig = getSyncWebdavConfig(engineRef.current)
+      if (!syncConfig) return
       const localUsers = await getDBUsers()
       const result = await syncSharedUsers(syncConfig, getUsersPath(), localUsers)
       if (result) {
@@ -182,10 +186,11 @@ function AppInner() {
             await updateUser(existing.id, { name: ru.name })
           }
         }
-        usersCtx.reload()
+        reloadUsers()
       }
     } catch { /* non-fatal */ }
-  }, [usersCtx])
+    finally { sharedUserSyncRunning.current = false }
+  }, [reloadUsers])
 
   // Auto-sync on mount
   useEffect(() => {
