@@ -7,12 +7,13 @@ import type { User } from '@/types'
 export function useUsers() {
   const [multiUserEnabled, setMultiUserEnabledState] = useState(getMultiUserEnabled)
   const [users, setUsers] = useState<User[]>([])
-  const [meId] = useState<string | null>(getMeUserSyncId)
+  const [meId, setMeId] = useState<string | null>(getMeUserSyncId)
   const [filter, setFilterState] = useState<UserFilter>(getUserFilter)
 
   const reload = useCallback(async () => {
     const enabled = getMultiUserEnabled()
     setMultiUserEnabledState(enabled)
+    setMeId(getMeUserSyncId())
     if (enabled) {
       setUsers(await getUsers())
     } else {
