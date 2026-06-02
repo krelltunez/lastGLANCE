@@ -271,7 +271,7 @@ function AppInner() {
         case 'a': case 'A': setShowBackup(true); break
         case 'l': case 'L': setShowActivityLog(true); break
         case 'm': case 'M':
-          if (multiUserEnabled && meId && !editMode) setFilter(f => f === 'mine' ? 'all' : 'mine')
+          if (multiUserEnabled && meId && !editMode) setFilter(filter === 'mine' ? 'all' : 'mine')
           break
         case '?':           setShowShortcuts(true); break
       }
