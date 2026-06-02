@@ -330,12 +330,12 @@ function AppInner() {
                   {/* sheet */}
                   <div className="absolute right-0 top-full mt-2 z-50 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl p-3 flex flex-col gap-1 min-w-[160px]">
                     {[
-                      { label: 'Users', icon: <Users size={15} />, onClick: () => { setShowUsers(true); setShowSettingsSheet(false) } },
-                      { label: 'dayGLANCE Integration', icon: <Plug size={15} />, onClick: () => { setShowIntegration(true); setShowSettingsSheet(false) } },
                       { label: 'Cloud Sync', icon: syncHalted || syncError ? <CloudOff size={15} /> : syncStatus === 'uploading' || syncStatus === 'downloading' ? <RefreshCw size={15} className="animate-spin" /> : <Cloud size={15} />, onClick: () => { setShowSyncSettings(true); setShowSettingsSheet(false) }, warn: !!(syncHalted || syncError) },
+                      { label: 'dayGLANCE Integration', icon: <Plug size={16} />, onClick: () => { setShowIntegration(true); setShowSettingsSheet(false) } },
+                      { label: 'Users', icon: <Users size={15} />, onClick: () => { setShowUsers(true); setShowSettingsSheet(false) } },
+                      { label: isDark ? 'Light Mode' : 'Dark Mode', icon: isDark ? <Sun size={15} /> : <Moon size={15} />, onClick: () => { toggleTheme(); setShowSettingsSheet(false) } },
                       { label: 'Backup & Restore', icon: <Archive size={15} />, onClick: () => { setShowBackup(true); setShowSettingsSheet(false) } },
                       { label: 'Help & Feedback', icon: <HelpCircle size={15} />, onClick: () => { setShowHelp(true); setShowSettingsSheet(false) } },
-                      { label: isDark ? 'Light mode' : 'Dark mode', icon: isDark ? <Sun size={15} /> : <Moon size={15} />, onClick: () => { toggleTheme(); setShowSettingsSheet(false) } },
                     ].map(item => (
                       <button
                         key={item.label}
