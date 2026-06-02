@@ -187,11 +187,8 @@ function AppInner() {
     } catch { /* non-fatal */ }
   }, [usersCtx])
 
-  // Auto-sync on mount
-  useEffect(() => {
-    runSharedUserSync()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  // Auto-sync on mount — disabled until stable
+  // useEffect(() => { runSharedUserSync() }, [])
 
   // Re-sync on tab focus and on a recurring interval
   useEffect(() => {
@@ -426,7 +423,7 @@ function AppInner() {
       {showSyncSettings && (
         <SyncSettingsModal
           engine={engineRef.current}
-          onClose={() => { setShowSyncSettings(false); runSharedUserSync() }}
+          onClose={() => setShowSyncSettings(false)}
         />
       )}
 
