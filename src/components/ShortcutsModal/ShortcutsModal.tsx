@@ -80,6 +80,7 @@ export function ShortcutsModal({ onClose }: Props) {
             <div className="divide-y divide-slate-100 dark:divide-slate-700/40">
               <ShortcutRow keys={['N']} label="New chore" />
               <ShortcutRow keys={['E']} label="Toggle edit mode" />
+              <ShortcutRow keys={['M']} label="Toggle Mine / All filter" />
               <ShortcutRow keys={['D']} label="Toggle dark mode" />
             </div>
           </div>
