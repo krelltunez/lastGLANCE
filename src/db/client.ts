@@ -140,6 +140,29 @@ class LastGlanceDB extends Dexie {
         })
       })
 
+    // One-time dedup: remove duplicate user rows that share the same sync_id,
+    // keeping the most recently updated one. Cleans up damage from the bug
+    // where createUser() was called without a sync_id on every roster sync.
+    this.version(9)
+      .stores({})
+      .upgrade(async tx => {
+        const users = await tx.table('users').toArray()
+        const bySyncId = new Map<string, typeof users>()
+        for (const u of users) {
+          const key = u.sync_id ?? ''
+          const group = bySyncId.get(key) ?? []
+          group.push(u)
+          bySyncId.set(key, group)
+        }
+        const toDelete: number[] = []
+        for (const group of bySyncId.values()) {
+          if (group.length <= 1) continue
+          group.sort((a: any, b: any) => (b.updated_at ?? '').localeCompare(a.updated_at ?? ''))
+          for (const u of group.slice(1)) toDelete.push(u.id as number)
+        }
+        if (toDelete.length) await tx.table('users').bulkDelete(toDelete)
+      })
+
     this.on('populate', async () => {
       const catIds = (await this.categories.bulkAdd(
         SEED_CATEGORIES.map((cat) => ({
