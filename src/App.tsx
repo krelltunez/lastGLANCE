@@ -193,16 +193,6 @@ function AppInner() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Auto-sync when user list changes (after add/edit/delete in UsersModal)
-  const prevUsersRef = useRef<string>('')
-  useEffect(() => {
-    const key = usersCtx.users.map(u => `${u.sync_id}:${u.name}:${u.updated_at}`).join(',')
-    if (prevUsersRef.current && key !== prevUsersRef.current) {
-      runSharedUserSync()
-    }
-    prevUsersRef.current = key
-  }, [usersCtx.users, runSharedUserSync])
-
   // Re-sync on tab focus and on a recurring interval
   useEffect(() => {
     function handleVisibility() {
@@ -472,6 +462,7 @@ function AppInner() {
       {showUsers && (
         <UsersModal
           engine={engineRef.current}
+          onUserMutated={runSharedUserSync}
           onClose={() => { setShowUsers(false); usersCtx.reload() }}
         />
       )}

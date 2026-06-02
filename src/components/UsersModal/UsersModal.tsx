@@ -11,10 +11,11 @@ import type { User } from '@/types'
 
 interface Props {
   engine: SyncEngine | null
+  onUserMutated?: () => void
   onClose: () => void
 }
 
-export function UsersModal({ engine, onClose }: Props) {
+export function UsersModal({ engine, onUserMutated, onClose }: Props) {
   const [enabled, setEnabled] = useState(getMultiUserEnabled)
   const [users, setUsers] = useState<User[]>([])
   const [meId, setMeId] = useState<string | null>(getMeUserSyncId)
@@ -60,6 +61,7 @@ export function UsersModal({ engine, onClose }: Props) {
         setMeUserSyncId(created.sync_id)
         setMeId(created.sync_id)
       }
+      onUserMutated?.()
     } catch (e) {
       setError(`Failed to save user: ${e instanceof Error ? e.message : String(e)}`)
     }
@@ -77,6 +79,7 @@ export function UsersModal({ engine, onClose }: Props) {
       setEditingName('')
       setError('')
       setUsers(await getUsers())
+      onUserMutated?.()
     } catch (e) {
       setError(`Failed to save: ${e instanceof Error ? e.message : String(e)}`)
     }
@@ -89,6 +92,7 @@ export function UsersModal({ engine, onClose }: Props) {
     }
     await deleteUser(user.id)
     await loadUsers()
+    onUserMutated?.()
   }
 
   function handleSetMe(user: User) {
