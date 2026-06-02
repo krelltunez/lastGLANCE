@@ -3,7 +3,7 @@ import { Pencil, Check, Sun, Moon, Archive, Plug, Cloud, CloudOff, RefreshCw, He
 import { Ribbon } from '@/components/Ribbon/Ribbon'
 import { BackupModal } from '@/components/BackupModal/BackupModal'
 import { WelcomeModal } from '@/components/WelcomeModal/WelcomeModal'
-import { clearSeedData, getUsers as getDBUsers } from '@/db/queries'
+import { clearSeedData, getUsers as getDBUsers, deduplicateUsers } from '@/db/queries'
 import { IntegrationSettingsModal } from '@/components/IntegrationSettingsModal/IntegrationSettingsModal'
 import { SyncSettingsModal } from '@/components/SyncSettingsModal/SyncSettingsModal'
 import { PassphraseModal } from '@/components/PassphraseModal/PassphraseModal'
@@ -171,6 +171,7 @@ function AppInner() {
     if (sharedUserSyncRunning.current) return
     sharedUserSyncRunning.current = true
     try {
+      await deduplicateUsers()
       const syncConfig = getSyncWebdavConfig(engineRef.current)
       if (!syncConfig) return
       const localUsers = await getDBUsers()

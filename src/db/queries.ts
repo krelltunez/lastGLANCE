@@ -258,6 +258,30 @@ export async function deleteUser(id: number): Promise<void> {
   })
 }
 
+// Removes duplicate user rows that share the same sync_id, keeping the one
+// with the most recent updated_at. Returns the number of rows deleted.
+export async function deduplicateUsers(): Promise<number> {
+  const all = await db.users.toArray()
+  const bySyncId = new Map<string, typeof all>()
+  for (const u of all) {
+    const key = u.sync_id ?? ''
+    const group = bySyncId.get(key) ?? []
+    group.push(u)
+    bySyncId.set(key, group)
+  }
+  let deleted = 0
+  for (const group of bySyncId.values()) {
+    if (group.length <= 1) continue
+    group.sort((a, b) => (b.updated_at ?? '').localeCompare(a.updated_at ?? ''))
+    const toDelete = group.slice(1)
+    for (const u of toDelete) {
+      await db.users.delete(u.id!)
+      deleted++
+    }
+  }
+  return deleted
+}
+
 // Backup / restore
 
 export interface BackupPayload {
