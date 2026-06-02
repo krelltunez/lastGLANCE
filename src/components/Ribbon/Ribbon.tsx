@@ -438,20 +438,6 @@ export function Ribbon({ editMode, onLogged }: Props) {
       <div className="flex flex-col flex-1 overflow-hidden min-[1060px]:hidden">
         {!showEmpty && (
           <div ref={tabsRef} className="flex overflow-x-auto scrollbar-none border-b border-slate-200 dark:border-slate-700/60 bg-slate-100 dark:bg-slate-900 shrink-0">
-            {multiUserEnabled && meId && !editMode && (
-              <button
-                onClick={() => setFilter(filter === 'mine' ? 'all' : 'mine')}
-                className={`shrink-0 flex items-center gap-1 px-3 py-2.5 text-xs font-semibold transition-colors border-r border-slate-200 dark:border-slate-700/60 ${
-                  filter === 'mine'
-                    ? 'text-green-400 bg-green-400/10'
-                    : 'text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200'
-                }`}
-                aria-label="Toggle my tasks filter"
-              >
-                <UserCircle size={13} />
-                {filter === 'mine' ? 'Mine' : 'All'}
-              </button>
-            )}
             {localData.map((d, i) => (
               <button
                 key={d.category.id}
@@ -605,16 +591,31 @@ export function Ribbon({ editMode, onLogged }: Props) {
         )}
       </div>
 
-      {/* Mobile search FAB — hidden on desktop, hidden in edit mode */}
+      {/* Mobile FABs — hidden on desktop, hidden in edit mode */}
       {!editMode && !showEmpty && (
-        <button
-          onClick={() => setShowSearch(true)}
-          className="min-[1060px]:hidden fixed bottom-6 right-6 z-40 flex items-center justify-center w-13 h-13 rounded-full bg-slate-800 dark:bg-slate-700 text-slate-100 shadow-lg border border-slate-700 dark:border-slate-600 hover:bg-slate-700 dark:hover:bg-slate-600 active:scale-95 transition-all"
-          aria-label="Search chores"
-          title="Search (/)"
-        >
-          <Search size={20} />
-        </button>
+        <>
+          {multiUserEnabled && meId && (
+            <button
+              onClick={() => setFilter(filter === 'mine' ? 'all' : 'mine')}
+              className={`min-[1060px]:hidden fixed bottom-22 right-6 z-40 flex items-center justify-center w-13 h-13 rounded-full shadow-lg border active:scale-95 transition-all ${
+                filter === 'mine'
+                  ? 'bg-green-500 dark:bg-green-600 text-white border-green-400/50'
+                  : 'bg-slate-800 dark:bg-slate-700 text-slate-100 border-slate-700 dark:border-slate-600 hover:bg-slate-700 dark:hover:bg-slate-600'
+              }`}
+              aria-label="Toggle my tasks filter"
+            >
+              <UserCircle size={20} />
+            </button>
+          )}
+          <button
+            onClick={() => setShowSearch(true)}
+            className="min-[1060px]:hidden fixed bottom-6 right-6 z-40 flex items-center justify-center w-13 h-13 rounded-full bg-slate-800 dark:bg-slate-700 text-slate-100 shadow-lg border border-slate-700 dark:border-slate-600 hover:bg-slate-700 dark:hover:bg-slate-600 active:scale-95 transition-all"
+            aria-label="Search chores"
+            title="Search (/)"
+          >
+            <Search size={20} />
+          </button>
+        </>
       )}
 
       {selectedChore && !editMode && (
