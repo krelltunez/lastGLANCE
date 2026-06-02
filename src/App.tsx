@@ -162,7 +162,11 @@ function AppInner() {
       onPassphraseRequired: () => setShowPassphrase(true),
     })
     engineRef.current = engine
-    ensureSyncFolder(engine).then(() => engine.sync()).catch(() => {/* errors surfaced via onError */})
+    deduplicateUsers()
+      .catch(() => {})
+      .then(() => ensureSyncFolder(engine))
+      .then(() => engine.sync())
+      .catch(() => {/* errors surfaced via onError */})
   }, [])
 
   // Shared user roster sync — fire-and-forget, non-fatal
