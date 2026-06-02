@@ -258,6 +258,8 @@ function AppInner() {
     showWelcome || showBackup || showIntegration || showSyncSettings ||
     showPassphrase || showHelp || showShortcuts || showActivityLog || showUsers
   )
+  const filterRef = useRef(filter)
+  filterRef.current = filter
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       const tag = (e.target as HTMLElement).tagName
@@ -271,7 +273,7 @@ function AppInner() {
         case 'a': case 'A': setShowBackup(true); break
         case 'l': case 'L': setShowActivityLog(true); break
         case 'm': case 'M':
-          if (multiUserEnabled && meId && !editMode) setFilter(filter === 'mine' ? 'all' : 'mine')
+          if (multiUserEnabled && meId && !editMode) setFilter(filterRef.current === 'mine' ? 'all' : 'mine')
           break
         case '?':           setShowShortcuts(true); break
       }
