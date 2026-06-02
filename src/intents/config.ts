@@ -6,6 +6,7 @@ export interface IntentsConfig {
   folderPath: string
   pollIntervalMinutes: number
   encryptionEnabled: boolean
+  usersPath: string
 }
 
 export interface ActivityEntry {
@@ -24,6 +25,7 @@ export const DEFAULT_CONFIG: IntentsConfig = {
   folderPath: 'GLANCE/events',
   pollIntervalMinutes: 15,
   encryptionEnabled: false,
+  usersPath: '/GLANCE/users/',
 }
 
 const CONFIG_KEY = 'lg_intents_config'

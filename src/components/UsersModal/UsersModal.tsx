@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { X, Plus, Pencil, Trash2, Check, Users } from 'lucide-react'
+import { X, Plus, Pencil, Trash2, Check, Users, RefreshCw } from 'lucide-react'
 import { getUsers, createUser, updateUser, deleteUser } from '@/db/queries'
 import { getMultiUserEnabled, setMultiUserEnabled, getMeUserSyncId, setMeUserSyncId } from '@/multiuser/settings'
+import { getIntentsConfig, saveIntentsConfig } from '@/intents/config'
+import { syncSharedUsers } from '@/multiuser/sharedUsers'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
 import type { User } from '@/types'
 
@@ -19,6 +21,9 @@ export function UsersModal({ onClose }: Props) {
   const [addingName, setAddingName] = useState('')
   const [isAdding, setIsAdding] = useState(false)
   const [error, setError] = useState('')
+  const [usersPath, setUsersPath] = useState(() => getIntentsConfig().usersPath ?? '/GLANCE/users/')
+  const [syncing, setSyncing] = useState(false)
+  const [syncStatus, setSyncStatus] = useState<'idle' | 'ok' | 'error'>('idle')
 
   useEscapeKey(onClose)
 
@@ -88,6 +93,41 @@ export function UsersModal({ onClose }: Props) {
     const next = meId === user.sync_id ? null : user.sync_id
     setMeUserSyncId(next)
     setMeId(next)
+  }
+
+  function handleUsersPathChange(val: string) {
+    setUsersPath(val)
+    const cfg = getIntentsConfig()
+    saveIntentsConfig({ ...cfg, usersPath: val })
+  }
+
+  async function handleSyncNow() {
+    setSyncing(true)
+    setSyncStatus('idle')
+    try {
+      const config = getIntentsConfig()
+      const fresh = await getUsers()
+      const result = await syncSharedUsers(config, fresh)
+      if (result) {
+        // Upsert any new/updated users from remote into local DB
+        for (const ru of result.merged) {
+          const existing = fresh.find(u => u.sync_id === ru.id)
+          if (!existing) {
+            await createUser(ru.name)
+          } else if (ru.name !== existing.name && ru.updatedAt > existing.updated_at) {
+            await updateUser(existing.id, { name: ru.name })
+          }
+        }
+        await loadUsers()
+      }
+      setSyncStatus('ok')
+      setTimeout(() => setSyncStatus('idle'), 3000)
+    } catch {
+      setSyncStatus('error')
+      setTimeout(() => setSyncStatus('idle'), 4000)
+    } finally {
+      setSyncing(false)
+    }
   }
 
   return createPortal(
@@ -237,6 +277,39 @@ export function UsersModal({ onClose }: Props) {
                 )}
 
                 {error && <p className="text-xs text-red-500 px-1">{error}</p>}
+              </div>
+
+              {/* Shared roster sync */}
+              <div className="pt-1 border-t border-slate-100 dark:border-slate-700/40 space-y-2">
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+                    Shared users path
+                  </label>
+                  <input
+                    type="text"
+                    value={usersPath}
+                    onChange={e => handleUsersPathChange(e.target.value)}
+                    placeholder="/GLANCE/users/"
+                    className="w-full bg-slate-100 dark:bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400 font-mono"
+                  />
+                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
+                    Path on WebDAV where <code className="font-mono">glance-users.json</code> is stored. Must match across all GLANCE apps.
+                  </p>
+                </div>
+                <button
+                  onClick={handleSyncNow}
+                  disabled={syncing}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors disabled:opacity-50 ${
+                    syncStatus === 'ok'
+                      ? 'bg-green-500/10 border-green-400/40 text-green-500 dark:text-green-400'
+                      : syncStatus === 'error'
+                        ? 'bg-red-500/10 border-red-400/40 text-red-500 dark:text-red-400'
+                        : 'border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:border-green-400/50 hover:text-green-500 dark:hover:text-green-400'
+                  }`}
+                >
+                  <RefreshCw size={12} className={syncing ? 'animate-spin' : ''} />
+                  {syncStatus === 'ok' ? 'Synced!' : syncStatus === 'error' ? 'Sync failed' : 'Sync now'}
+                </button>
               </div>
             </>
           )}
