@@ -150,6 +150,7 @@ export default async function handler(req, res) {
     if (etag) res.setHeader('ETag', etag);
     res.status(response.status).send(body);
   } catch (err) {
+    console.error('[proxy] fetch error for', req.method, url, err?.message ?? err);
     res.status(502).json({ error: 'Failed to proxy WebDAV request' });
   }
 }
