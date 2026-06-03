@@ -27,6 +27,8 @@ describe('mergePayloads – CompletionEvent dedup on matching sync_id', () => {
       chores: [],
       completionEvents: [record],
       tombstones: {},
+      users: [],
+      settings: { multiUserEnabled: false },
     }
 
     // Device B's payload — same event processed independently, same stable id
@@ -35,6 +37,8 @@ describe('mergePayloads – CompletionEvent dedup on matching sync_id', () => {
       chores: [],
       completionEvents: [{ ...record }],
       tombstones: {},
+      users: [],
+      settings: { multiUserEnabled: false },
     }
 
     const { data } = mergePayloads(localPayload, remotePayload)
