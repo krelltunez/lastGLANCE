@@ -12,12 +12,14 @@ export async function emitCreateIntent(chore: ChoreWithLastCompletion): Promise<
   const authHeader = buildAuthHeader(config.webdavUsername, config.webdavPassword)
 
   try {
+    const assignedUserIds = chore.assigned_user_sync_ids ?? []
     const payload = {
       title: chore.name,
       due: dayjs().format('YYYY-MM-DD'),
       all_day: true,
       source_app: SOURCE_APPS.LASTGLANCE,
       source_entity_id: String(chore.id),
+      ...(assignedUserIds.length > 0 && { assigned_user_ids: assignedUserIds }),
     }
 
     let envelope: Awaited<ReturnType<typeof buildEncryptedEnvelope>> | ReturnType<typeof buildEnvelope>
