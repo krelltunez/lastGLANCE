@@ -61,7 +61,7 @@ const HREF_RE = /<[^>]*:href[^>]*>([^<]*)<\/[^>]*:href>/gi
 const PROPFIND_BODY = '<?xml version="1.0" encoding="utf-8"?><propfind xmlns="DAV:"><allprop/></propfind>'
 
 export async function listFiles(baseUrl: string, folderPath: string, authHeader: string): Promise<string[]> {
-  const folderUrl = buildFolderUrl(baseUrl, folderPath)
+  const folderUrl = buildFolderUrl(baseUrl, folderPath) + '/'
   try {
     const res = await fetchWithTimeout(withProxy(folderUrl), {
       method: 'PROPFIND',
