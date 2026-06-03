@@ -18,7 +18,7 @@ export async function emitCreateIntent(chore: ChoreWithLastCompletion): Promise<
       due: dayjs().format('YYYY-MM-DD'),
       all_day: true,
       source_app: SOURCE_APPS.LASTGLANCE,
-      source_entity_id: String(chore.id),
+      source_entity_id: chore.sync_id,
       ...(assignedUserIds.length > 0 && { assigned_user_ids: assignedUserIds }),
     }
 

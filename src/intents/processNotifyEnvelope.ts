@@ -3,12 +3,13 @@ import type { Envelope } from '@glance-apps/intents'
 import dayjs from 'dayjs'
 
 export interface ProcessNotifyDeps {
-  getChore: (id: number) => Promise<{ name: string } | undefined>
+  getChore: (syncId: string) => Promise<{ id: number; name: string } | undefined>
   logCompletion: (
     choreId: number,
     opts: { completedAt?: string; source?: 'manual' | 'dayglance'; completedByUserSyncId?: string | null; syncId?: string }
   ) => Promise<number>
   addActivityEntry: (entry: { type: 'received' | 'error' | 'warning' | 'sent'; message: string }) => void
+  isAlreadyLogged?: (syncId: string) => Promise<boolean>
   onNewCompletion?: () => void
   dispatchChoreLogged?: () => void
 }
@@ -23,13 +24,15 @@ export async function processNotifyEnvelope(
   if (payload.source_app !== SOURCE_APPS.LASTGLANCE) return
   if (payload.event !== EVENTS.COMPLETED) return
 
-  const choreId = parseInt(payload.source_entity_id, 10)
-  if (isNaN(choreId)) return
+  const choreSyncId = payload.source_entity_id
+  if (!choreSyncId) return
 
-  const chore = await deps.getChore(choreId)
+  if (await deps.isAlreadyLogged?.(payload.event_id)) return
+
+  const chore = await deps.getChore(choreSyncId)
   if (!chore) return
 
-  await deps.logCompletion(choreId, {
+  await deps.logCompletion(chore.id, {
     completedAt: dayjs(payload.completed_at).isValid() ? payload.completed_at : undefined,
     source: 'dayglance',
     completedByUserSyncId: payload.completed_by_user_id ?? null,

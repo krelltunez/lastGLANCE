@@ -22,6 +22,21 @@ import { buildAuthHeader, listFiles, getFile } from '@/intents/webdav'
 import { loadIntentsRootKey } from '@/intents/intentsKeyStore'
 import { processNotifyEnvelope } from '@/intents/processNotifyEnvelope'
 
+// How far back to look behind the stored cursor when filtering events.
+// Covers the window where a device may upload an event with an earlier
+// timestamp than one already processed (out-of-order WebDAV delivery).
+// isAlreadyLogged guards against re-writing events within the window.
+const CURSOR_LOOKBACK_MS = 60 * 60 * 1000
+
+function cursorLookback(cursor: string, windowMs: number): string {
+  const iso = cursor.replace(
+    /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/,
+    '$1-$2-$3T$4:$5:$6Z',
+  )
+  const adjusted = new Date(new Date(iso).getTime() - windowMs)
+  return adjusted.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
+}
+
 export function useIntentsPoller(onNewCompletion?: () => void): void {
   const onNewCompletionRef = useRef<(() => void) | undefined>(onNewCompletion)
   useEffect(() => { onNewCompletionRef.current = onNewCompletion }, [onNewCompletion])
@@ -43,10 +58,14 @@ export function useIntentsPoller(onNewCompletion?: () => void): void {
         return
       }
 
-      // Filter by parseFilename and cursor, sort ascending
+      // Filter by parseFilename and cursor (with lookback), sort ascending.
+      // The lookback catches events uploaded with earlier timestamps than the
+      // current cursor (out-of-order delivery). isAlreadyLogged prevents
+      // duplicate writes for events re-examined within the window.
+      const effectiveCursor = cursor ? cursorLookback(cursor, CURSOR_LOOKBACK_MS) : null
       const parsed = filenames
         .map(f => ({ filename: f, parsed: parseFilename(f) }))
-        .filter(({ parsed: p }) => p !== null && (!cursor || p!.timestamp > cursor))
+        .filter(({ parsed: p }) => p !== null && (!effectiveCursor || p!.timestamp > effectiveCursor))
         .sort((a, b) => a.parsed!.timestamp.localeCompare(b.parsed!.timestamp))
 
       let newCursor = cursor
@@ -125,9 +144,10 @@ export function useIntentsPoller(onNewCompletion?: () => void): void {
 
     async function processEnvelope(envelope: Awaited<ReturnType<typeof parseEnvelope>>) {
       await processNotifyEnvelope(envelope, {
-        getChore: (id) => db.chores.get(id),
+        getChore: (syncId) => db.chores.where('sync_id').equals(syncId).first(),
         logCompletion,
         addActivityEntry,
+        isAlreadyLogged: (syncId) => db.completionEvents.where('sync_id').equals(syncId).count().then(n => n > 0),
         dispatchChoreLogged: () => window.dispatchEvent(new CustomEvent('lg:chore-logged')),
         onNewCompletion: () => onNewCompletionRef.current?.(),
       })
