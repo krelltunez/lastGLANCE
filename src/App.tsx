@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Pencil, Check, Sun, Moon, Archive, Plug, Cloud, CloudOff, RefreshCw, HelpCircle } from 'lucide-react'
+import { Pencil, Check, Sun, Moon, Archive, Plug, Cloud, CloudOff, RefreshCw, HelpCircle, Users, Settings, UserCircle } from 'lucide-react'
 import { Ribbon } from '@/components/Ribbon/Ribbon'
 import { BackupModal } from '@/components/BackupModal/BackupModal'
 import { WelcomeModal } from '@/components/WelcomeModal/WelcomeModal'
-import { clearSeedData } from '@/db/queries'
+import { clearSeedData, getUsers as getDBUsers, deduplicateUsers } from '@/db/queries'
 import { IntegrationSettingsModal } from '@/components/IntegrationSettingsModal/IntegrationSettingsModal'
 import { SyncSettingsModal } from '@/components/SyncSettingsModal/SyncSettingsModal'
 import { PassphraseModal } from '@/components/PassphraseModal/PassphraseModal'
@@ -11,12 +11,17 @@ import { HelpModal } from '@/components/HelpModal/HelpModal'
 import { ShortcutsModal } from '@/components/ShortcutsModal/ShortcutsModal'
 import { ActivityLogModal } from '@/components/ActivityLogModal/ActivityLogModal'
 import { ToastProvider } from '@/components/Toast/Toast'
+import { UsersModal } from '@/components/UsersModal/UsersModal'
+import { UsersContext } from '@/multiuser/UsersContext'
+import { useUsers } from '@/multiuser/useUsers'
 import { useNotifications } from '@/hooks/useNotifications'
 import { useIntentsPoller } from '@/hooks/useIntentsPoller'
 import { IntentsProvider, useIntents } from '@/intents/IntentsContext'
 import { getAllCompletionCounts } from '@/db/queries'
-import { createEngine, initSessionKey, setupEncryptionKey, runAutoBackups, ensureSyncFolder, CRYPTO_CONFIG } from '@/sync/engine'
+import { createEngine, initSessionKey, setupEncryptionKey, runAutoBackups, ensureSyncFolder, CRYPTO_CONFIG, getSyncWebdavConfig } from '@/sync/engine'
 import type { SyncEngine, SyncStatus } from '@glance-apps/sync'
+import { syncSharedUsers } from '@/multiuser/sharedUsers'
+import { getUsersPath } from '@/multiuser/settings'
 import dayjs from 'dayjs'
 
 // ── Header heatmap ─────────────────────────────────────────────────────────────
@@ -106,6 +111,9 @@ function HeaderHeatmap({ weeks }: { weeks: HeatDay[][] }) {
 function AppInner() {
   useNotifications()
   const { refreshConfig } = useIntents()
+  const usersCtx = useUsers()
+  const reloadUsers = usersCtx.reload
+  const { multiUserEnabled, meId, filter, setFilter } = usersCtx
   const [editMode, setEditMode] = useState(false)
   const [showWelcome, setShowWelcome] = useState(() => !localStorage.getItem('lg-welcome-dismissed'))
   const [welcomeClearing, setWelcomeClearing] = useState(false)
@@ -116,6 +124,8 @@ function AppInner() {
   const [showHelp, setShowHelp] = useState(false)
   const [showShortcuts, setShowShortcuts] = useState(false)
   const [showActivityLog, setShowActivityLog] = useState(false)
+  const [showUsers, setShowUsers] = useState(false)
+  const [showSettingsSheet, setShowSettingsSheet] = useState(false)
   const [ribbonKey, setRibbonKey] = useState(0)
   const [heatmapWeeks, setHeatmapWeeks] = useState<HeatDay[][]>([])
   const [waveKey, setWaveKey] = useState(0)
@@ -153,7 +163,45 @@ function AppInner() {
       onPassphraseRequired: () => setShowPassphrase(true),
     })
     engineRef.current = engine
-    ensureSyncFolder(engine).then(() => engine.sync()).catch(() => {/* errors surfaced via onError */})
+    deduplicateUsers()
+      .catch(() => {})
+      .then(() => ensureSyncFolder(engine))
+      .then(() => engine.sync())
+      .catch(() => {/* errors surfaced via onError */})
+  }, [])
+
+  // Shared user roster sync — fire-and-forget, non-fatal
+  const sharedUserSyncRunning = useRef(false)
+  const runSharedUserSync = useCallback(async () => {
+    if (sharedUserSyncRunning.current) return
+    sharedUserSyncRunning.current = true
+    try {
+      await deduplicateUsers()
+      const syncConfig = getSyncWebdavConfig(engineRef.current)
+      if (!syncConfig) return
+      const localUsers = await getDBUsers()
+      const result = await syncSharedUsers(syncConfig, getUsersPath(), localUsers)
+      if (result) {
+        // Upsert remote-only or updated users into local DB
+        const { createUser, updateUser } = await import('@/db/queries')
+        for (const ru of result.merged) {
+          const existing = localUsers.find(u => u.sync_id === ru.id)
+          if (!existing) {
+            await createUser(ru.name, ru.id)
+          } else if (ru.name !== existing.name && ru.updatedAt > existing.updated_at) {
+            await updateUser(existing.id, { name: ru.name })
+          }
+        }
+        reloadUsers()
+      }
+    } catch { /* non-fatal */ }
+    finally { sharedUserSyncRunning.current = false }
+  }, [reloadUsers])
+
+  // Auto-sync on mount
+  useEffect(() => {
+    runSharedUserSync()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Re-sync on tab focus and on a recurring interval
@@ -208,8 +256,10 @@ function AppInner() {
   const anyModalOpenRef = useRef(false)
   anyModalOpenRef.current = (
     showWelcome || showBackup || showIntegration || showSyncSettings ||
-    showPassphrase || showHelp || showShortcuts || showActivityLog
+    showPassphrase || showHelp || showShortcuts || showActivityLog || showUsers
   )
+  const filterRef = useRef(filter)
+  filterRef.current = filter
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       const tag = (e.target as HTMLElement).tagName
@@ -222,6 +272,9 @@ function AppInner() {
         case 's': case 'S': setShowSyncSettings(true); break
         case 'a': case 'A': setShowBackup(true); break
         case 'l': case 'L': setShowActivityLog(true); break
+        case 'm': case 'M':
+          if (multiUserEnabled && meId && !editMode) setFilter(filterRef.current === 'mine' ? 'all' : 'mine')
+          break
         case '?':           setShowShortcuts(true); break
       }
     }
@@ -231,6 +284,7 @@ function AppInner() {
   }, [])
 
   return (
+    <UsersContext.Provider value={usersCtx}>
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col">
       <header className="shrink-0 px-5 pt-5 pb-4 border-b border-slate-200 dark:border-slate-800/80 flex items-end justify-between gap-4">
         {/* Logo + heatmap */}
@@ -256,70 +310,104 @@ function AppInner() {
           )}
         </div>
 
-        {/* Controls — two rows to keep the header compact */}
+        {/* Controls */}
         <div className="flex flex-col items-end gap-1.5 shrink-0">
-          {/* Row 1: theme + edit */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={toggleTheme}
-              className="p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors"
-              aria-label="Toggle theme"
-            >
-              {isDark ? <Sun size={15} /> : <Moon size={15} />}
-            </button>
+
+          {/* ── Mobile: settings gear + Edit ── */}
+          <div className="flex items-center gap-2 sm:hidden">
+            <div className="relative">
+              <button
+                onClick={() => setShowSettingsSheet(s => !s)}
+                className="p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors"
+                aria-label="Settings"
+              >
+                <Settings size={15} />
+              </button>
+              {showSettingsSheet && (
+                <>
+                  {/* backdrop */}
+                  <div className="fixed inset-0 z-40" onClick={() => setShowSettingsSheet(false)} />
+                  {/* sheet */}
+                  <div className="absolute right-0 top-full mt-2 z-50 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl p-3 flex flex-col gap-1 min-w-[160px]">
+                    {[
+                      { label: 'Cloud Sync', icon: syncHalted || syncError ? <CloudOff size={15} /> : syncStatus === 'uploading' || syncStatus === 'downloading' ? <RefreshCw size={15} className="animate-spin" /> : <Cloud size={15} />, onClick: () => { setShowSyncSettings(true); setShowSettingsSheet(false) }, warn: !!(syncHalted || syncError) },
+                      { label: 'dayGLANCE Integration', icon: <Plug size={22} />, onClick: () => { setShowIntegration(true); setShowSettingsSheet(false) } },
+                      { label: 'Users', icon: <Users size={15} />, onClick: () => { setShowUsers(true); setShowSettingsSheet(false) } },
+                      { label: isDark ? 'Light Mode' : 'Dark Mode', icon: isDark ? <Sun size={15} /> : <Moon size={15} />, onClick: () => { toggleTheme(); setShowSettingsSheet(false) } },
+                      { label: 'Backup & Restore', icon: <Archive size={15} />, onClick: () => { setShowBackup(true); setShowSettingsSheet(false) } },
+                      { label: 'Help & Feedback', icon: <HelpCircle size={15} />, onClick: () => { setShowHelp(true); setShowSettingsSheet(false) } },
+                    ].map(item => (
+                      <button
+                        key={item.label}
+                        onClick={item.onClick}
+                        className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-left w-full transition-colors hover:bg-slate-100 dark:hover:bg-slate-700 ${item.warn ? 'text-amber-400' : 'text-slate-600 dark:text-slate-300'}`}
+                      >
+                        {item.icon}
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
             <button
               onClick={() => setEditMode(e => !e)}
-              className={`
-                flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors border
-                ${editMode
-                  ? 'text-green-400 border-green-400/40 hover:text-green-300 hover:bg-green-400/10 hover:border-green-400/60'
-                  : 'text-slate-500 dark:text-slate-500 border-slate-200 dark:border-slate-700 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'}
-              `}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors border ${editMode ? 'text-green-400 border-green-400/40 hover:text-green-300 hover:bg-green-400/10 hover:border-green-400/60' : 'text-slate-500 dark:text-slate-500 border-slate-200 dark:border-slate-700 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
               aria-label={editMode ? 'Done editing' : 'Edit categories and chores'}
             >
               {editMode ? <><Check size={14} /> Done</> : <><Pencil size={14} /> Edit</>}
             </button>
           </div>
-          {/* Row 2: intents, sync, archive, help */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setShowIntegration(true)}
-              className="p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors"
-              aria-label="dayGLANCE Integration"
-            >
-              <Plug size={15} />
-            </button>
-            <button
-              onClick={() => setShowSyncSettings(true)}
-              className={`p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors ${
-                syncHalted || syncError
-                  ? 'text-amber-400 dark:text-amber-400'
-                  : 'text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200'
-              }`}
-              aria-label="Cloud Sync"
-            >
-              {syncStatus === 'uploading' || syncStatus === 'downloading'
-                ? <RefreshCw size={15} className="animate-spin" />
-                : syncHalted || syncError
-                  ? <CloudOff size={15} />
-                  : <Cloud size={15} />
-              }
-            </button>
-            <button
-              onClick={() => setShowBackup(true)}
-              className="p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors"
-              aria-label="Backup & Restore"
-            >
-              <Archive size={15} />
-            </button>
-            <button
-              onClick={() => setShowHelp(true)}
-              className="p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors"
-              aria-label="Help & Feedback"
-            >
-              <HelpCircle size={15} />
-            </button>
+
+          {/* ── Desktop: two-row layout ── */}
+          <div className="hidden sm:flex flex-col items-end gap-1.5">
+            {/* Row 1: theme + filter (if multi-user) + edit */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={toggleTheme}
+                className="p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors"
+                aria-label="Toggle theme"
+              >
+                {isDark ? <Sun size={15} /> : <Moon size={15} />}
+              </button>
+              {multiUserEnabled && meId && !editMode && (
+                <button
+                  onClick={() => setFilter(filter === 'mine' ? 'all' : 'mine')}
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors border ${
+                    filter === 'mine'
+                      ? 'text-green-400 border-green-400/40 hover:text-green-300 hover:bg-green-400/10 hover:border-green-400/60'
+                      : 'text-slate-500 dark:text-slate-500 border-slate-200 dark:border-slate-700 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  }`}
+                  aria-label="Toggle my tasks filter"
+                >
+                  <UserCircle size={14} />
+                  {filter === 'mine' ? 'Mine' : 'All'}
+                </button>
+              )}
+              <button
+                onClick={() => setEditMode(e => !e)}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors border ${editMode ? 'text-green-400 border-green-400/40 hover:text-green-300 hover:bg-green-400/10 hover:border-green-400/60' : 'text-slate-500 dark:text-slate-500 border-slate-200 dark:border-slate-700 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+                aria-label={editMode ? 'Done editing' : 'Edit categories and chores'}
+              >
+                {editMode ? <><Check size={14} /> Done</> : <><Pencil size={14} /> Edit</>}
+              </button>
+            </div>
+            {/* Row 2: users, intents, sync, archive, help */}
+            <div className="flex items-center gap-2">
+              <button onClick={() => setShowUsers(true)} className="p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors" aria-label="Users"><Users size={15} /></button>
+              <button onClick={() => setShowIntegration(true)} className="p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors" aria-label="dayGLANCE Integration"><Plug size={15} /></button>
+              <button
+                onClick={() => setShowSyncSettings(true)}
+                className={`p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors ${syncHalted || syncError ? 'text-amber-400 dark:text-amber-400' : 'text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200'}`}
+                aria-label="Cloud Sync"
+              >
+                {syncStatus === 'uploading' || syncStatus === 'downloading' ? <RefreshCw size={15} className="animate-spin" /> : syncHalted || syncError ? <CloudOff size={15} /> : <Cloud size={15} />}
+              </button>
+              <button onClick={() => setShowBackup(true)} className="p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors" aria-label="Backup & Restore"><Archive size={15} /></button>
+              <button onClick={() => setShowHelp(true)} className="p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors" aria-label="Help & Feedback"><HelpCircle size={15} /></button>
+            </div>
           </div>
+
         </div>
       </header>
 
@@ -368,7 +456,7 @@ function AppInner() {
       {showSyncSettings && (
         <SyncSettingsModal
           engine={engineRef.current}
-          onClose={() => setShowSyncSettings(false)}
+          onClose={() => { setShowSyncSettings(false); runSharedUserSync() }}
         />
       )}
 
@@ -400,7 +488,16 @@ function AppInner() {
           onClose={() => setShowPassphrase(false)}
         />
       )}
+
+      {showUsers && (
+        <UsersModal
+          engine={engineRef.current}
+          onUserMutated={runSharedUserSync}
+          onClose={() => { setShowUsers(false); usersCtx.reload() }}
+        />
+      )}
     </div>
+    </UsersContext.Provider>
   )
 }
 

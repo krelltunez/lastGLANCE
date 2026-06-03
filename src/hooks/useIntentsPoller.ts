@@ -142,6 +142,7 @@ export function useIntentsPoller(onNewCompletion?: () => void): void {
       await logCompletion(choreId, {
         completedAt: dayjs(payload.completed_at).isValid() ? payload.completed_at : dayjs().toISOString(),
         source: 'dayglance',
+        completedByUserSyncId: payload.completed_by_user_id ?? null,
       })
 
       addActivityEntry({ type: 'received', message: `"${chore.name}" completed in dayGLANCE` })

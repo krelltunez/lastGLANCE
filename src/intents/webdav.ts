@@ -7,6 +7,14 @@ function withProxy(url: string): string {
   return `${proxy}/api/webdav-proxy/?url=${encodeURIComponent(url)}`
 }
 
+const WEBDAV_TIMEOUT_MS = 15_000
+
+function fetchWithTimeout(url: string, init: RequestInit): Promise<Response> {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), WEBDAV_TIMEOUT_MS)
+  return fetch(url, { ...init, signal: controller.signal }).finally(() => clearTimeout(timer))
+}
+
 function buildFolderUrl(baseUrl: string, folderPath: string): string {
   const base = baseUrl.replace(/\/$/, '')
   const folder = folderPath.replace(/^\//, '').replace(/\/$/, '')
@@ -21,7 +29,7 @@ export async function ensureFolder(baseUrl: string, folderPath: string, authHead
     current = current ? `${current}/${segment}` : segment
     const url = `${base}/${current}/`
     try {
-      await fetch(withProxy(url), {
+      await fetchWithTimeout(withProxy(url), {
         method: 'MKCOL',
         headers: { 'X-WebDAV-Auth': authHeader },
       })
@@ -34,7 +42,7 @@ export async function ensureFolder(baseUrl: string, folderPath: string, authHead
 export async function putFile(baseUrl: string, folderPath: string, filename: string, content: string, authHeader: string): Promise<void> {
   const folderUrl = buildFolderUrl(baseUrl, folderPath)
   const url = `${folderUrl}/${filename}`
-  const res = await fetch(withProxy(url), {
+  const res = await fetchWithTimeout(withProxy(url), {
     method: 'PUT',
     headers: {
       'X-WebDAV-Auth': authHeader,
@@ -48,12 +56,14 @@ export async function putFile(baseUrl: string, folderPath: string, filename: str
 }
 
 
+const HREF_RE = /<[^>]*:href[^>]*>([^<]*)<\/[^>]*:href>/gi
+
 const PROPFIND_BODY = '<?xml version="1.0" encoding="utf-8"?><propfind xmlns="DAV:"><allprop/></propfind>'
 
 export async function listFiles(baseUrl: string, folderPath: string, authHeader: string): Promise<string[]> {
-  const folderUrl = buildFolderUrl(baseUrl, folderPath)
+  const folderUrl = buildFolderUrl(baseUrl, folderPath) + '/'
   try {
-    const res = await fetch(withProxy(folderUrl), {
+    const res = await fetchWithTimeout(withProxy(folderUrl), {
       method: 'PROPFIND',
       headers: {
         'X-WebDAV-Auth': authHeader,
@@ -65,10 +75,11 @@ export async function listFiles(baseUrl: string, folderPath: string, authHeader:
     if (res.status === 404) return []
     if (!res.ok) return []
     const text = await res.text()
-    const doc = new DOMParser().parseFromString(text, 'application/xml')
     const filenames: string[] = []
-    for (const el of Array.from(doc.getElementsByTagNameNS('DAV:', 'href'))) {
-      const href = decodeURIComponent((el.textContent ?? '').trim())
+    let match: RegExpExecArray | null
+    HREF_RE.lastIndex = 0
+    while ((match = HREF_RE.exec(text)) !== null) {
+      const href = decodeURIComponent(match[1].trim())
       const filename = href.split('/').pop() ?? ''
       if (filename.endsWith('.json')) {
         filenames.push(filename)
@@ -83,7 +94,7 @@ export async function listFiles(baseUrl: string, folderPath: string, authHeader:
 export async function getFile(baseUrl: string, folderPath: string, filename: string, authHeader: string): Promise<string> {
   const folderUrl = buildFolderUrl(baseUrl, folderPath)
   const url = `${folderUrl}/${filename}`
-  const res = await fetch(withProxy(url), {
+  const res = await fetchWithTimeout(withProxy(url), {
     method: 'GET',
     headers: { 'X-WebDAV-Auth': authHeader },
   })
@@ -96,7 +107,7 @@ export async function getFile(baseUrl: string, folderPath: string, filename: str
 export async function getFileOrNull(baseUrl: string, folderPath: string, filename: string, authHeader: string): Promise<string | null> {
   const folderUrl = buildFolderUrl(baseUrl, folderPath)
   const url = `${folderUrl}/${filename}`
-  const res = await fetch(withProxy(url), {
+  const res = await fetchWithTimeout(withProxy(url), {
     method: 'GET',
     headers: { 'X-WebDAV-Auth': authHeader },
   })
@@ -109,7 +120,7 @@ export async function testConnection(baseUrl: string, folderPath: string, userna
   const authHeader = buildAuthHeader(username, password)
   const folderUrl = buildFolderUrl(baseUrl, folderPath)
   try {
-    const res = await fetch(withProxy(folderUrl), {
+    const res = await fetchWithTimeout(withProxy(folderUrl), {
       method: 'PROPFIND',
       headers: {
         'X-WebDAV-Auth': authHeader,

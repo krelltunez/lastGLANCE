@@ -1,5 +1,5 @@
 import { db, SEED_CAT_SYNC_IDS, SEED_CHORE_SYNC_IDS } from './client'
-import type { Category, Chore, ChoreWithLastCompletion, CompletionEvent } from '@/types'
+import type { Category, Chore, ChoreWithLastCompletion, CompletionEvent, User } from '@/types'
 import dayjs from 'dayjs'
 
 // Tombstone helpers
@@ -197,13 +197,14 @@ export async function deleteChore(id: number): Promise<void> {
 
 export async function logCompletion(
   choreId: number,
-  opts: { note?: string; completedAt?: string; source?: 'manual' | 'dayglance' } = {}
+  opts: { note?: string; completedAt?: string; source?: 'manual' | 'dayglance'; completedByUserSyncId?: string | null } = {}
 ): Promise<number> {
   return db.completionEvents.add({
     chore_id: choreId,
     completed_at: opts.completedAt ?? dayjs().toISOString(),
     note: opts.note ?? null,
     source: opts.source ?? 'manual',
+    completed_by_user_sync_id: opts.completedByUserSyncId ?? null,
     sync_id: crypto.randomUUID(),
   } as CompletionEvent)
 }
@@ -225,6 +226,60 @@ export async function deleteCompletion(id: number): Promise<void> {
   if (evt?.sync_id) {
     await writeTombstone(evt.sync_id)
   }
+}
+
+// Users
+
+export async function getUsers(): Promise<User[]> {
+  const users = await db.users.toArray()
+  return users.sort((a, b) => a.name.localeCompare(b.name))
+}
+
+export async function createUser(name: string, syncId?: string): Promise<number> {
+  const now = new Date().toISOString()
+  return db.users.add({
+    name,
+    sync_id: syncId ?? crypto.randomUUID(),
+    updated_at: now,
+  } as User)
+}
+
+export async function updateUser(id: number, fields: { name: string }): Promise<void> {
+  await db.users.update(id, { ...fields, updated_at: new Date().toISOString() })
+}
+
+export async function deleteUser(id: number): Promise<void> {
+  await db.transaction('rw', db.users, db.tombstones, async () => {
+    const user = await db.users.get(id)
+    await db.users.delete(id)
+    if (user?.sync_id) {
+      await writeTombstone(user.sync_id)
+    }
+  })
+}
+
+// Removes duplicate user rows that share the same sync_id, keeping the one
+// with the most recent updated_at. Returns the number of rows deleted.
+export async function deduplicateUsers(): Promise<number> {
+  const all = await db.users.toArray()
+  const bySyncId = new Map<string, typeof all>()
+  for (const u of all) {
+    const key = u.sync_id ?? ''
+    const group = bySyncId.get(key) ?? []
+    group.push(u)
+    bySyncId.set(key, group)
+  }
+  let deleted = 0
+  for (const group of bySyncId.values()) {
+    if (group.length <= 1) continue
+    group.sort((a, b) => (b.updated_at ?? '').localeCompare(a.updated_at ?? ''))
+    const toDelete = group.slice(1)
+    for (const u of toDelete) {
+      await db.users.delete(u.id!)
+      deleted++
+    }
+  }
+  return deleted
 }
 
 // Backup / restore

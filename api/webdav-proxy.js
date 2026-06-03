@@ -1,5 +1,8 @@
+import https from 'https'
+import http from 'http'
+import { URL } from 'url'
+
 // Disable Vercel's default body parser so we can forward raw request bodies
-// (e.g. text/calendar) without them being mangled or rejected as unsupported.
 export const config = {
   api: {
     bodyParser: false,
@@ -24,7 +27,6 @@ function validateProxyUrl(urlString) {
     throw new Error('Private/reserved addresses are not allowed');
   }
 
-  // Block IPv4 private/reserved ranges
   const ipv4 = hostname.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
   if (ipv4) {
     const [a, b] = [Number(ipv4[1]), Number(ipv4[2])];
@@ -41,15 +43,6 @@ function validateProxyUrl(urlString) {
     }
   }
 
-  // Block IPv6 loopback, unspecified, link-local, and private/ULA ranges.
-  //   ::1        — loopback
-  //   ::         — unspecified
-  //   ::ffff:…   — IPv4-mapped (e.g. ::ffff:127.0.0.1 bypasses the IPv4 check above)
-  //   fe80:…     — link-local
-  //   fc… / fd…  — Unique Local (ULA, fc00::/7); original code only blocked fd
-  // NOTE: DNS rebinding (public hostname → private IP at connection time) is a
-  // known limitation that cannot be fixed without a post-connection IP check,
-  // which fetch() does not expose.  Risk is low on Vercel (IPv4-only runtime).
   if (
     hostname === '::1' ||
     hostname === '::' ||
@@ -64,12 +57,51 @@ function validateProxyUrl(urlString) {
   return parsed;
 }
 
-function readRawBody(req) {
+function proxyRequest(method, targetUrl, headers, body) {
   return new Promise((resolve, reject) => {
-    let data = '';
-    req.on('data', chunk => data += chunk);
-    req.on('end', () => resolve(data));
-    req.on('error', reject);
+    const parsed = new URL(targetUrl);
+    const transport = parsed.protocol === 'https:' ? https : http;
+    const port = parsed.port || (parsed.protocol === 'https:' ? 443 : 80);
+
+    const bodyBuf = body ? Buffer.from(body) : null;
+    const reqHeaders = {
+      ...headers,
+      host: parsed.hostname,
+    };
+    if (bodyBuf) {
+      reqHeaders['content-length'] = String(bodyBuf.length);
+    }
+
+    const options = {
+      hostname: parsed.hostname,
+      port,
+      path: parsed.pathname + parsed.search,
+      method,
+      headers: reqHeaders,
+      // Force HTTP/1.1 — avoid undici HTTP/2 negotiation issues with WebDAV
+      agent: new transport.Agent({ keepAlive: false }),
+    };
+
+    const proxyReq = transport.request(options, (proxyRes) => {
+      const chunks = [];
+      proxyRes.on('data', chunk => chunks.push(chunk));
+      proxyRes.on('end', () => {
+        resolve({
+          status: proxyRes.statusCode,
+          headers: proxyRes.headers,
+          body: Buffer.concat(chunks).toString('utf8'),
+        });
+      });
+      proxyRes.on('error', reject);
+    });
+
+    proxyReq.on('error', reject);
+    proxyReq.setTimeout(30000, () => {
+      proxyReq.destroy(new Error('upstream request timed out'));
+    });
+
+    if (bodyBuf) proxyReq.write(bodyBuf);
+    proxyReq.end();
   });
 }
 
@@ -98,16 +130,12 @@ export default async function handler(req, res) {
   try {
     const headers = {};
 
-    // Forward X-WebDAV-Auth as Authorization
     if (req.headers['x-webdav-auth']) {
       headers['Authorization'] = req.headers['x-webdav-auth'];
     }
-
     if (req.headers['depth'] !== undefined) {
       headers['Depth'] = req.headers['depth'];
     }
-
-    // Forward optimistic-concurrency headers.
     if (req.headers['if-match']) {
       headers['If-Match'] = req.headers['if-match'];
     }
@@ -115,41 +143,39 @@ export default async function handler(req, res) {
       headers['If-None-Match'] = req.headers['if-none-match'];
     }
 
-    const fetchOptions = {
-      method: req.method,
-      headers,
-    };
-
+    let body = null;
     if (req.method !== 'GET' && req.method !== 'HEAD') {
-      const rawBody = await readRawBody(req);
-      if (rawBody) {
-        fetchOptions.body = rawBody;
+      body = await new Promise((resolve, reject) => {
+        const chunks = [];
+        req.on('data', chunk => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)));
+        req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+        req.on('error', reject);
+      });
+      if (body) {
         // Only set Content-Type when there is an actual body — Apache mod_dav
         // rejects PROPFIND and MKCOL with Content-Type but no body.
         headers['Content-Type'] = req.headers['content-type'] || 'application/octet-stream';
+      } else {
+        body = null;
       }
     }
 
-    const response = await fetch(url, fetchOptions);
-    const body = await response.text();
+    const response = await proxyRequest(req.method, url, headers, body);
 
-    // Some WebDAV servers return 200 HTML (error page) for missing resources
-    // instead of a proper 404. Normalise these so the sync library can treat
-    // them as "file not found" rather than crashing on JSON.parse('<').
-    // Check both the Content-Type header and the body itself since some servers
-    // omit the header or use a non-standard value.
-    const contentType = response.headers.get('content-type') || '';
-    if (req.method === 'GET' && response.ok &&
-        (contentType.includes('text/html') || body.trimStart().startsWith('<'))) {
+    // Some WebDAV servers return 200 HTML (error page) for missing resources.
+    // Normalise these so the sync library can treat them as "file not found".
+    const contentType = response.headers['content-type'] || '';
+    if (req.method === 'GET' && response.status >= 200 && response.status < 300 &&
+        (contentType.includes('text/html') || response.body.trimStart().startsWith('<'))) {
       return res.status(404).end();
     }
 
     res.setHeader('Content-Type', contentType || 'text/plain');
     res.setHeader('Cache-Control', 'no-store');
-    const etag = response.headers.get('etag');
-    if (etag) res.setHeader('ETag', etag);
-    res.status(response.status).send(body);
+    if (response.headers['etag']) res.setHeader('ETag', response.headers['etag']);
+    res.status(response.status).send(response.body);
   } catch (err) {
+    console.error('[proxy] error for', req.method, url, err?.message ?? err);
     res.status(502).json({ error: 'Failed to proxy WebDAV request' });
   }
 }

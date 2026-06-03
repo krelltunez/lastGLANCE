@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from 'react'
-import { Plus, GripVertical, Search } from 'lucide-react'
+import { useState, useRef, useEffect, useMemo } from 'react'
+import { Plus, GripVertical, Search, UserCircle } from 'lucide-react'
 import { useChores } from '@/hooks/useChores'
 import { reorderCategories } from '@/db/queries'
 import { CategorySection } from '@/components/CategorySection/CategorySection'
@@ -7,6 +7,7 @@ import { LogModal } from '@/components/LogModal/LogModal'
 import { CategoryFormModal } from '@/components/CategoryFormModal/CategoryFormModal'
 import { ChoreFormModal } from '@/components/ChoreFormModal/ChoreFormModal'
 import { SearchModal } from '@/components/SearchModal/SearchModal'
+import { useUsersContext } from '@/multiuser/UsersContext'
 import type { Category, ChoreWithLastCompletion } from '@/types'
 import type { CategoryWithChores } from '@/hooks/useChores'
 
@@ -59,8 +60,25 @@ function packMasonry(
 
 const ADD_CAT_ID = -1
 
+function filterCategoryData(data: CategoryWithChores[], meId: string | null, filter: 'all' | 'mine'): CategoryWithChores[] {
+  if (filter !== 'mine' || !meId) return data
+  return data.map(cat => ({
+    ...cat,
+    chores: cat.chores.filter(c =>
+      c.assigned_user_sync_ids.length === 0 || c.assigned_user_sync_ids.includes(meId)
+    ),
+    subcategories: cat.subcategories.map(sub => ({
+      ...sub,
+      chores: sub.chores.filter(c =>
+        c.assigned_user_sync_ids.length === 0 || c.assigned_user_sync_ids.includes(meId)
+      ),
+    })),
+  }))
+}
+
 export function Ribbon({ editMode, onLogged }: Props) {
   const { data, loading, refresh } = useChores()
+  const { multiUserEnabled, meId, filter, setFilter } = useUsersContext()
   const [localData, setLocalData] = useState<CategoryWithChores[]>([])
   const [activeCategoryIndex, setActiveCategoryIndex] = useState(0)
   const [selectedChore, setSelectedChore] = useState<ChoreWithLastCompletion | null>(null)
@@ -370,6 +388,12 @@ export function Ribbon({ editMode, onLogged }: Props) {
     snap(0)
   }
 
+  // Apply user filter at render time (unfiltered data drives layout measurement)
+  const displayData = useMemo(
+    () => filterCategoryData(localData, meId, filter),
+    [localData, meId, filter]
+  )
+
   function openChore(chore: ChoreWithLastCompletion) { setSelectedChore(chore) }
   function closeChore() { setSelectedChore(null) }
   function afterLog() { refresh(); onLogged?.() }
@@ -383,10 +407,11 @@ export function Ribbon({ editMode, onLogged }: Props) {
     )
   }
 
+
   const showEmpty = localData.length === 0
-  const prevData = activeCategoryIndex > 0 ? localData[activeCategoryIndex - 1] : null
-  const currData = localData[activeCategoryIndex]
-  const nextData = activeCategoryIndex < localData.length - 1 ? localData[activeCategoryIndex + 1] : null
+  const prevData = activeCategoryIndex > 0 ? displayData[activeCategoryIndex - 1] : null
+  const currData = displayData[activeCategoryIndex]
+  const nextData = activeCategoryIndex < displayData.length - 1 ? displayData[activeCategoryIndex + 1] : null
 
   // Flat list of all categories (roots + subcategories) for form pickers
   const allCategories = localData.flatMap(d => [d.category, ...d.subcategories.map(s => s.category)])
@@ -502,7 +527,7 @@ export function Ribbon({ editMode, onLogged }: Props) {
               ref={desktopGridRef}
               style={{ position: 'relative', height: containerHeight }}
             >
-              {localData.map(d => {
+              {displayData.map(d => {
                 const pos = positions.get(d.category.id)
                 return (
                   <div
@@ -566,16 +591,31 @@ export function Ribbon({ editMode, onLogged }: Props) {
         )}
       </div>
 
-      {/* Mobile search FAB — hidden on desktop, hidden in edit mode */}
+      {/* Mobile FABs — hidden on desktop, hidden in edit mode */}
       {!editMode && !showEmpty && (
-        <button
-          onClick={() => setShowSearch(true)}
-          className="min-[1060px]:hidden fixed bottom-6 right-6 z-40 flex items-center justify-center w-13 h-13 rounded-full bg-slate-800 dark:bg-slate-700 text-slate-100 shadow-lg border border-slate-700 dark:border-slate-600 hover:bg-slate-700 dark:hover:bg-slate-600 active:scale-95 transition-all"
-          aria-label="Search chores"
-          title="Search (/)"
-        >
-          <Search size={20} />
-        </button>
+        <>
+          {multiUserEnabled && meId && (
+            <button
+              onClick={() => setFilter(filter === 'mine' ? 'all' : 'mine')}
+              className={`min-[1060px]:hidden fixed bottom-24 right-6 z-40 flex items-center justify-center w-16 h-16 rounded-full shadow-lg border active:scale-95 transition-all ${
+                filter === 'mine'
+                  ? 'bg-green-500 dark:bg-green-600 text-white border-green-400/50'
+                  : 'bg-slate-800 dark:bg-slate-700 text-slate-100 border-slate-700 dark:border-slate-600 hover:bg-slate-700 dark:hover:bg-slate-600'
+              }`}
+              aria-label="Toggle my tasks filter"
+            >
+              <UserCircle size={20} />
+            </button>
+          )}
+          <button
+            onClick={() => setShowSearch(true)}
+            className="min-[1060px]:hidden fixed bottom-6 right-6 z-40 flex items-center justify-center w-16 h-16 rounded-full bg-slate-800 dark:bg-slate-700 text-slate-100 shadow-lg border border-slate-700 dark:border-slate-600 hover:bg-slate-700 dark:hover:bg-slate-600 active:scale-95 transition-all"
+            aria-label="Search chores"
+            title="Search (/)"
+          >
+            <Search size={20} />
+          </button>
+        </>
       )}
 
       {selectedChore && !editMode && (

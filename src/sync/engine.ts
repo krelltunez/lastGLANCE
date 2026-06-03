@@ -10,7 +10,8 @@ import {
 import type { SyncEngine, SyncStatus, SyncErrorCode, BackupFrequency } from '@glance-apps/sync'
 import { db } from '@/db/client'
 import { buildAuthHeader, ensureFolder } from '@/intents/webdav'
-import type { SyncPayload } from './types'
+import type { SyncPayload, SyncSettings } from './types'
+import { getMultiUserEnabled, setMultiUserEnabled } from '@/multiuser/settings'
 
 export const CRYPTO_CONFIG = { cryptoDBName: 'lastglance-crypto' }
 export const DEFAULT_SYNC_FOLDER = 'GLANCE/lastglance'
@@ -20,17 +21,22 @@ export { initSessionKey, setupEncryptionKey, clearEncryptionKey }
 
 // buildPayload: read all Dexie tables, map to sync shapes
 export const buildPayload = async (): Promise<SyncPayload> => {
-  const [categories, chores, completionEvents, tombstoneRows] = await Promise.all([
+  const [categories, chores, completionEvents, tombstoneRows, users] = await Promise.all([
     db.categories.toArray(),
     db.chores.toArray(),
     db.completionEvents.toArray(),
     db.tombstones.toArray(),
+    db.users.toArray(),
   ])
 
   const tombstones: Record<string, string> = {}
   for (const t of tombstoneRows) tombstones[t.id] = t.deleted_at
 
   const choreMap = new Map(chores.map(c => [c.id!, c.sync_id]))
+
+  const settings: SyncSettings = {
+    multiUserEnabled: getMultiUserEnabled(),
+  }
 
   return {
     categories: categories.map(c => ({
@@ -53,6 +59,7 @@ export const buildPayload = async (): Promise<SyncPayload> => {
       seasonalStart: c.seasonal_start ?? null,
       seasonalEnd: c.seasonal_end ?? null,
       icon: c.icon,
+      assignedUserSyncIds: c.assigned_user_sync_ids ?? [],
       createdAt: c.created_at,
       updatedAt: c.updated_at,
     })),
@@ -62,9 +69,24 @@ export const buildPayload = async (): Promise<SyncPayload> => {
       completedAt: e.completed_at,
       note: e.note,
       source: e.source,
+      completedByUserSyncId: e.completed_by_user_sync_id ?? null,
     })),
+    users: users.map(u => ({
+      id: u.sync_id,
+      name: u.name,
+      updatedAt: u.updated_at,
+    })),
+    settings,
     tombstones,
   }
+}
+
+// Deduplicate an array by a string key field, keeping the last occurrence.
+// Prevents bloated/corrupt sync files from causing O(N²) merge behaviour.
+function dedupeById<T extends Record<string, unknown>>(arr: T[], idField: string): T[] {
+  const seen = new Map<string, T>()
+  for (const item of arr) seen.set(item[idField] as string, item)
+  return Array.from(seen.values())
 }
 
 // mergePayloads: synchronous merge of local and remote payloads
@@ -72,27 +94,46 @@ export const mergePayloads = (
   local: unknown,
   remote: unknown,
 ): { data: unknown; localChanged: boolean; remoteChanged: boolean } => {
-  const l = (local ?? { chores: [], categories: [], completionEvents: [], tombstones: {} }) as SyncPayload
-  const r = (remote ?? { chores: [], categories: [], completionEvents: [], tombstones: {} }) as SyncPayload
+  const l = (local ?? { chores: [], categories: [], completionEvents: [], users: [], settings: { multiUserEnabled: false }, tombstones: {} }) as SyncPayload
+  const r = (remote ?? { chores: [], categories: [], completionEvents: [], users: [], settings: { multiUserEnabled: false }, tombstones: {} }) as SyncPayload
 
   const allTombstones: Record<string, string> = { ...l.tombstones, ...r.tombstones }
   const cutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)
   const tombstones = pruneTombstones(allTombstones, cutoff)
 
   type R = Record<string, unknown>
-  const catMerge = mergeArrayById(l.categories as unknown as R[] ?? [], r.categories as unknown as R[] ?? [], tombstones, null, { idField: 'id', timestampField: 'updatedAt' })
-  const choreMerge = mergeArrayById(l.chores as unknown as R[] ?? [], r.chores as unknown as R[] ?? [], tombstones, null, { idField: 'id', timestampField: 'updatedAt' })
-  const evtMerge = mergeArrayById(l.completionEvents as unknown as R[] ?? [], r.completionEvents as unknown as R[] ?? [], tombstones, null, { idField: 'id', timestampField: 'completedAt' })
+  const lCats   = dedupeById(l.categories       as unknown as R[] ?? [], 'id')
+  const rCats   = dedupeById(r.categories       as unknown as R[] ?? [], 'id')
+  const lChores = dedupeById(l.chores           as unknown as R[] ?? [], 'id')
+  const rChores = dedupeById(r.chores           as unknown as R[] ?? [], 'id')
+  const lEvts   = dedupeById(l.completionEvents as unknown as R[] ?? [], 'id')
+  const rEvts   = dedupeById(r.completionEvents as unknown as R[] ?? [], 'id')
+  const lUsers  = dedupeById(l.users            as unknown as R[] ?? [], 'id')
+  const rUsers  = dedupeById(r.users            as unknown as R[] ?? [], 'id')
+
+  const catMerge  = mergeArrayById(lCats,   rCats,   tombstones, null, { idField: 'id', timestampField: 'updatedAt' })
+  const choreMerge = mergeArrayById(lChores, rChores, tombstones, null, { idField: 'id', timestampField: 'updatedAt' })
+  const evtMerge  = mergeArrayById(lEvts,   rEvts,   tombstones, null, { idField: 'id', timestampField: 'completedAt' })
+  const userMerge = mergeArrayById(lUsers,  rUsers,  tombstones, null, { idField: 'id', timestampField: 'updatedAt' })
+
+  // Settings: OR the multiUserEnabled flag (if either side turned it on, keep it on)
+  const mergedSettings: SyncSettings = {
+    multiUserEnabled: !!(l.settings?.multiUserEnabled || r.settings?.multiUserEnabled),
+  }
+  const settingsLocalChanged = !!(r.settings?.multiUserEnabled && !l.settings?.multiUserEnabled)
+  const settingsRemoteChanged = !!(l.settings?.multiUserEnabled && !r.settings?.multiUserEnabled)
 
   return {
     data: {
       categories: catMerge.merged,
       chores: choreMerge.merged,
       completionEvents: evtMerge.merged,
+      users: userMerge.merged,
+      settings: mergedSettings,
       tombstones,
     } as unknown as SyncPayload,
-    localChanged: catMerge.localChanged || choreMerge.localChanged || evtMerge.localChanged,
-    remoteChanged: catMerge.remoteChanged || choreMerge.remoteChanged || evtMerge.remoteChanged,
+    localChanged: catMerge.localChanged || choreMerge.localChanged || evtMerge.localChanged || userMerge.localChanged || settingsLocalChanged,
+    remoteChanged: catMerge.remoteChanged || choreMerge.remoteChanged || evtMerge.remoteChanged || userMerge.remoteChanged || settingsRemoteChanged,
   }
 }
 
@@ -120,6 +161,12 @@ function validateSyncPayload(data: SyncPayload): void {
     if (!uuidRe.test(e.choreSyncId)) throw new Error('invalid completionEvent choreSyncId')
     if (!isoRe.test(e.completedAt)) throw new Error('invalid completionEvent completedAt')
     if (e.source !== 'manual' && e.source !== 'dayglance') throw new Error('invalid completionEvent source')
+    if (e.completedByUserSyncId != null && !uuidRe.test(e.completedByUserSyncId)) throw new Error('invalid completionEvent completedByUserSyncId')
+  }
+  for (const u of (data.users ?? [])) {
+    if (!uuidRe.test(u.id)) throw new Error('invalid user id')
+    if (typeof u.name !== 'string' || u.name.length === 0 || u.name.length > 100) throw new Error('invalid user name')
+    if (!isoRe.test(u.updatedAt)) throw new Error('invalid user updatedAt')
   }
   for (const [syncId, deletedAt] of Object.entries(data.tombstones ?? {})) {
     if (!uuidRe.test(syncId)) throw new Error('invalid tombstone id')
@@ -130,69 +177,87 @@ function validateSyncPayload(data: SyncPayload): void {
 // applyPayload: write merged data back to Dexie (two-pass for categories)
 export const applyPayload = async (rawData: unknown, { allowEmpty }: { allowEmpty: boolean }): Promise<void> => {
   const data = rawData as SyncPayload
-  if (!allowEmpty && !data?.chores?.length && !data?.categories?.length && !data?.completionEvents?.length) return
+  if (!allowEmpty && !data?.chores?.length && !data?.categories?.length && !data?.completionEvents?.length && !data?.users?.length) return
   validateSyncPayload(data)
 
-  await db.transaction('rw', db.categories, db.chores, db.completionEvents, db.tombstones, async () => {
+  // Apply synced settings to localStorage (device-local "me" is NOT overwritten)
+  if (typeof data.settings?.multiUserEnabled === 'boolean') {
+    setMultiUserEnabled(data.settings.multiUserEnabled)
+  }
+
+  const tombstoneIds = new Set(Object.keys(data.tombstones ?? {}))
+
+  await db.transaction('rw', [db.categories, db.chores, db.completionEvents, db.tombstones, db.users], async () => {
+    // ── Bulk-fetch existing records into Maps for O(1) lookup ──
+    const [existingCats, existingChores, existingEvents, existingUsers] = await Promise.all([
+      db.categories.toArray(),
+      db.chores.toArray(),
+      db.completionEvents.toArray(),
+      db.users.toArray(),
+    ])
+    const catBySyncId    = new Map(existingCats.map(c => [c.sync_id,  c]))
+    const choreBySyncId  = new Map(existingChores.map(c => [c.sync_id, c]))
+    const eventBySyncId  = new Map(existingEvents.map(e => [e.sync_id, e]))
+    const userBySyncId   = new Map(existingUsers.map(u => [u.sync_id,  u]))
+
     // ── CATEGORIES pass 1: upsert by sync_id ──
+    const catsToAdd: any[] = []
+    const catsToUpdate: Array<[number, object]> = []
     for (const cat of (data.categories ?? [])) {
-      if (data.tombstones?.[cat.id]) continue
-      const existing = await db.categories.where('sync_id').equals(cat.id).first()
+      if (tombstoneIds.has(cat.id)) continue
+      const existing = catBySyncId.get(cat.id)
       if (existing) {
-        await db.categories.update(existing.id, {
-          name: cat.name,
-          sort_order: cat.sortOrder,
-          icon: cat.icon,
-          parent_sync_id: cat.parentId,
-          updated_at: cat.updatedAt,
-        })
+        catsToUpdate.push([existing.id!, {
+          name: cat.name, sort_order: cat.sortOrder, icon: cat.icon,
+          parent_sync_id: cat.parentId, updated_at: cat.updatedAt,
+        }])
       } else {
-        await db.categories.add({
-          sync_id: cat.id,
-          name: cat.name,
-          sort_order: cat.sortOrder,
-          icon: cat.icon,
-          parent_sync_id: cat.parentId,
-          parent_category_id: undefined,
-          updated_at: cat.updatedAt,
-        } as any)
+        catsToAdd.push({
+          sync_id: cat.id, name: cat.name, sort_order: cat.sortOrder,
+          icon: cat.icon, parent_sync_id: cat.parentId,
+          parent_category_id: undefined, updated_at: cat.updatedAt,
+        })
       }
     }
+    await Promise.all(catsToUpdate.map(([id, fields]) => db.categories.update(id, fields)))
+    await db.categories.bulkAdd(catsToAdd)
 
     // ── CATEGORIES pass 2: resolve parent_sync_id → parent_category_id ──
+    // Re-fetch after inserts so new categories are in the map
+    const allCatsAfterUpsert = await db.categories.toArray()
+    const catBySync2 = new Map(allCatsAfterUpsert.map(c => [c.sync_id, c]))
+    const parentUpdates: Array<[number, object]> = []
     for (const cat of (data.categories ?? [])) {
-      if (!cat.parentId || data.tombstones?.[cat.id]) continue
-      const child = await db.categories.where('sync_id').equals(cat.id).first()
+      if (!cat.parentId || tombstoneIds.has(cat.id)) continue
+      const child = catBySync2.get(cat.id)
       if (!child) continue
-      const parent = await db.categories.where('sync_id').equals(cat.parentId).first()
+      const parent = catBySync2.get(cat.parentId)
       if (parent) {
-        await db.categories.update(child.id, { parent_category_id: parent.id })
+        parentUpdates.push([child.id!, { parent_category_id: parent.id }])
       } else {
-        // parent tombstoned — promote to root
-        await db.categories.where('sync_id').equals(cat.id).modify((c: any) => {
-          delete c.parent_category_id
-          c.parent_sync_id = null
-        })
+        parentUpdates.push([child.id!, { parent_category_id: undefined, parent_sync_id: null }])
       }
     }
+    await Promise.all(parentUpdates.map(([id, fields]) => db.categories.update(id, fields)))
 
     // ── Delete tombstoned categories ──
-    for (const syncId of Object.keys(data.tombstones ?? {})) {
-      const cat = await db.categories.where('sync_id').equals(syncId).first()
-      if (cat) await db.categories.delete(cat.id)
-    }
+    const catTombstoneIds = [...tombstoneIds]
+      .map(sid => catBySyncId.get(sid)?.id)
+      .filter((id): id is number => id != null)
+    await db.categories.bulkDelete(catTombstoneIds)
 
     // ── CHORES: upsert by sync_id ──
+    // Re-fetch categories (tombstones may have been deleted) for category_id resolution
+    const allCatsForChores = await db.categories.toArray()
+    const catMapForChores = new Map(allCatsForChores.map(c => [c.sync_id, c]))
+    const choresToAdd: any[] = []
+    const choresToUpdate: Array<[number, object]> = []
     for (const chore of (data.chores ?? [])) {
-      if (data.tombstones?.[chore.id]) continue
-      let category_id: number | undefined
-      if (chore.categorySyncId) {
-        const cat = await db.categories.where('sync_id').equals(chore.categorySyncId).first()
-        category_id = cat?.id
-      }
-      const existing = await db.chores.where('sync_id').equals(chore.id).first()
+      if (tombstoneIds.has(chore.id)) continue
+      const category_id = chore.categorySyncId ? catMapForChores.get(chore.categorySyncId)?.id : undefined
+      const existing = choreBySyncId.get(chore.id)
       if (existing) {
-        await db.chores.update(existing.id, {
+        choresToUpdate.push([existing.id!, {
           name: chore.name,
           category_id: category_id ?? existing.category_id,
           category_sync_id: chore.categorySyncId,
@@ -204,14 +269,13 @@ export const applyPayload = async (rawData: unknown, { allowEmpty }: { allowEmpt
           seasonal_start: chore.seasonalStart ?? null,
           seasonal_end: chore.seasonalEnd ?? null,
           icon: chore.icon,
+          assigned_user_sync_ids: chore.assignedUserSyncIds ?? [],
           updated_at: chore.updatedAt,
-        })
+        }])
       } else {
         if (!category_id) continue  // category was deleted; skip rather than store category_id: 0
-        await db.chores.add({
-          sync_id: chore.id,
-          name: chore.name,
-          category_id,
+        choresToAdd.push({
+          sync_id: chore.id, name: chore.name, category_id,
           category_sync_id: chore.categorySyncId,
           sort_order: chore.sortOrder,
           target_cadence_days: chore.targetCadenceDays,
@@ -221,39 +285,64 @@ export const applyPayload = async (rawData: unknown, { allowEmpty }: { allowEmpt
           seasonal_start: chore.seasonalStart ?? null,
           seasonal_end: chore.seasonalEnd ?? null,
           icon: chore.icon,
-          created_at: chore.createdAt,
-          updated_at: chore.updatedAt,
-        } as any)
+          assigned_user_sync_ids: chore.assignedUserSyncIds ?? [],
+          created_at: chore.createdAt, updated_at: chore.updatedAt,
+        })
       }
     }
+    await Promise.all(choresToUpdate.map(([id, fields]) => db.chores.update(id, fields)))
+    await db.chores.bulkAdd(choresToAdd)
 
     // ── Delete tombstoned chores ──
-    for (const syncId of Object.keys(data.tombstones ?? {})) {
-      const chore = await db.chores.where('sync_id').equals(syncId).first()
-      if (chore) await db.chores.delete(chore.id)
-    }
+    const choreTombstoneIds = [...tombstoneIds]
+      .map(sid => choreBySyncId.get(sid)?.id)
+      .filter((id): id is number => id != null)
+    await db.chores.bulkDelete(choreTombstoneIds)
 
-    // ── COMPLETION EVENTS: upsert by sync_id ──
+    // ── COMPLETION EVENTS: insert new ones only (events are immutable) ──
+    // Re-fetch chores after upsert for chore_id resolution
+    const allChoresForEvents = await db.chores.toArray()
+    const choreMapForEvents = new Map(allChoresForEvents.map(c => [c.sync_id, c]))
+    const eventsToAdd: any[] = []
     for (const evt of (data.completionEvents ?? [])) {
-      if (data.tombstones?.[evt.id]) continue
-      const existing = await db.completionEvents.where('sync_id').equals(evt.id).first()
-      if (existing) continue  // events are immutable; skip if already present
-      const chore = await db.chores.where('sync_id').equals(evt.choreSyncId).first()
+      if (tombstoneIds.has(evt.id)) continue
+      if (eventBySyncId.has(evt.id)) continue  // immutable; already present
+      const chore = choreMapForEvents.get(evt.choreSyncId)
       if (!chore) continue  // chore was deleted; skip orphaned events
-      await db.completionEvents.add({
-        sync_id: evt.id,
-        chore_id: chore.id!,
-        completed_at: evt.completedAt,
-        note: evt.note,
-        source: evt.source,
-      } as any)
+      eventsToAdd.push({
+        sync_id: evt.id, chore_id: chore.id!,
+        completed_at: evt.completedAt, note: evt.note, source: evt.source,
+        completed_by_user_sync_id: evt.completedByUserSyncId ?? null,
+      })
     }
+    await db.completionEvents.bulkAdd(eventsToAdd)
 
     // ── Delete tombstoned completion events ──
-    for (const syncId of Object.keys(data.tombstones ?? {})) {
-      const evt = await db.completionEvents.where('sync_id').equals(syncId).first()
-      if (evt) await db.completionEvents.delete(evt.id!)
+    const evtTombstoneIds = [...tombstoneIds]
+      .map(sid => eventBySyncId.get(sid)?.id)
+      .filter((id): id is number => id != null)
+    await db.completionEvents.bulkDelete(evtTombstoneIds)
+
+    // ── USERS: upsert by sync_id ──
+    const usersToAdd: any[] = []
+    const usersToUpdate: Array<[number, object]> = []
+    for (const user of (data.users ?? [])) {
+      if (tombstoneIds.has(user.id)) continue
+      const existing = userBySyncId.get(user.id)
+      if (existing) {
+        usersToUpdate.push([existing.id!, { name: user.name, updated_at: user.updatedAt }])
+      } else {
+        usersToAdd.push({ sync_id: user.id, name: user.name, updated_at: user.updatedAt })
+      }
     }
+    await Promise.all(usersToUpdate.map(([id, fields]) => db.users.update(id, fields)))
+    await db.users.bulkAdd(usersToAdd)
+
+    // ── Delete tombstoned users ──
+    const userTombstoneIds = [...tombstoneIds]
+      .map(sid => userBySyncId.get(sid)?.id)
+      .filter((id): id is number => id != null)
+    await db.users.bulkDelete(userTombstoneIds)
 
     // ── Persist tombstones ──
     await db.tombstones.bulkPut(
@@ -305,6 +394,23 @@ let _ensuredForUrl = ''
 
 export function resetEnsuredFolder(): void {
   _ensuredForUrl = ''
+}
+
+export interface SyncWebdavConfig {
+  webdavUrl: string
+  username: string
+  appPassword: string
+}
+
+export function getSyncWebdavConfig(engine: SyncEngine | null): SyncWebdavConfig | null {
+  const config = engine?.getConfig() as Record<string, unknown> | null
+  if (!config?.enabled) return null
+  // Support both generic WebDAV (webdavUrl) and Nextcloud (nextcloudUrl) provider shapes
+  const webdavUrl = (config.webdavUrl ?? config.nextcloudUrl) as string | undefined
+  const username = config.username as string | undefined
+  const appPassword = config.appPassword as string | undefined
+  if (!webdavUrl || !username || !appPassword) return null
+  return { webdavUrl, username, appPassword }
 }
 
 export async function ensureSyncFolder(engine: SyncEngine): Promise<void> {

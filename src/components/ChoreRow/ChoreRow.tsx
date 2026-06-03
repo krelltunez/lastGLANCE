@@ -3,9 +3,11 @@ import { Check, Pencil, Trash2, GripVertical, Bell, Leaf } from 'lucide-react'
 import type { ChoreWithLastCompletion } from '@/types'
 import { getFillRatio, getCadenceColor, formatElapsed } from '@/utils/cadence'
 import { logCompletion } from '@/db/queries'
+import { getMeUserSyncId } from '@/multiuser/settings'
 import { ICON_REGISTRY } from '@/icons/registry'
 import { useIntents } from '@/intents/IntentsContext'
 import { emitCreateIntent } from '@/intents/emitter'
+import { useUsersContext } from '@/multiuser/UsersContext'
 
 interface Props {
   chore: ChoreWithLastCompletion
@@ -22,6 +24,7 @@ type LogState = 'idle' | 'saving' | 'done'
 type SendState = 'idle' | 'saving' | 'done' | 'error'
 
 export function ChoreRow({ chore, editMode, onTap, onEdit, onDelete, onRefresh, onDragHandlePointerDown, isDragging }: Props) {
+  const { users, multiUserEnabled } = useUsersContext()
   const [logState, setLogState] = useState<LogState>('idle')
   const [sendState, setSendState] = useState<SendState>('idle')
   const { isConfigured } = useIntents()
@@ -55,7 +58,7 @@ export function ChoreRow({ chore, editMode, onTap, onEdit, onDelete, onRefresh, 
     if (logState !== 'idle') return
     setLogState('saving')
     try {
-      await logCompletion(chore.id)
+      await logCompletion(chore.id, { completedByUserSyncId: getMeUserSyncId() })
       setLogState('done')
       onRefresh()
       setTimeout(() => setLogState('idle'), 1500)
@@ -137,9 +140,17 @@ export function ChoreRow({ chore, editMode, onTap, onEdit, onDelete, onRefresh, 
         )}
 
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-slate-800 dark:text-slate-100 group-hover:text-slate-900 dark:group-hover:text-white transition-colors leading-snug flex items-center gap-1.5">
+          <p className="text-sm font-medium text-slate-800 dark:text-slate-100 group-hover:text-slate-900 dark:group-hover:text-white transition-colors leading-snug flex items-center gap-1.5 flex-wrap">
             <span className="truncate min-w-0">{chore.name}</span>
             {chore.notify_when_overdue && <Bell size={10} className="shrink-0 text-slate-400 dark:text-slate-500 opacity-50" />}
+            {multiUserEnabled && chore.assigned_user_sync_ids.length > 0 && chore.assigned_user_sync_ids.map(sid => {
+              const u = users.find(u => u.sync_id === sid)
+              return u ? (
+                <span key={sid} className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-slate-200 dark:bg-slate-600 text-[9px] font-bold text-slate-500 dark:text-slate-300 shrink-0" title={u.name}>
+                  {u.name.charAt(0).toUpperCase()}
+                </span>
+              ) : null
+            })}
           </p>
           <p className="text-xs text-slate-400 dark:text-slate-500 tabular-nums mt-0.5">{elapsedText}</p>
         </div>

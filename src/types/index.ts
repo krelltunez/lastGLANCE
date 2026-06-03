@@ -1,3 +1,10 @@
+export interface User {
+  id: number
+  name: string
+  sync_id: string
+  updated_at: string
+}
+
 export interface Category {
   id: number
   name: string
@@ -25,6 +32,7 @@ export interface Chore {
   icon?: string
   sync_id: string
   category_sync_id: string | null
+  assigned_user_sync_ids: string[]
 }
 
 export interface CompletionEvent {
@@ -33,6 +41,7 @@ export interface CompletionEvent {
   completed_at: string
   note: string | null
   source: 'manual' | 'dayglance'
+  completed_by_user_sync_id: string | null
   sync_id: string
 }
 
