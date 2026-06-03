@@ -72,11 +72,9 @@ export async function listFiles(baseUrl: string, folderPath: string, authHeader:
       },
       body: PROPFIND_BODY,
     })
-    console.log('[listFiles] PROPFIND status:', res.status, res.statusText)
     if (res.status === 404) return []
-    if (!res.ok) { console.log('[listFiles] non-ok status, returning []'); return [] }
+    if (!res.ok) return []
     const text = await res.text()
-    console.log('[listFiles] response body (first 500 chars):', text.slice(0, 500))
     const filenames: string[] = []
     let match: RegExpExecArray | null
     HREF_RE.lastIndex = 0

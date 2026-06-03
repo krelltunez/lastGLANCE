@@ -46,16 +46,11 @@ export function useIntentsPoller(onNewCompletion?: () => void): void {
         return
       }
 
-      console.log('[intents-poller] listFiles returned', filenames.length, 'files:', filenames)
-      console.log('[intents-poller] cursor:', cursor)
-
       // Filter by parseFilename and cursor, sort ascending
       const parsed = filenames
         .map(f => ({ filename: f, parsed: parseFilename(f) }))
         .filter(({ parsed: p }) => p !== null && (!cursor || p!.timestamp > cursor))
         .sort((a, b) => a.parsed!.timestamp.localeCompare(b.parsed!.timestamp))
-
-      console.log('[intents-poller] after filter+parse:', parsed.length, 'files to process')
 
       let newCursor = cursor
 
