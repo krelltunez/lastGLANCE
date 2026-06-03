@@ -75,7 +75,10 @@ export async function listFiles(baseUrl: string, folderPath: string, authHeader:
     const text = await res.text()
     const doc = new DOMParser().parseFromString(text, 'application/xml')
     const filenames: string[] = []
-    for (const el of Array.from(doc.getElementsByTagNameNS('DAV:', 'href'))) {
+    // Try namespace-aware first, fall back to local name match for servers that use prefixed elements
+    const hrefEls = doc.getElementsByTagNameNS('DAV:', 'href')
+    const els = hrefEls.length > 0 ? Array.from(hrefEls) : Array.from(doc.getElementsByTagName('*')).filter(e => e.localName === 'href')
+    for (const el of els) {
       const href = decodeURIComponent((el.textContent ?? '').trim())
       const filename = href.split('/').pop() ?? ''
       if (filename.endsWith('.json')) {
