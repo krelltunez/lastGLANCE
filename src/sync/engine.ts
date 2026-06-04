@@ -138,7 +138,6 @@ export const mergePayloads = (
 }
 
 function validateSyncPayload(data: SyncPayload): void {
-  const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
   const isoRe = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/
   const mmddRe = /^\d{2}-\d{2}$/
   for (const c of (data.categories ?? [])) {
@@ -174,9 +173,20 @@ function validateSyncPayload(data: SyncPayload): void {
   }
 }
 
+const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+// Strip completionEvents with non-UUID sync_ids (legacy records from pre-dedup builds).
+function sanitizePayload(data: SyncPayload): SyncPayload {
+  if (!data.completionEvents?.length) return data
+  const clean = data.completionEvents.filter(e => uuidRe.test(e.id) && uuidRe.test(e.choreSyncId))
+  if (clean.length === data.completionEvents.length) return data
+  console.warn(`[lastglance] sanitizePayload: dropped ${data.completionEvents.length - clean.length} legacy completionEvent(s) with non-UUID id`)
+  return { ...data, completionEvents: clean }
+}
+
 // applyPayload: write merged data back to Dexie (two-pass for categories)
 export const applyPayload = async (rawData: unknown, { allowEmpty }: { allowEmpty: boolean }): Promise<void> => {
-  const data = rawData as SyncPayload
+  const data = sanitizePayload(rawData as SyncPayload)
   if (!allowEmpty && !data?.chores?.length && !data?.categories?.length && !data?.completionEvents?.length && !data?.users?.length) return
   validateSyncPayload(data)
 
