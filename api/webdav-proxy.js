@@ -137,7 +137,10 @@ export default async function handler(req, res) {
       headers['Depth'] = req.headers['depth'];
     }
     if (req.headers['if-match']) {
-      headers['If-Match'] = req.headers['if-match'];
+      headers['If-Match'] = req.headers['if-match']
+        .split(',')
+        .map(e => e.trim().replace(/^W\//, ''))
+        .join(', ');
     }
     if (req.headers['if-none-match']) {
       headers['If-None-Match'] = req.headers['if-none-match'];
