@@ -30,7 +30,9 @@ export const buildPayload = async (): Promise<SyncPayload> => {
   ])
 
   const tombstones: Record<string, string> = {}
-  for (const t of tombstoneRows) tombstones[t.id] = t.deleted_at
+  for (const t of tombstoneRows) {
+    if (uuidRe.test(t.id)) tombstones[t.id] = t.deleted_at
+  }
 
   const choreMap = new Map(chores.map(c => [c.id!, c.sync_id]))
 
@@ -63,14 +65,11 @@ export const buildPayload = async (): Promise<SyncPayload> => {
       createdAt: c.created_at,
       updatedAt: c.updated_at,
     })),
-    completionEvents: completionEvents.map(e => ({
-      id: e.sync_id,
-      choreSyncId: choreMap.get(e.chore_id) ?? '',
-      completedAt: e.completed_at,
-      note: e.note,
-      source: e.source,
-      completedByUserSyncId: e.completed_by_user_sync_id ?? null,
-    })),
+    completionEvents: completionEvents.flatMap(e => {
+      const choreSyncId = choreMap.get(e.chore_id) ?? ''
+      if (!uuidRe.test(e.sync_id) || !uuidRe.test(choreSyncId)) return []
+      return [{ id: e.sync_id, choreSyncId, completedAt: e.completed_at, note: e.note, source: e.source, completedByUserSyncId: e.completed_by_user_sync_id ?? null }]
+    }),
     users: users.map(u => ({
       id: u.sync_id,
       name: u.name,
