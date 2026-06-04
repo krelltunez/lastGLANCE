@@ -178,9 +178,12 @@ const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 // Strip completionEvents with non-UUID sync_ids (legacy records from pre-dedup builds).
 function sanitizePayload(data: SyncPayload): SyncPayload {
   if (!data.completionEvents?.length) return data
+  const bad = data.completionEvents.filter(e => !uuidRe.test(e.id) || !uuidRe.test(e.choreSyncId))
   const clean = data.completionEvents.filter(e => uuidRe.test(e.id) && uuidRe.test(e.choreSyncId))
   if (clean.length === data.completionEvents.length) return data
-  console.warn(`[lastglance] sanitizePayload: dropped ${data.completionEvents.length - clean.length} legacy completionEvent(s) with non-UUID id`)
+  for (const e of bad) {
+    console.warn('[lastglance] sanitizePayload: dropping legacy completionEvent', JSON.stringify(e))
+  }
   return { ...data, completionEvents: clean }
 }
 
