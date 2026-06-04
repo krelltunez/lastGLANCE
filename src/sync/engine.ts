@@ -175,16 +175,29 @@ function validateSyncPayload(data: SyncPayload): void {
 
 const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
-// Strip completionEvents with non-UUID sync_ids (legacy records from pre-dedup builds).
+// Strip records with non-UUID ids written by pre-dedup builds.
 function sanitizePayload(data: SyncPayload): SyncPayload {
-  if (!data.completionEvents?.length) return data
-  const bad = data.completionEvents.filter(e => !uuidRe.test(e.id) || !uuidRe.test(e.choreSyncId))
-  const clean = data.completionEvents.filter(e => uuidRe.test(e.id) && uuidRe.test(e.choreSyncId))
-  if (clean.length === data.completionEvents.length) return data
-  for (const e of bad) {
-    console.warn('[lastglance] sanitizePayload: dropping legacy completionEvent', JSON.stringify(e))
+  let result = { ...data }
+
+  if (data.completionEvents?.length) {
+    const bad = data.completionEvents.filter(e => !uuidRe.test(e.id) || !uuidRe.test(e.choreSyncId))
+    if (bad.length) {
+      for (const e of bad) console.warn('[lastglance] sanitizePayload: dropping legacy completionEvent', JSON.stringify(e))
+      result.completionEvents = data.completionEvents.filter(e => uuidRe.test(e.id) && uuidRe.test(e.choreSyncId))
+    }
   }
-  return { ...data, completionEvents: clean }
+
+  if (data.tombstones && Object.keys(data.tombstones).length) {
+    const badKeys = Object.keys(data.tombstones).filter(k => !uuidRe.test(k))
+    if (badKeys.length) {
+      for (const k of badKeys) console.warn('[lastglance] sanitizePayload: dropping legacy tombstone', k, data.tombstones![k])
+      const clean = { ...data.tombstones }
+      for (const k of badKeys) delete clean[k]
+      result.tombstones = clean
+    }
+  }
+
+  return result
 }
 
 // applyPayload: write merged data back to Dexie (two-pass for categories)
