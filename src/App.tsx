@@ -21,7 +21,7 @@ import { getAllCompletionCounts } from '@/db/queries'
 import { createEngine, initSessionKey, setupEncryptionKey, runAutoBackups, ensureSyncFolder, CRYPTO_CONFIG, getSyncWebdavConfig } from '@/sync/engine'
 import type { SyncEngine, SyncStatus } from '@glance-apps/sync'
 import { syncSharedUsers } from '@/multiuser/sharedUsers'
-import { getUsersPath } from '@/multiuser/settings'
+import { getUsersPath, getMultiUserEnabled } from '@/multiuser/settings'
 import dayjs from 'dayjs'
 
 // ── Header heatmap ─────────────────────────────────────────────────────────────
@@ -153,6 +153,7 @@ function AppInner() {
         setSyncStatus(status)
         if (status === 'success' && engineRef.current) {
           runAutoBackups(engineRef.current).catch(() => {/* non-fatal */})
+          runSharedUserSync().catch(() => {/* non-fatal */})
         }
       },
       onError: (msg, _code, isHardStop) => {
@@ -173,6 +174,7 @@ function AppInner() {
   // Shared user roster sync — fire-and-forget, non-fatal
   const sharedUserSyncRunning = useRef(false)
   const runSharedUserSync = useCallback(async () => {
+    if (!getMultiUserEnabled()) return
     if (sharedUserSyncRunning.current) return
     sharedUserSyncRunning.current = true
     try {
