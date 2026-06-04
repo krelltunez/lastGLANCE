@@ -1,8 +1,5 @@
 import { useEffect, useRef } from 'react'
 import {
-  ACTIONS,
-  EVENTS,
-  SOURCE_APPS,
   parseEnvelope,
   parseEncryptedEnvelope,
   parseFilename,
@@ -23,7 +20,22 @@ import {
 } from '@/intents/config'
 import { buildAuthHeader, listFiles, getFile } from '@/intents/webdav'
 import { loadIntentsRootKey } from '@/intents/intentsKeyStore'
-import dayjs from 'dayjs'
+import { processNotifyEnvelope } from '@/intents/processNotifyEnvelope'
+
+// How far back to look behind the stored cursor when filtering events.
+// Covers the window where a device may upload an event with an earlier
+// timestamp than one already processed (out-of-order WebDAV delivery).
+// isAlreadyLogged guards against re-writing events within the window.
+const CURSOR_LOOKBACK_MS = 60 * 60 * 1000
+
+function cursorLookback(cursor: string, windowMs: number): string {
+  const iso = cursor.replace(
+    /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/,
+    '$1-$2-$3T$4:$5:$6Z',
+  )
+  const adjusted = new Date(new Date(iso).getTime() - windowMs)
+  return adjusted.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
+}
 
 export function useIntentsPoller(onNewCompletion?: () => void): void {
   const onNewCompletionRef = useRef<(() => void) | undefined>(onNewCompletion)
@@ -46,10 +58,14 @@ export function useIntentsPoller(onNewCompletion?: () => void): void {
         return
       }
 
-      // Filter by parseFilename and cursor, sort ascending
+      // Filter by parseFilename and cursor (with lookback), sort ascending.
+      // The lookback catches events uploaded with earlier timestamps than the
+      // current cursor (out-of-order delivery). isAlreadyLogged prevents
+      // duplicate writes for events re-examined within the window.
+      const effectiveCursor = cursor ? cursorLookback(cursor, CURSOR_LOOKBACK_MS) : null
       const parsed = filenames
         .map(f => ({ filename: f, parsed: parseFilename(f) }))
-        .filter(({ parsed: p }) => p !== null && (!cursor || p!.timestamp > cursor))
+        .filter(({ parsed: p }) => p !== null && (!effectiveCursor || p!.timestamp > effectiveCursor))
         .sort((a, b) => a.parsed!.timestamp.localeCompare(b.parsed!.timestamp))
 
       let newCursor = cursor
@@ -127,27 +143,14 @@ export function useIntentsPoller(onNewCompletion?: () => void): void {
     }
 
     async function processEnvelope(envelope: Awaited<ReturnType<typeof parseEnvelope>>) {
-      if (envelope.action !== ACTIONS.NOTIFY) return
-
-      const payload = envelope.payload
-      if (payload.source_app !== SOURCE_APPS.LASTGLANCE) return
-      if (payload.event !== EVENTS.COMPLETED) return
-
-      const choreId = parseInt(payload.source_entity_id, 10)
-      if (isNaN(choreId)) return
-
-      const chore = await db.chores.get(choreId)
-      if (!chore) return
-
-      await logCompletion(choreId, {
-        completedAt: dayjs(payload.completed_at).isValid() ? payload.completed_at : dayjs().toISOString(),
-        source: 'dayglance',
-        completedByUserSyncId: payload.completed_by_user_id ?? null,
+      await processNotifyEnvelope(envelope, {
+        getChore: (syncId) => db.chores.where('sync_id').equals(syncId).first(),
+        logCompletion,
+        addActivityEntry,
+        isAlreadyLogged: (syncId) => db.completionEvents.where('sync_id').equals(syncId).count().then(n => n > 0),
+        dispatchChoreLogged: () => window.dispatchEvent(new CustomEvent('lg:chore-logged')),
+        onNewCompletion: () => onNewCompletionRef.current?.(),
       })
-
-      addActivityEntry({ type: 'received', message: `"${chore.name}" completed in dayGLANCE` })
-      window.dispatchEvent(new CustomEvent('lg:chore-logged'))
-      onNewCompletionRef.current?.()
     }
 
     poll()

@@ -197,7 +197,7 @@ export async function deleteChore(id: number): Promise<void> {
 
 export async function logCompletion(
   choreId: number,
-  opts: { note?: string; completedAt?: string; source?: 'manual' | 'dayglance'; completedByUserSyncId?: string | null } = {}
+  opts: { note?: string; completedAt?: string; source?: 'manual' | 'dayglance'; completedByUserSyncId?: string | null; syncId?: string } = {}
 ): Promise<number> {
   return db.completionEvents.add({
     chore_id: choreId,
@@ -205,7 +205,7 @@ export async function logCompletion(
     note: opts.note ?? null,
     source: opts.source ?? 'manual',
     completed_by_user_sync_id: opts.completedByUserSyncId ?? null,
-    sync_id: crypto.randomUUID(),
+    sync_id: opts.syncId ?? crypto.randomUUID(),
   } as CompletionEvent)
 }
 
