@@ -96,7 +96,11 @@ export const mergePayloads = (
   const l = (local ?? { chores: [], categories: [], completionEvents: [], users: [], settings: { multiUserEnabled: false }, tombstones: {} }) as SyncPayload
   const r = (remote ?? { chores: [], categories: [], completionEvents: [], users: [], settings: { multiUserEnabled: false }, tombstones: {} }) as SyncPayload
 
-  const allTombstones: Record<string, string> = { ...l.tombstones, ...r.tombstones }
+  const rawTombstones: Record<string, string> = { ...l.tombstones, ...r.tombstones }
+  const allTombstones: Record<string, string> = {}
+  for (const [k, v] of Object.entries(rawTombstones)) {
+    if (uuidRe.test(k)) allTombstones[k] = v
+  }
   const cutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)
   const tombstones = pruneTombstones(allTombstones, cutoff)
 
@@ -105,8 +109,8 @@ export const mergePayloads = (
   const rCats   = dedupeById(r.categories       as unknown as R[] ?? [], 'id')
   const lChores = dedupeById(l.chores           as unknown as R[] ?? [], 'id')
   const rChores = dedupeById(r.chores           as unknown as R[] ?? [], 'id')
-  const lEvts   = dedupeById(l.completionEvents as unknown as R[] ?? [], 'id')
-  const rEvts   = dedupeById(r.completionEvents as unknown as R[] ?? [], 'id')
+  const lEvts   = dedupeById((l.completionEvents as unknown as R[] ?? []).filter((e: R) => uuidRe.test(e.id as string) && uuidRe.test(e.choreSyncId as string)), 'id')
+  const rEvts   = dedupeById((r.completionEvents as unknown as R[] ?? []).filter((e: R) => uuidRe.test(e.id as string) && uuidRe.test(e.choreSyncId as string)), 'id')
   const lUsers  = dedupeById(l.users            as unknown as R[] ?? [], 'id')
   const rUsers  = dedupeById(r.users            as unknown as R[] ?? [], 'id')
 
