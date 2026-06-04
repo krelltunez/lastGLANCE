@@ -118,7 +118,7 @@ export async function getFileOrNull(baseUrl: string, folderPath: string, filenam
 
 export async function testConnection(baseUrl: string, folderPath: string, username: string, password: string): Promise<{ success: boolean; error?: string }> {
   const authHeader = buildAuthHeader(username, password)
-  const folderUrl = buildFolderUrl(baseUrl, folderPath)
+  const folderUrl = buildFolderUrl(baseUrl, folderPath) + '/'
   try {
     const res = await fetchWithTimeout(withProxy(folderUrl), {
       method: 'PROPFIND',
