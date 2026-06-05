@@ -8,6 +8,8 @@ import { useUsersContext } from '@/multiuser/UsersContext'
 import { formatElapsed } from '@/utils/cadence'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
 import { DateTimePicker } from '@/components/DateTimePicker/DateTimePicker'
+import { useIntents } from '@/intents/IntentsContext'
+import { emitCreateIntent } from '@/intents/emitter'
 
 interface Props {
   chore: ChoreWithLastCompletion
@@ -15,12 +17,16 @@ interface Props {
   onLogged: () => void
 }
 
+type SendState = 'idle' | 'saving' | 'done' | 'error'
+
 export function LogModal({ chore, onClose, onLogged }: Props) {
   const { users, multiUserEnabled } = useUsersContext()
+  const { isConfigured } = useIntents()
   const [note, setNote] = useState('')
   const [backdateDate, setBackdateDate] = useState('')
   const [backdateTime, setBackdateTime] = useState('')
   const [saving, setSaving] = useState(false)
+  const [sendState, setSendState] = useState<SendState>('idle')
   const [completions, setCompletions] = useState<CompletionEvent[]>([])
   const heatmapRef = useRef<HTMLDivElement>(null)
   useEscapeKey(onClose)
@@ -58,6 +64,19 @@ export function LogModal({ chore, onClose, onLogged }: Props) {
     await deleteCompletion(id)
     const updated = await getCompletionHistory(chore.id, 1000)
     setCompletions(updated)
+  }
+
+  async function handleSendToDayGlance() {
+    if (sendState !== 'idle') return
+    setSendState('saving')
+    try {
+      const ok = await emitCreateIntent(chore)
+      setSendState(ok ? 'done' : 'error')
+      setTimeout(() => setSendState('idle'), 2000)
+    } catch {
+      setSendState('error')
+      setTimeout(() => setSendState('idle'), 2000)
+    }
   }
 
   const elapsedText = formatElapsed(chore.elapsed_days, chore.last_completed_at)
@@ -126,6 +145,22 @@ export function LogModal({ chore, onClose, onLogged }: Props) {
               {saving ? 'Logging…' : 'Done ✓'}
             </button>
           </div>
+
+          {isConfigured && (
+            <button
+              onClick={handleSendToDayGlance}
+              disabled={sendState !== 'idle'}
+              className={`w-full py-2 rounded-xl text-sm font-medium border transition-colors disabled:opacity-50 ${
+                sendState === 'done'
+                  ? 'text-green-400 border-green-400/40 bg-green-400/10'
+                  : sendState === 'error'
+                  ? 'text-red-400 border-red-400/40 bg-red-400/10'
+                  : 'text-blue-400 border-blue-400/40 hover:text-blue-300 hover:bg-blue-400/10 hover:border-blue-400/60'
+              }`}
+            >
+              {sendState === 'done' ? 'Sent!' : sendState === 'error' ? 'Error' : '→ dG'}
+            </button>
+          )}
         </div>
 
         {/* ── Right / bottom: history ── */}
