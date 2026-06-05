@@ -151,13 +151,13 @@ export async function createChore(
 
 export async function reorderChores(orderedIds: number[]): Promise<void> {
   await db.transaction('rw', db.chores, () =>
-    Promise.all(orderedIds.map((id, idx) => db.chores.update(id, { sort_order: idx })))
+    Promise.all(orderedIds.map((id, idx) => db.chores.update(id, { sort_order: idx, updated_at: dayjs().toISOString() })))
   )
 }
 
 export async function reorderCategories(orderedIds: number[]): Promise<void> {
   await db.transaction('rw', db.categories, () =>
-    Promise.all(orderedIds.map((id, idx) => db.categories.update(id, { sort_order: idx })))
+    Promise.all(orderedIds.map((id, idx) => db.categories.update(id, { sort_order: idx, updated_at: dayjs().toISOString() })))
   )
 }
 
