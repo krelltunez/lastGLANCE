@@ -104,7 +104,7 @@ export function useNotifications() {
 
     checkAndNotify()
     const interval = setInterval(checkAndNotify, 60 * 60 * 1000)
-    function onVisibilityChange() { checkAndNotify() }
+    function onVisibilityChange() { if (document.visibilityState === 'visible') checkAndNotify() }
     document.addEventListener('visibilitychange', onVisibilityChange)
     return () => {
       clearInterval(interval)

@@ -75,6 +75,11 @@ export function useIntentsPoller(onNewCompletion?: () => void): void {
         try {
           rawText = await getFile(config.webdavUrl, config.folderPath, filename, authHeader)
         } catch (err) {
+          const isNetworkError = err instanceof TypeError || (err instanceof DOMException && err.name === 'AbortError')
+          if (isNetworkError) {
+            // Transient failure — leave cursor in place so these files are retried next poll
+            break
+          }
           const message = err instanceof Error ? err.message : String(err)
           addActivityEntry({ type: 'error', message: `Failed to read intent file ${filename}`, detail: message })
           newCursor = parsedFilename!.timestamp
