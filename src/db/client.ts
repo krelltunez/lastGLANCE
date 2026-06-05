@@ -184,16 +184,47 @@ class LastGlanceDB extends Dexie {
         const categories = await tx.table('categories').toArray()
         for (const cat of categories) {
           const icon = catIconPatch[cat.sync_id as string]
-          if (icon && !cat.icon) {
+          if (icon) {
             await tx.table('categories').update(cat.id as number, { icon })
           }
         }
         const chores = await tx.table('chores').toArray()
         for (const chore of chores) {
           const icon = choreIconPatch[chore.sync_id as string]
-          if (icon && !chore.icon) {
+          if (icon) {
             await tx.table('chores').update(chore.id as number, { icon })
           }
+        }
+      })
+
+    // Re-run the icon patch unconditionally to fix installs where v10 ran with
+    // the !chore.icon guard and skipped records that already had a stale
+    // placeholder icon (e.g. 'House' or 'PiggyBank' on every Home/Finances chore).
+    this.version(11)
+      .stores({})
+      .upgrade(async tx => {
+        const catIconPatch: Record<string, string> = {
+          '00000000-0000-0000-0000-000000000001': 'House',
+          '00000000-0000-0000-0000-000000000004': 'PiggyBank',
+        }
+        const choreIconPatch: Record<string, string> = {
+          '00000000-0000-0000-0000-000000000011': 'Droplets',
+          '00000000-0000-0000-0000-000000000012': 'ShowerHead',
+          '00000000-0000-0000-0000-000000000013': 'WashingMachine',
+          '00000000-0000-0000-0000-000000000014': 'Trash2',
+          '00000000-0000-0000-0000-000000000041': 'Receipt',
+          '00000000-0000-0000-0000-000000000042': 'Banknote',
+          '00000000-0000-0000-0000-000000000043': 'CreditCard',
+        }
+        const categories = await tx.table('categories').toArray()
+        for (const cat of categories) {
+          const icon = catIconPatch[cat.sync_id as string]
+          if (icon) await tx.table('categories').update(cat.id as number, { icon })
+        }
+        const chores = await tx.table('chores').toArray()
+        for (const chore of chores) {
+          const icon = choreIconPatch[chore.sync_id as string]
+          if (icon) await tx.table('chores').update(chore.id as number, { icon })
         }
       })
 
