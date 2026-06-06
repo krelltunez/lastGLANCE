@@ -318,6 +318,8 @@ Top-level fields are transport metadata; the `payload` object carries the action
 
 **Cursor tracking:** Each app stores its own "last processed event_id" locally (not in the WebDAV log). Polling reads the directory, filters out anything ≤ cursor, processes new events in chronological order, advances cursor. Idempotency is required (and built into the handler) so reprocessing a duplicate event is harmless.
 
+**Transient error handling:** Cursor advancement is conditional on the outcome of each file fetch and parse. On a transient error — network failure (`TypeError`, `AbortError`), or a 5xx response from the WebDAV server or proxy — the loop breaks without advancing the cursor. The file is retried on the next poll. Only a definitive outcome (successful processing, or a non-transient error such as a 4xx or a corrupt/unparseable file) advances the cursor past the file. This distinction is what makes the transport genuinely at-least-once rather than silently dropping events during flaky connectivity or cold-start proxy conditions.
+
 ### Polling cadence
 
 Configurable per app, with sensible defaults:
