@@ -14,6 +14,13 @@ This doc is the source of truth for *how the package is being built*. The protoc
 
 **Patch releases shipped (June 2026).** `@glance-apps/intents@1.3.1` adds an optional `assigned_user_ids` (`string[]`) field to `CreateSchema`, enabling cross-app multi-user filtering. `@glance-apps/intents@1.3.2` adds an optional `completed_by_user_id` (`string`) field to `NotifySchema`, enabling receiving apps to attribute task completions to specific users. Both are additive, non-breaking minor additions consistent with the versioning policy.
 
+**lastGLANCE continued shipping post-v1.0.0 (June 2026).** Intents-relevant additions in subsequent releases:
+
+- **v1.5.0:** Poller reliability fixes. Transient network errors (`TypeError`, `AbortError`) no longer advance the cursor past a file — the file is retried on the next poll. Previously, a network-level failure on `getFile` would log an activity error and permanently skip the file. Also fixed: false abort errors in the intent emitter when a PWA goes to background mid-request; the `visibilitychange` listener now fires `checkAndNotify` only on the visible transition, avoiding in-flight fetches being aborted on hide.
+- **v1.5.1:** 5xx responses from the WebDAV proxy are now treated as transient (same cursor-hold behavior as network errors). Also added: a `→ dG` button in the chore detail modal — see Phase 3 notes below.
+
+Current versions: lastGLANCE v1.5.1, `@glance-apps/intents@1.3.2`, `@glance-apps/sync@1.1.2`.
+
 **Phase 4** (Android intent transport + web URL transport) has not started.
 
 ## Why a shared package
@@ -251,6 +258,8 @@ Starts when dayGLANCE PRs #3, #7, #9 are merged (the starred critical path above
 | #4 | Card-level `+ dG` button: appears on chore cards when cadence threshold crossed; tap emits `create` via the Phase 3 PR #3 emitter |
 | #5 | Overdue notification popup: "Send to dayGLANCE" button in the existing overdue notification UI; tap emits `create` |
 | #6 | Per-chore `auto_schedule_to_dayglance` toggle in chore edit form (UI only; data model in PR #2); auto-schedule logic emits `create` when toggle is on and chore crosses cadence threshold |
+
+A fourth outbound trigger surface shipped in lastGLANCE v1.5.1: a `→ dG` button inside the chore detail modal. Unlike the card-level button (threshold-gated), the modal button appears whenever the dayGLANCE integration is configured, allowing the user to proactively schedule any chore to dayGLANCE even when it isn't overdue or at threshold. It uses the same shared emitter from PR #3 and the same idle/saving/done/error state machine as the ChoreRow button.
 | #7 | WebDAV poller for inbound `notify`, filters on `source_app=app.lastglance` |
 | #8 | Inbound handler: on `event=completed`, log a CompletionEvent with `source="dayglance"`. v1 ignores other events (defensive accept, no action). |
 | #9 | Standalone-mode detection: WebDAV configured? dayGLANCE reachable? Hide integration UI accordingly. |
