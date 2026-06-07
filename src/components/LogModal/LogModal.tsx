@@ -293,18 +293,18 @@ function CompletionRow({ evt, onDelete, onEditNote, userName }: { evt: Completio
           <button onClick={onDelete} className="text-xs text-red-500 hover:text-red-400 font-medium">Delete</button>
         </div>
       ) : (
-        <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 focus-within:opacity-100">
+        <div className="flex items-center gap-2.5 shrink-0 opacity-0 group-hover:opacity-100 focus-within:opacity-100">
           <button
             onClick={openNoteEdit}
             className="text-slate-300 dark:text-slate-700 hover:text-green-400 transition-colors"
           >
-            <NotebookPen size={13} />
+            <NotebookPen size={15} />
           </button>
           <button
             onClick={() => setConfirming(true)}
             className="text-slate-300 dark:text-slate-700 hover:text-red-400 transition-colors"
           >
-            <Trash2 size={13} />
+            <Trash2 size={15} />
           </button>
         </div>
       ))}
