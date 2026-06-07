@@ -158,7 +158,7 @@ export function LogModal({ chore, onClose, onLogged }: Props) {
                   : 'text-blue-400 border-blue-400/40 hover:text-blue-300 hover:bg-blue-400/10 hover:border-blue-400/60'
               }`}
             >
-              {sendState === 'done' ? 'Sent!' : sendState === 'error' ? 'Error' : '→ dG'}
+              {sendState === 'done' ? 'Sent!' : sendState === 'error' ? 'Error' : '→ send to dayGLANCE'}
             </button>
           )}
         </div>
