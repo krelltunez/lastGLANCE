@@ -10,6 +10,7 @@ import { IconPicker } from '@/components/IconPicker/IconPicker'
 import { deleteCategory, deleteChore, updateCategory, updateChore, reorderChores, reorderCategories } from '@/db/queries'
 import { ICON_REGISTRY } from '@/icons/registry'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
+import { useTranslation } from 'react-i18next'
 
 interface Props {
   data: CategoryWithChores
@@ -53,6 +54,7 @@ function ChoreList({
   category, allCategories, chores, editMode, onChoreTab, onRefresh, onLogged,
   wrapChores, isDropTarget, onExternalHover, onCrossListDrop, hideEmptyState,
 }: ChoreListProps) {
+  const { t } = useTranslation()
   const [choreForm, setChoreForm] = useState<{ chore?: ChoreWithLastCompletion } | null>(null)
   const [confirmDeleteChore, setConfirmDeleteChore] = useState<number | null>(null)
   const [localChores, setLocalChores] = useState<ChoreWithLastCompletion[]>(chores)
@@ -179,12 +181,12 @@ function ChoreList({
       >
         {localChores.length === 0 && !editMode && !isDropTarget && !hideEmptyState && (
           <p className="text-sm text-slate-400 dark:text-slate-600 py-3 text-center">
-            No chores yet — tap Edit to add one.
+            {t('categorySection.noChores')}
           </p>
         )}
         {localChores.length > 0 && visibleChores.length === 0 && !editMode && (
           <p className="text-sm text-slate-400 dark:text-slate-600 py-3 text-center">
-            {localChores.length} chore{localChores.length !== 1 ? 's' : ''} hidden (out of season)
+            {t('categorySection.hiddenSeasonal', { count: localChores.length })}
           </p>
         )}
         {visibleChores.map(chore => (
@@ -208,7 +210,7 @@ function ChoreList({
         ))}
         {isDropTarget && (
           <div className="flex items-center justify-center py-1.5 px-3 rounded-lg text-xs text-green-400 border border-dashed border-green-400/50 bg-green-400/5 pointer-events-none">
-            Drop here
+            {t('categorySection.dropHere')}
           </div>
         )}
         {editMode && (
@@ -218,7 +220,7 @@ function ChoreList({
             style={wrapChores ? { flex: '1 1 320px' } : undefined}
           >
             <Plus size={14} />
-            Add chore
+            {t('categorySection.addChore')}
           </button>
         )}
       </div>
@@ -235,7 +237,7 @@ function ChoreList({
 
       {confirmDeleteChore !== null && (
         <ConfirmDialog
-          message={`Delete "${localChores.find(c => c.id === confirmDeleteChore)?.name}"?`}
+          message={t('categorySection.deleteChoreConfirm', { name: localChores.find(c => c.id === confirmDeleteChore)?.name ?? '' })}
           onConfirm={async () => {
             await deleteChore(confirmDeleteChore)
             setConfirmDeleteChore(null)
@@ -274,6 +276,7 @@ function SubcategorySection({
   wrapChores, collapsed, onToggleCollapse, isDropTarget, onExternalHover, onCrossListDrop, compact,
   onMoveUp, onMoveDown,
 }: SubcategorySectionProps) {
+  const { t } = useTranslation()
   const [catForm, setCatForm] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [iconPicker, setIconPicker] = useState(false)
@@ -290,7 +293,7 @@ function SubcategorySection({
         <button
           onClick={onToggleCollapse}
           className="shrink-0 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
-          aria-label={collapsed ? 'Expand' : 'Collapse'}
+          aria-label={collapsed ? t('categorySection.expand') : t('categorySection.collapse')}
         >
           {collapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
         </button>
@@ -299,7 +302,7 @@ function SubcategorySection({
           <button
             onClick={() => setIconPicker(true)}
             className="shrink-0 p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-slate-400 dark:text-slate-500 hover:text-green-400"
-            title="Change icon"
+            title={t('categorySection.changeIcon')}
           >
             {SubIcon
               ? <SubIcon size={14} className="text-green-400" />
@@ -317,7 +320,7 @@ function SubcategorySection({
 
         {isDropTarget && collapsed && (
           <span className="shrink-0 px-2 py-0.5 rounded text-xs text-green-400 border border-dashed border-green-400/50 bg-green-400/5">
-            Drop here
+            {t('categorySection.dropHere')}
           </span>
         )}
 
@@ -327,7 +330,7 @@ function SubcategorySection({
               <button
                 onClick={onMoveUp}
                 className="p-1 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-                aria-label="Move subcategory up"
+                aria-label={t('categorySection.moveSubUp')}
               >
                 <ChevronUp size={12} />
               </button>
@@ -336,7 +339,7 @@ function SubcategorySection({
               <button
                 onClick={onMoveDown}
                 className="p-1 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-                aria-label="Move subcategory down"
+                aria-label={t('categorySection.moveSubDown')}
               >
                 <ChevronDown size={12} />
               </button>
@@ -344,14 +347,14 @@ function SubcategorySection({
             <button
               onClick={() => setCatForm(true)}
               className="p-1 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-              aria-label="Rename subcategory"
+              aria-label={t('categorySection.renameSubcategory')}
             >
               <Pencil size={12} />
             </button>
             <button
               onClick={() => setConfirmDelete(true)}
               className="p-1 rounded-lg text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-              aria-label="Delete subcategory"
+              aria-label={t('categorySection.deleteSubcategory')}
             >
               <Trash2 size={12} />
             </button>
@@ -399,7 +402,7 @@ function SubcategorySection({
 
       {confirmDelete && (
         <ConfirmDialog
-          message={`Delete "${data.category.name}" and all its chores?`}
+          message={t('categorySection.deleteSubConfirm', { name: data.category.name })}
           onConfirm={async () => {
             await deleteCategory(data.category.id)
             setConfirmDelete(false)
@@ -418,6 +421,7 @@ export function CategorySection({
   data, allCategories, editMode, onChoreTab, onRefresh, onLogged,
   onCategoryDragHandlePointerDown, isCategoryDragging, wrapChores,
 }: Props) {
+  const { t } = useTranslation()
   const [categoryForm, setCategoryForm] = useState(false)
   const [addingSubcategory, setAddingSubcategory] = useState(false)
   const [confirmDeleteCategory, setConfirmDeleteCategory] = useState(false)
@@ -464,8 +468,8 @@ export function CategorySection({
 
   const hasSubcategories = data.subcategories.length > 0
   const deleteMessage = hasSubcategories
-    ? `Delete "${data.category.name}" and all its chores and subcategories?`
-    : `Delete "${data.category.name}" and all its chores?`
+    ? t('categorySection.deleteCategoryWithSubsConfirm', { name: data.category.name })
+    : t('categorySection.deleteCategoryConfirm', { name: data.category.name })
 
   return (
     <>
@@ -489,8 +493,8 @@ export function CategorySection({
             <button
               onClick={() => setIconPickerOpen(true)}
               className="shrink-0 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-slate-400 dark:text-slate-500 hover:text-green-400"
-              aria-label="Change category icon"
-              title="Change icon"
+              aria-label={t('categorySection.changeCategoryIcon')}
+              title={t('categorySection.changeIcon')}
             >
               {CategoryIcon
                 ? <CategoryIcon size={18} className="text-green-400" />
@@ -511,22 +515,22 @@ export function CategorySection({
               <button
                 onClick={() => setAddingSubcategory(true)}
                 className="p-1.5 rounded-lg text-slate-400 dark:text-slate-500 hover:text-green-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-                aria-label="Add subcategory"
-                title="Add subcategory"
+                aria-label={t('categorySection.addSubcategory')}
+                title={t('categorySection.addSubcategory')}
               >
                 <FolderPlus size={13} />
               </button>
               <button
                 onClick={() => setCategoryForm(true)}
                 className="p-1.5 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-                aria-label="Rename category"
+                aria-label={t('categorySection.renameCategory')}
               >
                 <Pencil size={13} />
               </button>
               <button
                 onClick={() => setConfirmDeleteCategory(true)}
                 className="p-1.5 rounded-lg text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-                aria-label="Delete category"
+                aria-label={t('categorySection.deleteCategory')}
               >
                 <Trash2 size={13} />
               </button>
@@ -639,6 +643,7 @@ function ConfirmDialog({
   onConfirm: () => void
   onCancel: () => void
 }) {
+  const { t } = useTranslation()
   useEscapeKey(onCancel)
   return createPortal(
     <div
@@ -647,19 +652,19 @@ function ConfirmDialog({
     >
       <div className="w-full sm:max-w-sm bg-white dark:bg-slate-800 rounded-t-2xl sm:rounded-2xl p-6 space-y-4 shadow-2xl border border-slate-200 dark:border-slate-700/50">
         <p className="text-sm text-slate-800 dark:text-slate-200">{message}</p>
-        <p className="text-xs text-slate-500 dark:text-slate-400">This also removes all completion history.</p>
+        <p className="text-xs text-slate-500 dark:text-slate-400">{t('categorySection.alsoRemovesHistory')}</p>
         <div className="flex gap-3">
           <button
             onClick={onCancel}
             className="flex-1 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
           >
-            Cancel
+            {t('categorySection.cancel')}
           </button>
           <button
             onClick={onConfirm}
             className="flex-1 py-2.5 rounded-xl text-sm font-medium text-white bg-red-500 hover:bg-red-400 transition-colors"
           >
-            Delete
+            {t('categorySection.delete')}
           </button>
         </div>
       </div>

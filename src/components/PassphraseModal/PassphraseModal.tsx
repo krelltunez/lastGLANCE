@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { X, Loader } from 'lucide-react'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
+import { useTranslation } from 'react-i18next'
 
 interface Props {
   onSubmit: (passphrase: string) => Promise<void>
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export function PassphraseModal({ onSubmit, onClose }: Props) {
+  const { t } = useTranslation()
   const [passphrase, setPassphrase] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
@@ -22,7 +24,7 @@ export function PassphraseModal({ onSubmit, onClose }: Props) {
     try {
       await onSubmit(passphrase.trim())
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to unlock')
+      setError(err instanceof Error ? err.message : t('passphrase.failedToUnlock'))
     } finally {
       setSubmitting(false)
     }
@@ -35,7 +37,7 @@ export function PassphraseModal({ onSubmit, onClose }: Props) {
     >
       <div className="w-full sm:max-w-sm bg-white dark:bg-slate-800 rounded-t-2xl sm:rounded-2xl p-6 shadow-2xl border border-slate-200 dark:border-slate-700/50">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-200">Unlock Sync</h2>
+          <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-200">{t('passphrase.title')}</h2>
           <button
             onClick={onClose}
             className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
@@ -45,7 +47,7 @@ export function PassphraseModal({ onSubmit, onClose }: Props) {
         </div>
 
         <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
-          Enter your encryption passphrase to resume syncing.
+          {t('passphrase.description')}
         </p>
 
         <div className="space-y-3">
@@ -53,7 +55,7 @@ export function PassphraseModal({ onSubmit, onClose }: Props) {
             type="password"
             value={passphrase}
             onChange={e => setPassphrase(e.target.value)}
-            placeholder="Passphrase"
+            placeholder={t('passphrase.placeholder')}
             autoComplete="current-password"
             autoFocus
             onKeyDown={e => { if (e.key === 'Enter') handleSubmit() }}
@@ -70,7 +72,7 @@ export function PassphraseModal({ onSubmit, onClose }: Props) {
             className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium text-white bg-green-500 hover:bg-green-400 disabled:opacity-50 transition-colors"
           >
             {submitting && <Loader size={14} className="animate-spin" />}
-            Unlock
+            {t('passphrase.unlock')}
           </button>
         </div>
       </div>

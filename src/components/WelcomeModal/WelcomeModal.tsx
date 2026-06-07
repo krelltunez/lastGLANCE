@@ -1,5 +1,6 @@
 import { Clock, Bell, Leaf, Cloud, Loader } from 'lucide-react'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
+import { useTranslation } from 'react-i18next'
 
 interface Props {
   onGetStarted: () => void
@@ -7,14 +8,16 @@ interface Props {
   clearing: boolean
 }
 
-const BULLETS = [
-  { icon: Clock,  label: 'Cadence',   text: 'Set a target interval in days — overdue chores sort to the top automatically.' },
-  { icon: Bell,   label: 'Reminders', text: 'Opt in to browser notifications when a chore is overdue.' },
-  { icon: Leaf,   label: 'Seasonal',  text: 'Hide chores outside their active date range each year.' },
-  { icon: Cloud,  label: 'Sync',      text: 'Keep everything in sync across devices via WebDAV or Nextcloud.' },
-]
-
 export function WelcomeModal({ onGetStarted, onClearSample, clearing }: Props) {
+  const { t } = useTranslation()
+
+  const BULLETS = [
+    { icon: Clock,  label: t('welcome.cadenceLabel'),   text: t('welcome.cadenceText') },
+    { icon: Bell,   label: t('welcome.remindersLabel'), text: t('welcome.remindersText') },
+    { icon: Leaf,   label: t('welcome.seasonalLabel'),  text: t('welcome.seasonalText') },
+    { icon: Cloud,  label: t('welcome.syncLabel'),      text: t('welcome.syncText') },
+  ]
+
   useEscapeKey(onGetStarted)
 
   return (
@@ -24,10 +27,10 @@ export function WelcomeModal({ onGetStarted, onClearSample, clearing }: Props) {
     >
       <div className="w-full sm:max-w-sm bg-white dark:bg-slate-800 rounded-t-2xl sm:rounded-2xl p-6 shadow-2xl border border-slate-200 dark:border-slate-700/50">
         <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-1">
-          Welcome to lastGLANCE
+          {t('welcome.title')}
         </h2>
         <p className="text-xs text-slate-500 dark:text-slate-400 mb-4 leading-relaxed">
-          lastGLANCE helps you track when you last did something, and optionally surface when you need to do it again.
+          {t('welcome.description')}
         </p>
 
         <ul className="space-y-3 mb-5">
@@ -48,13 +51,13 @@ export function WelcomeModal({ onGetStarted, onClearSample, clearing }: Props) {
             disabled={clearing}
             className="flex-1 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
           >
-            {clearing ? <><Loader size={13} className="animate-spin" />Clearing…</> : 'Clear sample data'}
+            {clearing ? <><Loader size={13} className="animate-spin" />{t('welcome.clearing')}</> : t('welcome.clearSampleData')}
           </button>
           <button
             onClick={onGetStarted}
             className="flex-1 py-2.5 rounded-xl text-sm font-medium text-white bg-green-500 hover:bg-green-400 transition-colors"
           >
-            Get Started
+            {t('welcome.getStarted')}
           </button>
         </div>
       </div>

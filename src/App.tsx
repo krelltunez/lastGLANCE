@@ -23,6 +23,7 @@ import type { SyncEngine, SyncStatus } from '@glance-apps/sync'
 import { syncSharedUsers } from '@/multiuser/sharedUsers'
 import { getUsersPath, getMultiUserEnabled } from '@/multiuser/settings'
 import dayjs from 'dayjs'
+import { useTranslation } from 'react-i18next'
 
 // ── Header heatmap ─────────────────────────────────────────────────────────────
 
@@ -109,6 +110,7 @@ function HeaderHeatmap({ weeks }: { weeks: HeatDay[][] }) {
 // ── App ───────────────────────────────────────────────────────────────────────
 
 function AppInner() {
+  const { t } = useTranslation()
   useNotifications()
   const { refreshConfig } = useIntents()
   const usersCtx = useUsers()
@@ -184,7 +186,6 @@ function AppInner() {
       const localUsers = await getDBUsers()
       const result = await syncSharedUsers(syncConfig, getUsersPath(), localUsers)
       if (result) {
-        // Upsert remote-only or updated users into local DB
         const { createUser, updateUser } = await import('@/db/queries')
         for (const ru of result.merged) {
           const existing = localUsers.find(u => u.sync_id === ru.id)
@@ -254,7 +255,6 @@ function AppInner() {
   }
 
   // Global keyboard shortcuts (D, E, I, S, A, L, ?)
-  // Uses a ref for the "any modal open" guard so the effect never re-registers.
   const anyModalOpenRef = useRef(false)
   anyModalOpenRef.current = (
     showWelcome || showBackup || showIntegration || showSyncSettings ||
@@ -285,6 +285,15 @@ function AppInner() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  const settingsItems = [
+    { label: t('app.cloudSync'), icon: syncHalted || syncError ? <CloudOff size={15} /> : syncStatus === 'uploading' || syncStatus === 'downloading' ? <RefreshCw size={15} className="animate-spin" /> : <Cloud size={15} />, onClick: () => { setShowSyncSettings(true); setShowSettingsSheet(false) }, warn: !!(syncHalted || syncError) },
+    { label: t('app.dayglanceIntegration'), icon: <Plug size={22} />, onClick: () => { setShowIntegration(true); setShowSettingsSheet(false) } },
+    { label: t('app.users'), icon: <Users size={15} />, onClick: () => { setShowUsers(true); setShowSettingsSheet(false) } },
+    { label: isDark ? t('app.lightMode') : t('app.darkMode'), icon: isDark ? <Sun size={15} /> : <Moon size={15} />, onClick: () => { toggleTheme(); setShowSettingsSheet(false) } },
+    { label: t('app.backupRestore'), icon: <Archive size={15} />, onClick: () => { setShowBackup(true); setShowSettingsSheet(false) } },
+    { label: t('app.helpFeedback'), icon: <HelpCircle size={15} />, onClick: () => { setShowHelp(true); setShowSettingsSheet(false) } },
+  ]
+
   return (
     <UsersContext.Provider value={usersCtx}>
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col">
@@ -295,7 +304,7 @@ function AppInner() {
             <h1 className="text-3xl md:text-4xl font-black tracking-tight leading-none text-slate-900 dark:text-slate-100">
               last<span className="italic text-green-400">GLANCE</span>
             </h1>
-            <p className="text-xs text-slate-400 dark:text-slate-600 mt-1 tracking-wide">when did you last...?</p>
+            <p className="text-xs text-slate-400 dark:text-slate-600 mt-1 tracking-wide">{t('app.tagline')}</p>
           </div>
 
           {heatmapWeeks.length > 0 && (
@@ -321,7 +330,7 @@ function AppInner() {
               <button
                 onClick={() => setShowSettingsSheet(s => !s)}
                 className="p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors"
-                aria-label="Settings"
+                aria-label={t('app.settings')}
               >
                 <Settings size={15} />
               </button>
@@ -331,18 +340,11 @@ function AppInner() {
                   <div className="fixed inset-0 z-40" onClick={() => setShowSettingsSheet(false)} />
                   {/* sheet */}
                   <div className="absolute right-0 top-full mt-2 z-50 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl p-3 flex flex-col gap-1 min-w-[160px]">
-                    {[
-                      { label: 'Cloud Sync', icon: syncHalted || syncError ? <CloudOff size={15} /> : syncStatus === 'uploading' || syncStatus === 'downloading' ? <RefreshCw size={15} className="animate-spin" /> : <Cloud size={15} />, onClick: () => { setShowSyncSettings(true); setShowSettingsSheet(false) }, warn: !!(syncHalted || syncError) },
-                      { label: 'dayGLANCE Integration', icon: <Plug size={22} />, onClick: () => { setShowIntegration(true); setShowSettingsSheet(false) } },
-                      { label: 'Users', icon: <Users size={15} />, onClick: () => { setShowUsers(true); setShowSettingsSheet(false) } },
-                      { label: isDark ? 'Light Mode' : 'Dark Mode', icon: isDark ? <Sun size={15} /> : <Moon size={15} />, onClick: () => { toggleTheme(); setShowSettingsSheet(false) } },
-                      { label: 'Backup & Restore', icon: <Archive size={15} />, onClick: () => { setShowBackup(true); setShowSettingsSheet(false) } },
-                      { label: 'Help & Feedback', icon: <HelpCircle size={15} />, onClick: () => { setShowHelp(true); setShowSettingsSheet(false) } },
-                    ].map(item => (
+                    {settingsItems.map(item => (
                       <button
                         key={item.label}
                         onClick={item.onClick}
-                        className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-left w-full transition-colors hover:bg-slate-100 dark:hover:bg-slate-700 ${item.warn ? 'text-amber-400' : 'text-slate-600 dark:text-slate-300'}`}
+                        className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-left w-full transition-colors hover:bg-slate-100 dark:hover:bg-slate-700 ${(item as { warn?: boolean }).warn ? 'text-amber-400' : 'text-slate-600 dark:text-slate-300'}`}
                       >
                         {item.icon}
                         {item.label}
@@ -355,9 +357,9 @@ function AppInner() {
             <button
               onClick={() => setEditMode(e => !e)}
               className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors border ${editMode ? 'text-green-400 border-green-400/40 hover:text-green-300 hover:bg-green-400/10 hover:border-green-400/60' : 'text-slate-500 dark:text-slate-500 border-slate-200 dark:border-slate-700 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
-              aria-label={editMode ? 'Done editing' : 'Edit categories and chores'}
+              aria-label={editMode ? t('app.doneEditing') : t('app.editCategoriesChores')}
             >
-              {editMode ? <><Check size={14} /> Done</> : <><Pencil size={14} /> Edit</>}
+              {editMode ? <><Check size={14} /> {t('app.done')}</> : <><Pencil size={14} /> {t('app.edit')}</>}
             </button>
           </div>
 
@@ -368,7 +370,7 @@ function AppInner() {
               <button
                 onClick={toggleTheme}
                 className="p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors"
-                aria-label="Toggle theme"
+                aria-label={t('app.toggleTheme')}
               >
                 {isDark ? <Sun size={15} /> : <Moon size={15} />}
               </button>
@@ -380,33 +382,33 @@ function AppInner() {
                       ? 'text-green-400 border-green-400/40 hover:text-green-300 hover:bg-green-400/10 hover:border-green-400/60'
                       : 'text-slate-500 dark:text-slate-500 border-slate-200 dark:border-slate-700 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
                   }`}
-                  aria-label="Toggle my tasks filter"
+                  aria-label={t('app.toggleMyTasksFilter')}
                 >
                   <UserCircle size={14} />
-                  {filter === 'mine' ? 'Mine' : 'All'}
+                  {filter === 'mine' ? t('app.mine') : t('app.all')}
                 </button>
               )}
               <button
                 onClick={() => setEditMode(e => !e)}
                 className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors border ${editMode ? 'text-green-400 border-green-400/40 hover:text-green-300 hover:bg-green-400/10 hover:border-green-400/60' : 'text-slate-500 dark:text-slate-500 border-slate-200 dark:border-slate-700 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
-                aria-label={editMode ? 'Done editing' : 'Edit categories and chores'}
+                aria-label={editMode ? t('app.doneEditing') : t('app.editCategoriesChores')}
               >
-                {editMode ? <><Check size={14} /> Done</> : <><Pencil size={14} /> Edit</>}
+                {editMode ? <><Check size={14} /> {t('app.done')}</> : <><Pencil size={14} /> {t('app.edit')}</>}
               </button>
             </div>
             {/* Row 2: users, intents, sync, archive, help */}
             <div className="flex items-center gap-2">
-              <button onClick={() => setShowUsers(true)} className="p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors" aria-label="Users"><Users size={15} /></button>
-              <button onClick={() => setShowIntegration(true)} className="p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors" aria-label="dayGLANCE Integration"><Plug size={15} /></button>
+              <button onClick={() => setShowUsers(true)} className="p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors" aria-label={t('app.users')}><Users size={15} /></button>
+              <button onClick={() => setShowIntegration(true)} className="p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors" aria-label={t('app.dayglanceIntegration')}><Plug size={15} /></button>
               <button
                 onClick={() => setShowSyncSettings(true)}
                 className={`p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors ${syncHalted || syncError ? 'text-amber-400 dark:text-amber-400' : 'text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200'}`}
-                aria-label="Cloud Sync"
+                aria-label={t('app.cloudSync')}
               >
                 {syncStatus === 'uploading' || syncStatus === 'downloading' ? <RefreshCw size={15} className="animate-spin" /> : syncHalted || syncError ? <CloudOff size={15} /> : <Cloud size={15} />}
               </button>
-              <button onClick={() => setShowBackup(true)} className="p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors" aria-label="Backup & Restore"><Archive size={15} /></button>
-              <button onClick={() => setShowHelp(true)} className="p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors" aria-label="Help & Feedback"><HelpCircle size={15} /></button>
+              <button onClick={() => setShowBackup(true)} className="p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors" aria-label={t('app.backupRestore')}><Archive size={15} /></button>
+              <button onClick={() => setShowHelp(true)} className="p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors" aria-label={t('app.helpFeedback')}><HelpCircle size={15} /></button>
             </div>
           </div>
 

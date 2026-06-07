@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { X, HelpCircle, ExternalLink } from 'lucide-react'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
+import { useTranslation } from 'react-i18next'
 
 interface Props {
   onClose: () => void
@@ -23,6 +24,7 @@ function ExternalLinkRow({ href, label }: { href: string; label: string }) {
 }
 
 export function HelpModal({ onClose, onOpenShortcuts }: Props) {
+  const { t } = useTranslation()
   const [storage, setStorage] = useState<{ used: number; quota: number } | null>(null)
   const [persisted, setPersisted] = useState<boolean | null>(null)
 
@@ -57,7 +59,7 @@ export function HelpModal({ onClose, onOpenShortcuts }: Props) {
         <div className="flex items-center gap-3 px-6 pt-5 pb-4 border-b border-slate-100 dark:border-slate-700/40">
           <HelpCircle size={20} className="text-green-400 shrink-0" />
           <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100 flex-1">
-            Help &amp; Feedback
+            {t('help.title')}
           </h2>
           <button
             onClick={onClose}
@@ -71,10 +73,10 @@ export function HelpModal({ onClose, onOpenShortcuts }: Props) {
           {/* Contact & Issues */}
           <div className="space-y-2.5">
             <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-              Contact &amp; Issues
+              {t('help.contactIssues')}
             </p>
-            <ExternalLinkRow href="mailto:support@glance-apps.com" label="support@glance-apps.com" />
-            <ExternalLinkRow href="https://github.com/krelltunez/lastGLANCE/issues" label="Report an issue on GitHub" />
+            <ExternalLinkRow href="mailto:support@glance-apps.com" label={t('help.supportEmail')} />
+            <ExternalLinkRow href="https://github.com/krelltunez/lastGLANCE/issues" label={t('help.reportIssue')} />
           </div>
 
           <div className="border-t border-slate-100 dark:border-slate-700/40" />
@@ -85,7 +87,7 @@ export function HelpModal({ onClose, onOpenShortcuts }: Props) {
               <div className="border-t border-slate-100 dark:border-slate-700/40" />
               <div className="rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/40 px-3 py-2.5 space-y-2">
                 <p className="text-xs text-amber-800 dark:text-amber-300 leading-snug">
-                  Your browser may clear app data under storage pressure. Allow persistent storage to protect your data.
+                  {t('help.persistentStorageWarning')}
                 </p>
                 <button
                   onClick={() => {
@@ -95,7 +97,7 @@ export function HelpModal({ onClose, onOpenShortcuts }: Props) {
                   }}
                   className="text-xs font-medium px-2.5 py-1 rounded-md bg-amber-100 dark:bg-amber-800/40 text-amber-900 dark:text-amber-200 hover:bg-amber-200 dark:hover:bg-amber-700/50 transition-colors"
                 >
-                  Allow persistent storage
+                  {t('help.allowPersistentStorage')}
                 </button>
               </div>
             </>
@@ -106,11 +108,11 @@ export function HelpModal({ onClose, onOpenShortcuts }: Props) {
             <div className="space-y-1">
               {storage && (
                 <p className="text-xs text-slate-400 dark:text-slate-500">
-                  Storage: {fmtBytes(storage.used)} / ~{fmtBytes(storage.quota)}
+                  {t('help.storageInfo', { used: fmtBytes(storage.used), quota: fmtBytes(storage.quota) })}
                 </p>
               )}
               <p className="text-xs text-slate-400 dark:text-slate-500">
-                v{__APP_VERSION__} · {buildDate}
+                {t('help.versionInfo', { version: __APP_VERSION__, date: buildDate })}
               </p>
             </div>
             <button
@@ -118,7 +120,7 @@ export function HelpModal({ onClose, onOpenShortcuts }: Props) {
               className="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
             >
               <kbd className="inline-flex items-center justify-center w-4 h-4 rounded bg-slate-300 dark:bg-slate-500 text-[10px] font-mono text-slate-600 dark:text-slate-200 leading-none">?</kbd>
-              <span className="text-xs text-slate-500 dark:text-slate-400">shortcuts</span>
+              <span className="text-xs text-slate-500 dark:text-slate-400">{t('help.shortcuts')}</span>
             </button>
           </div>
         </div>

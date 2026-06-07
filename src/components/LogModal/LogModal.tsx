@@ -10,6 +10,7 @@ import { useEscapeKey } from '@/hooks/useEscapeKey'
 import { DateTimePicker } from '@/components/DateTimePicker/DateTimePicker'
 import { useIntents } from '@/intents/IntentsContext'
 import { emitCreateIntent } from '@/intents/emitter'
+import { useTranslation } from 'react-i18next'
 
 interface Props {
   chore: ChoreWithLastCompletion
@@ -20,6 +21,7 @@ interface Props {
 type SendState = 'idle' | 'saving' | 'done' | 'error'
 
 export function LogModal({ chore, onClose, onLogged }: Props) {
+  const { t } = useTranslation()
   const { users, multiUserEnabled } = useUsersContext()
   const { isConfigured } = useIntents()
   const [note, setNote] = useState('')
@@ -100,7 +102,7 @@ export function LogModal({ chore, onClose, onLogged }: Props) {
           <div className="flex items-start justify-between gap-2">
             <div>
               <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100">{chore.name}</h2>
-              <p className="text-sm text-slate-400 dark:text-slate-400 mt-0.5">Last done: {elapsedText}</p>
+              <p className="text-sm text-slate-400 dark:text-slate-400 mt-0.5">{t('logModal.lastDone', { elapsed: elapsedText })}</p>
             </div>
             <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors shrink-0 mt-0.5">
               <X size={18} />
@@ -109,17 +111,17 @@ export function LogModal({ chore, onClose, onLogged }: Props) {
 
           <div className="space-y-3">
             <div>
-              <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Note (optional)</label>
+              <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">{t('logModal.noteLabel')}</label>
               <input
                 type="text"
                 value={note}
                 onChange={e => setNote(e.target.value)}
-                placeholder="e.g. only the front bathroom"
+                placeholder={t('logModal.notePlaceholder')}
                 className="w-full bg-slate-100 dark:bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Done earlier? (optional)</label>
+              <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">{t('logModal.backdateLabel')}</label>
               <DateTimePicker
                 date={backdateDate}
                 time={backdateTime}
@@ -135,14 +137,14 @@ export function LogModal({ chore, onClose, onLogged }: Props) {
               onClick={onClose}
               className="flex-1 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
             >
-              Cancel
+              {t('logModal.cancel')}
             </button>
             <button
               onClick={handleLog}
               disabled={saving}
               className="flex-1 py-2.5 rounded-xl text-sm font-medium text-green-400 border border-green-400/40 hover:text-green-300 hover:bg-green-400/10 hover:border-green-400/60 disabled:opacity-50 transition-colors"
             >
-              {saving ? 'Logging…' : 'Done ✓'}
+              {saving ? t('logModal.logging') : t('logModal.logDone')}
             </button>
           </div>
 
@@ -158,7 +160,7 @@ export function LogModal({ chore, onClose, onLogged }: Props) {
                   : 'text-blue-400 border-blue-400/40 hover:text-blue-300 hover:bg-blue-400/10 hover:border-blue-400/60'
               }`}
             >
-              {sendState === 'done' ? 'Sent!' : sendState === 'error' ? 'Error' : '→ send to dayGLANCE'}
+              {sendState === 'done' ? t('logModal.sendDone') : sendState === 'error' ? t('logModal.sendError') : t('logModal.sendLabel')}
             </button>
           )}
         </div>
@@ -167,14 +169,14 @@ export function LogModal({ chore, onClose, onLogged }: Props) {
         <div className="flex-1 min-w-0 flex flex-col min-h-0 border-t border-slate-100 dark:border-slate-700/60 lg:border-t-0 bg-slate-50 dark:bg-slate-900/60">
 
           <div className="shrink-0 flex divide-x divide-slate-100 dark:divide-slate-700/60 border-b border-slate-100 dark:border-slate-700/60">
-            <StatCell label="Total" value={String(completions.length)} />
-            <StatCell label="Avg interval" value={stats.avgInterval} />
-            <StatCell label="Target" value={chore.target_cadence_days ? `${chore.target_cadence_days}d` : '—'} />
+            <StatCell label={t('logModal.statTotal')} value={String(completions.length)} />
+            <StatCell label={t('logModal.statAvgInterval')} value={stats.avgInterval} />
+            <StatCell label={t('logModal.statTarget')} value={chore.target_cadence_days ? t('logModal.targetDays', { n: chore.target_cadence_days }) : t('logModal.noTarget')} />
           </div>
 
           <div className="flex-1 min-h-0 overflow-y-auto">
             <div className="px-5 pt-4 pb-3">
-              <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-3">Past year</p>
+              <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-3">{t('logModal.pastYear')}</p>
               <div ref={heatmapRef} className="overflow-x-auto scrollbar-none">
                 <Heatmap weeks={heatmap} />
               </div>
@@ -182,10 +184,10 @@ export function LogModal({ chore, onClose, onLogged }: Props) {
 
             <div className="px-5 pb-6">
               <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2">
-                History {completions.length > 0 && `· ${completions.length}`}
+                {completions.length > 0 ? t('logModal.historyWithCount', { count: completions.length }) : t('logModal.history')}
               </p>
               {completions.length === 0 ? (
-                <p className="text-sm text-slate-400 dark:text-slate-600 py-4 text-center">No completions yet.</p>
+                <p className="text-sm text-slate-400 dark:text-slate-600 py-4 text-center">{t('logModal.noCompletions')}</p>
               ) : (
                 <div>
                   {completions.map((evt, i) => {
@@ -234,6 +236,7 @@ function StatCell({ label, value }: { label: string; value: string }) {
 }
 
 function CompletionRow({ evt, onDelete, onEditNote, userName }: { evt: CompletionEvent; onDelete: () => void; onEditNote: (note: string | null) => void; userName: string | null }) {
+  const { t } = useTranslation()
   const [confirming, setConfirming] = useState(false)
   const [editingNote, setEditingNote] = useState(false)
   const [noteValue, setNoteValue] = useState(evt.note ?? '')
@@ -266,7 +269,7 @@ function CompletionRow({ evt, onDelete, onEditNote, userName }: { evt: Completio
             <span className="text-xs text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-700/60 px-1.5 py-0.5 rounded">{userName}</span>
           )}
           {evt.source === 'dayglance' && (
-            <span className="text-xs text-blue-500 dark:text-blue-400 bg-blue-50 dark:bg-blue-400/10 px-1.5 py-0.5 rounded">via dayGLANCE</span>
+            <span className="text-xs text-blue-500 dark:text-blue-400 bg-blue-50 dark:bg-blue-400/10 px-1.5 py-0.5 rounded">{t('logModal.viaDayglance')}</span>
           )}
         </div>
         {editingNote ? (
@@ -277,11 +280,11 @@ function CompletionRow({ evt, onDelete, onEditNote, userName }: { evt: Completio
               value={noteValue}
               onChange={e => setNoteValue(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') saveNote(); if (e.key === 'Escape') cancelNote() }}
-              placeholder="Add a note…"
+              placeholder={t('logModal.addNotePlaceholder')}
               className="flex-1 bg-slate-100 dark:bg-slate-700 rounded px-2 py-1 text-xs text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
             />
-            <button onClick={cancelNote} className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 shrink-0">Cancel</button>
-            <button onClick={saveNote} className="text-xs text-green-500 hover:text-green-400 font-medium shrink-0">Save</button>
+            <button onClick={cancelNote} className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 shrink-0">{t('logModal.cancel')}</button>
+            <button onClick={saveNote} className="text-xs text-green-500 hover:text-green-400 font-medium shrink-0">{t('logModal.saveNote')}</button>
           </div>
         ) : (
           evt.note && <p className="text-xs text-slate-400 dark:text-slate-400 italic mt-0.5">{evt.note}</p>
@@ -289,8 +292,8 @@ function CompletionRow({ evt, onDelete, onEditNote, userName }: { evt: Completio
       </div>
       {!editingNote && (confirming ? (
         <div className="flex items-center gap-2 shrink-0">
-          <button onClick={() => setConfirming(false)} className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">Cancel</button>
-          <button onClick={onDelete} className="text-xs text-red-500 hover:text-red-400 font-medium">Delete</button>
+          <button onClick={() => setConfirming(false)} className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">{t('logModal.cancel')}</button>
+          <button onClick={onDelete} className="text-xs text-red-500 hover:text-red-400 font-medium">{t('logModal.delete')}</button>
         </div>
       ) : (
         <div className="flex items-center gap-2.5 shrink-0 opacity-0 group-hover:opacity-100 focus-within:opacity-100 [@media(hover:none)]:opacity-100">
@@ -313,12 +316,13 @@ function CompletionRow({ evt, onDelete, onEditNote, userName }: { evt: Completio
 }
 
 function GapMarker({ days, target }: { days: number; target: number | null }) {
+  const { t } = useTranslation()
   const overdue = target !== null && days > target
   return (
     <div className="flex items-center gap-2 py-1 pl-2">
       <div className={`w-px h-4 rounded-full ${overdue ? 'bg-red-300 dark:bg-red-800' : 'bg-slate-200 dark:bg-slate-700'}`} />
       <span className={`text-xs tabular-nums ${overdue ? 'text-red-400 dark:text-red-500' : 'text-slate-400 dark:text-slate-600'}`}>
-        {days === 1 ? '1 day later' : `${days} days later`}
+        {t('logModal.daysLater', { count: days })}
       </span>
     </div>
   )
