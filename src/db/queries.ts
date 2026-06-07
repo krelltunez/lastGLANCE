@@ -220,6 +220,10 @@ export async function getCompletionHistory(
     .then(evts => evts.sort((a, b) => b.completed_at.localeCompare(a.completed_at)).slice(0, limit))
 }
 
+export async function updateCompletionNote(id: number, note: string | null): Promise<void> {
+  await db.completionEvents.update(id, { note: note || null })
+}
+
 export async function deleteCompletion(id: number): Promise<void> {
   const evt = await db.completionEvents.get(id)
   await db.completionEvents.delete(id)
