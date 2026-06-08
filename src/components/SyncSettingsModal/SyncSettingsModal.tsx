@@ -117,7 +117,10 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
       await setupEncryptionKey(passphrase.trim(), CRYPTO_CONFIG)
       setEncEnabled(true)
       const cfg = engine?.getConfig()
-      if (cfg) engine?.setConfig({ ...cfg, encryptionEnabled: true })
+      if (cfg) {
+        engine?.setConfig({ ...cfg, encryptionEnabled: true })
+        engine?.upload().catch(() => {/* non-fatal; next sync will re-attempt */})
+      }
       setShowPassphraseInput(false)
       setPassphrase('')
       setConfirmPassphrase('')
@@ -135,7 +138,10 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
       await clearEncryptionKey(CRYPTO_CONFIG)
       setEncEnabled(false)
       const cfg = engine?.getConfig()
-      if (cfg) engine?.setConfig({ ...cfg, encryptionEnabled: false })
+      if (cfg) {
+        engine?.setConfig({ ...cfg, encryptionEnabled: false })
+        engine?.upload().catch(() => {/* non-fatal; next sync will re-attempt */})
+      }
     } catch (err) {
       setEncError(err instanceof Error ? err.message : 'Failed to clear encryption key')
     } finally {
