@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { X, RefreshCw, ChevronRight, ChevronDown } from 'lucide-react'
 import { type ActivityEntry, getActivityLog, clearActivityLog } from '@/intents/config'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
+import { useTranslation } from 'react-i18next'
 
 interface Props {
   onClose: () => void
@@ -18,6 +19,7 @@ function badgeClass(type: ActivityEntry['type']): string {
 }
 
 export function ActivityLogModal({ onClose }: Props) {
+  const { t } = useTranslation()
   const [log, setLog] = useState<ActivityEntry[]>(() => getActivityLog())
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
 
@@ -42,21 +44,21 @@ export function ActivityLogModal({ onClose }: Props) {
       <div className="w-full sm:max-w-lg bg-white dark:bg-slate-800 rounded-t-2xl sm:rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700/50 flex flex-col max-h-[85vh]">
         <div className="flex items-center justify-between px-6 pt-5 pb-4 shrink-0 border-b border-slate-100 dark:border-slate-700/40">
           <h2 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-            Activity Log
+            {t('activityLog.title')}
           </h2>
           <div className="flex items-center gap-4">
             <button
               onClick={refresh}
               className="flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
             >
-              <RefreshCw size={11} /> Refresh
+              <RefreshCw size={11} /> {t('activityLog.refresh')}
             </button>
             {log.length > 0 && (
               <button
                 onClick={clear}
                 className="text-xs text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 transition-colors"
               >
-                Clear
+                {t('activityLog.clear')}
               </button>
             )}
             <button
@@ -70,7 +72,7 @@ export function ActivityLogModal({ onClose }: Props) {
 
         <div className="overflow-y-auto flex-1 px-6 py-4">
           {log.length === 0 ? (
-            <p className="text-xs text-slate-400 dark:text-slate-500 italic">No activity yet.</p>
+            <p className="text-xs text-slate-400 dark:text-slate-500 italic">{t('activityLog.noActivity')}</p>
           ) : (
             <div className="space-y-1">
               {log.map(entry => {
@@ -97,7 +99,7 @@ export function ActivityLogModal({ onClose }: Props) {
                         <button
                           onClick={() => toggleExpanded(entry.id)}
                           className="shrink-0 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
-                          aria-label={expanded ? 'Collapse details' : 'Expand details'}
+                          aria-label={expanded ? t('activityLog.collapseDetails') : t('activityLog.expandDetails')}
                         >
                           {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
                         </button>

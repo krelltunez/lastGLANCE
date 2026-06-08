@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { X, Bell, Check, Loader } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 export interface ToastOptions {
   title: string
@@ -38,6 +39,7 @@ function WarningActions({ onAction, onDetails, onSendToDayGlance, onExit }: {
   onSendToDayGlance?: () => Promise<boolean>
   onExit: () => void
 }) {
+  const { t } = useTranslation()
   const [saving, setSaving] = useState(false)
   const [sendState, setSendState] = useState<SendState>('idle')
 
@@ -80,11 +82,11 @@ function WarningActions({ onAction, onDetails, onSendToDayGlance, onExit }: {
           {sendState === 'saving' ? (
             <Loader size={11} className="animate-spin" />
           ) : sendState === 'done' ? (
-            '✓ dG'
+            t('toast.sendDone')
           ) : sendState === 'error' ? (
-            '✗ dG'
+            t('toast.sendError')
           ) : (
-            '→ dG'
+            t('toast.sendLabel')
           )}
         </button>
       )}
@@ -94,14 +96,14 @@ function WarningActions({ onAction, onDetails, onSendToDayGlance, onExit }: {
         className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium text-amber-500 dark:text-amber-400 border border-amber-400/50 hover:bg-amber-400/10 disabled:opacity-50 transition-colors"
       >
         {saving ? <Loader size={11} className="animate-spin" /> : <Check size={11} strokeWidth={2.5} />}
-        Done
+        {t('toast.done')}
       </button>
       {onDetails && (
         <button
           onClick={handleDetails}
           className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium text-slate-400 dark:text-slate-500 border border-slate-300 dark:border-slate-600 hover:text-slate-600 dark:hover:text-slate-300 hover:border-slate-400 dark:hover:border-slate-500 transition-colors"
         >
-          Details
+          {t('toast.details')}
         </button>
       )}
     </div>
@@ -109,6 +111,7 @@ function WarningActions({ onAction, onDetails, onSendToDayGlance, onExit }: {
 }
 
 function ToastCard({ toast, onDismiss }: { toast: ToastItem; onDismiss: () => void }) {
+  const { t } = useTranslation()
   const duration = toast.type === 'warning' ? null : (toast.duration ?? 4000)
   const [exiting, setExiting] = useState(false)
 
@@ -119,8 +122,8 @@ function ToastCard({ toast, onDismiss }: { toast: ToastItem; onDismiss: () => vo
 
   useEffect(() => {
     if (duration === null) return
-    const t = setTimeout(exit, duration)
-    return () => clearTimeout(t)
+    const timer = setTimeout(exit, duration)
+    return () => clearTimeout(timer)
   }, [duration, exit])
 
   const Icon = toast.type === 'success' ? Check : Bell
@@ -152,7 +155,7 @@ function ToastCard({ toast, onDismiss }: { toast: ToastItem; onDismiss: () => vo
       <button
         onClick={exit}
         className="shrink-0 mt-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
-        aria-label="Dismiss"
+        aria-label={t('toast.dismiss')}
       >
         <X size={13} />
       </button>

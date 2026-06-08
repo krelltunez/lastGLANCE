@@ -15,15 +15,20 @@
     "@glance-apps/sync": "^1.1.2",
     "dayjs": "^1.11.13",
     "dexie": "^4.4.2",
+    "i18next": "^26.3.1",
+    "i18next-browser-languagedetector": "^8.2.1",
+    "i18next-http-backend": "^4.0.0",
     "lucide-react": "^1.14.0",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "react-i18next": "^17.0.8"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
     "@vitejs/plugin-react": "^4.4.1",
+    "@vitest/coverage-v8": "^4.1.7",
     "autoprefixer": "^10.4.21",
     "eslint": "^9.20.0",
     "postcss": "^8.5.3",
@@ -31,7 +36,6 @@
     "typescript": "^5.8.3",
     "vite": "^6.3.4",
     "vite-plugin-pwa": "^0.21.1",
-    "vitest": "^4.1.7",
-    "@vitest/coverage-v8": "^4.1.7"
+    "vitest": "^4.1.7"
   }
 }

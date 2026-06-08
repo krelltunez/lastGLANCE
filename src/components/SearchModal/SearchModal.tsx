@@ -5,6 +5,7 @@ import type { ChoreWithLastCompletion, Category } from '@/types'
 import type { CategoryWithChores } from '@/hooks/useChores'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
 import { ICON_REGISTRY } from '@/icons/registry'
+import { useTranslation } from 'react-i18next'
 
 interface SearchResult {
   chore: ChoreWithLastCompletion
@@ -31,6 +32,7 @@ function highlight(text: string, query: string) {
 }
 
 export function SearchModal({ data, onSelect, onClose }: Props) {
+  const { t } = useTranslation()
   const [query, setQuery] = useState('')
   const [activeIdx, setActiveIdx] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -62,14 +64,6 @@ export function SearchModal({ data, onSelect, onClose }: Props) {
         return a.chore.name.localeCompare(b.chore.name)
       })
 
-  useEffect(() => { setActiveIdx(0) }, [q])
-
-  // Scroll active item into view
-  useEffect(() => {
-    const el = listRef.current?.children[activeIdx] as HTMLElement | undefined
-    el?.scrollIntoView({ block: 'nearest' })
-  }, [activeIdx])
-
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === 'ArrowDown') {
       e.preventDefault()
@@ -100,14 +94,14 @@ export function SearchModal({ data, onSelect, onClose }: Props) {
             value={query}
             onChange={e => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Search chores…"
+            placeholder={t('search.placeholder')}
             className="flex-1 bg-transparent text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none"
           />
           {query ? (
             <button
               onClick={() => setQuery('')}
               className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
-              aria-label="Clear search"
+              aria-label={t('search.clearSearch')}
             >
               <X size={14} />
             </button>
@@ -122,7 +116,7 @@ export function SearchModal({ data, onSelect, onClose }: Props) {
         {q !== '' && (
           <div className="max-h-72 overflow-y-auto">
             {results.length === 0 ? (
-              <p className="text-center text-sm text-slate-400 dark:text-slate-500 py-8">No chores match</p>
+              <p className="text-center text-sm text-slate-400 dark:text-slate-500 py-8">{t('search.noResults')}</p>
             ) : (
               <ul ref={listRef}>
                 {results.map(({ chore, category }, idx) => {
@@ -157,7 +151,7 @@ export function SearchModal({ data, onSelect, onClose }: Props) {
         {/* Empty prompt */}
         {q === '' && (
           <p className="text-center text-xs text-slate-400 dark:text-slate-500 py-6">
-            Start typing to search chores
+            {t('search.startTyping')}
           </p>
         )}
       </div>

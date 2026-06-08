@@ -10,6 +10,7 @@ import { SearchModal } from '@/components/SearchModal/SearchModal'
 import { useUsersContext } from '@/multiuser/UsersContext'
 import type { Category, ChoreWithLastCompletion } from '@/types'
 import type { CategoryWithChores } from '@/hooks/useChores'
+import { useTranslation } from 'react-i18next'
 
 interface Props {
   editMode: boolean
@@ -77,6 +78,7 @@ function filterCategoryData(data: CategoryWithChores[], meId: string | null, fil
 }
 
 export function Ribbon({ editMode, onLogged }: Props) {
+  const { t } = useTranslation()
   const { data, loading, refresh } = useChores()
   const { multiUserEnabled, meId, filter, setFilter } = useUsersContext()
   const [localData, setLocalData] = useState<CategoryWithChores[]>([])
@@ -85,7 +87,6 @@ export function Ribbon({ editMode, onLogged }: Props) {
   const [addingCategory, setAddingCategory] = useState(false)
   const [newChoreCategory, setNewChoreCategory] = useState<Category | null>(null)
 
-  // Category drag
   const [showSearch, setShowSearch] = useState(false)
 
   // Category drag
@@ -150,7 +151,6 @@ export function Ribbon({ editMode, onLogged }: Props) {
       const tag = (e.target as HTMLElement).tagName
       const editable = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (e.target as HTMLElement).isContentEditable
 
-      // Search: ⌘K or / (when not in an input)
       if ((e.key === 'k' && (e.metaKey || e.ctrlKey)) || (e.key === '/' && !editable && !ribbonModalOpenRef.current)) {
         e.preventDefault()
         setShowSearch(true)
@@ -159,7 +159,6 @@ export function Ribbon({ editMode, onLogged }: Props) {
 
       if (editable || ribbonModalOpenRef.current || e.metaKey || e.ctrlKey || e.altKey) return
 
-      // Category navigation: mobile layout only
       if (e.key === 'ArrowLeft' && window.innerWidth < 1060) {
         e.preventDefault()
         setActiveCategoryIndex(i => Math.max(0, i - 1))
@@ -202,7 +201,6 @@ export function Ribbon({ editMode, onLogged }: Props) {
       const fromIdx = cur.findIndex(d => d.category.id === fromId)
       if (fromIdx === -1) return
 
-      // Target-based swap: find the category whose card/tab rect contains the cursor
       const sel = catItemSelector.current
       let toIdx = -1
       for (let i = 0; i < cur.length; i++) {
@@ -228,7 +226,6 @@ export function Ribbon({ editMode, onLogged }: Props) {
     async function onUp() {
       if (draggingCatIdRef.current !== null) {
         const newOrder = localDataRef.current
-        // Update activeCategoryIndex to follow the dragged category
         const newIdx = newOrder.findIndex(d => d.category.id === draggingCatIdRef.current)
         if (newIdx !== -1) setActiveCategoryIndex(newIdx)
         await reorderCategories(newOrder.map(d => d.category.id))
@@ -254,9 +251,6 @@ export function Ribbon({ editMode, onLogged }: Props) {
     setDraggingCatId(catId)
   }
 
-  // Container ResizeObserver — measures width for column count.
-  // Deps include localData.length because desktopGridRef.current is null during the loading
-  // spinner render; the effect must re-run once the grid div actually mounts.
   useEffect(() => {
     const el = desktopGridRef.current
     if (!el) return
@@ -265,7 +259,6 @@ export function Ribbon({ editMode, onLogged }: Props) {
       if (w === containerWidthRef.current) return
       containerWidthRef.current = w
       setContainerWidth(w)
-      // Phase 0→1 if card heights already arrived before container width did
       if (
         packPhaseRef.current === 0 &&
         cardHeightsRef.current.size >= localDataLengthRef.current &&
@@ -280,8 +273,6 @@ export function Ribbon({ editMode, onLogged }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [localData.length])
 
-  // Card ResizeObservers — re-created only when the set of category IDs changes (add/remove, not reorder).
-  // ADD_CAT_ID is included when editMode is on so the ghost card is measured.
   const sortedCatIdsKey = [
     ...localData.map(d => d.category.id),
     ...(editMode && localData.length > 0 ? [ADD_CAT_ID] : []),
@@ -304,7 +295,6 @@ export function Ribbon({ editMode, onLogged }: Props) {
       }
       if (!changed) return
       setPackVersion(v => v + 1)
-      // Transition 0→1: all cards measured and container width known
       if (
         packPhaseRef.current === 0 &&
         cardHeightsRef.current.size >= localDataLengthRef.current &&
@@ -320,7 +310,6 @@ export function Ribbon({ editMode, onLogged }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sortedCatIdsKey])
 
-  // Transition 1→2: enable CSS transitions one frame after cards are placed
   useEffect(() => {
     if (packPhase !== 1) return
     const raf = requestAnimationFrame(() => {
@@ -388,7 +377,6 @@ export function Ribbon({ editMode, onLogged }: Props) {
     snap(0)
   }
 
-  // Apply user filter at render time (unfiltered data drives layout measurement)
   const displayData = useMemo(
     () => filterCategoryData(localData, meId, filter),
     [localData, meId, filter]
@@ -402,21 +390,18 @@ export function Ribbon({ editMode, onLogged }: Props) {
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <div className="text-slate-400 dark:text-slate-500 text-sm">Loading…</div>
+        <div className="text-slate-400 dark:text-slate-500 text-sm">{t('ribbon.loading')}</div>
       </div>
     )
   }
-
 
   const showEmpty = localData.length === 0
   const prevData = activeCategoryIndex > 0 ? displayData[activeCategoryIndex - 1] : null
   const currData = displayData[activeCategoryIndex]
   const nextData = activeCategoryIndex < displayData.length - 1 ? displayData[activeCategoryIndex + 1] : null
 
-  // Flat list of all categories (roots + subcategories) for form pickers
   const allCategories = localData.flatMap(d => [d.category, ...d.subcategories.map(s => s.category)])
 
-  // Masonry layout computation
   const colCount = getColCount(containerWidth, localData.length)
   const cardWidth = colCount > 0 && containerWidth > 0
     ? (containerWidth - MASONRY_GAP * (colCount - 1)) / colCount
@@ -470,7 +455,7 @@ export function Ribbon({ editMode, onLogged }: Props) {
               <button
                 onClick={() => setAddingCategory(true)}
                 className="shrink-0 flex items-center px-3 py-2.5 text-slate-400 dark:text-slate-500 hover:text-green-400 transition-colors border-l border-slate-200 dark:border-slate-700/60"
-                aria-label="Add category"
+                aria-label={t('ribbon.addCategoryAriaLabel')}
               >
                 <Plus size={13} />
               </button>
@@ -522,7 +507,6 @@ export function Ribbon({ editMode, onLogged }: Props) {
           <EmptyState onAdd={() => setAddingCategory(true)} />
         ) : (
           <div className="p-6">
-            {/* Masonry container: cards are absolutely positioned within */}
             <div
               ref={desktopGridRef}
               style={{ position: 'relative', height: containerHeight }}
@@ -581,7 +565,7 @@ export function Ribbon({ editMode, onLogged }: Props) {
                       className="w-full h-full flex items-center justify-center gap-2 p-5 py-8 text-sm text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors"
                     >
                       <Plus size={15} />
-                      Add category
+                      {t('ribbon.addCategory')}
                     </button>
                   </div>
                 )
@@ -602,7 +586,7 @@ export function Ribbon({ editMode, onLogged }: Props) {
                   ? 'bg-green-500 dark:bg-green-600 text-white border-green-400/50'
                   : 'bg-slate-800 dark:bg-slate-700 text-slate-100 border-slate-700 dark:border-slate-600 hover:bg-slate-700 dark:hover:bg-slate-600'
               }`}
-              aria-label="Toggle my tasks filter"
+              aria-label={t('ribbon.toggleMyTasksAriaLabel')}
             >
               <UserCircle size={20} />
             </button>
@@ -610,8 +594,8 @@ export function Ribbon({ editMode, onLogged }: Props) {
           <button
             onClick={() => setShowSearch(true)}
             className="min-[1060px]:hidden fixed bottom-6 right-6 z-40 flex items-center justify-center w-16 h-16 rounded-full bg-slate-800 dark:bg-slate-700 text-slate-100 shadow-lg border border-slate-700 dark:border-slate-600 hover:bg-slate-700 dark:hover:bg-slate-600 active:scale-95 transition-all"
-            aria-label="Search chores"
-            title="Search (/)"
+            aria-label={t('ribbon.searchChoresAriaLabel')}
+            title={t('ribbon.searchTitle')}
           >
             <Search size={20} />
           </button>
@@ -654,15 +638,16 @@ export function Ribbon({ editMode, onLogged }: Props) {
 }
 
 function EmptyState({ onAdd }: { onAdd: () => void }) {
+  const { t } = useTranslation()
   return (
     <div className="flex-1 flex flex-col items-center justify-center gap-4 px-8 text-center h-full min-h-[60vh]">
-      <p className="text-slate-400 dark:text-slate-500 text-sm">No categories yet.</p>
+      <p className="text-slate-400 dark:text-slate-500 text-sm">{t('ribbon.noCategories')}</p>
       <button
         onClick={onAdd}
         className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-green-400 border border-green-400/40 hover:text-green-300 hover:bg-green-400/10 hover:border-green-400/60 transition-colors"
       >
         <Plus size={15} />
-        Add your first category
+        {t('ribbon.addFirstCategory')}
       </button>
     </div>
   )

@@ -1,6 +1,7 @@
 import { createPortal } from 'react-dom'
 import { X, Keyboard } from 'lucide-react'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
+import { useTranslation } from 'react-i18next'
 
 interface Props {
   onClose: () => void
@@ -20,13 +21,14 @@ interface ShortcutRowProps {
 }
 
 function ShortcutRow({ keys, label }: ShortcutRowProps) {
+  const { t } = useTranslation()
   return (
     <div className="flex items-center justify-between gap-4 py-1.5">
       <span className="text-sm text-slate-600 dark:text-slate-300">{label}</span>
       <div className="flex items-center gap-1 shrink-0">
         {keys.map((k, i) => (
           <span key={i} className="flex items-center gap-1">
-            {i > 0 && <span className="text-slate-400 dark:text-slate-500 text-xs">or</span>}
+            {i > 0 && <span className="text-slate-400 dark:text-slate-500 text-xs">{t('shortcuts.or')}</span>}
             <Kbd>{k}</Kbd>
           </span>
         ))}
@@ -36,6 +38,7 @@ function ShortcutRow({ keys, label }: ShortcutRowProps) {
 }
 
 export function ShortcutsModal({ onClose }: Props) {
+  const { t } = useTranslation()
   useEscapeKey(onClose)
 
   return createPortal(
@@ -48,7 +51,7 @@ export function ShortcutsModal({ onClose }: Props) {
         <div className="flex items-center gap-3 px-6 pt-5 pb-4 border-b border-slate-100 dark:border-slate-700/40">
           <Keyboard size={18} className="text-green-400 shrink-0" />
           <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100 flex-1">
-            Keyboard Shortcuts
+            {t('shortcuts.title')}
           </h2>
           <button
             onClick={onClose}
@@ -62,12 +65,12 @@ export function ShortcutsModal({ onClose }: Props) {
           {/* Navigation */}
           <div>
             <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">
-              Navigation
+              {t('shortcuts.navigation')}
             </p>
             <div className="divide-y divide-slate-100 dark:divide-slate-700/40">
-              <ShortcutRow keys={['⌘K', '/']} label="Search" />
+              <ShortcutRow keys={['⌘K', '/']} label={t('shortcuts.search')} />
               <div className="min-[1060px]:hidden">
-                <ShortcutRow keys={['←', '→']} label="Navigate categories" />
+                <ShortcutRow keys={['←', '→']} label={t('shortcuts.navigateCategories')} />
               </div>
             </div>
           </div>
@@ -75,37 +78,37 @@ export function ShortcutsModal({ onClose }: Props) {
           {/* Actions */}
           <div>
             <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">
-              Actions
+              {t('shortcuts.actions')}
             </p>
             <div className="divide-y divide-slate-100 dark:divide-slate-700/40">
-              <ShortcutRow keys={['N']} label="New chore" />
-              <ShortcutRow keys={['E']} label="Toggle edit mode" />
-              <ShortcutRow keys={['M']} label="Toggle Mine / All filter" />
-              <ShortcutRow keys={['D']} label="Toggle dark mode" />
+              <ShortcutRow keys={['N']} label={t('shortcuts.newChore')} />
+              <ShortcutRow keys={['E']} label={t('shortcuts.toggleEditMode')} />
+              <ShortcutRow keys={['M']} label={t('shortcuts.toggleMineAll')} />
+              <ShortcutRow keys={['D']} label={t('shortcuts.toggleDarkMode')} />
             </div>
           </div>
 
           {/* Panels */}
           <div>
             <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">
-              Panels
+              {t('shortcuts.panels')}
             </p>
             <div className="divide-y divide-slate-100 dark:divide-slate-700/40">
-              <ShortcutRow keys={['I']} label="Integration settings" />
-              <ShortcutRow keys={['S']} label="Sync settings" />
-              <ShortcutRow keys={['A']} label="Backup &amp; Restore" />
-              <ShortcutRow keys={['L']} label="Activity log" />
-              <ShortcutRow keys={['?']} label="Keyboard shortcuts" />
+              <ShortcutRow keys={['I']} label={t('shortcuts.integrationSettings')} />
+              <ShortcutRow keys={['S']} label={t('shortcuts.syncSettings')} />
+              <ShortcutRow keys={['A']} label={t('shortcuts.backupRestore')} />
+              <ShortcutRow keys={['L']} label={t('shortcuts.activityLog')} />
+              <ShortcutRow keys={['?']} label={t('shortcuts.keyboardShortcuts')} />
             </div>
           </div>
 
           {/* General */}
           <div>
             <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">
-              General
+              {t('shortcuts.general')}
             </p>
             <div className="divide-y divide-slate-100 dark:divide-slate-700/40">
-              <ShortcutRow keys={['Esc']} label="Close modal" />
+              <ShortcutRow keys={['Esc']} label={t('shortcuts.closeModal')} />
             </div>
           </div>
         </div>

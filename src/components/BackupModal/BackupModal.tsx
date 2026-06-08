@@ -5,6 +5,7 @@ import { applyPayload } from '@/sync/engine'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
 import type { SyncEngine } from '@glance-apps/sync'
 import dayjs from 'dayjs'
+import { useTranslation } from 'react-i18next'
 
 interface Props {
   engine: SyncEngine | null
@@ -16,6 +17,7 @@ type RemoteFile = { filename: string; lastModified: string | null }
 type State = 'idle' | 'exporting' | 'confirm' | 'importing' | 'remote-list' | 'remote-loading' | 'remote-confirm' | 'error'
 
 export function BackupModal({ engine, onClose, onImported }: Props) {
+  const { t } = useTranslation()
   const [state, setState] = useState<State>('idle')
   const [errorMsg, setErrorMsg] = useState('')
   const [pending, setPending] = useState<BackupPayload | null>(null)
@@ -71,7 +73,7 @@ export function BackupModal({ engine, onClose, onImported }: Props) {
         setPending(parsed)
         setState('confirm')
       } catch {
-        setErrorMsg('Not a valid lastGLANCE backup file.')
+        setErrorMsg(t('backup.invalidFile'))
         setState('error')
       }
     }
@@ -86,7 +88,7 @@ export function BackupModal({ engine, onClose, onImported }: Props) {
       onImported()
       onClose()
     } catch {
-      setErrorMsg('Import failed — the file may be corrupted.')
+      setErrorMsg(t('backup.importFailed'))
       setState('error')
     }
   }
@@ -99,7 +101,7 @@ export function BackupModal({ engine, onClose, onImported }: Props) {
       const files = await provider.listBackups(syncConfig as Record<string, unknown>)
       setRemoteFiles(files)
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : 'Failed to list remote backups.')
+      setErrorMsg(err instanceof Error ? err.message : t('backup.remoteListFailed'))
       setState('error')
     }
   }
@@ -114,7 +116,7 @@ export function BackupModal({ engine, onClose, onImported }: Props) {
       setRemotePending(data)
       setState('remote-confirm')
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : 'Failed to download backup.')
+      setErrorMsg(err instanceof Error ? err.message : t('backup.remoteDownloadFailed'))
       setState('error')
     }
   }
@@ -127,13 +129,13 @@ export function BackupModal({ engine, onClose, onImported }: Props) {
       onImported()
       onClose()
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : 'Restore failed.')
+      setErrorMsg(err instanceof Error ? err.message : t('backup.restore'))
       setState('error')
     }
   }
 
   function formatDate(iso: string | null) {
-    if (!iso) return 'Unknown date'
+    if (!iso) return t('backup.unknownDate')
     return dayjs(iso).format('MMM D, YYYY h:mm A')
   }
 
@@ -144,7 +146,7 @@ export function BackupModal({ engine, onClose, onImported }: Props) {
     >
       <div className="w-full sm:max-w-sm bg-white dark:bg-slate-800 rounded-t-2xl sm:rounded-2xl p-6 shadow-2xl border border-slate-200 dark:border-slate-700/50">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-200">Backup & Restore</h2>
+          <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-200">{t('backup.title')}</h2>
           <button
             onClick={onClose}
             className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
@@ -155,27 +157,30 @@ export function BackupModal({ engine, onClose, onImported }: Props) {
 
         {state === 'confirm' && pending ? (
           <div className="space-y-4">
-            <p className="text-sm text-slate-700 dark:text-slate-300">
-              This will <strong>replace all current data</strong> with the backup.
-            </p>
+            <p className="text-sm text-slate-700 dark:text-slate-300"
+               dangerouslySetInnerHTML={{ __html: t('backup.replaceWarning') }} />
             <p className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">
-              {pending.categories.length} categories · {pending.chores.length} chores · {pending.completionEvents.length} completion events
+              {t('backup.summary', {
+                categories: pending.categories.length,
+                chores: pending.chores.length,
+                events: pending.completionEvents.length,
+              })}
             </p>
             <div className="flex gap-3 pt-1">
               <button onClick={() => setState('idle')} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
-                Cancel
+                {t('backup.cancel')}
               </button>
               <button onClick={handleConfirm} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-white bg-green-500 hover:bg-green-400 transition-colors">
-                Restore
+                {t('backup.restore')}
               </button>
             </div>
           </div>
 
         ) : state === 'remote-list' ? (
           <div className="space-y-3">
-            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Remote Backups</p>
+            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">{t('backup.remoteBackups')}</p>
             {remoteFiles.length === 0 ? (
-              <p className="text-sm text-slate-500 dark:text-slate-400">No remote backups found.</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">{t('backup.noRemoteBackups')}</p>
             ) : (
               <div className="space-y-2 max-h-60 overflow-y-auto">
                 {remoteFiles.map(f => (
@@ -191,28 +196,27 @@ export function BackupModal({ engine, onClose, onImported }: Props) {
               </div>
             )}
             <button onClick={() => setState('idle')} className="w-full py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
-              Cancel
+              {t('backup.cancel')}
             </button>
           </div>
 
         ) : state === 'remote-loading' ? (
           <div className="flex items-center justify-center gap-2 py-6 text-sm text-slate-500 dark:text-slate-400">
             <Loader size={14} className="animate-spin" />
-            Downloading backup…
+            {t('backup.downloading')}
           </div>
 
         ) : state === 'remote-confirm' && selectedRemote ? (
           <div className="space-y-4">
-            <p className="text-sm text-slate-700 dark:text-slate-300">
-              This will <strong>replace all current data</strong> with the remote backup.
-            </p>
+            <p className="text-sm text-slate-700 dark:text-slate-300"
+               dangerouslySetInnerHTML={{ __html: t('backup.replaceRemoteWarning') }} />
             <p className="text-xs text-slate-500 dark:text-slate-400">{formatDate(selectedRemote.lastModified)}</p>
             <div className="flex gap-3 pt-1">
               <button onClick={() => setState('idle')} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
-                Cancel
+                {t('backup.cancel')}
               </button>
               <button onClick={handleRemoteConfirm} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-white bg-green-500 hover:bg-green-400 transition-colors">
-                Restore
+                {t('backup.restore')}
               </button>
             </div>
           </div>
@@ -220,14 +224,14 @@ export function BackupModal({ engine, onClose, onImported }: Props) {
         ) : state === 'importing' ? (
           <div className="flex items-center justify-center gap-2 py-6 text-sm text-slate-500 dark:text-slate-400">
             <Loader size={14} className="animate-spin" />
-            Restoring…
+            {t('backup.restoring')}
           </div>
 
         ) : state === 'error' ? (
           <div className="space-y-4">
             <p className="text-sm text-red-500 dark:text-red-400">{errorMsg}</p>
             <button onClick={() => setState('idle')} className="w-full py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
-              OK
+              {t('backup.ok')}
             </button>
           </div>
 
@@ -241,9 +245,9 @@ export function BackupModal({ engine, onClose, onImported }: Props) {
               <Download size={16} className="text-green-400 shrink-0" />
               <div>
                 <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
-                  {state === 'exporting' ? 'Exporting…' : 'Export backup'}
+                  {state === 'exporting' ? t('backup.exporting') : t('backup.exportTitle')}
                 </p>
-                <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Download all data as JSON</p>
+                <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{t('backup.exportDesc')}</p>
               </div>
             </button>
 
@@ -253,8 +257,8 @@ export function BackupModal({ engine, onClose, onImported }: Props) {
             >
               <Upload size={16} className="text-green-400 shrink-0" />
               <div>
-                <p className="text-sm font-medium text-slate-700 dark:text-slate-200">Import backup</p>
-                <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Restore from a local JSON file</p>
+                <p className="text-sm font-medium text-slate-700 dark:text-slate-200">{t('backup.importTitle')}</p>
+                <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{t('backup.importDesc')}</p>
               </div>
             </button>
 
@@ -265,8 +269,8 @@ export function BackupModal({ engine, onClose, onImported }: Props) {
               >
                 <Cloud size={16} className="text-green-400 shrink-0" />
                 <div>
-                  <p className="text-sm font-medium text-slate-700 dark:text-slate-200">Restore remote backup</p>
-                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Browse and restore from WebDAV</p>
+                  <p className="text-sm font-medium text-slate-700 dark:text-slate-200">{t('backup.remoteRestoreTitle')}</p>
+                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{t('backup.remoteRestoreDesc')}</p>
                 </div>
               </button>
             )}
@@ -282,7 +286,7 @@ export function BackupModal({ engine, onClose, onImported }: Props) {
                     onImported()
                     onClose()
                   } catch {
-                    setErrorMsg('Failed to clear sample data.')
+                    setErrorMsg(t('backup.clearFailed'))
                     setState('error')
                   }
                 }}
@@ -290,8 +294,8 @@ export function BackupModal({ engine, onClose, onImported }: Props) {
               >
                 <Trash2 size={16} className="text-slate-400 shrink-0" />
                 <div>
-                  <p className="text-sm font-medium text-slate-700 dark:text-slate-200">Clear sample data</p>
-                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Remove the example categories and chores</p>
+                  <p className="text-sm font-medium text-slate-700 dark:text-slate-200">{t('backup.clearSampleTitle')}</p>
+                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{t('backup.clearSampleDesc')}</p>
                 </div>
               </button>
             )}

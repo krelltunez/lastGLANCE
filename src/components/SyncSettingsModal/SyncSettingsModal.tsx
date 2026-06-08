@@ -4,6 +4,7 @@ import { X, Loader, AlertTriangle, CheckCircle, XCircle } from 'lucide-react'
 import type { SyncEngine } from '@glance-apps/sync'
 import { setupEncryptionKey, clearEncryptionKey, ensureSyncFolder, resetEnsuredFolder, CRYPTO_CONFIG, getRemoteBackupsEnabled, setRemoteBackupsEnabled, DEFAULT_SYNC_FOLDER, SYNC_FOLDER_KEY } from '@/sync/engine'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
+import { useTranslation } from 'react-i18next'
 
 interface Props {
   engine: SyncEngine | null
@@ -17,9 +18,6 @@ function splitWebdavUrl(fullUrl: string, folderPath: string): { serverUrl: strin
   if (!fullUrl) return { serverUrl: '' }
   try {
     const url = new URL(fullUrl)
-    // Migration from the pre-1.0.3 format that baked the sync folder into the
-    // URL: strip the folder suffix if present. The WebDAV endpoint path itself
-    // (e.g. /remote.php/dav/files/username/ for Nextcloud) must be preserved.
     const folder = folderPath.replace(/^\//, '').replace(/\/+$/, '')
     const cleanPath = url.pathname.replace(/\/+$/, '')
     if (folder && cleanPath.endsWith('/' + folder)) {
@@ -32,12 +30,11 @@ function splitWebdavUrl(fullUrl: string, folderPath: string): { serverUrl: strin
 }
 
 function buildWebdavUrl(serverUrl: string): string {
-  // The full folder path is stored separately (SYNC_FOLDER_KEY) and passed to
-  // the engine as appFolderName — webdavUrl is the bare server root only.
   return serverUrl.replace(/\/+$/, '')
 }
 
 export function SyncSettingsModal({ engine, onClose }: Props) {
+  const { t } = useTranslation()
   const existingConfig = engine?.getConfig() ?? null
   const initFolder = localStorage.getItem(SYNC_FOLDER_KEY) ?? DEFAULT_SYNC_FOLDER
   const { serverUrl: initServer } = splitWebdavUrl((existingConfig?.webdavUrl as string) ?? '', initFolder)
@@ -73,7 +70,6 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
     engine.setConfig(serverUrl.trim() ? { provider: 'webdav', webdavUrl, username, appPassword, enabled: true, encryptionEnabled: encEnabled } : null)
     localStorage.setItem(SYNC_FOLDER_KEY, folderPath)
     resetEnsuredFolder()
-    // appFolderName is fixed at engine creation — reload so the new folder takes effect
     if (folderPath !== originalFolder.current) {
       window.location.reload()
     }
@@ -97,7 +93,7 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
         setTestStatus('ok')
       } else {
         setTestStatus('fail')
-        setTestError(result.error ?? 'Connection failed')
+        setTestError(result.error ?? t('sync.testFailed'))
       }
     } catch (err) {
       setTestStatus('fail')
@@ -108,7 +104,7 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
   async function handleEnableEncryption() {
     if (!passphrase.trim()) return
     if (passphrase !== confirmPassphrase) {
-      setEncError('Passphrases do not match')
+      setEncError(t('sync.pasphraseMismatch'))
       return
     }
     setEncSaving(true)
@@ -125,7 +121,7 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
       setPassphrase('')
       setConfirmPassphrase('')
     } catch (err) {
-      setEncError(err instanceof Error ? err.message : 'Failed to set passphrase')
+      setEncError(err instanceof Error ? err.message : t('sync.failedToSetPassphrase'))
     } finally {
       setEncSaving(false)
     }
@@ -143,7 +139,7 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
         engine?.upload().catch(() => {/* non-fatal; next sync will re-attempt */})
       }
     } catch (err) {
-      setEncError(err instanceof Error ? err.message : 'Failed to clear encryption key')
+      setEncError(err instanceof Error ? err.message : t('sync.failedToClearKey'))
     } finally {
       setEncSaving(false)
     }
@@ -163,14 +159,14 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
       setSyncResult('ok')
     } catch (err) {
       setSyncResult('error')
-      setSyncResultMsg(err instanceof Error ? err.message : 'Sync failed')
+      setSyncResultMsg(err instanceof Error ? err.message : t('sync.syncFailed'))
     } finally {
       setSyncing(false)
     }
   }
 
   function formatLastSynced(iso: string | null): string {
-    if (!iso) return 'Never'
+    if (!iso) return t('sync.neverSynced')
     const d = new Date(iso)
     return d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
   }
@@ -183,7 +179,7 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
       <div className="w-full sm:max-w-md bg-white dark:bg-slate-800 rounded-t-2xl sm:rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700/50 flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-6 pb-4 shrink-0">
-          <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100">Cloud Sync</h2>
+          <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100">{t('sync.title')}</h2>
           <button
             onClick={handleClose}
             className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
@@ -200,16 +196,16 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
             <div className="flex items-start gap-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/40">
               <AlertTriangle size={16} className="text-amber-500 shrink-0 mt-0.5" />
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-amber-700 dark:text-amber-300 font-medium">Sync halted</p>
+                <p className="text-sm text-amber-700 dark:text-amber-300 font-medium">{t('sync.syncHalted')}</p>
                 <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
-                  A critical error occurred. Resolve the issue and clear to retry.
+                  {t('sync.haltedDescription')}
                 </p>
               </div>
               <button
                 onClick={() => { engine?.clearHardStop() }}
                 className="text-xs text-amber-600 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-200 font-medium shrink-0 underline"
               >
-                Clear
+                {t('sync.clearHalt')}
               </button>
             </div>
           )}
@@ -217,13 +213,13 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
           {/* Connection section */}
           <div className="space-y-3">
             <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-              WebDAV Connection
+              {t('sync.webdavConnection')}
             </h3>
-            <p className="text-xs text-slate-400 dark:text-slate-500">Settings are saved automatically when you close this dialog.</p>
+            <p className="text-xs text-slate-400 dark:text-slate-500">{t('sync.autoSaveHint')}</p>
 
             <div>
               <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                Server URL
+                {t('sync.serverUrlLabel')}
               </label>
               <input
                 type="url"
@@ -233,13 +229,13 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
                 className="w-full bg-slate-100 dark:bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
               />
               <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
-                Nextcloud: <span className="font-mono">https://your-server/remote.php/dav/files/username/</span>
+                {t('sync.nextcloudHint')}
               </p>
             </div>
 
             <div>
               <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                Folder
+                {t('sync.folderLabel')}
               </label>
               <input
                 type="text"
@@ -249,19 +245,19 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
                 className="w-full bg-slate-100 dark:bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
               />
               <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
-                Path on your WebDAV server where sync files are stored.
+                {t('sync.folderHint')}
               </p>
             </div>
 
             <div>
               <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                Username
+                {t('sync.username')}
               </label>
               <input
                 type="text"
                 value={username}
                 onChange={e => setUsername(e.target.value)}
-                placeholder="your-username"
+                placeholder={t('sync.usernamePlaceholder')}
                 autoComplete="username"
                 className="w-full bg-slate-100 dark:bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
               />
@@ -269,17 +265,17 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
 
             <div>
               <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                Password
+                {t('sync.password')}
               </label>
               <input
                 type="password"
                 value={appPassword}
                 onChange={e => setAppPassword(e.target.value)}
-                placeholder="••••••••"
+                placeholder={t('sync.passwordPlaceholder')}
                 autoComplete="current-password"
                 className="w-full bg-slate-100 dark:bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
               />
-              <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Stored in browser localStorage — keep your device secure.</p>
+              <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">{t('sync.passwordHint')}</p>
             </div>
 
             <div className="flex items-center gap-3 pt-1">
@@ -289,13 +285,13 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-40 transition-colors"
               >
                 {testStatus === 'testing' && <Loader size={12} className="animate-spin" />}
-                Test connection
+                {t('sync.testConnection')}
               </button>
               {testStatus === 'ok' && (
-                <span className="text-xs text-green-500 dark:text-green-400">Connected</span>
+                <span className="text-xs text-green-500 dark:text-green-400">{t('sync.connected')}</span>
               )}
               {testStatus === 'fail' && (
-                <span className="text-xs text-red-500 dark:text-red-400">{testError || 'Failed'}</span>
+                <span className="text-xs text-red-500 dark:text-red-400">{testError || t('sync.testFailed')}</span>
               )}
             </div>
           </div>
@@ -303,14 +299,14 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
           {/* Encryption section */}
           <div className="space-y-3">
             <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-              Encryption
+              {t('sync.encryptionSection')}
             </h3>
 
             <div className="flex items-center justify-between py-1">
               <div>
-                <p className="text-sm text-slate-700 dark:text-slate-300">Encrypt sync data</p>
+                <p className="text-sm text-slate-700 dark:text-slate-300">{t('sync.encryptSyncData')}</p>
                 <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
-                  {encEnabled ? 'Encryption is active' : 'Data is stored unencrypted'}
+                  {encEnabled ? t('sync.encryptionActive') : t('sync.encryptionInactive')}
                 </p>
               </div>
               <button
@@ -338,34 +334,34 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
               <div className="space-y-3">
                 <div>
                   <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                    Sync passphrase
+                    {t('sync.syncPassphrase')}
                   </label>
                   <input
                     type="password"
                     value={passphrase}
                     onChange={e => setPassphrase(e.target.value)}
-                    placeholder="Choose a strong passphrase"
+                    placeholder={t('sync.choosePassphrase')}
                     autoComplete="new-password"
                     className="w-full bg-slate-100 dark:bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
                   />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                    Confirm passphrase
+                    {t('sync.passphraseConfirm')}
                   </label>
                   <input
                     type="password"
                     value={confirmPassphrase}
                     onChange={e => setConfirmPassphrase(e.target.value)}
-                    placeholder="Re-enter your passphrase"
+                    placeholder={t('sync.reEnterPassphrase')}
                     autoComplete="new-password"
                     onKeyDown={e => { if (e.key === 'Enter') handleEnableEncryption() }}
                     className="w-full bg-slate-100 dark:bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
                   />
                 </div>
                 <div className="rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/40 px-4 py-3 space-y-1">
-                  <p className="text-xs font-semibold text-amber-600 dark:text-amber-400">Important — store your passphrase safely</p>
-                  <p className="text-xs text-amber-700 dark:text-amber-300">This passphrase cannot be recovered. You will need it to set up sync on new devices. Store it in a password manager.</p>
+                  <p className="text-xs font-semibold text-amber-600 dark:text-amber-400">{t('sync.importantNote')}</p>
+                  <p className="text-xs text-amber-700 dark:text-amber-300">{t('sync.passphraseNotice')}</p>
                 </div>
                 <button
                   onClick={handleEnableEncryption}
@@ -373,7 +369,7 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-green-400 text-white hover:bg-green-300 disabled:opacity-40 transition-colors"
                 >
                   {encSaving && <Loader size={12} className="animate-spin" />}
-                  Set passphrase
+                  {t('sync.setPassphrase')}
                 </button>
               </div>
             )}
@@ -386,13 +382,13 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
           {/* Remote backups section */}
           <div className="space-y-3">
             <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-              Remote Backups
+              {t('sync.remoteBackupsSection')}
             </h3>
             <div className="flex items-center justify-between py-1">
               <div>
-                <p className="text-sm text-slate-700 dark:text-slate-300">Auto-backup to WebDAV</p>
+                <p className="text-sm text-slate-700 dark:text-slate-300">{t('sync.autoBackup')}</p>
                 <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
-                  Enable on one device only to avoid duplicate backups.
+                  {t('sync.autoBackupHint')}
                 </p>
               </div>
               <button
@@ -414,7 +410,7 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
           {/* Manual sync section */}
           <div className="space-y-3">
             <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-              Manual Sync
+              {t('sync.manualSync')}
             </h3>
             <div className="flex items-center gap-3">
               <button
@@ -423,24 +419,24 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
                 className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-40 transition-colors"
               >
                 {syncing && <Loader size={14} className="animate-spin" />}
-                Sync now
+                {t('sync.syncNow')}
               </button>
               {syncResult === 'ok' && (
                 <span className="flex items-center gap-1.5 text-xs text-green-500 dark:text-green-400">
                   <CheckCircle size={13} />
-                  Synced {formatLastSynced(lastSynced)}
+                  {t('sync.syncedDate', { date: formatLastSynced(lastSynced) })}
                 </span>
               )}
               {syncResult === 'error' && (
                 <span className="flex items-center gap-1.5 text-xs text-red-500 dark:text-red-400">
                   <XCircle size={13} />
-                  {syncResultMsg || 'Sync failed'}
+                  {syncResultMsg || t('sync.syncFailed')}
                 </span>
               )}
             </div>
             {syncResult === 'idle' && lastSynced && (
               <p className="text-xs text-slate-400 dark:text-slate-500">
-                Last synced: {formatLastSynced(lastSynced)}
+                {t('sync.lastSynced', { date: formatLastSynced(lastSynced) })}
               </p>
             )}
           </div>
@@ -453,7 +449,7 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
             onClick={handleClose}
             className="w-full py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
           >
-            Save & Close
+            {t('sync.saveClose')}
           </button>
         </div>
       </div>

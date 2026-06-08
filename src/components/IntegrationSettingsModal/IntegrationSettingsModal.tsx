@@ -14,6 +14,7 @@ import { testConnection } from '@/intents/webdav'
 import { loadIntentsRootKey, clearIntentsRootKey } from '@/intents/intentsKeyStore'
 import { setupIntentsEncryption } from '@/intents/setupIntentsEncryption'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
+import { useTranslation } from 'react-i18next'
 
 interface Props {
   onClose: () => void
@@ -25,6 +26,7 @@ type TestStatus = 'idle' | 'testing' | 'ok' | 'fail'
 interface LocalConfig extends IntentsConfig {}
 
 export function IntegrationSettingsModal({ onClose, onSaved }: Props) {
+  const { t } = useTranslation()
   const [localConfig, setLocalConfig] = useState<LocalConfig>(() => {
     try {
       const raw = localStorage.getItem('lg_intents_config')
@@ -83,7 +85,7 @@ export function IntegrationSettingsModal({ onClose, onSaved }: Props) {
         setTestStatus('ok')
       } else {
         setTestStatus('fail')
-        setTestError(result.error ?? 'Connection failed')
+        setTestError(result.error ?? t('integration.connectionFailed'))
       }
     } catch (err) {
       setTestStatus('fail')
@@ -98,7 +100,7 @@ export function IntegrationSettingsModal({ onClose, onSaved }: Props) {
       if (localConfig.encryptionEnabled && !rootKeyReady) {
         const passphrase = getSyncPassphrase() ?? passphraseInput.trim()
         if (!passphrase) {
-          setSetupError('Enter your sync passphrase to complete setup')
+          setSetupError(t('integration.passphraseRequired'))
           return
         }
         await setupIntentsEncryption(localConfig, passphrase)
@@ -113,7 +115,7 @@ export function IntegrationSettingsModal({ onClose, onSaved }: Props) {
       onSaved()
       onClose()
     } catch (err) {
-      setSetupError(err instanceof Error ? err.message : 'Setup failed')
+      setSetupError(err instanceof Error ? err.message : t('integration.setupFailed'))
     } finally {
       setSaving(false)
     }
@@ -128,7 +130,7 @@ export function IntegrationSettingsModal({ onClose, onSaved }: Props) {
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-6 pb-4 shrink-0">
           <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100">
-            dayGLANCE Integration
+            {t('integration.title')}
           </h2>
           <button
             onClick={onClose}
@@ -143,12 +145,12 @@ export function IntegrationSettingsModal({ onClose, onSaved }: Props) {
           {/* Connection section */}
           <div className="space-y-3">
             <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-              Connection
+              {t('integration.connectionSection')}
             </h3>
 
             {/* Enable toggle */}
             <div className="flex items-center justify-between py-1">
-              <span className="text-sm text-slate-700 dark:text-slate-300">Enable integration</span>
+              <span className="text-sm text-slate-700 dark:text-slate-300">{t('integration.enableIntegration')}</span>
               <button
                 type="button"
                 onClick={() => set('enabled', !localConfig.enabled)}
@@ -163,30 +165,30 @@ export function IntegrationSettingsModal({ onClose, onSaved }: Props) {
             {/* WebDAV URL */}
             <div>
               <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                WebDAV URL
+                {t('integration.webdavUrl')}
               </label>
               <input
                 type="url"
                 value={localConfig.webdavUrl}
                 onChange={e => set('webdavUrl', e.target.value)}
-                placeholder="https://your-server.com/remote.php/dav/files/user/"
+                placeholder={t('integration.webdavUrlPlaceholder')}
                 className="w-full bg-slate-100 dark:bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
               />
               <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
-                Nextcloud: <span className="font-mono">https://your-server/remote.php/dav/files/username/</span>
+                {t('integration.webdavUrlHint')}
               </p>
             </div>
 
             {/* Username */}
             <div>
               <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                Username
+                {t('integration.username')}
               </label>
               <input
                 type="text"
                 value={localConfig.webdavUsername}
                 onChange={e => set('webdavUsername', e.target.value)}
-                placeholder="your-username"
+                placeholder={t('integration.usernamePlaceholder')}
                 autoComplete="username"
                 className="w-full bg-slate-100 dark:bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
               />
@@ -195,29 +197,29 @@ export function IntegrationSettingsModal({ onClose, onSaved }: Props) {
             {/* Password */}
             <div>
               <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                Password
+                {t('integration.password')}
               </label>
               <input
                 type="password"
                 value={localConfig.webdavPassword}
                 onChange={e => set('webdavPassword', e.target.value)}
-                placeholder="••••••••"
+                placeholder={t('integration.passwordPlaceholder')}
                 autoComplete="current-password"
                 className="w-full bg-slate-100 dark:bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
               />
-              <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Stored in browser localStorage — keep your device secure.</p>
+              <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">{t('integration.passwordHint')}</p>
             </div>
 
             {/* Folder path */}
             <div>
               <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                Folder path
+                {t('integration.folderPath')}
               </label>
               <input
                 type="text"
                 value={localConfig.folderPath}
                 onChange={e => set('folderPath', e.target.value)}
-                placeholder="GLANCE/events"
+                placeholder={t('integration.folderPathPlaceholder')}
                 className="w-full bg-slate-100 dark:bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
               />
             </div>
@@ -232,13 +234,13 @@ export function IntegrationSettingsModal({ onClose, onSaved }: Props) {
                 {testStatus === 'testing' ? (
                   <Loader size={12} className="animate-spin" />
                 ) : null}
-                Test connection
+                {t('integration.testConnection')}
               </button>
               {testStatus === 'ok' && (
-                <span className="text-xs text-green-500 dark:text-green-400">Connected</span>
+                <span className="text-xs text-green-500 dark:text-green-400">{t('integration.connected')}</span>
               )}
               {testStatus === 'fail' && (
-                <span className="text-xs text-red-500 dark:text-red-400">{testError || 'Connection failed'}</span>
+                <span className="text-xs text-red-500 dark:text-red-400">{testError || t('integration.connectionFailed')}</span>
               )}
             </div>
           </div>
@@ -246,11 +248,11 @@ export function IntegrationSettingsModal({ onClose, onSaved }: Props) {
           {/* Polling section */}
           <div className="space-y-3">
             <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-              Polling
+              {t('integration.pollingSection')}
             </h3>
             <div>
               <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                Poll interval (minutes)
+                {t('integration.pollInterval')}
               </label>
               <input
                 type="number"
@@ -266,19 +268,19 @@ export function IntegrationSettingsModal({ onClose, onSaved }: Props) {
           {/* Encryption section */}
           <div className="space-y-3">
             <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-              Encryption
+              {t('integration.encryptionSection')}
             </h3>
             <div className="flex items-start justify-between py-1">
               <div>
                 <p className={`text-sm ${encReady ? 'text-slate-700 dark:text-slate-300' : 'text-slate-400 dark:text-slate-500'}`}>
-                  Encrypt intent files
+                  {t('integration.encryptIntents')}
                 </p>
                 <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
                   {encReady
                     ? rootKeyReady
-                      ? 'Encryption active. Set up once; remains active across sessions.'
-                      : 'Uses your cloud sync passphrase. Set up once; remains active across sessions.'
-                    : 'Requires cloud sync encryption to be enabled first'}
+                      ? t('integration.encryptionActiveHint')
+                      : t('integration.encryptionSyncHint')
+                    : t('integration.encryptionRequiresSync')}
                 </p>
               </div>
               <button
@@ -297,18 +299,18 @@ export function IntegrationSettingsModal({ onClose, onSaved }: Props) {
             {localConfig.encryptionEnabled && encReady && !rootKeyReady && showPassphraseInput && (
               <div>
                 <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                  Sync passphrase
+                  {t('integration.syncPassphrase')}
                 </label>
                 <input
                   type="password"
                   value={passphraseInput}
                   onChange={e => setPassphraseInput(e.target.value)}
-                  placeholder="Enter your sync passphrase"
+                  placeholder={t('integration.syncPassphrasePlaceholder')}
                   autoComplete="current-password"
                   className="w-full bg-slate-100 dark:bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
                 />
                 <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
-                  Used once to set up encryption. Not stored after save.
+                  {t('integration.syncPassphraseHint')}
                 </p>
               </div>
             )}
@@ -321,7 +323,7 @@ export function IntegrationSettingsModal({ onClose, onSaved }: Props) {
           {/* Activity log */}
           <div className="flex items-center justify-between py-1">
             <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-              Activity Log
+              {t('integration.activityLogSection')}
             </h3>
             <div className="flex items-center gap-3">
               {hasActivity && (
@@ -329,14 +331,14 @@ export function IntegrationSettingsModal({ onClose, onSaved }: Props) {
                   onClick={() => { clearActivityLog(); setHasActivity(false) }}
                   className="text-xs text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 transition-colors"
                 >
-                  Clear
+                  {t('integration.clearLog')}
                 </button>
               )}
               <button
                 onClick={() => setShowActivityLog(true)}
                 className="text-xs text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
               >
-                View log →
+                {t('integration.viewLog')}
               </button>
             </div>
           </div>
@@ -349,7 +351,7 @@ export function IntegrationSettingsModal({ onClose, onSaved }: Props) {
             disabled={saving}
             className="flex-1 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-40 transition-colors"
           >
-            Cancel
+            {t('integration.cancel')}
           </button>
           <button
             onClick={handleSave}
@@ -357,7 +359,7 @@ export function IntegrationSettingsModal({ onClose, onSaved }: Props) {
             className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium text-green-400 border border-green-400/40 hover:text-green-300 hover:bg-green-400/10 hover:border-green-400/60 disabled:opacity-40 transition-colors"
           >
             {saving && <Loader size={14} className="animate-spin" />}
-            Save
+            {t('integration.save')}
           </button>
         </div>
       </div>

@@ -8,6 +8,7 @@ import { getSyncWebdavConfig } from '@/sync/engine'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
 import type { SyncEngine } from '@glance-apps/sync'
 import type { User } from '@/types'
+import { useTranslation } from 'react-i18next'
 
 interface Props {
   engine: SyncEngine | null
@@ -16,6 +17,7 @@ interface Props {
 }
 
 export function UsersModal({ engine, onUserMutated, onClose }: Props) {
+  const { t } = useTranslation()
   const [enabled, setEnabled] = useState(getMultiUserEnabled)
   const [users, setUsers] = useState<User[]>([])
   const [meId, setMeId] = useState<string | null>(getMeUserSyncId)
@@ -44,9 +46,9 @@ export function UsersModal({ engine, onUserMutated, onClose }: Props) {
 
   async function handleAdd() {
     const name = addingName.trim()
-    if (!name) { setError('Name is required'); return }
+    if (!name) { setError(t('users.nameRequired')); return }
     if (users.some(u => u.name.toLowerCase() === name.toLowerCase())) {
-      setError('A user with that name already exists'); return
+      setError(t('users.nameTaken')); return
     }
     try {
       const id = await createUser(name)
@@ -55,7 +57,6 @@ export function UsersModal({ engine, onUserMutated, onClose }: Props) {
       setError('')
       const fresh = await getUsers()
       setUsers(fresh)
-      // Auto-set as "me" if this is the first user
       const created = fresh.find(u => u.id === id)
       if (created && fresh.length === 1) {
         setMeUserSyncId(created.sync_id)
@@ -63,15 +64,15 @@ export function UsersModal({ engine, onUserMutated, onClose }: Props) {
       }
       onUserMutated?.()
     } catch (e) {
-      setError(`Failed to save user: ${e instanceof Error ? e.message : String(e)}`)
+      setError(t('users.failedToSave', { error: e instanceof Error ? e.message : String(e) }))
     }
   }
 
   async function handleSaveEdit() {
     const name = editingName.trim()
-    if (!name) { setError('Name is required'); return }
+    if (!name) { setError(t('users.nameRequired')); return }
     if (users.some(u => u.name.toLowerCase() === name.toLowerCase() && u.id !== editingId)) {
-      setError('A user with that name already exists'); return
+      setError(t('users.nameTaken')); return
     }
     try {
       await updateUser(editingId!, { name })
@@ -81,7 +82,7 @@ export function UsersModal({ engine, onUserMutated, onClose }: Props) {
       setUsers(await getUsers())
       onUserMutated?.()
     } catch (e) {
-      setError(`Failed to save: ${e instanceof Error ? e.message : String(e)}`)
+      setError(t('users.failedToEdit', { error: e instanceof Error ? e.message : String(e) }))
     }
   }
 
@@ -112,7 +113,7 @@ export function UsersModal({ engine, onUserMutated, onClose }: Props) {
     try {
       const syncConfig = getSyncWebdavConfig(engine)
       if (!syncConfig) {
-        setError('Cloud sync is not configured. Set up WebDAV under Settings → Cloud Sync first.')
+        setError(t('users.syncNotConfigured'))
         setSyncStatus('error')
         setTimeout(() => setSyncStatus('idle'), 4000)
         return
@@ -120,7 +121,6 @@ export function UsersModal({ engine, onUserMutated, onClose }: Props) {
       const fresh = await getUsers()
       const result = await syncSharedUsers(syncConfig, usersPath, fresh)
       if (result) {
-        // Upsert any new/updated users from remote into local DB
         for (const ru of result.merged) {
           const existing = fresh.find(u => u.sync_id === ru.id)
           if (!existing) {
@@ -151,7 +151,7 @@ export function UsersModal({ engine, onUserMutated, onClose }: Props) {
         <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-slate-100 dark:border-slate-700/40 shrink-0">
           <div className="flex items-center gap-2">
             <Users size={16} className="text-green-400" />
-            <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100">Users</h2>
+            <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100">{t('users.title')}</h2>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
             <X size={18} />
@@ -164,8 +164,8 @@ export function UsersModal({ engine, onUserMutated, onClose }: Props) {
           {/* Toggle */}
           <div className="flex items-center justify-between py-1">
             <div className="flex flex-col gap-0.5">
-              <span className="text-sm text-slate-700 dark:text-slate-200 font-medium">Multi-user mode</span>
-              <span className="text-xs text-slate-400 dark:text-slate-500">Tag chores with specific household members</span>
+              <span className="text-sm text-slate-700 dark:text-slate-200 font-medium">{t('users.multiUserMode')}</span>
+              <span className="text-xs text-slate-400 dark:text-slate-500">{t('users.multiUserHint')}</span>
             </div>
             <button
               type="button"
@@ -173,7 +173,7 @@ export function UsersModal({ engine, onUserMutated, onClose }: Props) {
               className={`relative w-10 h-6 rounded-full transition-colors shrink-0 ml-4 ${enabled ? 'bg-green-400' : 'bg-slate-300 dark:bg-slate-600'}`}
               aria-checked={enabled}
               role="switch"
-              aria-label="Toggle multi-user mode"
+              aria-label={t('users.toggleMultiUser')}
             >
               <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${enabled ? 'translate-x-4' : ''}`} />
             </button>
@@ -198,14 +198,14 @@ export function UsersModal({ engine, onUserMutated, onClose }: Props) {
                         <button
                           onClick={handleSaveEdit}
                           className="p-1.5 rounded-lg text-green-400 hover:bg-green-400/10 transition-colors shrink-0"
-                          aria-label="Save"
+                          aria-label={t('users.saveAriaLabel')}
                         >
                           <Check size={14} />
                         </button>
                         <button
                           onClick={() => { setEditingId(null); setError('') }}
                           className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors shrink-0"
-                          aria-label="Cancel"
+                          aria-label={t('users.cancelAriaLabel')}
                         >
                           <X size={14} />
                         </button>
@@ -227,21 +227,21 @@ export function UsersModal({ engine, onUserMutated, onClose }: Props) {
                               ? 'bg-green-400/15 border-green-400/50 text-green-500 dark:text-green-400'
                               : 'border-slate-300 dark:border-slate-600 text-slate-400 dark:text-slate-500 hover:border-green-400/50 hover:text-green-500 dark:hover:text-green-400'
                           }`}
-                          aria-label={meId === user.sync_id ? 'Unset as me' : 'Set as me on this device'}
+                          aria-label={meId === user.sync_id ? t('users.unsetMeAriaLabel') : t('users.setMeAriaLabel')}
                         >
-                          {meId === user.sync_id ? '✓ Me' : 'Me'}
+                          {meId === user.sync_id ? t('users.meLabelActive') : t('users.meLabel')}
                         </button>
                         <button
                           onClick={() => { setEditingId(user.id); setEditingName(user.name); setError('') }}
                           className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors shrink-0"
-                          aria-label={`Edit ${user.name}`}
+                          aria-label={t('users.editUserAriaLabel', { name: user.name })}
                         >
                           <Pencil size={13} />
                         </button>
                         <button
                           onClick={() => handleDelete(user)}
                           className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors shrink-0"
-                          aria-label={`Delete ${user.name}`}
+                          aria-label={t('users.deleteUserAriaLabel', { name: user.name })}
                         >
                           <Trash2 size={13} />
                         </button>
@@ -258,21 +258,21 @@ export function UsersModal({ engine, onUserMutated, onClose }: Props) {
                       value={addingName}
                       onChange={e => { setAddingName(e.target.value); setError('') }}
                       onKeyDown={e => { if (e.key === 'Enter') handleAdd(); if (e.key === 'Escape') { setIsAdding(false); setAddingName(''); setError('') } }}
-                      placeholder="Name"
+                      placeholder={t('users.namePlaceholder')}
                       autoFocus
                       className="flex-1 min-w-0 bg-white dark:bg-slate-700 rounded-lg px-2 py-1 text-sm text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
                     />
                     <button
                       onClick={handleAdd}
                       className="p-1.5 rounded-lg text-green-400 hover:bg-green-400/10 transition-colors shrink-0"
-                      aria-label="Add user"
+                      aria-label={t('users.addUserAriaLabel')}
                     >
                       <Check size={14} />
                     </button>
                     <button
                       onClick={() => { setIsAdding(false); setAddingName(''); setError('') }}
                       className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors shrink-0"
-                      aria-label="Cancel"
+                      aria-label={t('users.cancelAriaLabel')}
                     >
                       <X size={14} />
                     </button>
@@ -283,7 +283,7 @@ export function UsersModal({ engine, onUserMutated, onClose }: Props) {
                     className="flex items-center gap-2 w-full px-3 py-2.5 rounded-xl text-sm text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/40 border border-dashed border-slate-300 dark:border-slate-700/60 hover:border-slate-400 dark:hover:border-slate-600 transition-colors"
                   >
                     <Plus size={14} />
-                    Add user
+                    {t('users.addUser')}
                   </button>
                 )}
 
@@ -294,17 +294,17 @@ export function UsersModal({ engine, onUserMutated, onClose }: Props) {
               <div className="pt-1 border-t border-slate-100 dark:border-slate-700/40 space-y-2">
                 <div>
                   <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                    Shared users path
+                    {t('users.sharedUsersPath')}
                   </label>
                   <input
                     type="text"
                     value={usersPath}
                     onChange={e => handleUsersPathChange(e.target.value)}
-                    placeholder="/GLANCE/users/"
+                    placeholder={t('users.sharedUsersPathPlaceholder')}
                     className="w-full bg-slate-100 dark:bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400 font-mono"
                   />
                   <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
-                    Path on WebDAV where <code className="font-mono">glance-users.json</code> is stored. Must match across all GLANCE apps.
+                    {t('users.sharedUsersPathHint')}
                   </p>
                 </div>
                 <button
@@ -319,7 +319,7 @@ export function UsersModal({ engine, onUserMutated, onClose }: Props) {
                   }`}
                 >
                   <RefreshCw size={12} className={syncing ? 'animate-spin' : ''} />
-                  {syncStatus === 'ok' ? 'Synced!' : syncStatus === 'error' ? 'Sync failed' : 'Sync now'}
+                  {syncStatus === 'ok' ? t('users.syncOk') : syncStatus === 'error' ? t('users.syncFailed') : t('users.syncNow')}
                 </button>
               </div>
             </>
@@ -332,7 +332,7 @@ export function UsersModal({ engine, onUserMutated, onClose }: Props) {
             onClick={onClose}
             className="w-full py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
           >
-            Done
+            {t('users.done')}
           </button>
         </div>
       </div>

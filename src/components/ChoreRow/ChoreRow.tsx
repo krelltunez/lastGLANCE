@@ -8,6 +8,7 @@ import { ICON_REGISTRY } from '@/icons/registry'
 import { useIntents } from '@/intents/IntentsContext'
 import { emitCreateIntent } from '@/intents/emitter'
 import { useUsersContext } from '@/multiuser/UsersContext'
+import { useTranslation } from 'react-i18next'
 
 interface Props {
   chore: ChoreWithLastCompletion
@@ -24,6 +25,7 @@ type LogState = 'idle' | 'saving' | 'done'
 type SendState = 'idle' | 'saving' | 'done' | 'error'
 
 export function ChoreRow({ chore, editMode, onTap, onEdit, onDelete, onRefresh, onDragHandlePointerDown, isDragging }: Props) {
+  const { t } = useTranslation()
   const { users, multiUserEnabled } = useUsersContext()
   const [logState, setLogState] = useState<LogState>('idle')
   const [sendState, setSendState] = useState<SendState>('idle')
@@ -85,7 +87,9 @@ export function ChoreRow({ chore, editMode, onTap, onEdit, onDelete, onRefresh, 
         )}
         <span className="text-sm text-slate-700 dark:text-slate-300 truncate flex-1 min-w-0">{chore.name}</span>
         {chore.target_cadence_days != null && (
-          <span className="text-xs text-slate-400 dark:text-slate-600 shrink-0">every {chore.target_cadence_days}d</span>
+          <span className="text-xs text-slate-400 dark:text-slate-600 shrink-0">
+            {t('choreRow.everyNDays', { n: chore.target_cadence_days })}
+          </span>
         )}
         {chore.seasonal_start && (
           <span title={`Seasonal: ${chore.seasonal_start} – ${chore.seasonal_end}`}>
@@ -95,14 +99,14 @@ export function ChoreRow({ chore, editMode, onTap, onEdit, onDelete, onRefresh, 
         <button
           onClick={onEdit}
           className="p-1.5 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors shrink-0"
-          aria-label={`Edit ${chore.name}`}
+          aria-label={t('choreRow.editAriaLabel', { name: chore.name })}
         >
           <Pencil size={13} />
         </button>
         <button
           onClick={onDelete}
           className="p-1.5 rounded-lg text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors shrink-0"
-          aria-label={`Delete ${chore.name}`}
+          aria-label={t('choreRow.deleteAriaLabel', { name: chore.name })}
         >
           <Trash2 size={13} />
         </button>
@@ -115,7 +119,7 @@ export function ChoreRow({ chore, editMode, onTap, onEdit, onDelete, onRefresh, 
       onClick={() => onTap(chore)}
       className="relative overflow-hidden rounded-xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/40 cursor-pointer group transition-colors hover:border-slate-300 dark:hover:border-slate-600/60"
       role="button"
-      aria-label={`${chore.name} — ${elapsedText}`}
+      aria-label={t('choreRow.choreLabel', { name: chore.name, elapsed: elapsedText })}
     >
       {/* Left accent stripe */}
       <div
@@ -160,7 +164,7 @@ export function ChoreRow({ chore, editMode, onTap, onEdit, onDelete, onRefresh, 
           <button
             onClick={handleSendToDayGlance}
             disabled={sendState === 'saving'}
-            aria-label={`Send ${chore.name} to dayGLANCE`}
+            aria-label={t('choreRow.sendAriaLabel', { name: chore.name })}
             className={`
               shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium
               transition-all duration-200 border
@@ -171,7 +175,7 @@ export function ChoreRow({ chore, editMode, onTap, onEdit, onDelete, onRefresh, 
                   : 'text-blue-500 dark:text-blue-400 border-blue-400/50 hover:bg-blue-400/10'}
             `}
           >
-            {sendState === 'done' ? 'Sent!' : sendState === 'error' ? 'Err' : '→ dG'}
+            {sendState === 'done' ? t('choreRow.sendDone') : sendState === 'error' ? t('choreRow.sendError') : t('choreRow.sendLabel')}
           </button>
         )}
 
@@ -179,7 +183,7 @@ export function ChoreRow({ chore, editMode, onTap, onEdit, onDelete, onRefresh, 
         <button
           onClick={handleQuickLog}
           disabled={logState === 'saving'}
-          aria-label={`Quick-log ${chore.name}`}
+          aria-label={t('choreRow.quickLogAriaLabel', { name: chore.name })}
           className={`
             shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium
             transition-all duration-200 border
@@ -189,7 +193,7 @@ export function ChoreRow({ chore, editMode, onTap, onEdit, onDelete, onRefresh, 
           `}
         >
           <Check size={12} strokeWidth={2.5} />
-          <span>{logState === 'done' ? 'Logged!' : logState === 'saving' ? '…' : 'Done'}</span>
+          <span>{logState === 'done' ? t('choreRow.logDone') : logState === 'saving' ? t('choreRow.logSaving') : t('choreRow.logIdle')}</span>
         </button>
       </div>
     </div>

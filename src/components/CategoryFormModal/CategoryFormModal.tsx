@@ -6,6 +6,7 @@ import { createCategory, updateCategory } from '@/db/queries'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
 import { IconPicker } from '@/components/IconPicker/IconPicker'
 import { ICON_REGISTRY } from '@/icons/registry'
+import { useTranslation } from 'react-i18next'
 
 interface Props {
   category?: Category          // edit mode when provided
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export function CategoryFormModal({ category, parentCategoryId, parentIcon, rootCategories, onClose, onSaved }: Props) {
+  const { t } = useTranslation()
   const isEdit = Boolean(category)
   const [name, setName] = useState(category?.name ?? '')
   const [icon, setIcon] = useState<string | undefined>(category ? category.icon : parentIcon)
@@ -35,7 +37,7 @@ export function CategoryFormModal({ category, parentCategoryId, parentIcon, root
 
   async function handleSave() {
     const trimmed = name.trim()
-    if (!trimmed) { setError('Name is required'); return }
+    if (!trimmed) { setError(t('categoryForm.nameRequired')); return }
     setSaving(true)
     try {
       if (isEdit && category) {
@@ -56,10 +58,10 @@ export function CategoryFormModal({ category, parentCategoryId, parentIcon, root
   const SelectedIcon = icon ? ICON_REGISTRY[icon] : null
 
   const title = isEdit
-    ? (category?.parent_category_id ? 'Edit subcategory' : 'Rename category')
+    ? (category?.parent_category_id ? t('categoryForm.editSubcategory') : t('categoryForm.renameCategory'))
     : parentCategoryId
-      ? `Add subcategory`
-      : 'Add category'
+      ? t('categoryForm.addSubcategory')
+      : t('categoryForm.addCategory')
 
   return createPortal(
     <>
@@ -81,7 +83,7 @@ export function CategoryFormModal({ category, parentCategoryId, parentIcon, root
                 type="text"
                 value={name}
                 onChange={e => { setName(e.target.value); setError('') }}
-                placeholder="e.g. Home, Pets, Vehicle…"
+                placeholder={t('categoryForm.namePlaceholder')}
                 autoFocus
                 onKeyDown={e => { if (e.key === 'Enter') handleSave() }}
                 className="w-full bg-slate-100 dark:bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
@@ -91,7 +93,7 @@ export function CategoryFormModal({ category, parentCategoryId, parentIcon, root
               type="button"
               onClick={() => setShowIconPicker(true)}
               className="h-[38px] w-[38px] flex items-center justify-center bg-slate-100 dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600 hover:border-green-400/60 transition-colors text-slate-400 hover:text-green-400"
-              title="Pick icon"
+              title={t('categoryForm.pickIcon')}
             >
               {SelectedIcon ? <SelectedIcon size={18} className="text-green-400" /> : <Smile size={16} />}
             </button>
@@ -101,14 +103,14 @@ export function CategoryFormModal({ category, parentCategoryId, parentIcon, root
           {showParentPicker && (
             <div>
               <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                Parent category
+                {t('categoryForm.parentCategory')}
               </label>
               <select
                 value={selectedParentId ?? ''}
                 onChange={e => setSelectedParentId(e.target.value ? Number(e.target.value) : undefined)}
                 className="w-full bg-slate-100 dark:bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
               >
-                <option value="">None (root category)</option>
+                <option value="">{t('categoryForm.noParent')}</option>
                 {parentOptions.map(cat => (
                   <option key={cat.id} value={cat.id}>{cat.name}</option>
                 ))}
@@ -123,14 +125,14 @@ export function CategoryFormModal({ category, parentCategoryId, parentIcon, root
               onClick={onClose}
               className="flex-1 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
             >
-              Cancel
+              {t('categoryForm.cancel')}
             </button>
             <button
               onClick={handleSave}
               disabled={saving}
               className="flex-1 py-2.5 rounded-xl text-sm font-medium text-green-400 border border-green-400/40 hover:text-green-300 hover:bg-green-400/10 hover:border-green-400/60 disabled:opacity-50 transition-colors"
             >
-              {saving ? 'Saving…' : isEdit ? 'Save' : 'Add'}
+              {saving ? t('categoryForm.saving') : isEdit ? t('categoryForm.save') : t('categoryForm.add')}
             </button>
           </div>
         </div>
