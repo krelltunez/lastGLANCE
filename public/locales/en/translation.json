@@ -50,6 +50,8 @@
     "invalidFile": "Not a valid lastGLANCE backup file.",
     "importFailed": "Import failed — the file may be corrupted.",
     "clearFailed": "Failed to clear sample data.",
+    "remoteListFailed": "Failed to list remote backups.",
+    "remoteDownloadFailed": "Failed to download backup.",
     "unknownDate": "Unknown date"
   },
   "categoryForm": {
@@ -247,7 +249,8 @@
     "activityLog": "Activity log",
     "keyboardShortcuts": "Keyboard shortcuts",
     "general": "General",
-    "closeModal": "Close modal"
+    "closeModal": "Close modal",
+    "or": "or"
   },
   "sync": {
     "title": "Cloud Sync",

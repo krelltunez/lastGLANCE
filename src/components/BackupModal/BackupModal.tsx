@@ -101,7 +101,7 @@ export function BackupModal({ engine, onClose, onImported }: Props) {
       const files = await provider.listBackups(syncConfig as Record<string, unknown>)
       setRemoteFiles(files)
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : t('backup.remoteRestoreDesc'))
+      setErrorMsg(err instanceof Error ? err.message : t('backup.remoteListFailed'))
       setState('error')
     }
   }
@@ -116,7 +116,7 @@ export function BackupModal({ engine, onClose, onImported }: Props) {
       setRemotePending(data)
       setState('remote-confirm')
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : t('backup.downloading'))
+      setErrorMsg(err instanceof Error ? err.message : t('backup.remoteDownloadFailed'))
       setState('error')
     }
   }

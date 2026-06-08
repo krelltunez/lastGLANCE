@@ -28,7 +28,7 @@ function ShortcutRow({ keys, label }: ShortcutRowProps) {
       <div className="flex items-center gap-1 shrink-0">
         {keys.map((k, i) => (
           <span key={i} className="flex items-center gap-1">
-            {i > 0 && <span className="text-slate-400 dark:text-slate-500 text-xs">{t('or', 'or')}</span>}
+            {i > 0 && <span className="text-slate-400 dark:text-slate-500 text-xs">{t('shortcuts.or')}</span>}
             <Kbd>{k}</Kbd>
           </span>
         ))}
