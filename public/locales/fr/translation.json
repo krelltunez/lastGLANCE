@@ -52,6 +52,7 @@
     "clearFailed": "Échec de la suppression des données d'exemple.",
     "remoteListFailed": "Impossible de lister les sauvegardes distantes.",
     "remoteDownloadFailed": "Impossible de télécharger la sauvegarde.",
+    "restoreFailed": "Échec de la restauration.",
     "unknownDate": "Date inconnue"
   },
   "categoryForm": {

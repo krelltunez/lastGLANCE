@@ -52,6 +52,7 @@
     "clearFailed": "Failed to clear sample data.",
     "remoteListFailed": "Failed to list remote backups.",
     "remoteDownloadFailed": "Failed to download backup.",
+    "restoreFailed": "Restore failed.",
     "unknownDate": "Unknown date"
   },
   "categoryForm": {

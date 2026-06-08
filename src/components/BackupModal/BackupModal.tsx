@@ -129,7 +129,7 @@ export function BackupModal({ engine, onClose, onImported }: Props) {
       onImported()
       onClose()
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : t('backup.restore'))
+      setErrorMsg(err instanceof Error ? err.message : t('backup.restoreFailed'))
       setState('error')
     }
   }
