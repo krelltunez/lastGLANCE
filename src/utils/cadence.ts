@@ -48,6 +48,7 @@ export function formatElapsed(elapsedDays: number | null, lastCompletedAt: strin
     const diffHours = Math.floor(diffMinutes / 60)
     return `${diffHours}h ago`
   }
-  if (elapsedDays < 2) return 'yesterday'
-  return `${Math.floor(elapsedDays)}d ago`
+  const calendarDaysAgo = dayjs().startOf('day').diff(dayjs(lastCompletedAt).startOf('day'), 'day')
+  if (calendarDaysAgo === 1) return 'yesterday'
+  return `${calendarDaysAgo}d ago`
 }
