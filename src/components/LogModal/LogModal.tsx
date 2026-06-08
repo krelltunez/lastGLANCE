@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
-import { X, Trash2 } from 'lucide-react'
+import { X, Trash2, NotebookPen } from 'lucide-react'
 import dayjs from 'dayjs'
 import type { ChoreWithLastCompletion, CompletionEvent } from '@/types'
-import { logCompletion, getCompletionHistory, deleteCompletion } from '@/db/queries'
+import { logCompletion, getCompletionHistory, deleteCompletion, updateCompletionNote } from '@/db/queries'
 import { getMeUserSyncId } from '@/multiuser/settings'
 import { useUsersContext } from '@/multiuser/UsersContext'
 import { formatElapsed } from '@/utils/cadence'
@@ -158,7 +158,7 @@ export function LogModal({ chore, onClose, onLogged }: Props) {
                   : 'text-blue-400 border-blue-400/40 hover:text-blue-300 hover:bg-blue-400/10 hover:border-blue-400/60'
               }`}
             >
-              {sendState === 'done' ? 'Sent!' : sendState === 'error' ? 'Error' : '→ dG'}
+              {sendState === 'done' ? 'Sent!' : sendState === 'error' ? 'Error' : '→ send to dayGLANCE'}
             </button>
           )}
         </div>
@@ -198,6 +198,10 @@ export function LogModal({ chore, onClose, onLogged }: Props) {
                         <CompletionRow
                           evt={evt}
                           onDelete={() => handleDelete(evt.id)}
+                          onEditNote={async (note) => {
+                            await updateCompletionNote(evt.id, note)
+                            setCompletions(prev => prev.map(c => c.id === evt.id ? { ...c, note } : c))
+                          }}
                           userName={multiUserEnabled && evt.completed_by_user_sync_id
                             ? (users.find(u => u.sync_id === evt.completed_by_user_sync_id)?.name ?? null)
                             : null}
@@ -229,9 +233,29 @@ function StatCell({ label, value }: { label: string; value: string }) {
   )
 }
 
-function CompletionRow({ evt, onDelete, userName }: { evt: CompletionEvent; onDelete: () => void; userName: string | null }) {
+function CompletionRow({ evt, onDelete, onEditNote, userName }: { evt: CompletionEvent; onDelete: () => void; onEditNote: (note: string | null) => void; userName: string | null }) {
   const [confirming, setConfirming] = useState(false)
+  const [editingNote, setEditingNote] = useState(false)
+  const [noteValue, setNoteValue] = useState(evt.note ?? '')
+  const noteInputRef = useRef<HTMLInputElement>(null)
   const dt = dayjs(evt.completed_at)
+
+  function openNoteEdit() {
+    setNoteValue(evt.note ?? '')
+    setEditingNote(true)
+    setTimeout(() => noteInputRef.current?.focus(), 0)
+  }
+
+  function saveNote() {
+    onEditNote(noteValue.trim() || null)
+    setEditingNote(false)
+  }
+
+  function cancelNote() {
+    setNoteValue(evt.note ?? '')
+    setEditingNote(false)
+  }
+
   return (
     <div className="flex items-start gap-3 py-2.5 border-b border-slate-100 dark:border-slate-700/30 group">
       <div className="flex-1 min-w-0">
@@ -245,21 +269,45 @@ function CompletionRow({ evt, onDelete, userName }: { evt: CompletionEvent; onDe
             <span className="text-xs text-blue-500 dark:text-blue-400 bg-blue-50 dark:bg-blue-400/10 px-1.5 py-0.5 rounded">via dayGLANCE</span>
           )}
         </div>
-        {evt.note && <p className="text-xs text-slate-400 dark:text-slate-400 italic mt-0.5">{evt.note}</p>}
+        {editingNote ? (
+          <div className="flex items-center gap-2 mt-1">
+            <input
+              ref={noteInputRef}
+              type="text"
+              value={noteValue}
+              onChange={e => setNoteValue(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') saveNote(); if (e.key === 'Escape') cancelNote() }}
+              placeholder="Add a note…"
+              className="flex-1 bg-slate-100 dark:bg-slate-700 rounded px-2 py-1 text-xs text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
+            />
+            <button onClick={cancelNote} className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 shrink-0">Cancel</button>
+            <button onClick={saveNote} className="text-xs text-green-500 hover:text-green-400 font-medium shrink-0">Save</button>
+          </div>
+        ) : (
+          evt.note && <p className="text-xs text-slate-400 dark:text-slate-400 italic mt-0.5">{evt.note}</p>
+        )}
       </div>
-      {confirming ? (
+      {!editingNote && (confirming ? (
         <div className="flex items-center gap-2 shrink-0">
           <button onClick={() => setConfirming(false)} className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">Cancel</button>
           <button onClick={onDelete} className="text-xs text-red-500 hover:text-red-400 font-medium">Delete</button>
         </div>
       ) : (
-        <button
-          onClick={() => setConfirming(true)}
-          className="text-slate-300 dark:text-slate-700 hover:text-red-400 transition-colors shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100"
-        >
-          <Trash2 size={13} />
-        </button>
-      )}
+        <div className="flex items-center gap-2.5 shrink-0 opacity-0 group-hover:opacity-100 focus-within:opacity-100 [@media(hover:none)]:opacity-100">
+          <button
+            onClick={openNoteEdit}
+            className="text-slate-300 dark:text-slate-700 hover:text-green-400 transition-colors"
+          >
+            <NotebookPen size={15} />
+          </button>
+          <button
+            onClick={() => setConfirming(true)}
+            className="text-slate-300 dark:text-slate-700 hover:text-red-400 transition-colors"
+          >
+            <Trash2 size={15} />
+          </button>
+        </div>
+      ))}
     </div>
   )
 }
