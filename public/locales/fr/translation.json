@@ -50,6 +50,8 @@
     "invalidFile": "Ce fichier n'est pas une sauvegarde lastGLANCE valide.",
     "importFailed": "Échec de l'import — le fichier est peut-être corrompu.",
     "clearFailed": "Échec de la suppression des données d'exemple.",
+    "remoteListFailed": "Impossible de lister les sauvegardes distantes.",
+    "remoteDownloadFailed": "Impossible de télécharger la sauvegarde.",
     "unknownDate": "Date inconnue"
   },
   "categoryForm": {
@@ -190,7 +192,9 @@
     "logDone": "Fait ✓",
     "sendDone": "Envoyé !",
     "sendError": "Erreur",
-    "sendLabel": "→ dG",
+    "sendLabel": "→ envoyer à dayGLANCE",
+    "addNotePlaceholder": "Ajouter une note…",
+    "saveNote": "Enregistrer",
     "statTotal": "Total",
     "statAvgInterval": "Intervalle moy.",
     "statTarget": "Objectif",
@@ -245,7 +249,8 @@
     "activityLog": "Journal d'activité",
     "keyboardShortcuts": "Raccourcis clavier",
     "general": "Général",
-    "closeModal": "Fermer la fenêtre"
+    "closeModal": "Fermer la fenêtre",
+    "or": "ou"
   },
   "sync": {
     "title": "Sync cloud",
