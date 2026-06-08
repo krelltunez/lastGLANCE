@@ -70,7 +70,7 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
   function saveConfig() {
     if (!engine) return
     const webdavUrl = buildWebdavUrl(serverUrl)
-    engine.setConfig(serverUrl.trim() ? { provider: 'webdav', webdavUrl, username, appPassword, enabled: true } : null)
+    engine.setConfig(serverUrl.trim() ? { provider: 'webdav', webdavUrl, username, appPassword, enabled: true, encryptionEnabled: encEnabled } : null)
     localStorage.setItem(SYNC_FOLDER_KEY, folderPath)
     resetEnsuredFolder()
     // appFolderName is fixed at engine creation — reload so the new folder takes effect
@@ -116,6 +116,8 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
     try {
       await setupEncryptionKey(passphrase.trim(), CRYPTO_CONFIG)
       setEncEnabled(true)
+      const cfg = engine?.getConfig()
+      if (cfg) engine?.setConfig({ ...cfg, encryptionEnabled: true })
       setShowPassphraseInput(false)
       setPassphrase('')
       setConfirmPassphrase('')
@@ -132,6 +134,8 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
     try {
       await clearEncryptionKey(CRYPTO_CONFIG)
       setEncEnabled(false)
+      const cfg = engine?.getConfig()
+      if (cfg) engine?.setConfig({ ...cfg, encryptionEnabled: false })
     } catch (err) {
       setEncError(err instanceof Error ? err.message : 'Failed to clear encryption key')
     } finally {
