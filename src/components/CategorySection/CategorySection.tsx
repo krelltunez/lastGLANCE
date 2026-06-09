@@ -515,8 +515,8 @@ export function CategorySection({
               <button
                 onClick={() => setAddingSubcategory(true)}
                 className="p-1.5 rounded-lg text-slate-400 dark:text-slate-500 hover:text-green-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-                aria-label={t('categorySection.addSubcategory')}
-                title={t('categorySection.addSubcategory')}
+                aria-label={t('categoryForm.addSubcategory')}
+                title={t('categoryForm.addSubcategory')}
               >
                 <FolderPlus size={13} />
               </button>
