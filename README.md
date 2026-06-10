@@ -123,7 +123,7 @@ All data is stored locally in IndexedDB (via Dexie). Cloud sync is optional and 
 **Supported providers:**
 - Generic WebDAV (pCloud, Seafile, self-hosted, etc.)
 - Nextcloud (uses the native WebDAV endpoint)
-- Koofr (Android app recommended; Koofr blocks browser requests from Vercel-hosted origins)
+- Koofr (self-hosted app recommended; Koofr blocks browser requests from Vercel-hosted origins)
 
 **File layout on the server** (default folder `GLANCE/lastglance`, configurable in sync settings):
 ```
