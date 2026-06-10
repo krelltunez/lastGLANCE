@@ -295,7 +295,8 @@
     "syncFailed": "Échec de la sync",
     "lastSynced": "Dernière sync : {{date}}",
     "neverSynced": "Jamais",
-    "saveClose": "Enregistrer & Fermer"
+    "saveClose": "Enregistrer & Fermer",
+    "provider": "Fournisseur"
   },
   "users": {
     "title": "Utilisateurs",

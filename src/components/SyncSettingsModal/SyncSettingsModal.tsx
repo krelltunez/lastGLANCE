@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { X, Loader, AlertTriangle, CheckCircle, XCircle } from 'lucide-react'
 import type { SyncEngine } from '@glance-apps/sync'
 import { setupEncryptionKey, clearEncryptionKey, ensureSyncFolder, resetEnsuredFolder, CRYPTO_CONFIG, getRemoteBackupsEnabled, setRemoteBackupsEnabled, DEFAULT_SYNC_FOLDER, SYNC_FOLDER_KEY } from '@/sync/engine'
+import { cloudSyncProviders } from '@/utils/cloudSyncProviders'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
 import { useTranslation } from 'react-i18next'
 
@@ -14,36 +15,22 @@ interface Props {
 type TestStatus = 'idle' | 'testing' | 'ok' | 'fail'
 type SyncResult = 'idle' | 'ok' | 'error'
 
-function splitWebdavUrl(fullUrl: string, folderPath: string): { serverUrl: string } {
-  if (!fullUrl) return { serverUrl: '' }
-  try {
-    const url = new URL(fullUrl)
-    const folder = folderPath.replace(/^\//, '').replace(/\/+$/, '')
-    const cleanPath = url.pathname.replace(/\/+$/, '')
-    if (folder && cleanPath.endsWith('/' + folder)) {
-      url.pathname = cleanPath.slice(0, -(folder.length + 1)) + '/'
-    }
-    return { serverUrl: url.toString() }
-  } catch {
-    return { serverUrl: fullUrl }
-  }
-}
-
-function buildWebdavUrl(serverUrl: string): string {
-  return serverUrl.replace(/\/+$/, '')
-}
-
 export function SyncSettingsModal({ engine, onClose }: Props) {
   const { t } = useTranslation()
   const existingConfig = engine?.getConfig() ?? null
   const initFolder = localStorage.getItem(SYNC_FOLDER_KEY) ?? DEFAULT_SYNC_FOLDER
-  const { serverUrl: initServer } = splitWebdavUrl((existingConfig?.webdavUrl as string) ?? '', initFolder)
 
-  const [serverUrl, setServerUrl] = useState(() => initServer)
+  const [provider, setProvider] = useState<string>(() => (existingConfig?.provider as string) ?? 'nextcloud')
+  const [formData, setFormData] = useState<Record<string, string>>(() => {
+    const initial: Record<string, string> = {}
+    Object.values(cloudSyncProviders).forEach(p => {
+      p.configFields.forEach(f => { initial[f.key] = (existingConfig?.[f.key] as string) ?? '' })
+    })
+    return initial
+  })
+
   const [folderPath, setFolderPath] = useState(() => initFolder)
   const originalFolder = useRef(initFolder)
-  const [username, setUsername] = useState(() => (existingConfig?.username as string) ?? '')
-  const [appPassword, setAppPassword] = useState(() => (existingConfig?.appPassword as string) ?? '')
 
   const [testStatus, setTestStatus] = useState<TestStatus>('idle')
   const [testError, setTestError] = useState('')
@@ -64,10 +51,12 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
 
   const halted = engine?.isHardStopped() ?? false
 
+  const activeProvider = cloudSyncProviders[provider]
+  const requiredFieldsFilled = activeProvider?.configFields.every(f => formData[f.key]) ?? false
+
   function saveConfig() {
     if (!engine) return
-    const webdavUrl = buildWebdavUrl(serverUrl)
-    engine.setConfig(serverUrl.trim() ? { provider: 'webdav', webdavUrl, username, appPassword, enabled: true, encryptionEnabled: encEnabled } : null)
+    engine.setConfig(requiredFieldsFilled ? { provider, ...formData, syncFolder: folderPath, enabled: true, encryptionEnabled: encEnabled } : null)
     localStorage.setItem(SYNC_FOLDER_KEY, folderPath)
     resetEnsuredFolder()
     if (folderPath !== originalFolder.current) {
@@ -83,12 +72,11 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
   useEscapeKey(handleClose)
 
   async function handleTest() {
-    if (!engine || !serverUrl) return
+    if (!engine || !requiredFieldsFilled) return
     setTestStatus('testing')
     setTestError('')
     try {
-      const webdavUrl = buildWebdavUrl(serverUrl)
-      const result = await engine.test({ provider: 'webdav', webdavUrl, username, appPassword })
+      const result = await engine.test({ provider, ...formData })
       if (result.success) {
         setTestStatus('ok')
       } else {
@@ -219,19 +207,37 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
 
             <div>
               <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                {t('sync.serverUrlLabel')}
+                {t('sync.provider')}
               </label>
-              <input
-                type="url"
-                value={serverUrl}
-                onChange={e => setServerUrl(e.target.value)}
-                placeholder="https://your-server.com/"
-                className="w-full bg-slate-100 dark:bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
-              />
-              <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
-                {t('sync.nextcloudHint')}
-              </p>
+              <select
+                value={provider}
+                onChange={e => { setProvider(e.target.value); setTestStatus('idle'); setTestError('') }}
+                className="w-full bg-slate-100 dark:bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
+              >
+                {Object.entries(cloudSyncProviders).map(([key, p]) => (
+                  <option key={key} value={key}>{p.name}</option>
+                ))}
+              </select>
             </div>
+
+            {activeProvider?.configFields.map(field => (
+              <div key={field.key}>
+                <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+                  {field.label}
+                </label>
+                <input
+                  type={field.type}
+                  value={formData[field.key] ?? ''}
+                  onChange={e => setFormData(prev => ({ ...prev, [field.key]: e.target.value }))}
+                  placeholder={field.placeholder}
+                  autoComplete={field.type === 'password' ? 'current-password' : field.key === 'username' ? 'username' : 'off'}
+                  className="w-full bg-slate-100 dark:bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
+                />
+                {field.type === 'password' && (
+                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">{t('sync.passwordHint')}</p>
+                )}
+              </div>
+            ))}
 
             <div>
               <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
@@ -249,39 +255,14 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
               </p>
             </div>
 
-            <div>
-              <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                {t('sync.username')}
-              </label>
-              <input
-                type="text"
-                value={username}
-                onChange={e => setUsername(e.target.value)}
-                placeholder={t('sync.usernamePlaceholder')}
-                autoComplete="username"
-                className="w-full bg-slate-100 dark:bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                {t('sync.password')}
-              </label>
-              <input
-                type="password"
-                value={appPassword}
-                onChange={e => setAppPassword(e.target.value)}
-                placeholder={t('sync.passwordPlaceholder')}
-                autoComplete="current-password"
-                className="w-full bg-slate-100 dark:bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
-              />
-              <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">{t('sync.passwordHint')}</p>
-            </div>
+            {activeProvider?.helpText && (
+              <p className="text-xs text-slate-400 dark:text-slate-500">{activeProvider.helpText}</p>
+            )}
 
             <div className="flex items-center gap-3 pt-1">
               <button
                 onClick={handleTest}
-                disabled={testStatus === 'testing' || !serverUrl}
+                disabled={testStatus === 'testing' || !requiredFieldsFilled}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-40 transition-colors"
               >
                 {testStatus === 'testing' && <Loader size={12} className="animate-spin" />}
