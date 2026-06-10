@@ -295,7 +295,8 @@
     "syncFailed": "Sync failed",
     "lastSynced": "Last synced: {{date}}",
     "neverSynced": "Never",
-    "saveClose": "Save & Close"
+    "saveClose": "Save & Close",
+    "provider": "Provider"
   },
   "users": {
     "title": "Users",

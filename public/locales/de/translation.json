@@ -295,7 +295,8 @@
     "syncFailed": "Sync fehlgeschlagen",
     "lastSynced": "Zuletzt synchronisiert: {{date}}",
     "neverSynced": "Nie",
-    "saveClose": "Speichern & Schließen"
+    "saveClose": "Speichern & Schließen",
+    "provider": "Anbieter"
   },
   "users": {
     "title": "Benutzer",
