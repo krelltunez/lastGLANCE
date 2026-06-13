@@ -1,5 +1,6 @@
 const MULTI_USER_ENABLED_KEY = 'lg_multi_user_enabled'
 const USER_FILTER_KEY = 'lg_user_filter'
+const ATTENTION_FILTER_KEY = 'lg_attention_filter'
 const MULTIUSER_CONFIG_KEY = 'lg_multiuser_config'
 
 export const DEFAULT_USERS_PATH = '/GLANCE/users/'
@@ -51,6 +52,14 @@ export function getUserFilter(): UserFilter {
 
 export function setUserFilter(filter: UserFilter): void {
   localStorage.setItem(USER_FILTER_KEY, filter)
+}
+
+export function getAttentionFilter(): boolean {
+  return localStorage.getItem(ATTENTION_FILTER_KEY) === 'true'
+}
+
+export function setAttentionFilter(on: boolean): void {
+  localStorage.setItem(ATTENTION_FILTER_KEY, String(on))
 }
 
 export function getUsersPath(): string {

@@ -10,6 +10,9 @@
     "helpFeedback": "Aiuto e feedback",
     "toggleTheme": "Cambia tema",
     "toggleMyTasksFilter": "Filtra le mie attività",
+    "toggleSoonFilter": "Attiva/disattiva filtro attenzione",
+    "soon": "Presto",
+    "soonTooltip": "Mostra solo le attività in scadenza o scadute",
     "doneEditing": "Fine modifica",
     "editCategoriesChores": "Modifica categorie e attività",
     "mine": "Le mie",
@@ -226,7 +229,10 @@
     "addCategoryAriaLabel": "Aggiungi categoria",
     "searchChoresAriaLabel": "Cerca attività",
     "searchTitle": "Cerca (/)",
-    "toggleMyTasksAriaLabel": "Filtra le mie attività"
+    "toggleMyTasksAriaLabel": "Filtra le mie attività",
+    "toggleSoonAriaLabel": "Attiva/disattiva filtro attenzione",
+    "nothingNeedsAttention": "Al momento non c'è nulla di urgente.",
+    "showAllChores": "Mostra tutte le attività"
   },
   "search": {
     "placeholder": "Cerca attività…",

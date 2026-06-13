@@ -8,6 +8,8 @@ interface UsersContextValue {
   meId: string | null
   filter: UserFilter
   setFilter: (f: UserFilter) => void
+  attentionOnly: boolean
+  setAttentionOnly: (on: boolean) => void
   reload: () => void
 }
 
@@ -17,6 +19,8 @@ export const UsersContext = createContext<UsersContextValue>({
   meId: null,
   filter: 'all',
   setFilter: () => {},
+  attentionOnly: false,
+  setAttentionOnly: () => {},
   reload: () => {},
 })
 

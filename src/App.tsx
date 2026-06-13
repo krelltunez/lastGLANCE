@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Pencil, Check, Sun, Moon, Archive, Plug, Cloud, CloudOff, RefreshCw, HelpCircle, Users, Settings, UserCircle } from 'lucide-react'
+import { Pencil, Check, Sun, Moon, Archive, Plug, Cloud, CloudOff, RefreshCw, HelpCircle, Users, Settings, UserCircle, Clock } from 'lucide-react'
 import { Ribbon } from '@/components/Ribbon/Ribbon'
 import { BackupModal } from '@/components/BackupModal/BackupModal'
 import { WelcomeModal } from '@/components/WelcomeModal/WelcomeModal'
@@ -115,7 +115,7 @@ function AppInner() {
   const { refreshConfig } = useIntents()
   const usersCtx = useUsers()
   const reloadUsers = usersCtx.reload
-  const { multiUserEnabled, meId, filter, setFilter } = usersCtx
+  const { multiUserEnabled, meId, filter, setFilter, attentionOnly, setAttentionOnly } = usersCtx
   const [editMode, setEditMode] = useState(false)
   const [showWelcome, setShowWelcome] = useState(() => !localStorage.getItem('lg-welcome-dismissed'))
   const [welcomeClearing, setWelcomeClearing] = useState(false)
@@ -386,6 +386,22 @@ function AppInner() {
                 >
                   <UserCircle size={14} />
                   {filter === 'mine' ? t('app.mine') : t('app.all')}
+                </button>
+              )}
+              {!editMode && (
+                <button
+                  onClick={() => setAttentionOnly(!attentionOnly)}
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors border ${
+                    attentionOnly
+                      ? 'text-amber-400 border-amber-400/40 hover:text-amber-300 hover:bg-amber-400/10 hover:border-amber-400/60'
+                      : 'text-slate-500 dark:text-slate-500 border-slate-200 dark:border-slate-700 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  }`}
+                  aria-pressed={attentionOnly}
+                  aria-label={t('app.toggleSoonFilter')}
+                  title={t('app.soonTooltip')}
+                >
+                  <Clock size={14} />
+                  {t('app.soon')}
                 </button>
               )}
               <button

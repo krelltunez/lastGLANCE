@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
-import { Plus, GripVertical, Search, UserCircle } from 'lucide-react'
+import { Plus, GripVertical, Search, UserCircle, Clock } from 'lucide-react'
 import { useChores } from '@/hooks/useChores'
 import { reorderCategories } from '@/db/queries'
 import { CategorySection } from '@/components/CategorySection/CategorySection'
@@ -8,8 +8,10 @@ import { CategoryFormModal } from '@/components/CategoryFormModal/CategoryFormMo
 import { ChoreFormModal } from '@/components/ChoreFormModal/ChoreFormModal'
 import { SearchModal } from '@/components/SearchModal/SearchModal'
 import { useUsersContext } from '@/multiuser/UsersContext'
+import { needsAttention } from '@/utils/cadence'
 import type { Category, ChoreWithLastCompletion } from '@/types'
 import type { CategoryWithChores } from '@/hooks/useChores'
+import type { UserFilter } from '@/multiuser/settings'
 import { useTranslation } from 'react-i18next'
 
 interface Props {
@@ -61,26 +63,41 @@ function packMasonry(
 
 const ADD_CAT_ID = -1
 
-function filterCategoryData(data: CategoryWithChores[], meId: string | null, filter: 'all' | 'mine'): CategoryWithChores[] {
-  if (filter !== 'mine' || !meId) return data
-  return data.map(cat => ({
+function filterCategoryData(
+  data: CategoryWithChores[],
+  meId: string | null,
+  filter: UserFilter,
+  attentionOnly: boolean,
+): CategoryWithChores[] {
+  const mineActive = filter === 'mine' && !!meId
+  if (!mineActive && !attentionOnly) return data
+
+  const matches = (c: ChoreWithLastCompletion) => {
+    if (mineActive && !(c.assigned_user_sync_ids.length === 0 || c.assigned_user_sync_ids.includes(meId!))) return false
+    if (attentionOnly && !needsAttention(c.target_cadence_days, c.elapsed_days)) return false
+    return true
+  }
+
+  const filtered = data.map(cat => ({
     ...cat,
-    chores: cat.chores.filter(c =>
-      c.assigned_user_sync_ids.length === 0 || c.assigned_user_sync_ids.includes(meId)
-    ),
-    subcategories: cat.subcategories.map(sub => ({
-      ...sub,
-      chores: sub.chores.filter(c =>
-        c.assigned_user_sync_ids.length === 0 || c.assigned_user_sync_ids.includes(meId)
-      ),
-    })),
+    chores: cat.chores.filter(matches),
+    subcategories: cat.subcategories
+      .map(sub => ({ ...sub, chores: sub.chores.filter(matches) }))
+      // When narrowing to attention, drop subcategories with nothing left.
+      .filter(sub => !attentionOnly || sub.chores.length > 0),
   }))
+
+  // The attention filter also hides whole categories that have nothing left,
+  // so the view collapses to just what needs attention.
+  return attentionOnly
+    ? filtered.filter(cat => cat.chores.length > 0 || cat.subcategories.length > 0)
+    : filtered
 }
 
 export function Ribbon({ editMode, onLogged }: Props) {
   const { t } = useTranslation()
   const { data, loading, refresh } = useChores()
-  const { multiUserEnabled, meId, filter, setFilter } = useUsersContext()
+  const { multiUserEnabled, meId, filter, setFilter, attentionOnly, setAttentionOnly } = useUsersContext()
   const [localData, setLocalData] = useState<CategoryWithChores[]>([])
   const [activeCategoryIndex, setActiveCategoryIndex] = useState(0)
   const [selectedChore, setSelectedChore] = useState<ChoreWithLastCompletion | null>(null)
@@ -115,8 +132,21 @@ export function Ribbon({ editMode, onLogged }: Props) {
   // packPhase: 0 = hidden, 1 = placed (no transition), 2 = animated
   const [packPhase, setPackPhase] = useState<0 | 1 | 2>(0)
   const packPhaseRef = useRef<0 | 1 | 2>(0)
-  const localDataLengthRef = useRef(0)
-  localDataLengthRef.current = localData.length
+
+  const displayData = useMemo(
+    () => filterCategoryData(localData, meId, filter, attentionOnly),
+    [localData, meId, filter, attentionOnly]
+  )
+
+  // Single source for all rendering/navigation. Edit mode always shows the full,
+  // unfiltered set (filters are hidden while editing); otherwise the filtered
+  // view drives tabs, masonry packing, swipe bounds, keyboard nav and content,
+  // so they stay in sync even when categories are hidden by the filter.
+  const viewData = editMode ? localData : displayData
+  const viewDataRef = useRef<CategoryWithChores[]>(viewData)
+  viewDataRef.current = viewData
+  const viewDataLengthRef = useRef(0)
+  viewDataLengthRef.current = viewData.length
 
   // Refresh when a completion is logged from a toast notification
   useEffect(() => {
@@ -164,9 +194,9 @@ export function Ribbon({ editMode, onLogged }: Props) {
         setActiveCategoryIndex(i => Math.max(0, i - 1))
       } else if (e.key === 'ArrowRight' && window.innerWidth < 1060) {
         e.preventDefault()
-        setActiveCategoryIndex(i => Math.min(localDataRef.current.length - 1, i + 1))
+        setActiveCategoryIndex(i => Math.min(viewDataRef.current.length - 1, i + 1))
       } else if (e.key === 'n' || e.key === 'N') {
-        const cat = localDataRef.current[activeCategoryIndexRef.current]?.category
+        const cat = viewDataRef.current[activeCategoryIndexRef.current]?.category
         if (cat) { e.preventDefault(); setNewChoreCategory(cat) }
       }
     }
@@ -261,8 +291,8 @@ export function Ribbon({ editMode, onLogged }: Props) {
       setContainerWidth(w)
       if (
         packPhaseRef.current === 0 &&
-        cardHeightsRef.current.size >= localDataLengthRef.current &&
-        localDataLengthRef.current > 0
+        cardHeightsRef.current.size >= viewDataLengthRef.current &&
+        viewDataLengthRef.current > 0
       ) {
         packPhaseRef.current = 1
         setPackPhase(1)
@@ -271,11 +301,11 @@ export function Ribbon({ editMode, onLogged }: Props) {
     obs.observe(el)
     return () => obs.disconnect()
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [localData.length])
+  }, [viewData.length])
 
   const sortedCatIdsKey = [
-    ...localData.map(d => d.category.id),
-    ...(editMode && localData.length > 0 ? [ADD_CAT_ID] : []),
+    ...viewData.map(d => d.category.id),
+    ...(editMode && viewData.length > 0 ? [ADD_CAT_ID] : []),
   ].sort((a, b) => a - b).join(',')
   useEffect(() => {
     const grid = desktopGridRef.current
@@ -297,7 +327,7 @@ export function Ribbon({ editMode, onLogged }: Props) {
       setPackVersion(v => v + 1)
       if (
         packPhaseRef.current === 0 &&
-        cardHeightsRef.current.size >= localDataLengthRef.current &&
+        cardHeightsRef.current.size >= viewDataLengthRef.current &&
         containerWidthRef.current > 0
       ) {
         packPhaseRef.current = 1
@@ -338,7 +368,7 @@ export function Ribbon({ editMode, onLogged }: Props) {
       isDragging.current = true
     }
     const atStart = activeCategoryIndex === 0 && dx > 0
-    const atEnd = activeCategoryIndex === localData.length - 1 && dx < 0
+    const atEnd = activeCategoryIndex === viewData.length - 1 && dx < 0
     const newOffset = (atStart || atEnd) ? dx * 0.2 : dx
     liveOffset.current = newOffset
     setOffset(newOffset)
@@ -362,7 +392,7 @@ export function Ribbon({ editMode, onLogged }: Props) {
     const cur = liveOffset.current
     const threshold = W * 0.28
 
-    if (cur < -threshold && activeCategoryIndex < localData.length - 1) {
+    if (cur < -threshold && activeCategoryIndex < viewData.length - 1) {
       snap(-W, () => setActiveCategoryIndex(i => i + 1))
     } else if (cur > threshold && activeCategoryIndex > 0) {
       snap(W, () => setActiveCategoryIndex(i => i - 1))
@@ -377,10 +407,10 @@ export function Ribbon({ editMode, onLogged }: Props) {
     snap(0)
   }
 
-  const displayData = useMemo(
-    () => filterCategoryData(localData, meId, filter),
-    [localData, meId, filter]
-  )
+  // Keep the active category index in range when the visible set shrinks.
+  useEffect(() => {
+    setActiveCategoryIndex(i => Math.min(i, Math.max(0, viewData.length - 1)))
+  }, [viewData.length])
 
   function openChore(chore: ChoreWithLastCompletion) { setSelectedChore(chore) }
   function closeChore() { setSelectedChore(null) }
@@ -396,19 +426,21 @@ export function Ribbon({ editMode, onLogged }: Props) {
   }
 
   const showEmpty = localData.length === 0
-  const prevData = activeCategoryIndex > 0 ? displayData[activeCategoryIndex - 1] : null
-  const currData = displayData[activeCategoryIndex]
-  const nextData = activeCategoryIndex < displayData.length - 1 ? displayData[activeCategoryIndex + 1] : null
+  // Filters can hide every category even though chores exist.
+  const noMatches = !showEmpty && viewData.length === 0
+  const prevData = activeCategoryIndex > 0 ? viewData[activeCategoryIndex - 1] : null
+  const currData = viewData[activeCategoryIndex]
+  const nextData = activeCategoryIndex < viewData.length - 1 ? viewData[activeCategoryIndex + 1] : null
 
   const allCategories = localData.flatMap(d => [d.category, ...d.subcategories.map(s => s.category)])
 
-  const colCount = getColCount(containerWidth, localData.length)
+  const colCount = getColCount(containerWidth, viewData.length)
   const cardWidth = colCount > 0 && containerWidth > 0
     ? (containerWidth - MASONRY_GAP * (colCount - 1)) / colCount
     : 0
   const packIds = editMode && !showEmpty
-    ? [...localData.map(d => d.category.id), ADD_CAT_ID]
-    : localData.map(d => d.category.id)
+    ? [...viewData.map(d => d.category.id), ADD_CAT_ID]
+    : viewData.map(d => d.category.id)
   const { positions, containerHeight } = packMasonry(
     packIds,
     colCount,
@@ -421,9 +453,9 @@ export function Ribbon({ editMode, onLogged }: Props) {
     <>
       {/* ── Mobile: one category at a time with tab strip ── */}
       <div className="flex flex-col flex-1 overflow-hidden min-[1060px]:hidden">
-        {!showEmpty && (
+        {!showEmpty && !noMatches && (
           <div ref={tabsRef} className="flex overflow-x-auto scrollbar-none border-b border-slate-200 dark:border-slate-700/60 bg-slate-100 dark:bg-slate-900 shrink-0">
-            {localData.map((d, i) => (
+            {viewData.map((d, i) => (
               <button
                 key={d.category.id}
                 data-cat-tab-id={d.category.id}
@@ -467,6 +499,10 @@ export function Ribbon({ editMode, onLogged }: Props) {
           <div className="flex-1">
             <EmptyState onAdd={() => setAddingCategory(true)} />
           </div>
+        ) : noMatches ? (
+          <div className="flex-1">
+            <NoMatchesState onClear={() => setAttentionOnly(false)} />
+          </div>
         ) : (
           <div
             ref={containerRef}
@@ -505,13 +541,15 @@ export function Ribbon({ editMode, onLogged }: Props) {
       <div className="hidden min-[1060px]:block flex-1 overflow-y-auto">
         {showEmpty ? (
           <EmptyState onAdd={() => setAddingCategory(true)} />
+        ) : noMatches ? (
+          <NoMatchesState onClear={() => setAttentionOnly(false)} />
         ) : (
           <div className="p-6">
             <div
               ref={desktopGridRef}
               style={{ position: 'relative', height: containerHeight }}
             >
-              {displayData.map(d => {
+              {viewData.map(d => {
                 const pos = positions.get(d.category.id)
                 return (
                   <div
@@ -578,6 +616,19 @@ export function Ribbon({ editMode, onLogged }: Props) {
       {/* Mobile FABs — hidden on desktop, hidden in edit mode */}
       {!editMode && !showEmpty && (
         <>
+          <button
+            onClick={() => setAttentionOnly(!attentionOnly)}
+            className={`min-[1060px]:hidden fixed ${multiUserEnabled && meId ? 'bottom-[10.5rem]' : 'bottom-24'} right-6 z-40 flex items-center justify-center w-16 h-16 rounded-full shadow-lg border active:scale-95 transition-all ${
+              attentionOnly
+                ? 'bg-amber-500 dark:bg-amber-600 text-white border-amber-400/50'
+                : 'bg-slate-800 dark:bg-slate-700 text-slate-100 border-slate-700 dark:border-slate-600 hover:bg-slate-700 dark:hover:bg-slate-600'
+            }`}
+            aria-pressed={attentionOnly}
+            aria-label={t('ribbon.toggleSoonAriaLabel')}
+            title={t('app.soonTooltip')}
+          >
+            <Clock size={20} />
+          </button>
           {multiUserEnabled && meId && (
             <button
               onClick={() => setFilter(filter === 'mine' ? 'all' : 'mine')}
@@ -648,6 +699,24 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
       >
         <Plus size={15} />
         {t('ribbon.addFirstCategory')}
+      </button>
+    </div>
+  )
+}
+
+// Shown when active filters hide every category (e.g. the "Soon" filter when
+// nothing has aged into the amber zone).
+function NoMatchesState({ onClear }: { onClear: () => void }) {
+  const { t } = useTranslation()
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center gap-4 px-8 text-center h-full min-h-[60vh]">
+      <Clock size={28} className="text-slate-300 dark:text-slate-600" />
+      <p className="text-slate-400 dark:text-slate-500 text-sm">{t('ribbon.nothingNeedsAttention')}</p>
+      <button
+        onClick={onClear}
+        className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+      >
+        {t('ribbon.showAllChores')}
       </button>
     </div>
   )

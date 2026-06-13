@@ -10,6 +10,9 @@
     "helpFeedback": "Aide & Retours",
     "toggleTheme": "Basculer le thème",
     "toggleMyTasksFilter": "Filtrer mes tâches",
+    "toggleSoonFilter": "Activer le filtre d'attention",
+    "soon": "Bientôt",
+    "soonTooltip": "Afficher uniquement les tâches bientôt dues ou en retard",
     "doneEditing": "Terminer l'édition",
     "editCategoriesChores": "Modifier les catégories et tâches",
     "mine": "Les miennes",
@@ -226,7 +229,10 @@
     "addCategoryAriaLabel": "Ajouter une catégorie",
     "searchChoresAriaLabel": "Rechercher des tâches",
     "searchTitle": "Rechercher (/)",
-    "toggleMyTasksAriaLabel": "Filtrer mes tâches"
+    "toggleMyTasksAriaLabel": "Filtrer mes tâches",
+    "toggleSoonAriaLabel": "Activer le filtre d'attention",
+    "nothingNeedsAttention": "Rien ne nécessite d'attention pour le moment.",
+    "showAllChores": "Afficher toutes les tâches"
   },
   "search": {
     "placeholder": "Rechercher des tâches…",
