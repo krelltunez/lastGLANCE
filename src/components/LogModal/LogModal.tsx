@@ -98,7 +98,7 @@ export function LogModal({ chore, onClose, onLogged }: Props) {
       ">
 
         {/* ── Left / top: log form ── */}
-        <div className="shrink-0 flex flex-col p-6 gap-4 lg:w-72 lg:border-r lg:border-slate-100 dark:lg:border-slate-700/60 lg:self-stretch">
+        <div className="flex flex-col p-6 gap-4 overflow-y-auto min-h-0 lg:w-72 lg:shrink-0 lg:border-r lg:border-slate-100 dark:lg:border-slate-700/60 lg:self-stretch">
           <div className="flex items-start justify-between gap-2">
             <div>
               <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100">{chore.name}</h2>

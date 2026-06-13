@@ -14,7 +14,13 @@ export async function getCategories(): Promise<Category[]> {
   return db.categories.orderBy('sort_order').toArray()
 }
 
-export async function createCategory(name: string, sort_order?: number, icon?: string, parent_category_id?: number): Promise<number> {
+export async function createCategory(
+  name: string,
+  sort_order?: number,
+  icon?: string,
+  parent_category_id?: number,
+  assigned_user_sync_ids: string[] = [],
+): Promise<number> {
   const order = sort_order ?? (await db.categories.count())
   let parent_sync_id: string | null = null
   if (parent_category_id) {
@@ -28,11 +34,12 @@ export async function createCategory(name: string, sort_order?: number, icon?: s
     parent_category_id,
     sync_id: crypto.randomUUID(),
     parent_sync_id,
+    assigned_user_sync_ids,
     updated_at: new Date().toISOString(),
   } as Category)
 }
 
-export async function updateCategory(id: number, fields: { name?: string; icon?: string; parent_category_id?: number | null }): Promise<void> {
+export async function updateCategory(id: number, fields: { name?: string; icon?: string; parent_category_id?: number | null; assigned_user_sync_ids?: string[] }): Promise<void> {
   const { parent_category_id, ...simpleFields } = fields
   const updated_at = new Date().toISOString()
   // Update simple fields (name, icon) with timestamp
@@ -314,6 +321,7 @@ function validateBackupPayload(payload: BackupPayload): void {
     if (typeof c.sort_order !== 'number') throw new Error('invalid category sort_order')
     if (c.sync_id !== undefined && !uuidRe.test(c.sync_id)) throw new Error('invalid category sync_id')
     if (c.updated_at !== undefined && !isoRe.test(c.updated_at)) throw new Error('invalid category updated_at')
+    if (c.assigned_user_sync_ids !== undefined && !Array.isArray(c.assigned_user_sync_ids)) throw new Error('invalid category assigned_user_sync_ids')
   }
   for (const c of payload.chores) {
     if (typeof c.name !== 'string' || c.name.length === 0 || c.name.length > 500) throw new Error('invalid chore name')
@@ -344,6 +352,7 @@ export async function importBackup(payload: BackupPayload): Promise<void> {
       ...c,
       sync_id: c.sync_id ?? crypto.randomUUID(),
       parent_sync_id: c.parent_sync_id ?? null,
+      assigned_user_sync_ids: c.assigned_user_sync_ids ?? [],
       updated_at: c.updated_at ?? now,
     }))
     const chores = payload.chores.map(c => ({

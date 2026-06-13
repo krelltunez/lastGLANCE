@@ -10,6 +10,9 @@
     "helpFeedback": "Ajuda e feedback",
     "toggleTheme": "Alternar tema",
     "toggleMyTasksFilter": "Filtrar as minhas tarefas",
+    "toggleSoonFilter": "Alternar filtro de atenção",
+    "soon": "Em breve",
+    "soonTooltip": "Mostrar apenas tarefas a vencer em breve ou atrasadas",
     "doneEditing": "Terminar edição",
     "editCategoriesChores": "Editar categorias e tarefas",
     "mine": "As minhas",
@@ -78,6 +81,7 @@
     "addChore": "Adicionar tarefa",
     "expand": "Expandir",
     "collapse": "Recolher",
+    "overdueHidden": "Tarefas atrasadas ocultas aqui",
     "moveSubUp": "Mover subcategoria para cima",
     "moveSubDown": "Mover subcategoria para baixo",
     "renameSubcategory": "Renomear subcategoria",
@@ -225,7 +229,11 @@
     "addCategoryAriaLabel": "Adicionar categoria",
     "searchChoresAriaLabel": "Pesquisar tarefas",
     "searchTitle": "Pesquisar (/)",
-    "toggleMyTasksAriaLabel": "Filtrar as minhas tarefas"
+    "toggleMyTasksAriaLabel": "Filtrar as minhas tarefas",
+    "toggleSoonAriaLabel": "Alternar filtro de atenção",
+    "nothingNeedsAttention": "Nada precisa de atenção agora.",
+    "nothingAssignedToYou": "Nada aqui está atribuído a si.",
+    "showAllChores": "Mostrar todas as tarefas"
   },
   "search": {
     "placeholder": "Pesquisar tarefas…",

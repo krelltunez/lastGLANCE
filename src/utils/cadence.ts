@@ -12,6 +12,23 @@ export function getFillRatio(elapsedDays: number, targetDays: number): number {
 }
 
 /**
+ * Fraction of the cadence elapsed at which a chore is considered to "need
+ * attention" — i.e. it has aged into the amber zone, a little before it's
+ * actually due. Used by the "Soon" filter.
+ */
+export const ATTENTION_RATIO = 0.75
+
+/**
+ * True when a chore has a cadence and has aged into the amber/red zone
+ * (ratio >= ATTENTION_RATIO). Chores without a cadence, or never completed,
+ * have no colour and never qualify.
+ */
+export function needsAttention(targetCadenceDays: number | null, elapsedDays: number | null): boolean {
+  if (targetCadenceDays === null || elapsedDays === null) return false
+  return getFillRatio(elapsedDays, targetCadenceDays) >= ATTENTION_RATIO
+}
+
+/**
  * Within cadence (ratio 0→1): green → amber.
  * Overdue (ratio 1→2+): amber → red. Full red at 2× overdue.
  *

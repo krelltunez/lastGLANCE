@@ -10,6 +10,9 @@
     "helpFeedback": "Help & Feedback",
     "toggleTheme": "Toggle theme",
     "toggleMyTasksFilter": "Toggle my tasks filter",
+    "toggleSoonFilter": "Toggle attention filter",
+    "soon": "Soon",
+    "soonTooltip": "Show only chores due soon or overdue",
     "doneEditing": "Done editing",
     "editCategoriesChores": "Edit categories and chores",
     "mine": "Mine",
@@ -78,6 +81,7 @@
     "addChore": "Add chore",
     "expand": "Expand",
     "collapse": "Collapse",
+    "overdueHidden": "Overdue chores hidden here",
     "moveSubUp": "Move subcategory up",
     "moveSubDown": "Move subcategory down",
     "renameSubcategory": "Rename subcategory",
@@ -225,7 +229,11 @@
     "addCategoryAriaLabel": "Add category",
     "searchChoresAriaLabel": "Search chores",
     "searchTitle": "Search (/)",
-    "toggleMyTasksAriaLabel": "Toggle my tasks filter"
+    "toggleMyTasksAriaLabel": "Toggle my tasks filter",
+    "toggleSoonAriaLabel": "Toggle attention filter",
+    "nothingNeedsAttention": "Nothing needs attention right now.",
+    "nothingAssignedToYou": "Nothing here is assigned to you.",
+    "showAllChores": "Show all chores"
   },
   "search": {
     "placeholder": "Search chores…",

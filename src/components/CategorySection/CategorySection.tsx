@@ -10,6 +10,7 @@ import { IconPicker } from '@/components/IconPicker/IconPicker'
 import { deleteCategory, deleteChore, updateCategory, updateChore, reorderChores, reorderCategories } from '@/db/queries'
 import { ICON_REGISTRY } from '@/icons/registry'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
+import { getFillRatio, getCadenceColor } from '@/utils/cadence'
 import { useTranslation } from 'react-i18next'
 
 interface Props {
@@ -31,6 +32,21 @@ function isInSeasonalWindow(chore: ChoreWithLastCompletion): boolean {
   const { seasonal_start: s, seasonal_end: e } = chore
   // If start <= end it's a same-year window; otherwise it wraps the new year
   return s <= e ? today >= s && today <= e : today >= s || today <= e
+}
+
+/**
+ * Highest overdue ratio (elapsed / target, >= 1) among chores with a cadence.
+ * Returns null when nothing is overdue. Used to show an at-a-glance dot on a
+ * collapsed subcategory header so hidden overdue chores aren't missed.
+ */
+function maxOverdueRatio(chores: ChoreWithLastCompletion[]): number | null {
+  let max: number | null = null
+  for (const c of chores) {
+    if (c.target_cadence_days === null || c.elapsed_days === null) continue
+    const ratio = getFillRatio(c.elapsed_days, c.target_cadence_days)
+    if (ratio >= 1 && (max === null || ratio > max)) max = ratio
+  }
+  return max
 }
 
 // ── ChoreList ─────────────────────────────────────────────────────────────────
@@ -283,6 +299,12 @@ function SubcategorySection({
 
   const SubIcon = data.category.icon ? ICON_REGISTRY[data.category.icon] : null
 
+  // When collapsed, surface a dot if any (in-season) chore is overdue, so it
+  // isn't hidden. Colour matches the most-overdue chore (amber → red).
+  const overdueRatio = collapsed
+    ? maxOverdueRatio(editMode ? data.chores : data.chores.filter(isInSeasonalWindow))
+    : null
+
   return (
     <div
       data-cat-droptarget-id={data.category.id}
@@ -314,9 +336,20 @@ function SubcategorySection({
           <SubIcon size={14} className="text-green-400 shrink-0" />
         )}
 
-        <h3 className="text-sm font-semibold text-slate-600 dark:text-slate-300 tracking-tight truncate flex-1">
-          {data.category.name}
-        </h3>
+        <div className="flex-1 flex items-center gap-2 min-w-0">
+          <h3 className="text-sm font-semibold text-slate-600 dark:text-slate-300 tracking-tight truncate">
+            {data.category.name}
+          </h3>
+          {overdueRatio !== null && (
+            <span
+              className="shrink-0 w-2 h-2 rounded-full"
+              style={{ backgroundColor: getCadenceColor(overdueRatio) }}
+              role="img"
+              aria-label={t('categorySection.overdueHidden')}
+              title={t('categorySection.overdueHidden')}
+            />
+          )}
+        </div>
 
         {isDropTarget && collapsed && (
           <span className="shrink-0 px-2 py-0.5 rounded text-xs text-green-400 border border-dashed border-green-400/50 bg-green-400/5">

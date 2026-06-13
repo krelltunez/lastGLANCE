@@ -27,6 +27,7 @@ export interface SyncCategory {
   sortOrder: number
   icon: string | undefined
   parentId: string | null  // parent_sync_id
+  assignedUserSyncIds: string[]
   updatedAt: string   // maps to category.updated_at
 }
 

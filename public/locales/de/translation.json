@@ -10,6 +10,9 @@
     "helpFeedback": "Hilfe & Feedback",
     "toggleTheme": "Design wechseln",
     "toggleMyTasksFilter": "Meine Aufgaben filtern",
+    "toggleSoonFilter": "Aufmerksamkeitsfilter umschalten",
+    "soon": "Bald",
+    "soonTooltip": "Nur bald fällige oder überfällige Aufgaben anzeigen",
     "doneEditing": "Bearbeitung beenden",
     "editCategoriesChores": "Kategorien und Aufgaben bearbeiten",
     "mine": "Meine",
@@ -78,6 +81,7 @@
     "addChore": "Aufgabe hinzufügen",
     "expand": "Ausklappen",
     "collapse": "Einklappen",
+    "overdueHidden": "Überfällige Aufgaben hier ausgeblendet",
     "moveSubUp": "Unterkategorie nach oben",
     "moveSubDown": "Unterkategorie nach unten",
     "renameSubcategory": "Unterkategorie umbenennen",
@@ -225,7 +229,11 @@
     "addCategoryAriaLabel": "Kategorie hinzufügen",
     "searchChoresAriaLabel": "Aufgaben suchen",
     "searchTitle": "Suchen (/)",
-    "toggleMyTasksAriaLabel": "Meine Aufgaben filtern"
+    "toggleMyTasksAriaLabel": "Meine Aufgaben filtern",
+    "toggleSoonAriaLabel": "Aufmerksamkeitsfilter umschalten",
+    "nothingNeedsAttention": "Im Moment ist nichts dringend.",
+    "nothingAssignedToYou": "Dir ist hier nichts zugewiesen.",
+    "showAllChores": "Alle Aufgaben anzeigen"
   },
   "search": {
     "placeholder": "Aufgaben suchen…",

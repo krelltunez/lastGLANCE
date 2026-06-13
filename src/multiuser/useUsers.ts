@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { getUsers } from '@/db/queries'
-import { getMultiUserEnabled, getMeUserSyncId, getUserFilter, setUserFilter } from './settings'
+import { getMultiUserEnabled, getMeUserSyncId, getUserFilter, setUserFilter, getAttentionFilter, setAttentionFilter } from './settings'
 import type { UserFilter } from './settings'
 import type { User } from '@/types'
 
@@ -9,6 +9,7 @@ export function useUsers() {
   const [users, setUsers] = useState<User[]>([])
   const [meId, setMeId] = useState<string | null>(getMeUserSyncId)
   const [filter, setFilterState] = useState<UserFilter>(getUserFilter)
+  const [attentionOnly, setAttentionOnlyState] = useState<boolean>(getAttentionFilter)
 
   const reload = useCallback(async () => {
     const enabled = getMultiUserEnabled()
@@ -33,8 +34,13 @@ export function useUsers() {
     setFilterState(f)
   }, [])
 
+  const setAttentionOnly = useCallback((on: boolean) => {
+    setAttentionFilter(on)
+    setAttentionOnlyState(on)
+  }, [])
+
   return useMemo(
-    () => ({ users, multiUserEnabled, meId, filter, setFilter, reload }),
-    [users, multiUserEnabled, meId, filter, setFilter, reload]
+    () => ({ users, multiUserEnabled, meId, filter, setFilter, attentionOnly, setAttentionOnly, reload }),
+    [users, multiUserEnabled, meId, filter, setFilter, attentionOnly, setAttentionOnly, reload]
   )
 }
