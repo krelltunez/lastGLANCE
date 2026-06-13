@@ -255,6 +255,10 @@ export async function getCompletionHistory(
 export async function updateCompletionNote(id: number, note: string | null): Promise<void> {
   await db.completionEvents.update(id, { note: note || null })
   const evt = await db.completionEvents.get(id)
+  // Pushes the updated ciphertext for this event to the vault, so a fresh device
+  // that has never seen the event receives the latest note on its first pull.
+  // Devices that already hold the event keep their own copy: completion events
+  // are insert-only, and applyRemoteEntity skips events already present locally.
   markDirty(evt?.sync_id)
 }
 
