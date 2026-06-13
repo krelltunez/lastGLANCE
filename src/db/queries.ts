@@ -1,5 +1,6 @@
 import { db, SEED_CAT_SYNC_IDS, SEED_CHORE_SYNC_IDS } from './client'
 import type { Category, Chore, ChoreWithLastCompletion, CompletionEvent, User } from '@/types'
+import { markDirty, markDeleted } from '@/sync/dirtyTracker'
 import dayjs from 'dayjs'
 
 // Tombstone helpers
@@ -27,16 +28,19 @@ export async function createCategory(
     const parent = await db.categories.get(parent_category_id)
     parent_sync_id = parent?.sync_id ?? null
   }
-  return db.categories.add({
+  const sync_id = crypto.randomUUID()
+  const id = await db.categories.add({
     name,
     sort_order: order,
     icon,
     parent_category_id,
-    sync_id: crypto.randomUUID(),
+    sync_id,
     parent_sync_id,
     assigned_user_sync_ids,
     updated_at: new Date().toISOString(),
   } as Category)
+  markDirty(sync_id)
+  return id
 }
 
 export async function updateCategory(id: number, fields: { name?: string; icon?: string; parent_category_id?: number | null; assigned_user_sync_ids?: string[] }): Promise<void> {
@@ -67,6 +71,8 @@ export async function updateCategory(id: number, fields: { name?: string; icon?:
     // Nothing to update but stamp the timestamp anyway
     await db.categories.update(id, { updated_at })
   }
+  const cat = await db.categories.get(id)
+  markDirty(cat?.sync_id)
 }
 
 export async function getAllCompletionCounts(): Promise<Map<string, number>> {
@@ -80,6 +86,7 @@ export async function getAllCompletionCounts(): Promise<Map<string, number>> {
 }
 
 export async function deleteCategory(id: number): Promise<void> {
+  let deletedSyncIds: string[] = []
   await db.transaction('rw', db.categories, db.chores, db.completionEvents, db.tombstones, async () => {
     const subcats = await db.categories.where('parent_category_id').equals(id).toArray()
     const catIds = [id, ...subcats.map(c => c.id!)]
@@ -110,7 +117,9 @@ export async function deleteCategory(id: number): Promise<void> {
     if (allSyncIds.length > 0) {
       await db.tombstones.bulkPut(allSyncIds.map(sid => ({ id: sid, deleted_at: now })))
     }
+    deletedSyncIds = allSyncIds
   })
+  for (const sid of deletedSyncIds) markDeleted(sid)
 }
 
 // Chores
@@ -146,26 +155,33 @@ export async function createChore(
   const count = await db.chores.where('category_id').equals(data.category_id).count()
   const cat = await db.categories.get(data.category_id)
   const category_sync_id = cat?.sync_id ?? null
-  return db.chores.add({
+  const sync_id = crypto.randomUUID()
+  const id = await db.chores.add({
     ...data,
     sort_order: count,
     created_at: now,
     updated_at: now,
-    sync_id: crypto.randomUUID(),
+    sync_id,
     category_sync_id,
   } as Chore)
+  markDirty(sync_id)
+  return id
 }
 
 export async function reorderChores(orderedIds: number[]): Promise<void> {
   await db.transaction('rw', db.chores, () =>
     Promise.all(orderedIds.map((id, idx) => db.chores.update(id, { sort_order: idx, updated_at: dayjs().toISOString() })))
   )
+  const chores = await db.chores.bulkGet(orderedIds)
+  for (const c of chores) markDirty(c?.sync_id)
 }
 
 export async function reorderCategories(orderedIds: number[]): Promise<void> {
   await db.transaction('rw', db.categories, () =>
     Promise.all(orderedIds.map((id, idx) => db.categories.update(id, { sort_order: idx, updated_at: dayjs().toISOString() })))
   )
+  const categories = await db.categories.bulkGet(orderedIds)
+  for (const c of categories) markDirty(c?.sync_id)
 }
 
 export async function updateChore(
@@ -178,9 +194,12 @@ export async function updateChore(
     extra = { category_sync_id: cat?.sync_id ?? null }
   }
   await db.chores.update(id, { ...data, ...extra, updated_at: dayjs().toISOString() })
+  const chore = await db.chores.get(id)
+  markDirty(chore?.sync_id)
 }
 
 export async function deleteChore(id: number): Promise<void> {
+  let deletedSyncIds: string[] = []
   await db.transaction('rw', db.chores, db.completionEvents, db.tombstones, async () => {
     const chore = await db.chores.get(id)
     const evts = await db.completionEvents.where('chore_id').equals(id).toArray()
@@ -197,7 +216,9 @@ export async function deleteChore(id: number): Promise<void> {
     if (syncIds.length > 0) {
       await db.tombstones.bulkPut(syncIds.map(sid => ({ id: sid, deleted_at: now })))
     }
+    deletedSyncIds = syncIds
   })
+  for (const sid of deletedSyncIds) markDeleted(sid)
 }
 
 // Completion events
@@ -206,14 +227,18 @@ export async function logCompletion(
   choreId: number,
   opts: { note?: string; completedAt?: string; source?: 'manual' | 'dayglance'; completedByUserSyncId?: string | null; syncId?: string } = {}
 ): Promise<number> {
-  return db.completionEvents.add({
+  const sync_id = opts.syncId ?? crypto.randomUUID()
+  const id = await db.completionEvents.add({
     chore_id: choreId,
     completed_at: opts.completedAt ?? dayjs().toISOString(),
     note: opts.note ?? null,
     source: opts.source ?? 'manual',
     completed_by_user_sync_id: opts.completedByUserSyncId ?? null,
-    sync_id: opts.syncId ?? crypto.randomUUID(),
+    sync_id,
   } as CompletionEvent)
+  // Completion events are insert-only: mark dirty at creation time.
+  markDirty(sync_id)
+  return id
 }
 
 export async function getCompletionHistory(
@@ -229,6 +254,12 @@ export async function getCompletionHistory(
 
 export async function updateCompletionNote(id: number, note: string | null): Promise<void> {
   await db.completionEvents.update(id, { note: note || null })
+  const evt = await db.completionEvents.get(id)
+  // Pushes the updated ciphertext for this event to the vault, so a fresh device
+  // that has never seen the event receives the latest note on its first pull.
+  // Devices that already hold the event keep their own copy: completion events
+  // are insert-only, and applyRemoteEntity skips events already present locally.
+  markDirty(evt?.sync_id)
 }
 
 export async function deleteCompletion(id: number): Promise<void> {
@@ -236,6 +267,7 @@ export async function deleteCompletion(id: number): Promise<void> {
   await db.completionEvents.delete(id)
   if (evt?.sync_id) {
     await writeTombstone(evt.sync_id)
+    markDeleted(evt.sync_id)
   }
 }
 
@@ -248,25 +280,33 @@ export async function getUsers(): Promise<User[]> {
 
 export async function createUser(name: string, syncId?: string): Promise<number> {
   const now = new Date().toISOString()
-  return db.users.add({
+  const sync_id = syncId ?? crypto.randomUUID()
+  const id = await db.users.add({
     name,
-    sync_id: syncId ?? crypto.randomUUID(),
+    sync_id,
     updated_at: now,
   } as User)
+  markDirty(sync_id)
+  return id
 }
 
 export async function updateUser(id: number, fields: { name: string }): Promise<void> {
   await db.users.update(id, { ...fields, updated_at: new Date().toISOString() })
+  const user = await db.users.get(id)
+  markDirty(user?.sync_id)
 }
 
 export async function deleteUser(id: number): Promise<void> {
+  let deletedSyncId: string | undefined
   await db.transaction('rw', db.users, db.tombstones, async () => {
     const user = await db.users.get(id)
     await db.users.delete(id)
     if (user?.sync_id) {
       await writeTombstone(user.sync_id)
+      deletedSyncId = user.sync_id
     }
   })
+  markDeleted(deletedSyncId)
 }
 
 // Removes duplicate user rows that share the same sync_id, keeping the one
@@ -341,6 +381,7 @@ function validateBackupPayload(payload: BackupPayload): void {
 
 export async function importBackup(payload: BackupPayload): Promise<void> {
   validateBackupPayload(payload)
+  let restoredSyncIds: string[] = []
   await db.transaction('rw', db.categories, db.chores, db.completionEvents, db.tombstones, async () => {
     await db.completionEvents.clear()
     await db.chores.clear()
@@ -367,7 +408,15 @@ export async function importBackup(payload: BackupPayload): Promise<void> {
     await db.categories.bulkAdd(categories)
     await db.chores.bulkAdd(chores)
     await db.completionEvents.bulkAdd(completionEvents)
+    restoredSyncIds = [
+      ...categories.map(c => c.sync_id),
+      ...chores.map(c => c.sync_id),
+      ...completionEvents.map(e => e.sync_id),
+    ]
   })
+  // A restore replaces local data wholesale; push every restored entity so the
+  // vault reflects it on the next cycle.
+  for (const sid of restoredSyncIds) markDirty(sid)
 }
 
 // ── Seed data helpers ─────────────────────────────────────────────────────────
