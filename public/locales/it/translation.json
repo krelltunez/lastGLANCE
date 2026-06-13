@@ -78,6 +78,7 @@
     "addChore": "Aggiungi attività",
     "expand": "Espandi",
     "collapse": "Comprimi",
+    "overdueHidden": "Attività scadute nascoste qui",
     "moveSubUp": "Sposta sottocategoria su",
     "moveSubDown": "Sposta sottocategoria giù",
     "renameSubcategory": "Rinomina sottocategoria",

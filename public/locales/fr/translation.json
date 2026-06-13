@@ -78,6 +78,7 @@
     "addChore": "Ajouter une tâche",
     "expand": "Développer",
     "collapse": "Réduire",
+    "overdueHidden": "Tâches en retard masquées ici",
     "moveSubUp": "Remonter la sous-catégorie",
     "moveSubDown": "Descendre la sous-catégorie",
     "renameSubcategory": "Renommer la sous-catégorie",

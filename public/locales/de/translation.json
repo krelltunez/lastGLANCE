@@ -78,6 +78,7 @@
     "addChore": "Aufgabe hinzufügen",
     "expand": "Ausklappen",
     "collapse": "Einklappen",
+    "overdueHidden": "Überfällige Aufgaben hier ausgeblendet",
     "moveSubUp": "Unterkategorie nach oben",
     "moveSubDown": "Unterkategorie nach unten",
     "renameSubcategory": "Unterkategorie umbenennen",

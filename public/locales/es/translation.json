@@ -78,6 +78,7 @@
     "addChore": "Añadir tarea",
     "expand": "Expandir",
     "collapse": "Contraer",
+    "overdueHidden": "Tareas vencidas ocultas aquí",
     "moveSubUp": "Subir subcategoría",
     "moveSubDown": "Bajar subcategoría",
     "renameSubcategory": "Renombrar subcategoría",
