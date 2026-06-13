@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { X, Loader, AlertTriangle, CheckCircle, XCircle } from 'lucide-react'
 import type { SyncEngine } from '@glance-apps/sync'
 import { setupEncryptionKey, clearEncryptionKey, ensureSyncFolder, resetEnsuredFolder, CRYPTO_CONFIG, getRemoteBackupsEnabled, setRemoteBackupsEnabled, DEFAULT_SYNC_FOLDER, SYNC_FOLDER_KEY } from '@/sync/engine'
+import { getVaultConfig, setVaultConfig } from '@/sync/vaultConfig'
 import { cloudSyncProviders } from '@/utils/cloudSyncProviders'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
 import { useTranslation } from 'react-i18next'
@@ -44,6 +45,14 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
 
   const [remoteBackupsEnabled, setRemoteBackupsEnabledState] = useState(() => getRemoteBackupsEnabled())
 
+  // GLANCEvault (beta) DB transport config. Stored separately from the WebDAV
+  // config; enabling it makes the app build a DB engine alongside the file one.
+  const initVault = useRef(getVaultConfig())
+  const [vaultEnabled, setVaultEnabled] = useState(() => initVault.current?.enabled ?? false)
+  const [vaultUrl, setVaultUrl] = useState(() => initVault.current?.vaultUrl ?? '')
+  const [vaultToken, setVaultToken] = useState(() => initVault.current?.vaultToken ?? '')
+  const [vaultAccountId, setVaultAccountId] = useState(() => initVault.current?.accountId ?? '')
+
   const [syncing, setSyncing] = useState(false)
   const [syncResult, setSyncResult] = useState<SyncResult>('idle')
   const [syncResultMsg, setSyncResultMsg] = useState('')
@@ -55,11 +64,27 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
   const requiredFieldsFilled = activeProvider?.configFields.every(f => formData[f.key]) ?? false
 
   function saveConfig() {
-    if (!engine) return
-    engine.setConfig(requiredFieldsFilled ? { provider, ...formData, syncFolder: folderPath, enabled: true, encryptionEnabled: encEnabled } : null)
-    localStorage.setItem(SYNC_FOLDER_KEY, folderPath)
-    resetEnsuredFolder()
-    if (folderPath !== originalFolder.current) {
+    // GLANCEvault config is independent of the file engine: only saved when the
+    // toggle is on, cleared (reverting to file tier) when off.
+    const prevVault = initVault.current
+    const nextVault = vaultEnabled
+      ? { enabled: true, vaultUrl: vaultUrl.trim(), vaultToken: vaultToken.trim(), accountId: vaultAccountId.trim() }
+      : null
+    setVaultConfig(nextVault)
+    const vaultChanged =
+      (prevVault?.enabled ?? false) !== (nextVault?.enabled ?? false) ||
+      (prevVault?.vaultUrl ?? '') !== (nextVault?.vaultUrl ?? '') ||
+      (prevVault?.vaultToken ?? '') !== (nextVault?.vaultToken ?? '') ||
+      (prevVault?.accountId ?? '') !== (nextVault?.accountId ?? '')
+
+    if (engine) {
+      engine.setConfig(requiredFieldsFilled ? { provider, ...formData, syncFolder: folderPath, enabled: true, encryptionEnabled: encEnabled } : null)
+      localStorage.setItem(SYNC_FOLDER_KEY, folderPath)
+      resetEnsuredFolder()
+    }
+    // A folder change or any vault change requires a reload so the engines are
+    // reconstructed with the new transport config on next mount.
+    if (folderPath !== originalFolder.current || vaultChanged) {
       window.location.reload()
     }
   }
@@ -386,6 +411,77 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
                 <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${remoteBackupsEnabled ? 'translate-x-4' : ''}`} />
               </button>
             </div>
+          </div>
+
+          {/* GLANCEvault (beta) section */}
+          <div className="space-y-3">
+            <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+              GLANCEvault (beta)
+            </h3>
+            <div className="flex items-center justify-between py-1">
+              <div>
+                <p className="text-sm text-slate-700 dark:text-slate-300">Sync via GLANCEvault</p>
+                <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
+                  Row-grained database sync. Runs alongside WebDAV sync.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setVaultEnabled(v => !v)}
+                className={`relative w-10 h-6 rounded-full transition-colors ${vaultEnabled ? 'bg-green-400' : 'bg-slate-300 dark:bg-slate-600'}`}
+                aria-checked={vaultEnabled}
+                role="switch"
+              >
+                <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${vaultEnabled ? 'translate-x-4' : ''}`} />
+              </button>
+            </div>
+
+            {vaultEnabled && (
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+                    Vault URL
+                  </label>
+                  <input
+                    type="text"
+                    value={vaultUrl}
+                    onChange={e => setVaultUrl(e.target.value)}
+                    placeholder="https://vault.glance-apps.com"
+                    autoComplete="off"
+                    className="w-full bg-slate-100 dark:bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+                    Device token
+                  </label>
+                  <input
+                    type="password"
+                    value={vaultToken}
+                    onChange={e => setVaultToken(e.target.value)}
+                    placeholder="Bearer token"
+                    autoComplete="off"
+                    className="w-full bg-slate-100 dark:bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+                    Account ID
+                  </label>
+                  <input
+                    type="text"
+                    value={vaultAccountId}
+                    onChange={e => setVaultAccountId(e.target.value)}
+                    placeholder="Household account id"
+                    autoComplete="off"
+                    className="w-full bg-slate-100 dark:bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
+                  />
+                </div>
+                <p className="text-xs text-slate-400 dark:text-slate-500">
+                  Saved on close. The app reloads to apply vault changes. Uses your sync passphrase for encryption.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Manual sync section */}

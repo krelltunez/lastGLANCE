@@ -19,7 +19,9 @@ import { useIntentsPoller } from '@/hooks/useIntentsPoller'
 import { IntentsProvider, useIntents } from '@/intents/IntentsContext'
 import { getAllCompletionCounts } from '@/db/queries'
 import { createEngine, initSessionKey, setupEncryptionKey, runAutoBackups, ensureSyncFolder, CRYPTO_CONFIG, getSyncWebdavConfig } from '@/sync/engine'
-import type { SyncEngine, SyncStatus } from '@glance-apps/sync'
+import { createDbEngine } from '@/sync/dbEngine'
+import { registerDbEngine } from '@/sync/dirtyTracker'
+import type { SyncEngine, SyncStatus, DbSyncEngine } from '@glance-apps/sync'
 import { syncSharedUsers } from '@/multiuser/sharedUsers'
 import { getUsersPath, getMultiUserEnabled } from '@/multiuser/settings'
 import dayjs from 'dayjs'
@@ -137,9 +139,20 @@ function AppInner() {
 
   // Sync engine
   const engineRef = useRef<SyncEngine | null>(null)
+  // GLANCEvault DB transport engine, null unless the vault config is enabled.
+  // Runs alongside the file engine; does not affect the file sync path.
+  const dbEngineRef = useRef<DbSyncEngine | null>(null)
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle')
   const [syncError, setSyncError] = useState<string | null>(null)
   const [syncHalted, setSyncHalted] = useState(false)
+
+  // Runs one DB sync cycle when the vault transport is enabled. No-op otherwise.
+  // Fired on the same triggers as the file engine; errors are surfaced through
+  // the engine's onError callback (logged, non-fatal to the file tier).
+  const runDbSync = useCallback(() => {
+    const eng = dbEngineRef.current
+    if (eng) eng.dbSyncCycle().catch(() => {/* surfaced via onError */})
+  }, [])
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', isDark)
@@ -166,12 +179,24 @@ function AppInner() {
       onPassphraseRequired: () => setShowPassphrase(true),
     })
     engineRef.current = engine
+
+    // Construct the DB transport engine alongside the file engine when the vault
+    // is enabled. It shares the local data but uses an entirely separate cycle.
+    const dbEngine = createDbEngine({
+      onError: (msg) => { if (msg) console.warn('[lastglance] vault sync error:', msg) },
+    })
+    dbEngineRef.current = dbEngine
+    registerDbEngine(dbEngine)
+
     deduplicateUsers()
       .catch(() => {})
       .then(() => ensureSyncFolder(engine))
       .then(() => engine.sync())
       .catch(() => {/* errors surfaced via onError */})
-  }, [])
+    runDbSync()
+
+    return () => { registerDbEngine(null) }
+  }, [runDbSync])
 
   // Shared user roster sync — fire-and-forget, non-fatal
   const sharedUserSyncRunning = useRef(false)
@@ -213,6 +238,7 @@ function AppInner() {
       if (document.visibilityState === 'visible' && engineRef.current) {
         const eng = engineRef.current
         ensureSyncFolder(eng).then(() => eng.sync()).catch(() => {/* errors surfaced via onError */})
+        runDbSync()
       }
     }
     document.addEventListener('visibilitychange', handleVisibility)
@@ -222,13 +248,14 @@ function AppInner() {
         const eng = engineRef.current
         ensureSyncFolder(eng).then(() => eng.sync()).catch(() => {/* errors surfaced via onError */})
       }
+      runDbSync()
     }, 5 * 60 * 1000)
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibility)
       clearInterval(interval)
     }
-  }, [])
+  }, [runDbSync])
 
   const loadHeatmap = useCallback(async () => {
     const counts = await getAllCompletionCounts()
@@ -503,6 +530,15 @@ function AppInner() {
             if (engineRef.current) {
               const eng = engineRef.current
               ensureSyncFolder(eng).then(() => eng.sync()).catch(() => {/* errors surfaced via onError */})
+            }
+            // The DB engine derives its root key from the same passphrase (now
+            // cached in the sync session). ensureRootKey fetches or registers the
+            // per-account salt with the vault automatically on first use.
+            const dbEng = dbEngineRef.current
+            if (dbEng) {
+              dbEng.ensureRootKey()
+                .then(() => dbEng.dbSyncCycle())
+                .catch((err) => console.warn('[lastglance] vault root key setup failed:', err))
             }
           }}
           onClose={() => setShowPassphrase(false)}
