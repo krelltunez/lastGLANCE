@@ -418,11 +418,14 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
             <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
               GLANCEvault (beta)
             </h3>
+            <p className="text-xs text-amber-600 dark:text-amber-400">
+              ⚠️ Experimental. Requires a self-hosted GLANCEvault server. Not recommended for most users.
+            </p>
             <div className="flex items-center justify-between py-1">
               <div>
                 <p className="text-sm text-slate-700 dark:text-slate-300">Sync via GLANCEvault</p>
                 <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
-                  Row-grained database sync. Runs alongside WebDAV sync.
+                  Row-grained database sync. Runs alongside your existing WebDAV sync. Your WebDAV data is never modified.
                 </p>
               </div>
               <button
