@@ -232,6 +232,7 @@
     "toggleMyTasksAriaLabel": "Toggle my tasks filter",
     "toggleSoonAriaLabel": "Toggle attention filter",
     "nothingNeedsAttention": "Nothing needs attention right now.",
+    "nothingAssignedToYou": "Nothing here is assigned to you.",
     "showAllChores": "Show all chores"
   },
   "search": {

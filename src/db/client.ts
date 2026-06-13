@@ -238,11 +238,24 @@ class LastGlanceDB extends Dexie {
         }
       })
 
+    // Adds assigned_user_sync_ids to categories (mirrors chores) so categories
+    // and subcategories can be assigned to users for the "Mine" filter.
+    this.version(12)
+      .stores({})
+      .upgrade(tx =>
+        tx.table('categories').toCollection().modify((cat: Category) => {
+          if ((cat as { assigned_user_sync_ids?: string[] }).assigned_user_sync_ids === undefined) {
+            cat.assigned_user_sync_ids = []
+          }
+        })
+      )
+
     this.on('populate', async () => {
       const catIds = (await this.categories.bulkAdd(
         SEED_CATEGORIES.map((cat) => ({
           ...cat,
           parent_sync_id: null,
+          assigned_user_sync_ids: [],
           updated_at: SEED_TIMESTAMP,
         })) as unknown as Category[],
         { allKeys: true }
@@ -286,7 +299,7 @@ export const SEED_CHORE_SYNC_IDS = [
   '00000000-0000-0000-0000-000000000043',
 ]
 
-const SEED_CATEGORIES: Omit<Category, 'id' | 'parent_sync_id' | 'updated_at'>[] = [
+const SEED_CATEGORIES: Omit<Category, 'id' | 'parent_sync_id' | 'updated_at' | 'assigned_user_sync_ids'>[] = [
   { name: 'Home',     sort_order: 0, icon: 'Home',       sync_id: '00000000-0000-0000-0000-000000000001' },
   { name: 'Health',   sort_order: 1, icon: 'HeartPulse', sync_id: '00000000-0000-0000-0000-000000000002' },
   { name: 'Vehicle',  sort_order: 2, icon: 'Car',        sync_id: '00000000-0000-0000-0000-000000000003' },

@@ -14,6 +14,7 @@ export interface Category {
   sync_id: string
   parent_sync_id: string | null
   updated_at: string
+  assigned_user_sync_ids: string[]
 }
 
 export interface Chore {

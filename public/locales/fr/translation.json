@@ -232,6 +232,7 @@
     "toggleMyTasksAriaLabel": "Filtrer mes tâches",
     "toggleSoonAriaLabel": "Activer le filtre d'attention",
     "nothingNeedsAttention": "Rien ne nécessite d'attention pour le moment.",
+    "nothingAssignedToYou": "Rien ne vous est attribué ici.",
     "showAllChores": "Afficher toutes les tâches"
   },
   "search": {

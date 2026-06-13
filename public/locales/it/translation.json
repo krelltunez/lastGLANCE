@@ -232,6 +232,7 @@
     "toggleMyTasksAriaLabel": "Filtra le mie attività",
     "toggleSoonAriaLabel": "Attiva/disattiva filtro attenzione",
     "nothingNeedsAttention": "Al momento non c'è nulla di urgente.",
+    "nothingAssignedToYou": "Qui non c'è nulla assegnato a te.",
     "showAllChores": "Mostra tutte le attività"
   },
   "search": {

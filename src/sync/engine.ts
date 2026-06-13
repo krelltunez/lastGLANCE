@@ -47,6 +47,7 @@ export const buildPayload = async (): Promise<SyncPayload> => {
       sortOrder: c.sort_order,
       icon: c.icon,
       parentId: c.parent_sync_id,
+      assignedUserSyncIds: c.assigned_user_sync_ids ?? [],
       updatedAt: c.updated_at,
     })),
     chores: chores.map(c => ({
@@ -239,12 +240,14 @@ export const applyPayload = async (rawData: unknown, { allowEmpty }: { allowEmpt
         catsToUpdate.push([existing.id!, {
           name: cat.name, sort_order: cat.sortOrder, icon: cat.icon,
           parent_sync_id: cat.parentId, updated_at: cat.updatedAt,
+          assigned_user_sync_ids: cat.assignedUserSyncIds ?? [],
         }])
       } else {
         catsToAdd.push({
           sync_id: cat.id, name: cat.name, sort_order: cat.sortOrder,
           icon: cat.icon, parent_sync_id: cat.parentId,
           parent_category_id: undefined, updated_at: cat.updatedAt,
+          assigned_user_sync_ids: cat.assignedUserSyncIds ?? [],
         })
       }
     }

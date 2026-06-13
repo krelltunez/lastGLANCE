@@ -232,6 +232,7 @@
     "toggleMyTasksAriaLabel": "Meine Aufgaben filtern",
     "toggleSoonAriaLabel": "Aufmerksamkeitsfilter umschalten",
     "nothingNeedsAttention": "Im Moment ist nichts dringend.",
+    "nothingAssignedToYou": "Dir ist hier nichts zugewiesen.",
     "showAllChores": "Alle Aufgaben anzeigen"
   },
   "search": {

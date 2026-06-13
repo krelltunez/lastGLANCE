@@ -8,10 +8,9 @@ import { CategoryFormModal } from '@/components/CategoryFormModal/CategoryFormMo
 import { ChoreFormModal } from '@/components/ChoreFormModal/ChoreFormModal'
 import { SearchModal } from '@/components/SearchModal/SearchModal'
 import { useUsersContext } from '@/multiuser/UsersContext'
-import { needsAttention } from '@/utils/cadence'
+import { filterCategoryData } from '@/utils/choreFilter'
 import type { Category, ChoreWithLastCompletion } from '@/types'
 import type { CategoryWithChores } from '@/hooks/useChores'
-import type { UserFilter } from '@/multiuser/settings'
 import { useTranslation } from 'react-i18next'
 
 interface Props {
@@ -62,37 +61,6 @@ function packMasonry(
 }
 
 const ADD_CAT_ID = -1
-
-function filterCategoryData(
-  data: CategoryWithChores[],
-  meId: string | null,
-  filter: UserFilter,
-  attentionOnly: boolean,
-): CategoryWithChores[] {
-  const mineActive = filter === 'mine' && !!meId
-  if (!mineActive && !attentionOnly) return data
-
-  const matches = (c: ChoreWithLastCompletion) => {
-    if (mineActive && !(c.assigned_user_sync_ids.length === 0 || c.assigned_user_sync_ids.includes(meId!))) return false
-    if (attentionOnly && !needsAttention(c.target_cadence_days, c.elapsed_days)) return false
-    return true
-  }
-
-  const filtered = data.map(cat => ({
-    ...cat,
-    chores: cat.chores.filter(matches),
-    subcategories: cat.subcategories
-      .map(sub => ({ ...sub, chores: sub.chores.filter(matches) }))
-      // When narrowing to attention, drop subcategories with nothing left.
-      .filter(sub => !attentionOnly || sub.chores.length > 0),
-  }))
-
-  // The attention filter also hides whole categories that have nothing left,
-  // so the view collapses to just what needs attention.
-  return attentionOnly
-    ? filtered.filter(cat => cat.chores.length > 0 || cat.subcategories.length > 0)
-    : filtered
-}
 
 export function Ribbon({ editMode, onLogged }: Props) {
   const { t } = useTranslation()
@@ -428,6 +396,13 @@ export function Ribbon({ editMode, onLogged }: Props) {
   const showEmpty = localData.length === 0
   // Filters can hide every category even though chores exist.
   const noMatches = !showEmpty && viewData.length === 0
+  const noMatchesMessage = attentionOnly
+    ? t('ribbon.nothingNeedsAttention')
+    : t('ribbon.nothingAssignedToYou')
+  const clearFilters = () => {
+    setAttentionOnly(false)
+    if (filter === 'mine') setFilter('all')
+  }
   const prevData = activeCategoryIndex > 0 ? viewData[activeCategoryIndex - 1] : null
   const currData = viewData[activeCategoryIndex]
   const nextData = activeCategoryIndex < viewData.length - 1 ? viewData[activeCategoryIndex + 1] : null
@@ -501,7 +476,7 @@ export function Ribbon({ editMode, onLogged }: Props) {
           </div>
         ) : noMatches ? (
           <div className="flex-1">
-            <NoMatchesState onClear={() => setAttentionOnly(false)} />
+            <NoMatchesState message={noMatchesMessage} onClear={clearFilters} />
           </div>
         ) : (
           <div
@@ -542,7 +517,7 @@ export function Ribbon({ editMode, onLogged }: Props) {
         {showEmpty ? (
           <EmptyState onAdd={() => setAddingCategory(true)} />
         ) : noMatches ? (
-          <NoMatchesState onClear={() => setAttentionOnly(false)} />
+          <NoMatchesState message={noMatchesMessage} onClear={clearFilters} />
         ) : (
           <div className="p-6">
             <div
@@ -704,14 +679,15 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
   )
 }
 
-// Shown when active filters hide every category (e.g. the "Soon" filter when
-// nothing has aged into the amber zone).
-function NoMatchesState({ onClear }: { onClear: () => void }) {
+// Shown when active filters hide every category — either the "Soon" filter when
+// nothing has aged into the amber zone, or the "Mine" filter when nothing is
+// assigned to / shared with the current user.
+function NoMatchesState({ message, onClear }: { message: string; onClear: () => void }) {
   const { t } = useTranslation()
   return (
     <div className="flex-1 flex flex-col items-center justify-center gap-4 px-8 text-center h-full min-h-[60vh]">
       <Clock size={28} className="text-slate-300 dark:text-slate-600" />
-      <p className="text-slate-400 dark:text-slate-500 text-sm">{t('ribbon.nothingNeedsAttention')}</p>
+      <p className="text-slate-400 dark:text-slate-500 text-sm">{message}</p>
       <button
         onClick={onClear}
         className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
