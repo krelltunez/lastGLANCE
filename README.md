@@ -4,7 +4,7 @@
 
 Part of the **GLANCE family**: focused, standalone apps connected through a shared intent protocol. See also [dayGLANCE](https://github.com/krelltunez/dayGLANCE) (today), lastGLANCE (recent upkeep), and [lifeGLANCE](https://github.com/krelltunez/lifeGLANCE) (your whole timeline).
 
-[![Version](https://img.shields.io/badge/version-1.8.0-green.svg)](../../releases)
+[![Version](https://img.shields.io/badge/version-1.8.1-green.svg)](../../releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 ---

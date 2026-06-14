@@ -21,6 +21,8 @@ import { getAllCompletionCounts } from '@/db/queries'
 import { createEngine, initSessionKey, setupEncryptionKey, runAutoBackups, ensureSyncFolder, CRYPTO_CONFIG, getSyncWebdavConfig } from '@/sync/engine'
 import { createDbEngine } from '@/sync/dbEngine'
 import { registerDbEngine } from '@/sync/dirtyTracker'
+import { isVaultEnabled } from '@/sync/vaultConfig'
+import { hasDbRootKey, initDbRootKey, getSyncPassphrase } from '@glance-apps/sync'
 import type { SyncEngine, SyncStatus, DbSyncEngine } from '@glance-apps/sync'
 import { syncSharedUsers } from '@/multiuser/sharedUsers'
 import { getUsersPath, getMultiUserEnabled } from '@/multiuser/settings'
@@ -162,7 +164,18 @@ function AppInner() {
   // Initialize sync engine on mount
   useEffect(() => {
     navigator.storage?.persist?.()
-    initSessionKey(CRYPTO_CONFIG).catch(() => {/* non-fatal */})
+    initSessionKey(CRYPTO_CONFIG)
+      .catch(() => false)
+      .then(async () => {
+        // First-time vault bootstrap needs the passphrase to derive the root key.
+        // On returning loads the root key is restored from lastglance-crypto-db
+        // via initDbRootKey, so the prompt is skipped. The in-memory hasDbRootKey
+        // is always false at mount, so we attempt the restore before deciding.
+        if (!isVaultEnabled()) return
+        const hasRoot = hasDbRootKey() || await initDbRootKey(CRYPTO_CONFIG)
+        if (!hasRoot && getSyncPassphrase() === null) setShowPassphrase(true)
+      })
+      .catch(() => {/* non-fatal */})
     const engine = createEngine(import.meta.env.VITE_WEBDAV_PROXY_URL, {
       onStatusChange: (status) => {
         setSyncStatus(status)
