@@ -19,6 +19,7 @@ import type { Category, Chore, CompletionEvent, User } from '@/types'
 import type { SyncCategory, SyncChore, SyncCompletionEvent, SyncUser } from './types'
 import { getVaultConfig, isVaultEnabled } from './vaultConfig'
 import { getDeviceId } from './deviceId'
+import { addDeferredChore, removeDeferredChore, getDeferredChores } from './deferredChores'
 
 const APP_ID = 'lastglance'
 const CRYPTO_DB_NAME = 'lastglance-crypto'
@@ -156,9 +157,12 @@ async function applyCategory(cat: SyncCategory): Promise<void> {
       } as Category)
     }
   })
+  // A newly present category may unblock chores that arrived before it.
+  await drainDeferredChores()
 }
 
 async function applyChore(chore: SyncChore): Promise<void> {
+  let skipped = false
   await db.transaction('rw', db.chores, db.categories, async () => {
     const cat = chore.categorySyncId
       ? await db.categories.where('sync_id').equals(chore.categorySyncId).first()
@@ -182,8 +186,9 @@ async function applyChore(chore: SyncChore): Promise<void> {
         updated_at: chore.updatedAt,
       })
     } else {
-      // Category was deleted locally; skip rather than store a dangling id.
-      if (category_id == null) return
+      // Category not present yet (arrived out of seq order) or deleted: do not
+      // store a dangling id. Park the chore and retry when a category lands.
+      if (category_id == null) { skipped = true; return }
       await db.chores.add({
         sync_id: chore.id,
         name: chore.name,
@@ -203,6 +208,23 @@ async function applyChore(chore: SyncChore): Promise<void> {
       } as Chore)
     }
   })
+  // Buffer the chore when skipped; clear it from the buffer once applied.
+  if (skipped) addDeferredChore(chore)
+  else removeDeferredChore(chore.id)
+}
+
+// Re-apply parked chores whose category is now present locally. Called after a
+// category is applied. applyChore removes each from the buffer on success and
+// re-parks any that still cannot resolve, so this is safe to call repeatedly.
+async function drainDeferredChores(): Promise<void> {
+  const deferred = getDeferredChores()
+  if (deferred.length === 0) return
+  for (const chore of deferred) {
+    const cat = chore.categorySyncId
+      ? await db.categories.where('sync_id').equals(chore.categorySyncId).first()
+      : undefined
+    if (cat) await applyChore(chore)
+  }
 }
 
 async function applyCompletionEvent(evt: SyncCompletionEvent): Promise<void> {
@@ -276,6 +298,8 @@ export async function applyRemoteDelete(entityId: string): Promise<void> {
       if (user) { await db.users.delete(user.id); return }
     },
   )
+  // Drop any parked copy so a deleted chore is never resurrected by a later drain.
+  removeDeferredChore(entityId)
   notifyApplied()
 }
 
@@ -293,6 +317,25 @@ export interface DbEngineCallbacks {
   onError?: (message: string | null, code: SyncErrorCode | null) => void
 }
 
+// Marks every local entity dirty so the next push sends a complete snapshot.
+// Used for the first ever sync on a device (high water mark 0): existing users
+// who enable the vault have data that predates dirty tracking, so without this
+// only future changes would be pushed. pushDirtyRows then snapshots each id via
+// getLocalEntity. markDirty is idempotent, so repeating this before a successful
+// first push is harmless.
+export async function markAllLocalEntitiesDirty(engine: DbSyncEngine): Promise<void> {
+  const [cats, chores, events, users] = await Promise.all([
+    db.categories.toArray(),
+    db.chores.toArray(),
+    db.completionEvents.toArray(),
+    db.users.toArray(),
+  ])
+  for (const c of cats) engine.markDirty(c.sync_id)
+  for (const c of chores) engine.markDirty(c.sync_id)
+  for (const e of events) engine.markDirty(e.sync_id)
+  for (const u of users) engine.markDirty(u.sync_id)
+}
+
 // Builds the DB engine when the vault is enabled and fully configured, else
 // returns null (file tier only). The root key is derived from the same sync
 // passphrase the file engine holds; the engine fetches or registers the salt
@@ -301,7 +344,7 @@ export function createDbEngine(callbacks: DbEngineCallbacks = {}): DbSyncEngine 
   if (!isVaultEnabled()) return null
   const cfg = getVaultConfig()!
 
-  return createDbSyncEngine({
+  const engine = createDbSyncEngine({
     storageKeyPrefix: APP_ID,
     appId: APP_ID,
     vaultApp: APP_ID,
@@ -318,4 +361,23 @@ export function createDbEngine(callbacks: DbEngineCallbacks = {}): DbSyncEngine 
     onStatusChange: callbacks.onStatusChange,
     onError: callbacks.onError,
   })
+
+  // On the first ever sync (high water mark 0), seed the dirty set with the full
+  // local dataset so existing users get everything pushed, not just new changes.
+  // After a successful first push the high water mark advances past 0, so this
+  // runs once. Seeding failures are non-fatal: the normal cycle still proceeds.
+  const runCycle = engine.dbSyncCycle.bind(engine)
+  const dbSyncCycle = async (): Promise<void> => {
+    if (engine.getHighWaterMark() === 0) {
+      try {
+        await markAllLocalEntitiesDirty(engine)
+      } catch (err) {
+        console.warn('[lastglance] vault initial snapshot failed:', err)
+      }
+    }
+    await runCycle()
+  }
+
+  return { ...engine, dbSyncCycle, sync: dbSyncCycle }
 }
+
