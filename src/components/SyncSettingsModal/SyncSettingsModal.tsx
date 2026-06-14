@@ -421,8 +421,8 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
             <p className="text-xs text-amber-600 dark:text-amber-400">
               ⚠️ Experimental. Requires a self-hosted GLANCEvault server. Not recommended for most users.
             </p>
-            <div className="flex items-center justify-between py-1">
-              <div>
+            <div className="flex items-center justify-between gap-3 py-1">
+              <div className="min-w-0">
                 <p className="text-sm text-slate-700 dark:text-slate-300">Sync via GLANCEvault</p>
                 <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
                   Row-grained database sync. Runs alongside your existing WebDAV sync. Your WebDAV data is never modified.
@@ -431,7 +431,7 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
               <button
                 type="button"
                 onClick={() => setVaultEnabled(v => !v)}
-                className={`relative w-10 h-6 rounded-full transition-colors ${vaultEnabled ? 'bg-green-400' : 'bg-slate-300 dark:bg-slate-600'}`}
+                className={`relative shrink-0 w-10 h-6 rounded-full transition-colors ${vaultEnabled ? 'bg-green-400' : 'bg-slate-300 dark:bg-slate-600'}`}
                 aria-checked={vaultEnabled}
                 role="switch"
               >
