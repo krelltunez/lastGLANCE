@@ -5,8 +5,26 @@ import {
   getLocalEntity,
   isInsertOnly,
   getEntityLastModified,
+  applyRemoteEntity,
 } from './dbEngine'
+import { getDeferredChores } from './deferredChores'
 import type { Category, Chore, CompletionEvent, User } from '@/types'
+import type { SyncCategory, SyncChore } from './types'
+
+// Minimal in-memory localStorage for the node test environment (the deferred
+// chore buffer persists there).
+function installLocalStorage(): void {
+  const store = new Map<string, string>()
+  ;(globalThis as { localStorage?: Storage }).localStorage = {
+    getItem: (k: string) => (store.has(k) ? store.get(k)! : null),
+    setItem: (k: string, v: string) => { store.set(k, String(v)) },
+    removeItem: (k: string) => { store.delete(k) },
+    clear: () => { store.clear() },
+    key: (i: number) => Array.from(store.keys())[i] ?? null,
+    get length() { return store.size },
+  } as Storage
+}
+installLocalStorage()
 
 // Stable ids for the records we seed and look up.
 const USER_ID = '11111111-1111-1111-1111-111111111111'
@@ -108,5 +126,38 @@ describe('getEntityLastModified', () => {
     expect(getEntityLastModified(cat)).toBe('2026-02-02T00:00:00.000Z')
     expect(getEntityLastModified(chore)).toBe('2026-03-04T00:00:00.000Z')
     expect(getEntityLastModified(user)).toBe('2026-01-01T00:00:00.000Z')
+  })
+})
+
+describe('applyRemoteEntity out-of-order chore and category', () => {
+  // A custom category that does not exist locally yet, and a chore under it.
+  const DCAT_ID = '55555555-5555-5555-5555-555555555555'
+  const DCHORE_ID = '66666666-6666-6666-6666-666666666666'
+
+  const remoteCategory: SyncCategory = {
+    id: DCAT_ID, name: 'Workshop', sortOrder: 5, icon: 'Wrench',
+    parentId: null, assignedUserSyncIds: [], updatedAt: '2026-05-01T00:00:00.000Z',
+  }
+  const remoteChore: SyncChore = {
+    id: DCHORE_ID, name: 'Oil the bench', categorySyncId: DCAT_ID, sortOrder: 0,
+    targetCadenceDays: 30, notifyWhenOverdue: false, autoScheduleToDayglance: false,
+    preferredScheduleBehavior: null, seasonalStart: null, seasonalEnd: null,
+    icon: 'Droplet', assignedUserSyncIds: [],
+    createdAt: '2026-05-02T00:00:00.000Z', updatedAt: '2026-05-02T00:00:00.000Z',
+  }
+
+  it('parks a chore whose category has not arrived, then applies it once the category lands', async () => {
+    // Chore arrives first: its category is not present, so it must be parked.
+    await applyRemoteEntity(DCHORE_ID, remoteChore)
+    expect(await db.chores.where('sync_id').equals(DCHORE_ID).first()).toBeUndefined()
+    expect(getDeferredChores().map(c => c.id)).toContain(DCHORE_ID)
+
+    // Category arrives next: draining must apply the parked chore and clear it.
+    await applyRemoteEntity(DCAT_ID, remoteCategory)
+    const landed = await db.chores.where('sync_id').equals(DCHORE_ID).first()
+    expect(landed).toBeTruthy()
+    const cat = await db.categories.where('sync_id').equals(DCAT_ID).first()
+    expect(landed!.category_id).toBe(cat!.id)
+    expect(getDeferredChores().map(c => c.id)).not.toContain(DCHORE_ID)
   })
 })

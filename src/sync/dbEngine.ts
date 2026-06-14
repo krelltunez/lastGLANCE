@@ -19,6 +19,7 @@ import type { Category, Chore, CompletionEvent, User } from '@/types'
 import type { SyncCategory, SyncChore, SyncCompletionEvent, SyncUser } from './types'
 import { getVaultConfig, isVaultEnabled } from './vaultConfig'
 import { getDeviceId } from './deviceId'
+import { addDeferredChore, removeDeferredChore, getDeferredChores } from './deferredChores'
 
 const APP_ID = 'lastglance'
 const CRYPTO_DB_NAME = 'lastglance-crypto'
@@ -156,9 +157,12 @@ async function applyCategory(cat: SyncCategory): Promise<void> {
       } as Category)
     }
   })
+  // A newly present category may unblock chores that arrived before it.
+  await drainDeferredChores()
 }
 
 async function applyChore(chore: SyncChore): Promise<void> {
+  let skipped = false
   await db.transaction('rw', db.chores, db.categories, async () => {
     const cat = chore.categorySyncId
       ? await db.categories.where('sync_id').equals(chore.categorySyncId).first()
@@ -182,8 +186,9 @@ async function applyChore(chore: SyncChore): Promise<void> {
         updated_at: chore.updatedAt,
       })
     } else {
-      // Category was deleted locally; skip rather than store a dangling id.
-      if (category_id == null) return
+      // Category not present yet (arrived out of seq order) or deleted: do not
+      // store a dangling id. Park the chore and retry when a category lands.
+      if (category_id == null) { skipped = true; return }
       await db.chores.add({
         sync_id: chore.id,
         name: chore.name,
@@ -203,6 +208,23 @@ async function applyChore(chore: SyncChore): Promise<void> {
       } as Chore)
     }
   })
+  // Buffer the chore when skipped; clear it from the buffer once applied.
+  if (skipped) addDeferredChore(chore)
+  else removeDeferredChore(chore.id)
+}
+
+// Re-apply parked chores whose category is now present locally. Called after a
+// category is applied. applyChore removes each from the buffer on success and
+// re-parks any that still cannot resolve, so this is safe to call repeatedly.
+async function drainDeferredChores(): Promise<void> {
+  const deferred = getDeferredChores()
+  if (deferred.length === 0) return
+  for (const chore of deferred) {
+    const cat = chore.categorySyncId
+      ? await db.categories.where('sync_id').equals(chore.categorySyncId).first()
+      : undefined
+    if (cat) await applyChore(chore)
+  }
 }
 
 async function applyCompletionEvent(evt: SyncCompletionEvent): Promise<void> {
@@ -276,6 +298,8 @@ export async function applyRemoteDelete(entityId: string): Promise<void> {
       if (user) { await db.users.delete(user.id); return }
     },
   )
+  // Drop any parked copy so a deleted chore is never resurrected by a later drain.
+  removeDeferredChore(entityId)
   notifyApplied()
 }
 
