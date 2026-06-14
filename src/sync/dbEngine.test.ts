@@ -6,8 +6,10 @@ import {
   isInsertOnly,
   getEntityLastModified,
   applyRemoteEntity,
+  markAllLocalEntitiesDirty,
 } from './dbEngine'
 import { getDeferredChores } from './deferredChores'
+import type { DbSyncEngine } from '@glance-apps/sync'
 import type { Category, Chore, CompletionEvent, User } from '@/types'
 import type { SyncCategory, SyncChore } from './types'
 
@@ -126,6 +128,21 @@ describe('getEntityLastModified', () => {
     expect(getEntityLastModified(cat)).toBe('2026-02-02T00:00:00.000Z')
     expect(getEntityLastModified(chore)).toBe('2026-03-04T00:00:00.000Z')
     expect(getEntityLastModified(user)).toBe('2026-01-01T00:00:00.000Z')
+  })
+})
+
+describe('markAllLocalEntitiesDirty', () => {
+  it('marks every local entity across all four tables dirty', async () => {
+    const marked: string[] = []
+    const fakeEngine = { markDirty: (id: string) => { marked.push(id) } } as unknown as DbSyncEngine
+    await markAllLocalEntitiesDirty(fakeEngine)
+    // The records seeded in beforeAll, one per table.
+    expect(marked).toContain(USER_ID)
+    expect(marked).toContain(CAT_ID)
+    expect(marked).toContain(CHORE_ID)
+    expect(marked).toContain(EVENT_ID)
+    // Seed categories/chores populated on first open are included too.
+    expect(marked.length).toBeGreaterThan(4)
   })
 })
 

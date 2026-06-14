@@ -317,6 +317,25 @@ export interface DbEngineCallbacks {
   onError?: (message: string | null, code: SyncErrorCode | null) => void
 }
 
+// Marks every local entity dirty so the next push sends a complete snapshot.
+// Used for the first ever sync on a device (high water mark 0): existing users
+// who enable the vault have data that predates dirty tracking, so without this
+// only future changes would be pushed. pushDirtyRows then snapshots each id via
+// getLocalEntity. markDirty is idempotent, so repeating this before a successful
+// first push is harmless.
+export async function markAllLocalEntitiesDirty(engine: DbSyncEngine): Promise<void> {
+  const [cats, chores, events, users] = await Promise.all([
+    db.categories.toArray(),
+    db.chores.toArray(),
+    db.completionEvents.toArray(),
+    db.users.toArray(),
+  ])
+  for (const c of cats) engine.markDirty(c.sync_id)
+  for (const c of chores) engine.markDirty(c.sync_id)
+  for (const e of events) engine.markDirty(e.sync_id)
+  for (const u of users) engine.markDirty(u.sync_id)
+}
+
 // Builds the DB engine when the vault is enabled and fully configured, else
 // returns null (file tier only). The root key is derived from the same sync
 // passphrase the file engine holds; the engine fetches or registers the salt
@@ -325,7 +344,7 @@ export function createDbEngine(callbacks: DbEngineCallbacks = {}): DbSyncEngine 
   if (!isVaultEnabled()) return null
   const cfg = getVaultConfig()!
 
-  return createDbSyncEngine({
+  const engine = createDbSyncEngine({
     storageKeyPrefix: APP_ID,
     appId: APP_ID,
     vaultApp: APP_ID,
@@ -342,4 +361,23 @@ export function createDbEngine(callbacks: DbEngineCallbacks = {}): DbSyncEngine 
     onStatusChange: callbacks.onStatusChange,
     onError: callbacks.onError,
   })
+
+  // On the first ever sync (high water mark 0), seed the dirty set with the full
+  // local dataset so existing users get everything pushed, not just new changes.
+  // After a successful first push the high water mark advances past 0, so this
+  // runs once. Seeding failures are non-fatal: the normal cycle still proceeds.
+  const runCycle = engine.dbSyncCycle.bind(engine)
+  const dbSyncCycle = async (): Promise<void> => {
+    if (engine.getHighWaterMark() === 0) {
+      try {
+        await markAllLocalEntitiesDirty(engine)
+      } catch (err) {
+        console.warn('[lastglance] vault initial snapshot failed:', err)
+      }
+    }
+    await runCycle()
+  }
+
+  return { ...engine, dbSyncCycle, sync: dbSyncCycle }
 }
+
