@@ -1,4 +1,6 @@
-# lastGLANCE — Scoping Doc
+*Working document. Captures sequencing, architectural decisions, and open questions.*
+
+---
 
 Third standalone app in the GLANCE family. Tracks when you last did recurring upkeep activities, with optional cadence and optional auto-scheduling to dayGLANCE.
 
@@ -47,11 +49,6 @@ The name itself reflects this: lastGLANCE answers "when did I last do this?" rat
 Track when you last did stuff. If you want, set a cadence and it'll schedule itself in dayGLANCE when it's time. No guilt, no nagging, just information.
 
 ---
-
-## Status
-
-**v1.5.0 shipped June 2026** — web PWA with multiuser support, full dayGLANCE integration (encrypted intent transport via Phase 2.7 of the intents package), and cloud sync with remote backup. Released in coordination with dayGLANCE v3.0.0.
-
 ### Locked architectural decisions
 
 - **Storage: Dexie (IndexedDB) for web, native SQLite for Android.** SQLite WASM requires `Atomics.wait()` which is blocked on the browser main thread; OPFS persistence is only possible from a dedicated worker. Dexie provides equivalent local-first persistence via IndexedDB with no worker or special HTTP headers required. The TypeScript data model is identical across both targets.
@@ -63,7 +60,7 @@ Track when you last did stuff. If you want, set a cadence and it'll schedule its
 - **AI is BYO key, deferred past v1.0.0.** See "AI" section above.
 - **Visual identity is locked** (terminal-phosphor green wordmark, dark palette, masonry layout, contribution-graph header strip, color-gradient ribbon encoding).
 
-### Shipped in v1.0.0
+### Shipped
 
 - Project scaffold: Vite + React 19 + TypeScript, Tailwind, vite-plugin-pwa
 - Dexie data layer: schema, all CRUD queries for Category, Chore, CompletionEvent
@@ -86,9 +83,9 @@ Track when you last did stuff. If you want, set a cadence and it'll schedule its
 - **Remote backup to WebDAV.**
 - **Multiuser and multidevice support.**
 
-### Roadmap beyond v1.0.0
+### Roadmap
 
-1. **Android wrapper** — WebView shell, native SQLite swap-in replacing Dexie, intent protocol wiring for dayGLANCE integration (Android intent transport in addition to WebDAV), Obtainium distribution, eventual Google Play presence.
-2. **iOS app** — PWA-shell or native wrapper. WebDAV transport is the integration path on iOS (no Android intent equivalent). Background polling caveats apply.
-3. **Electron app** — desktop build, consistent with the dayGLANCE Desktop pattern. WebDAV transport for cross-app integration.
-4. **AI (BYO key)** — see "AI" section above. Deferred past v1.0.0 release. Triggers and surface design specced; provider integration and prompt engineering remain.
+1. **GLANCEvault support:** In progress/testing.
+2. **Android wrapper:** WebView shell, native SQLite swap-in replacing Dexie, intent protocol wiring for dayGLANCE integration (Android intent transport in addition to WebDAV), Obtainium distribution, eventual Google Play presence.
+3. **iOS app:** PWA-shell or native wrapper. WebDAV transport is the integration path on iOS (no Android intent equivalent). Background polling caveats apply.
+4. **Electron app:** desktop build, consistent with the dayGLANCE Desktop pattern. WebDAV transport for cross-app integration.
