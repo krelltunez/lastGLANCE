@@ -10,6 +10,7 @@ import {
 import type { SyncEngine, SyncStatus, SyncErrorCode, BackupFrequency } from '@glance-apps/sync'
 import { db } from '@/db/client'
 import { buildAuthHeader, ensureFolder } from '@/intents/webdav'
+import { isNativePlatform, nativeHttpFetch } from './nativeHttp'
 import type { SyncPayload, SyncSettings } from './types'
 import { getMultiUserEnabled, setMultiUserEnabled } from '@/multiuser/settings'
 
@@ -491,6 +492,9 @@ export function createEngine(proxyUrl: string | undefined, callbacks: EngineCall
     appId: 'lastglance',
     appName: 'lastGLANCE',
     proxyUrl,
+    // On native (Capacitor) route WebDAV through the native HTTP stack so sync
+    // works without the CORS proxy. Takes priority over proxyUrl in the engine.
+    electronProxyFetch: isNativePlatform ? nativeHttpFetch : undefined,
     buildPayload,
     buildBackupPayload: buildPayload,
     applyPayload,

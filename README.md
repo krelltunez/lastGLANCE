@@ -46,6 +46,7 @@ lastGLANCE is a chore-tracking progressive web app that answers one question: *w
 | Intents | `@glance-apps/intents` |
 | Build | Vite 6, TypeScript |
 | PWA | vite-plugin-pwa (Workbox) |
+| Mobile | Capacitor (Android + iOS) |
 | Container | nginx (production), Docker |
 
 ---
@@ -93,6 +94,21 @@ npm run build      # Production build -> dist/
 npm run preview    # Preview production build locally
 npm run lint       # ESLint
 ```
+
+### Mobile apps (Android & iOS)
+
+Native Android and iOS apps are built from the same web build with
+[Capacitor](https://capacitorjs.com/):
+
+```bash
+npm install
+npm run cap:sync       # build dist/ and sync into the native projects
+npm run cap:android    # build + sync, then open Android Studio
+npm run cap:ios        # build + sync, then open Xcode (requires macOS)
+```
+
+WebDAV/Nextcloud sync works without a CORS proxy in the apps thanks to the
+CapacitorHttp plugin. See [docs/mobile.md](docs/mobile.md) for details.
 
 ---
 
