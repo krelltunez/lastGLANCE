@@ -338,7 +338,15 @@ function AppInner() {
 
   return (
     <UsersContext.Provider value={usersCtx}>
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col">
+    <div
+      className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col"
+      style={{
+        // Edge-to-edge: the background fills behind the transparent status bar
+        // and gesture nav; these insets keep content out from under them.
+        paddingTop: 'env(safe-area-inset-top)',
+        paddingBottom: 'env(safe-area-inset-bottom)',
+      }}
+    >
       <header className="shrink-0 px-5 pt-5 pb-4 border-b border-slate-200 dark:border-slate-800/80 flex items-end justify-between gap-4">
         {/* Logo + heatmap */}
         <div className="flex items-end gap-5 min-w-0">
