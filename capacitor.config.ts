@@ -16,9 +16,11 @@ const config: CapacitorConfig = {
     },
     // Initial status bar appearance (brand defaults to dark); the app then
     // keeps it in sync with the live theme via src/native/statusBar.ts.
+    // overlaysWebView draws the app background behind a transparent bar
+    // (required on Android 15 / targetSdk 36, which ignores a bar color).
     StatusBar: {
       style: 'DARK',
-      backgroundColor: '#020617',
+      overlaysWebView: true,
     },
   },
 }
