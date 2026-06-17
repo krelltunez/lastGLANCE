@@ -21,3 +21,16 @@ export async function applyStatusBarTheme(isDark: boolean): Promise<void> {
     // Plugin unavailable or transient failure — leave the OS default.
   }
 }
+
+// Hide the status bar in landscape for a full-screen view; show it in portrait.
+// Registers an orientation listener and returns a cleanup function. No-op on web.
+export function initFullScreenInLandscape(): () => void {
+  if (!Capacitor.isNativePlatform()) return () => {}
+  const mq = window.matchMedia('(orientation: landscape)')
+  const apply = () => {
+    (mq.matches ? StatusBar.hide() : StatusBar.show()).catch(() => {})
+  }
+  apply()
+  mq.addEventListener('change', apply)
+  return () => mq.removeEventListener('change', apply)
+}

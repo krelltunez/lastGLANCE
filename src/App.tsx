@@ -22,7 +22,7 @@ import { createEngine, initSessionKey, setupEncryptionKey, runAutoBackups, ensur
 import { createDbEngine } from '@/sync/dbEngine'
 import { registerDbEngine } from '@/sync/dirtyTracker'
 import { isVaultEnabled } from '@/sync/vaultConfig'
-import { applyStatusBarTheme } from '@/native/statusBar'
+import { applyStatusBarTheme, initFullScreenInLandscape } from '@/native/statusBar'
 import { hasDbRootKey, initDbRootKey, getSyncPassphrase } from '@glance-apps/sync'
 import type { SyncEngine, SyncStatus, DbSyncEngine } from '@glance-apps/sync'
 import { syncSharedUsers } from '@/multiuser/sharedUsers'
@@ -162,6 +162,9 @@ function AppInner() {
     localStorage.setItem('theme', isDark ? 'dark' : 'light')
     applyStatusBarTheme(isDark)
   }, [isDark])
+
+  // Full-screen (hide the status bar) in landscape, restore it in portrait.
+  useEffect(() => initFullScreenInLandscape(), [])
 
   // Initialize sync engine on mount
   useEffect(() => {
@@ -341,13 +344,21 @@ function AppInner() {
     <div
       className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col"
       style={{
-        // Edge-to-edge: the background fills behind the transparent status bar
-        // and gesture nav; these insets keep content out from under them.
-        paddingTop: 'env(safe-area-inset-top)',
+        // Edge-to-edge: the background fills behind the transparent gesture nav;
+        // this keeps content clear of it. (The status-bar inset is handled on
+        // the header so it doesn't stack with the header's own top padding.)
         paddingBottom: 'env(safe-area-inset-bottom)',
       }}
     >
-      <header className="shrink-0 px-5 pt-5 pb-4 border-b border-slate-200 dark:border-slate-800/80 flex items-end justify-between gap-4">
+      <header
+        className="shrink-0 px-5 pb-4 border-b border-slate-200 dark:border-slate-800/80 flex items-end justify-between gap-4"
+        style={{
+          // Clear the status bar without doubling the gap: the larger of the
+          // normal padding (pt-5 = 1.25rem) and the safe-area inset. In landscape
+          // the bar is hidden so the inset collapses to the 1.25rem default.
+          paddingTop: 'max(1.25rem, env(safe-area-inset-top))',
+        }}
+      >
         {/* Logo + heatmap */}
         <div className="flex items-end gap-5 min-w-0">
           <div className="shrink-0">
