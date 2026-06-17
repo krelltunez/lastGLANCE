@@ -83,11 +83,64 @@ npx cap open ios
 
 ### Requirements
 
-- **Android**: Android Studio + JDK (Capacitor 8 targets the bundled Gradle).
+- **Android**: a JDK (17+; the repo is verified with JDK 21) and the Android
+  SDK command-line tools on `PATH` (`ANDROID_HOME`). **Android Studio is not
+  required** — the build runs from the Gradle wrapper. `adb` (platform-tools)
+  is needed only for the auto-install step.
 - **iOS**: macOS with Xcode. Capacitor 8 uses Swift Package Manager, so no
   CocoaPods install is needed.
 
-### Typical workflow
+## Building the Android APK (CLI)
+
+`build-android.sh` (ported from the dayGLANCE build script) wraps the whole
+flow — web build, `cap sync`, and Gradle — so no IDE is needed:
+
+```bash
+./build-android.sh            # debug APK -> outputs/lastglance-debug.apk, then adb install
+./build-android.sh --release  # signed release APK -> outputs/lastglance.apk
+./build-android.sh --clean    # gradle clean + wipe dist/ first (combines with --release)
+```
+
+The debug build installs onto a connected device/emulator automatically (skipped
+if none is attached). Build artifacts land in `outputs/` (gitignored).
+
+`versionName`/`versionCode` are derived from `package.json` in
+`android/app/build.gradle` (e.g. `1.8.4` → versionCode `10804`), so the native
+version tracks the web app automatically.
+
+### Release signing
+
+Release builds are signed from `android/keystore.properties` (gitignored). Set
+it up once:
+
+```bash
+# 1. Create a keystore (keep it safe — losing it means you can't update the app)
+keytool -genkey -v -keystore android/lastglance-release.keystore \
+  -alias lastglance -keyalg RSA -keysize 2048 -validity 10000
+
+# 2. Configure signing (storeFile is relative to android/)
+cp android/keystore.properties.example android/keystore.properties
+# then edit android/keystore.properties with the real passwords/alias
+```
+
+Without `keystore.properties`, `--release` still builds but produces an
+**unsigned** APK (not installable) — the script warns when this happens.
+
+> AAB (Play Store bundle) and per-store flavors aren't wired up yet; add a
+> `bundleRelease` step to `build-android.sh` when needed.
+
+## Building for iOS
+
+Open the project and Archive from Xcode:
+
+```bash
+npm run build && npx cap sync ios
+npx cap open ios        # then Product ▸ Archive in Xcode
+```
+
+(Signing uses your Apple Developer team in Xcode's *Signing & Capabilities*.)
+
+## Typical workflow
 
 After any change to the web app, rebuild and re-sync before running natively:
 
@@ -96,4 +149,4 @@ npm run cap:sync
 ```
 
 `cap sync` copies the latest `dist/` into both native projects and updates the
-installed plugins.
+installed plugins. `build-android.sh` does this for you (`build:android`).

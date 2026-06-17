@@ -5,3 +5,9 @@ dist
 .env
 .env.*
 !.env.example
+
+# Mobile build outputs & signing secrets
+outputs
+android/keystore.properties
+*.keystore
+*.jks

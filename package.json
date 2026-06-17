@@ -10,6 +10,7 @@
     "lint": "eslint .",
     "test": "vitest run",
     "cap:sync": "npm run build && cap sync",
+    "build:android": "npm run build && cap sync android",
     "cap:android": "npm run cap:sync && cap open android",
     "cap:ios": "npm run cap:sync && cap open ios"
   },
