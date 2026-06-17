@@ -22,6 +22,7 @@ import { createEngine, initSessionKey, setupEncryptionKey, runAutoBackups, ensur
 import { createDbEngine } from '@/sync/dbEngine'
 import { registerDbEngine } from '@/sync/dirtyTracker'
 import { isVaultEnabled } from '@/sync/vaultConfig'
+import { applyStatusBarTheme } from '@/native/statusBar'
 import { hasDbRootKey, initDbRootKey, getSyncPassphrase } from '@glance-apps/sync'
 import type { SyncEngine, SyncStatus, DbSyncEngine } from '@glance-apps/sync'
 import { syncSharedUsers } from '@/multiuser/sharedUsers'
@@ -159,6 +160,7 @@ function AppInner() {
   useEffect(() => {
     document.documentElement.classList.toggle('dark', isDark)
     localStorage.setItem('theme', isDark ? 'dark' : 'light')
+    applyStatusBarTheme(isDark)
   }, [isDark])
 
   // Initialize sync engine on mount
