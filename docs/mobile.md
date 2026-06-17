@@ -163,6 +163,48 @@ lastGLANCE has a committed `.xcodeproj` and a static `Info.plist`. The
 `ios/App/App/Info.plist`** — it is not overwritten by Xcode or `cap sync`.
 Setting it avoids the encryption prompt on every TestFlight upload.
 
+### TestFlight checklist
+
+Getting the iOS app onto TestFlight, start to finish.
+
+**Already handled in this repo** (nothing to do):
+- Bundle identifier `com.lastglance`.
+- Marketing version synced from `package.json` (`npm run build:ios`).
+- `ITSAppUsesNonExemptEncryption=false` in `Info.plist` (export-compliance
+  exemption — no encryption prompt per upload).
+- App icons & splash screens.
+
+**One-time account setup:**
+1. Enroll in the **Apple Developer Program** ($99/year). A free account can
+   only do 7-day local installs — TestFlight requires the paid membership.
+
+**One-time, per app (in App Store Connect):**
+2. Create the **app record** (this registers the bundle id `com.lastglance`).
+   Set name, primary language, and an SKU. Note: the public app **name must be
+   unique** across the App Store.
+3. **Signing:** open the project in Xcode, sign into your Team under
+   *Signing & Capabilities*, and tick **Automatically manage signing** — Xcode
+   creates the distribution certificate and provisioning profile for you.
+
+**Each build/upload:**
+4. Build + sync + open Xcode:
+   ```bash
+   npm run cap:ios          # build, cap sync ios, version sync, open Xcode
+   ```
+5. In Xcode: select your **Team**, confirm bundle id `com.lastglance`, and
+   **increment the build number** (`CFBundleVersion`) — it must be unique on
+   every upload (`agvtool new-version -all <n>` or bump it in the target).
+6. **Product ▸ Archive ▸ Distribute App ▸ App Store Connect ▸ Upload.**
+7. Wait for processing in App Store Connect; the build then appears under
+   **TestFlight**.
+
+**Inviting testers:**
+8. **Internal testing** (up to 100 App Store Connect team users): no review,
+   available right after processing — the fast path.
+9. **External testing** (up to 10,000, via email/public link): requires a
+   one-time lightweight **Beta App Review** plus "Test Information" (beta
+   description, contact). The encryption answer is already covered by step 0.
+
 ## Typical workflow
 
 After any change to the web app, rebuild and re-sync before running natively:
