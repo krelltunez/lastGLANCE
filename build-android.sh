@@ -64,6 +64,20 @@ if $RELEASE; then
   cp "app/build/outputs/apk/release/lastglance.apk" "$OUT_DIR/lastglance.apk"
   echo "    APK (release) → outputs/lastglance.apk"
 
+  # Verify the APK carries a valid signature (catches a misconfigured or
+  # missing keystore.properties that would otherwise ship an unsigned APK).
+  SDK_DIR="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
+  APKSIGNER="$(command -v apksigner || true)"
+  if [ -z "$APKSIGNER" ] && [ -n "$SDK_DIR" ]; then
+    APKSIGNER="$(ls "$SDK_DIR"/build-tools/*/apksigner 2>/dev/null | sort -V | tail -1)"
+  fi
+  if [ -n "$APKSIGNER" ]; then
+    echo "==> Verifying signature..."
+    "$APKSIGNER" verify --print-certs "$OUT_DIR/lastglance.apk"
+  else
+    echo "    (apksigner not found on PATH or in \$ANDROID_HOME; skipping signature check)"
+  fi
+
   echo ""
   echo "==> Android release build complete. outputs/:"
   ls -lh "$OUT_DIR"
