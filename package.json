@@ -8,9 +8,18 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "lint": "eslint .",
-    "test": "vitest run"
+    "test": "vitest run",
+    "cap:sync": "npm run build && cap sync",
+    "build:android": "npm run build && cap sync android",
+    "build:ios": "npm run build && cap sync ios && node scripts/sync-ios-version.mjs",
+    "sync:ios-version": "node scripts/sync-ios-version.mjs",
+    "cap:android": "npm run cap:sync && cap open android",
+    "cap:ios": "npm run build:ios && cap open ios"
   },
   "dependencies": {
+    "@capacitor/android": "^8.4.0",
+    "@capacitor/core": "^8.4.0",
+    "@capacitor/ios": "^8.4.0",
     "@glance-apps/intents": "^1.3.3",
     "@glance-apps/sync": "1.3.2",
     "dayjs": "^1.11.13",
@@ -24,6 +33,8 @@
     "react-i18next": "^17.0.8"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.4.0",
     "@types/node": "^25.6.0",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
