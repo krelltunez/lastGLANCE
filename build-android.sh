@@ -46,6 +46,16 @@ fi
 
 mkdir -p "$OUT_DIR"
 
+# ── Dependencies ────────────────────────────────────────────────────────────
+# Auto-install JS deps when node_modules is missing or older than the lockfile
+# (e.g. after a git pull that changed package-lock.json), so a forgotten
+# `npm install` can't silently break the build. No-op on an up-to-date tree.
+cd "$SCRIPT_DIR"
+if [ ! -d node_modules ] || [ package-lock.json -nt node_modules ]; then
+  echo "==> Installing JS dependencies (node_modules missing or lockfile changed)..."
+  npm install
+fi
+
 if $RELEASE; then
   # ── Release APK ────────────────────────────────────────────────────────
   if [ ! -f "$ANDROID_DIR/keystore.properties" ]; then

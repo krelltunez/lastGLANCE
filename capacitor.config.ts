@@ -14,6 +14,12 @@ const config: CapacitorConfig = {
     CapacitorHttp: {
       enabled: true,
     },
+    // Initial status bar appearance (brand defaults to dark); the app then
+    // keeps it in sync with the live theme via src/native/statusBar.ts.
+    StatusBar: {
+      style: 'DARK',
+      backgroundColor: '#020617',
+    },
   },
 }
 
