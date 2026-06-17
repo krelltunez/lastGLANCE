@@ -11,8 +11,10 @@
     "test": "vitest run",
     "cap:sync": "npm run build && cap sync",
     "build:android": "npm run build && cap sync android",
+    "build:ios": "npm run build && cap sync ios && node scripts/sync-ios-version.mjs",
+    "sync:ios-version": "node scripts/sync-ios-version.mjs",
     "cap:android": "npm run cap:sync && cap open android",
-    "cap:ios": "npm run cap:sync && cap open ios"
+    "cap:ios": "npm run build:ios && cap open ios"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.0",

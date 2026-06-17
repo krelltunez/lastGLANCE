@@ -131,14 +131,37 @@ Without `keystore.properties`, `--release` still builds but produces an
 
 ## Building for iOS
 
-Open the project and Archive from Xcode:
+Build the web app, sync, and open Xcode to Archive:
 
 ```bash
-npm run build && npx cap sync ios
-npx cap open ios        # then Product ▸ Archive in Xcode
+npm run cap:ios          # build + cap sync ios + version sync + open Xcode
+# or, without opening Xcode:
+npm run build:ios
+npx cap open ios         # then Product ▸ Archive in Xcode
 ```
 
 (Signing uses your Apple Developer team in Xcode's *Signing & Capabilities*.)
+
+### Version & build number
+
+The iOS **marketing version** (`CFBundleShortVersionString`) is kept in sync
+with `package.json` by `scripts/sync-ios-version.mjs`, which `build:ios` /
+`cap:ios` run automatically (or run `npm run sync:ios-version` directly). It
+rewrites `MARKETING_VERSION` in the Xcode project; the static `Info.plist`
+references that via `$(MARKETING_VERSION)`, so Xcode substitutes it at build
+time and never overwrites the plist.
+
+The **build number** (`CURRENT_PROJECT_VERSION` / `CFBundleVersion`) must
+*increment on every TestFlight/App Store upload* and is intentionally left
+manual — bump it in Xcode (or with `agvtool new-version -all <n>`) per upload.
+
+### Export compliance (encryption flag)
+
+Unlike dayGLANCE (which generates its project from `project.yml` via XcodeGen),
+lastGLANCE has a committed `.xcodeproj` and a static `Info.plist`. The
+`ITSAppUsesNonExemptEncryption` key therefore goes **directly in
+`ios/App/App/Info.plist`** — it is not overwritten by Xcode or `cap sync`.
+Setting it avoids the encryption prompt on every TestFlight upload.
 
 ## Typical workflow
 
