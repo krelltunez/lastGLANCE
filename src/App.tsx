@@ -350,15 +350,7 @@ function AppInner() {
         paddingBottom: 'env(safe-area-inset-bottom)',
       }}
     >
-      <header
-        className="shrink-0 px-5 pb-4 border-b border-slate-200 dark:border-slate-800/80 flex items-end justify-between gap-4"
-        style={{
-          // Clear the status bar without doubling the gap: the larger of the
-          // normal padding (pt-5 = 1.25rem) and the safe-area inset. In landscape
-          // the bar is hidden so the inset collapses to the 1.25rem default.
-          paddingTop: 'max(1.25rem, env(safe-area-inset-top))',
-        }}
-      >
+      <header className="app-safe-top shrink-0 px-5 pb-4 border-b border-slate-200 dark:border-slate-800/80 flex items-end justify-between gap-4">
         {/* Logo + heatmap */}
         <div className="flex items-end gap-5 min-w-0">
           <div className="shrink-0">

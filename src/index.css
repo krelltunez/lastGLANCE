@@ -29,3 +29,15 @@
     display: none;
   }
 }
+
+/* Top inset that clears the status bar in portrait. In landscape the status
+   bar is hidden (see initFullScreenInLandscape), so trim the floor down while
+   still honoring any display cutout via the safe-area inset. */
+.app-safe-top {
+  padding-top: max(1.25rem, env(safe-area-inset-top));
+}
+@media (orientation: landscape) {
+  .app-safe-top {
+    padding-top: max(0.5rem, env(safe-area-inset-top));
+  }
+}
