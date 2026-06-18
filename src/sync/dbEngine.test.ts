@@ -8,6 +8,7 @@ import {
   applyRemoteEntity,
   markAllLocalEntitiesDirty,
   createDbEngine,
+  resolveCategoryParents,
 } from './dbEngine'
 import { getDeferredChores } from './deferredChores'
 import { getDeferredCompletions } from './deferredCompletions'
@@ -273,6 +274,40 @@ describe('applyRemoteEntity subcategory before its parent', () => {
     expect(afterB!.parent_category_id).toBe(parentRow!.id)
     // The parent itself stays a root.
     expect(parentRow!.parent_category_id).toBeUndefined()
+  })
+})
+
+describe('resolveCategoryParents repairs already-flat categories', () => {
+  // A device that received its categories flat under an earlier build has them
+  // stored with parent_sync_id set but parent_category_id missing. A re-pull will
+  // NOT fix them (last-writer-wins skips already-present rows with unchanged
+  // updatedAt), so the standalone repair must relink them directly from local data.
+  const RPARENT_ID = 'dddddddd-dddd-dddd-dddd-dddddddddddd'
+  const RCHILD_ID = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee'
+
+  it('links a flat subcategory to a parent that is already present locally', async () => {
+    const parentKey = await db.categories.add({
+      name: 'Vehicles', sort_order: 1, icon: 'Car', sync_id: RPARENT_ID,
+      parent_sync_id: null, assigned_user_sync_ids: [], updated_at: '2026-06-15T00:00:00.000Z',
+    } as unknown as Category)
+    // Child stored flat: parent_sync_id is correct, but parent_category_id is unset.
+    await db.categories.add({
+      name: 'Motorcycle', sort_order: 2, icon: 'Bike', sync_id: RCHILD_ID,
+      parent_sync_id: RPARENT_ID, assigned_user_sync_ids: [], updated_at: '2026-06-16T00:00:00.000Z',
+    } as unknown as Category)
+
+    const before = await db.categories.where('sync_id').equals(RCHILD_ID).first()
+    expect(before!.parent_category_id).toBeUndefined()
+
+    const changed = await resolveCategoryParents()
+    expect(changed).toBeGreaterThanOrEqual(1)
+
+    const after = await db.categories.where('sync_id').equals(RCHILD_ID).first()
+    expect(after!.parent_category_id).toBe(parentKey as number)
+
+    // Idempotent: a second pass changes nothing for this pair.
+    const stillLinked = await db.categories.where('sync_id').equals(RCHILD_ID).first()
+    expect(stillLinked!.parent_category_id).toBe(parentKey as number)
   })
 })
 
