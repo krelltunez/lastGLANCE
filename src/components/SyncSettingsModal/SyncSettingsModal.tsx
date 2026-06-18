@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { X, Loader, AlertTriangle, CheckCircle, XCircle } from 'lucide-react'
-import type { SyncEngine } from '@glance-apps/sync'
+import type { SyncEngine, DbSyncEngine } from '@glance-apps/sync'
 import { setupEncryptionKey, clearEncryptionKey, ensureSyncFolder, resetEnsuredFolder, CRYPTO_CONFIG, getRemoteBackupsEnabled, setRemoteBackupsEnabled, DEFAULT_SYNC_FOLDER, SYNC_FOLDER_KEY } from '@/sync/engine'
 import { getVaultConfig, setVaultConfig } from '@/sync/vaultConfig'
 import { cloudSyncProviders } from '@/utils/cloudSyncProviders'
@@ -10,13 +10,14 @@ import { useTranslation } from 'react-i18next'
 
 interface Props {
   engine: SyncEngine | null
+  dbEngine: DbSyncEngine | null
   onClose: () => void
 }
 
 type TestStatus = 'idle' | 'testing' | 'ok' | 'fail'
 type SyncResult = 'idle' | 'ok' | 'error'
 
-export function SyncSettingsModal({ engine, onClose }: Props) {
+export function SyncSettingsModal({ engine, dbEngine, onClose }: Props) {
   const { t } = useTranslation()
   const existingConfig = engine?.getConfig() ?? null
   const initFolder = localStorage.getItem(SYNC_FOLDER_KEY) ?? DEFAULT_SYNC_FOLDER
@@ -57,6 +58,13 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
   const [syncResult, setSyncResult] = useState<SyncResult>('idle')
   const [syncResultMsg, setSyncResultMsg] = useState('')
   const [lastSynced, setLastSynced] = useState(() => engine?.getLastSynced() ?? null)
+
+  // GLANCEvault manual sync runs the DB engine's own cycle, independent of the
+  // WebDAV file sync above.
+  const [vaultSyncing, setVaultSyncing] = useState(false)
+  const [vaultSyncResult, setVaultSyncResult] = useState<SyncResult>('idle')
+  const [vaultSyncResultMsg, setVaultSyncResultMsg] = useState('')
+  const [vaultLastSynced, setVaultLastSynced] = useState(() => dbEngine?.getLastSynced() ?? null)
 
   const halted = engine?.isHardStopped() ?? false
 
@@ -178,6 +186,23 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
     }
   }
 
+  async function handleVaultSyncNow() {
+    if (!dbEngine) return
+    setVaultSyncing(true)
+    setVaultSyncResult('idle')
+    setVaultSyncResultMsg('')
+    try {
+      await dbEngine.dbSyncCycle()
+      setVaultLastSynced(dbEngine.getLastSynced())
+      setVaultSyncResult('ok')
+    } catch (err) {
+      setVaultSyncResult('error')
+      setVaultSyncResultMsg(err instanceof Error ? err.message : t('sync.syncFailed'))
+    } finally {
+      setVaultSyncing(false)
+    }
+  }
+
   function formatLastSynced(iso: string | null): string {
     if (!iso) return t('sync.neverSynced')
     const d = new Date(iso)
@@ -284,20 +309,47 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
               <p className="text-xs text-slate-400 dark:text-slate-500">{activeProvider.helpText}</p>
             )}
 
-            <div className="flex items-center gap-3 pt-1">
-              <button
-                onClick={handleTest}
-                disabled={testStatus === 'testing' || !requiredFieldsFilled}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-40 transition-colors"
-              >
-                {testStatus === 'testing' && <Loader size={12} className="animate-spin" />}
-                {t('sync.testConnection')}
-              </button>
-              {testStatus === 'ok' && (
-                <span className="text-xs text-green-500 dark:text-green-400">{t('sync.connected')}</span>
+            <div className="space-y-2 pt-1">
+              <div className="flex items-center gap-3 flex-wrap">
+                <button
+                  onClick={handleTest}
+                  disabled={testStatus === 'testing' || !requiredFieldsFilled}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-40 transition-colors"
+                >
+                  {testStatus === 'testing' && <Loader size={12} className="animate-spin" />}
+                  {t('sync.testConnection')}
+                </button>
+                <button
+                  onClick={handleSyncNow}
+                  disabled={!engine || syncing || (engine?.isSyncing() ?? false)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-40 transition-colors"
+                >
+                  {syncing && <Loader size={12} className="animate-spin" />}
+                  {t('sync.syncNow')}
+                </button>
+                {testStatus === 'ok' && (
+                  <span className="text-xs text-green-500 dark:text-green-400">{t('sync.connected')}</span>
+                )}
+                {testStatus === 'fail' && (
+                  <span className="text-xs text-red-500 dark:text-red-400">{testError || t('sync.testFailed')}</span>
+                )}
+              </div>
+              {syncResult === 'ok' && (
+                <span className="flex items-center gap-1.5 text-xs text-green-500 dark:text-green-400">
+                  <CheckCircle size={13} />
+                  {t('sync.syncedDate', { date: formatLastSynced(lastSynced) })}
+                </span>
               )}
-              {testStatus === 'fail' && (
-                <span className="text-xs text-red-500 dark:text-red-400">{testError || t('sync.testFailed')}</span>
+              {syncResult === 'error' && (
+                <span className="flex items-center gap-1.5 text-xs text-red-500 dark:text-red-400">
+                  <XCircle size={13} />
+                  {syncResultMsg || t('sync.syncFailed')}
+                </span>
+              )}
+              {syncResult === 'idle' && lastSynced && (
+                <p className="text-xs text-slate-400 dark:text-slate-500">
+                  {t('sync.lastSynced', { date: formatLastSynced(lastSynced) })}
+                </p>
               )}
             </div>
           </div>
@@ -485,39 +537,39 @@ export function SyncSettingsModal({ engine, onClose }: Props) {
                 </p>
               </div>
             )}
-          </div>
 
-          {/* Manual sync section */}
-          <div className="space-y-3">
-            <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-              {t('sync.manualSync')}
-            </h3>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={handleSyncNow}
-                disabled={!engine || syncing || engine.isSyncing()}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-40 transition-colors"
-              >
-                {syncing && <Loader size={14} className="animate-spin" />}
-                {t('sync.syncNow')}
-              </button>
-              {syncResult === 'ok' && (
-                <span className="flex items-center gap-1.5 text-xs text-green-500 dark:text-green-400">
-                  <CheckCircle size={13} />
-                  {t('sync.syncedDate', { date: formatLastSynced(lastSynced) })}
-                </span>
-              )}
-              {syncResult === 'error' && (
-                <span className="flex items-center gap-1.5 text-xs text-red-500 dark:text-red-400">
-                  <XCircle size={13} />
-                  {syncResultMsg || t('sync.syncFailed')}
-                </span>
-              )}
-            </div>
-            {syncResult === 'idle' && lastSynced && (
-              <p className="text-xs text-slate-400 dark:text-slate-500">
-                {t('sync.lastSynced', { date: formatLastSynced(lastSynced) })}
-              </p>
+            {vaultEnabled && (
+              <div className="space-y-2 pt-1">
+                <div className="flex items-center gap-3 flex-wrap">
+                  <button
+                    onClick={handleVaultSyncNow}
+                    disabled={!dbEngine || vaultSyncing || (dbEngine?.isSyncing() ?? false)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-40 transition-colors"
+                  >
+                    {vaultSyncing && <Loader size={12} className="animate-spin" />}
+                    {t('sync.syncNow')}
+                  </button>
+                  {vaultSyncResult === 'ok' && (
+                    <span className="flex items-center gap-1.5 text-xs text-green-500 dark:text-green-400">
+                      <CheckCircle size={13} />
+                      {t('sync.syncedDate', { date: formatLastSynced(vaultLastSynced) })}
+                    </span>
+                  )}
+                  {vaultSyncResult === 'error' && (
+                    <span className="flex items-center gap-1.5 text-xs text-red-500 dark:text-red-400">
+                      <XCircle size={13} />
+                      {vaultSyncResultMsg || t('sync.syncFailed')}
+                    </span>
+                  )}
+                </div>
+                {vaultSyncResult === 'idle' && (
+                  <p className="text-xs text-slate-400 dark:text-slate-500">
+                    {dbEngine
+                      ? t('sync.lastSynced', { date: formatLastSynced(vaultLastSynced) })
+                      : 'Save & reload to activate GLANCEvault sync.'}
+                  </p>
+                )}
+              </div>
             )}
           </div>
 

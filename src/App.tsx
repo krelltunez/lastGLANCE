@@ -529,6 +529,7 @@ function AppInner() {
       {showSyncSettings && (
         <SyncSettingsModal
           engine={engineRef.current}
+          dbEngine={dbEngineRef.current}
           onClose={() => { setShowSyncSettings(false); runSharedUserSync() }}
         />
       )}
