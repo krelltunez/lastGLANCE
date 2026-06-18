@@ -171,27 +171,37 @@ async function applyCategory(cat: SyncCategory): Promise<void> {
 }
 
 // Back-fill parent_category_id for any category that carries a parent_sync_id
-// but has no resolved local FK yet. The DB transport applies categories one row
-// at a time in vault seq order, so a subcategory can be written before its
-// parent exists locally; unlike the file tier's two-pass applyPayload, a single
+// but has no resolved local FK yet, and report how many rows it fixed.
+//
+// Two situations need this. (1) The DB transport applies categories one row at a
+// time in vault seq order, so a subcategory can be written before its parent
+// exists locally; unlike the file tier's two-pass applyPayload, a single
 // applyCategory cannot resolve a not-yet-present parent and leaves the FK unset.
+// (2) A device that received its categories flat under an earlier build still has
+// them flat: a re-pull will NOT repair them, because @glance-apps/sync skips an
+// already-present row whose updatedAt is not strictly newer (last-writer-wins), so
+// applyCategory never re-runs for them. The parent row and parent_sync_id are both
+// present locally, so this standalone pass relinks them regardless of the pull.
 //
 // This matters because the UI groups strictly by parent_category_id (see
 // useChores.ts): a row with a null/undefined FK renders as a ROOT category, so
-// every subcategory whose parent lands later would otherwise show up flattened
-// to a top-level category. Running this after every category apply closes the
-// gap — when the parent finally arrives, its waiting children get linked. It is
-// idempotent and cheap (the categories table is tiny).
-async function resolveCategoryParents(): Promise<void> {
+// every unlinked subcategory shows up flattened to a top-level category. Idempotent
+// and cheap (the categories table is tiny).
+export async function resolveCategoryParents(): Promise<number> {
+  let changed = 0
   await db.transaction('rw', db.categories, async () => {
     const cats = await db.categories.toArray()
     const idBySyncId = new Map(cats.map(c => [c.sync_id, c.id]))
     for (const c of cats) {
       if (!c.parent_sync_id || c.parent_category_id != null) continue
       const parentId = idBySyncId.get(c.parent_sync_id)
-      if (parentId != null) await db.categories.update(c.id!, { parent_category_id: parentId })
+      if (parentId != null) {
+        await db.categories.update(c.id!, { parent_category_id: parentId })
+        changed++
+      }
     }
   })
+  return changed
 }
 
 async function applyChore(chore: SyncChore): Promise<void> {
@@ -474,6 +484,15 @@ export function createDbEngine(callbacks: DbEngineCallbacks = {}): DbSyncEngine 
   // also makes the seeding wrapper re-snapshot local data, which is harmless.
   recoverStalePullCursor(engine)
 
+  // Repair categories that were stored flat by an earlier build, immediately on
+  // open. A re-pull cannot fix these (last-writer-wins skips already-present rows
+  // whose updatedAt is unchanged), but their parent_sync_id and parent row are
+  // already local, so this relinks them. Fire-and-forget; refresh the UI if it
+  // changed anything so the nesting appears without waiting for a sync.
+  resolveCategoryParents()
+    .then((n) => { if (n > 0) notifyApplied() })
+    .catch((err) => console.warn('[lastglance] category parent repair failed:', err))
+
   // On the first ever sync (high water mark 0), seed the dirty set with the full
   // local dataset so existing users get everything pushed, not just new changes.
   // After a successful first push the high water mark advances past 0, so this
@@ -488,6 +507,13 @@ export function createDbEngine(callbacks: DbEngineCallbacks = {}): DbSyncEngine 
       }
     }
     await runCycle()
+    // A pull may have skipped already-present rows under last-writer-wins, so run
+    // the repair after every cycle too; refresh the UI when it links anything.
+    try {
+      if ((await resolveCategoryParents()) > 0) notifyApplied()
+    } catch (err) {
+      console.warn('[lastglance] category parent repair failed:', err)
+    }
   }
 
   return { ...engine, dbSyncCycle, sync: dbSyncCycle }
