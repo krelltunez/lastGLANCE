@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from 'react'
+import { useState, useRef, useEffect, useLayoutEffect, useMemo } from 'react'
 import { Plus, GripVertical, Search, UserCircle, Clock } from 'lucide-react'
 import { useChores } from '@/hooks/useChores'
 import { reorderCategories } from '@/db/queries'
@@ -307,6 +307,31 @@ export function Ribbon({ editMode, onLogged }: Props) {
     return () => obs.disconnect()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sortedCatIdsKey])
+
+  // A category card keeps a stable id but its *contents* change when a filter
+  // is toggled (Soon / Mine) or edit mode flips — so its cached height goes
+  // stale even though its id hasn't. The ResizeObserver above only re-attaches
+  // when the *set* of categories changes, and on a mass toggle the browser can
+  // also drop ResizeObserver notifications ("loop completed with undelivered
+  // notifications"), leaving heights uncorrected and the masonry packing cards
+  // on top of each other. Re-measure every visible card synchronously before
+  // paint so packing never depends on async observer delivery for these cases.
+  useLayoutEffect(() => {
+    const grid = desktopGridRef.current
+    if (!grid) return
+    let changed = false
+    grid.querySelectorAll<HTMLElement>('[data-cat-card-id]').forEach(el => {
+      const id = parseInt(el.getAttribute('data-cat-card-id') ?? '0')
+      if (!id) return
+      const h = el.offsetHeight
+      if (cardHeightsRef.current.get(id) !== h) {
+        cardHeightsRef.current.set(id, h)
+        changed = true
+      }
+    })
+    if (changed) setPackVersion(v => v + 1)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filter, attentionOnly, editMode, sortedCatIdsKey])
 
   useEffect(() => {
     if (packPhase !== 1) return
