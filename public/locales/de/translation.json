@@ -231,6 +231,8 @@
     "searchTitle": "Suchen (/)",
     "toggleMyTasksAriaLabel": "Meine Aufgaben filtern",
     "toggleSoonAriaLabel": "Aufmerksamkeitsfilter umschalten",
+    "hideFabsAriaLabel": "Aktionsschaltflächen ausblenden",
+    "showFabsAriaLabel": "Aktionsschaltflächen anzeigen",
     "nothingNeedsAttention": "Im Moment ist nichts dringend.",
     "nothingAssignedToYou": "Dir ist hier nichts zugewiesen.",
     "showAllChores": "Alle Aufgaben anzeigen"

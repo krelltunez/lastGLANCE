@@ -231,6 +231,8 @@
     "searchTitle": "Rechercher (/)",
     "toggleMyTasksAriaLabel": "Filtrer mes tâches",
     "toggleSoonAriaLabel": "Activer le filtre d'attention",
+    "hideFabsAriaLabel": "Masquer les boutons d'action",
+    "showFabsAriaLabel": "Afficher les boutons d'action",
     "nothingNeedsAttention": "Rien ne nécessite d'attention pour le moment.",
     "nothingAssignedToYou": "Rien ne vous est attribué ici.",
     "showAllChores": "Afficher toutes les tâches"

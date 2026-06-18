@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useLayoutEffect, useMemo } from 'react'
-import { Plus, GripVertical, Search, UserCircle, Clock } from 'lucide-react'
+import { Plus, GripVertical, Search, UserCircle, Clock, ChevronDown, ChevronUp } from 'lucide-react'
 import { useChores } from '@/hooks/useChores'
 import { reorderCategories } from '@/db/queries'
 import { CategorySection } from '@/components/CategorySection/CategorySection'
@@ -73,6 +73,14 @@ export function Ribbon({ editMode, onLogged }: Props) {
   const [newChoreCategory, setNewChoreCategory] = useState<Category | null>(null)
 
   const [showSearch, setShowSearch] = useState(false)
+
+  // Mobile FAB cluster collapse, persisted so the choice sticks across loads.
+  const [fabsCollapsed, setFabsCollapsed] = useState(() => localStorage.getItem('lg-fabs-collapsed') === '1')
+  const toggleFabs = () => setFabsCollapsed(c => {
+    const next = !c
+    localStorage.setItem('lg-fabs-collapsed', next ? '1' : '0')
+    return next
+  })
 
   // Category drag
   const [draggingCatId, setDraggingCatId] = useState<number | null>(null)
@@ -613,12 +621,16 @@ export function Ribbon({ editMode, onLogged }: Props) {
         )}
       </div>
 
-      {/* Mobile FABs — hidden on desktop, hidden in edit mode */}
+      {/* Mobile FABs — hidden on desktop, hidden in edit mode. The action FABs
+          collapse into the handle below them with a staggered fade/slide. */}
       {!editMode && !showEmpty && (
-        <>
+        <div className="min-[1060px]:hidden fixed bottom-6 right-6 z-40 flex flex-col items-center gap-3 pointer-events-none">
           <button
             onClick={() => setAttentionOnly(!attentionOnly)}
-            className={`min-[1060px]:hidden fixed ${multiUserEnabled && meId ? 'bottom-[10.5rem]' : 'bottom-24'} right-6 z-40 flex items-center justify-center w-16 h-16 rounded-full shadow-lg border active:scale-95 transition-all ${
+            style={{ transitionDelay: `${fabsCollapsed ? 0 : 100}ms` }}
+            className={`flex items-center justify-center w-16 h-16 rounded-full shadow-lg border active:scale-95 transition-all duration-300 ease-out ${
+              fabsCollapsed ? 'opacity-0 translate-y-4 scale-90 pointer-events-none' : 'opacity-100 translate-y-0 scale-100 pointer-events-auto'
+            } ${
               attentionOnly
                 ? 'bg-amber-500 dark:bg-amber-600 text-white border-amber-400/50'
                 : 'bg-slate-800 dark:bg-slate-700 text-slate-100 border-slate-700 dark:border-slate-600 hover:bg-slate-700 dark:hover:bg-slate-600'
@@ -632,7 +644,10 @@ export function Ribbon({ editMode, onLogged }: Props) {
           {multiUserEnabled && meId && (
             <button
               onClick={() => setFilter(filter === 'mine' ? 'all' : 'mine')}
-              className={`min-[1060px]:hidden fixed bottom-24 right-6 z-40 flex items-center justify-center w-16 h-16 rounded-full shadow-lg border active:scale-95 transition-all ${
+              style={{ transitionDelay: '50ms' }}
+              className={`flex items-center justify-center w-16 h-16 rounded-full shadow-lg border active:scale-95 transition-all duration-300 ease-out ${
+                fabsCollapsed ? 'opacity-0 translate-y-4 scale-90 pointer-events-none' : 'opacity-100 translate-y-0 scale-100 pointer-events-auto'
+              } ${
                 filter === 'mine'
                   ? 'bg-green-500 dark:bg-green-600 text-white border-green-400/50'
                   : 'bg-slate-800 dark:bg-slate-700 text-slate-100 border-slate-700 dark:border-slate-600 hover:bg-slate-700 dark:hover:bg-slate-600'
@@ -644,13 +659,24 @@ export function Ribbon({ editMode, onLogged }: Props) {
           )}
           <button
             onClick={() => setShowSearch(true)}
-            className="min-[1060px]:hidden fixed bottom-6 right-6 z-40 flex items-center justify-center w-16 h-16 rounded-full bg-slate-800 dark:bg-slate-700 text-slate-100 shadow-lg border border-slate-700 dark:border-slate-600 hover:bg-slate-700 dark:hover:bg-slate-600 active:scale-95 transition-all"
+            style={{ transitionDelay: `${fabsCollapsed ? 100 : 0}ms` }}
+            className={`flex items-center justify-center w-16 h-16 rounded-full bg-slate-800 dark:bg-slate-700 text-slate-100 shadow-lg border border-slate-700 dark:border-slate-600 hover:bg-slate-700 dark:hover:bg-slate-600 active:scale-95 transition-all duration-300 ease-out ${
+              fabsCollapsed ? 'opacity-0 translate-y-4 scale-90 pointer-events-none' : 'opacity-100 translate-y-0 scale-100 pointer-events-auto'
+            }`}
             aria-label={t('ribbon.searchChoresAriaLabel')}
             title={t('ribbon.searchTitle')}
           >
             <Search size={20} />
           </button>
-        </>
+          <button
+            onClick={toggleFabs}
+            className="pointer-events-auto flex items-center justify-center w-11 h-11 rounded-full bg-slate-800/90 dark:bg-slate-700/90 text-slate-300 dark:text-slate-300 shadow-lg border border-slate-700 dark:border-slate-600 hover:bg-slate-700 dark:hover:bg-slate-600 active:scale-95 transition-all backdrop-blur-sm"
+            aria-expanded={!fabsCollapsed}
+            aria-label={fabsCollapsed ? t('ribbon.showFabsAriaLabel') : t('ribbon.hideFabsAriaLabel')}
+          >
+            {fabsCollapsed ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+          </button>
+        </div>
       )}
 
       {selectedChore && !editMode && (
