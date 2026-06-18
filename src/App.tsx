@@ -370,11 +370,11 @@ function AppInner() {
           {heatmapWeeks.length > 0 && (
             <>
               {/* 26 weeks on landscape mobile / small screens */}
-              <div className="hidden md:block min-[1060px]:hidden pb-0.5 opacity-80">
+              <div className="hidden min-[828px]:block min-[1140px]:hidden pb-0.5 opacity-80">
                 <HeaderHeatmap key={waveKey} weeks={heatmapWeeks.slice(-26)} />
               </div>
               {/* 52 weeks on large screens */}
-              <div className="hidden min-[1060px]:block pb-0.5 opacity-80">
+              <div className="hidden min-[1140px]:block pb-0.5 opacity-80">
                 <HeaderHeatmap key={waveKey} weeks={heatmapWeeks} />
               </div>
             </>
