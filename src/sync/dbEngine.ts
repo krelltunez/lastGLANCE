@@ -157,8 +157,35 @@ async function applyCategory(cat: SyncCategory): Promise<void> {
       } as Category)
     }
   })
+  // A child can arrive before its parent (vault seq order is not parents-first),
+  // so back-fill any unresolved parent links now that this row has landed.
+  await resolveCategoryParents()
   // A newly present category may unblock chores that arrived before it.
   await drainDeferredChores()
+}
+
+// Back-fill parent_category_id for any category that carries a parent_sync_id
+// but has no resolved local FK yet. The DB transport applies categories one row
+// at a time in vault seq order, so a subcategory can be written before its
+// parent exists locally; unlike the file tier's two-pass applyPayload, a single
+// applyCategory cannot resolve a not-yet-present parent and leaves the FK unset.
+//
+// This matters because the UI groups strictly by parent_category_id (see
+// useChores.ts): a row with a null/undefined FK renders as a ROOT category, so
+// every subcategory whose parent lands later would otherwise show up flattened
+// to a top-level category. Running this after every category apply closes the
+// gap — when the parent finally arrives, its waiting children get linked. It is
+// idempotent and cheap (the categories table is tiny).
+async function resolveCategoryParents(): Promise<void> {
+  await db.transaction('rw', db.categories, async () => {
+    const cats = await db.categories.toArray()
+    const idBySyncId = new Map(cats.map(c => [c.sync_id, c.id]))
+    for (const c of cats) {
+      if (!c.parent_sync_id || c.parent_category_id != null) continue
+      const parentId = idBySyncId.get(c.parent_sync_id)
+      if (parentId != null) await db.categories.update(c.id!, { parent_category_id: parentId })
+    }
+  })
 }
 
 async function applyChore(chore: SyncChore): Promise<void> {
@@ -317,6 +344,37 @@ export interface DbEngineCallbacks {
   onError?: (message: string | null, code: SyncErrorCode | null) => void
 }
 
+// One-time recovery for devices upgrading from @glance-apps/sync ≤ 1.3.x.
+//
+// In 1.3.x a push advanced the SAME high-water mark that the pull resumes from,
+// so any cycle that pushed local dirty rows bumped the cursor to the highest seq
+// in the account — past unread, lower-seq peer rows, which were then skipped on
+// every subsequent pull. That is permanent for insert-only completion events
+// (they are never re-written, so a later pull never re-lists them). 1.4.0 splits
+// the cursors (KEY_HWM vs KEY_PUSH_ACK) to stop NEW pollution, but it inherits
+// the already-stored KEY_HWM as pull progress, so a device that was polluted
+// under 1.3.x stays stuck and never recovers the skipped rows — exactly the
+// "completions won't sync no matter what" symptom.
+//
+// Reset the pull cursor to 0 once so the next pull re-lists the full account
+// history. Every apply is idempotent (categories/chores/users upsert by sync_id
+// with last-writer-wins; completion events are insert-only and skip if present),
+// so a full re-pull only fills the holes and cannot clobber newer local data.
+// Guarded by a versioned flag so it runs at most once per device.
+const HWM_RECOVERY_FLAG = `${APP_ID}-db-sync-hwm-recovery-v140`
+
+function recoverStalePullCursor(engine: DbSyncEngine): void {
+  if (typeof localStorage === 'undefined') return
+  if (localStorage.getItem(HWM_RECOVERY_FLAG)) return
+  try {
+    if (engine.getHighWaterMark() > 0) engine.setHighWaterMark(0)
+  } catch (err) {
+    console.warn('[lastglance] vault pull-cursor recovery failed:', err)
+  } finally {
+    localStorage.setItem(HWM_RECOVERY_FLAG, new Date().toISOString())
+  }
+}
+
 // Marks every local entity dirty so the next push sends a complete snapshot.
 // Used for the first ever sync on a device (high water mark 0): existing users
 // who enable the vault have data that predates dirty tracking, so without this
@@ -361,6 +419,11 @@ export function createDbEngine(callbacks: DbEngineCallbacks = {}): DbSyncEngine 
     onStatusChange: callbacks.onStatusChange,
     onError: callbacks.onError,
   })
+
+  // Recover devices whose pull cursor was poisoned by the ≤1.3.x push/pull bug
+  // before deciding whether this is a first-ever sync below. Resetting to 0 here
+  // also makes the seeding wrapper re-snapshot local data, which is harmless.
+  recoverStalePullCursor(engine)
 
   // On the first ever sync (high water mark 0), seed the dirty set with the full
   // local dataset so existing users get everything pushed, not just new changes.
