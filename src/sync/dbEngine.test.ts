@@ -10,10 +10,11 @@ import {
   createDbEngine,
 } from './dbEngine'
 import { getDeferredChores } from './deferredChores'
+import { getDeferredCompletions } from './deferredCompletions'
 import { setVaultConfig } from './vaultConfig'
 import type { DbSyncEngine } from '@glance-apps/sync'
 import type { Category, Chore, CompletionEvent, User } from '@/types'
-import type { SyncCategory, SyncChore } from './types'
+import type { SyncCategory, SyncChore, SyncCompletionEvent } from './types'
 
 // Minimal in-memory localStorage for the node test environment (the deferred
 // chore buffer persists there).
@@ -181,6 +182,54 @@ describe('applyRemoteEntity out-of-order chore and category', () => {
   })
 })
 
+describe('applyRemoteEntity completion before its chore', () => {
+  // Regression guard for "received some completions, not all": a completion whose
+  // chore is not present yet (the chore was edited after the completion, so its
+  // row carries a higher seq and arrives later, or the chore is itself parked
+  // awaiting its category) must be parked and applied once the chore lands — never
+  // dropped, because an insert-only completion is never re-listed.
+  const ECAT_ID = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
+  const ECHORE_ID = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'
+  const EEVENT_ID = 'cccccccc-cccc-cccc-cccc-cccccccccccc'
+
+  const remoteCategory: SyncCategory = {
+    id: ECAT_ID, name: 'Yard', sortOrder: 7, icon: 'Tree',
+    parentId: null, assignedUserSyncIds: [], updatedAt: '2026-06-10T00:00:00.000Z',
+  }
+  const remoteChore: SyncChore = {
+    id: ECHORE_ID, name: 'Mow', categorySyncId: ECAT_ID, sortOrder: 0,
+    targetCadenceDays: 14, notifyWhenOverdue: false, autoScheduleToDayglance: false,
+    preferredScheduleBehavior: null, seasonalStart: null, seasonalEnd: null,
+    icon: 'Scissors', assignedUserSyncIds: [],
+    createdAt: '2026-06-11T00:00:00.000Z', updatedAt: '2026-06-12T00:00:00.000Z',
+  }
+  const remoteEvent: SyncCompletionEvent = {
+    id: EEVENT_ID, choreSyncId: ECHORE_ID, completedAt: '2026-06-11T09:00:00.000Z',
+    note: null, source: 'manual', completedByUserSyncId: null,
+  }
+
+  it('parks a completion whose chore is absent, then applies it once the chore lands', async () => {
+    // Completion arrives first: chore not present, so it must be parked, not dropped.
+    await applyRemoteEntity(EEVENT_ID, remoteEvent)
+    expect(await db.completionEvents.where('sync_id').equals(EEVENT_ID).first()).toBeUndefined()
+    expect(getDeferredCompletions().map(e => e.id)).toContain(EEVENT_ID)
+
+    // Chore is still parked too (its category has not arrived): completion stays parked.
+    await applyRemoteEntity(ECHORE_ID, remoteChore)
+    expect(await db.completionEvents.where('sync_id').equals(EEVENT_ID).first()).toBeUndefined()
+    expect(getDeferredCompletions().map(e => e.id)).toContain(EEVENT_ID)
+
+    // Category lands: chore drains, and draining the chore drains the completion.
+    await applyRemoteEntity(ECAT_ID, remoteCategory)
+    const landedChore = await db.chores.where('sync_id').equals(ECHORE_ID).first()
+    expect(landedChore).toBeTruthy()
+    const landedEvent = await db.completionEvents.where('sync_id').equals(EEVENT_ID).first()
+    expect(landedEvent).toBeTruthy()
+    expect(landedEvent!.chore_id).toBe(landedChore!.id)
+    expect(getDeferredCompletions().map(e => e.id)).not.toContain(EEVENT_ID)
+  })
+})
+
 describe('applyRemoteEntity subcategory before its parent', () => {
   // Regression guard for the "all subcategories show as parent categories" bug:
   // the vault applies categories one row at a time in seq order, which is NOT
@@ -227,9 +276,10 @@ describe('applyRemoteEntity subcategory before its parent', () => {
   })
 })
 
-describe('createDbEngine stale pull-cursor recovery (≤1.3.x upgrade)', () => {
+describe('createDbEngine stale pull-cursor recovery', () => {
   const HWM_KEY = 'lastglance-db-sync-hwm'
-  const RECOVERY_FLAG = 'lastglance-db-sync-hwm-recovery-v140'
+  const RECOVERY_FLAG = 'lastglance-db-sync-hwm-recovery-gen'
+  const CURRENT_GEN = 2
 
   beforeAll(() => {
     setVaultConfig({
@@ -246,21 +296,30 @@ describe('createDbEngine stale pull-cursor recovery (≤1.3.x upgrade)', () => {
     localStorage.removeItem(RECOVERY_FLAG)
   })
 
-  it('resets a poisoned pull cursor to 0 exactly once, then leaves it alone', () => {
-    // Simulate a device whose KEY_HWM was advanced past unread peer rows by the
-    // 1.3.x push-advances-pull bug.
+  it('rewinds the pull cursor to 0 once per generation, then leaves it alone', () => {
+    // A device that has never run recovery (no flag).
     localStorage.setItem(HWM_KEY, '42')
     localStorage.removeItem(RECOVERY_FLAG)
 
     const engine = createDbEngine()
     expect(engine).not.toBeNull()
-    // The cursor is rewound so the next pull re-lists the full history.
+    // Cursor rewound so the next pull re-lists the full history.
     expect(engine!.getHighWaterMark()).toBe(0)
-    expect(localStorage.getItem(RECOVERY_FLAG)).not.toBeNull()
+    expect(localStorage.getItem(RECOVERY_FLAG)).toBe(String(CURRENT_GEN))
 
-    // Idempotent: a later cursor advance must NOT be rewound again.
+    // Idempotent within a generation: a later cursor advance is NOT rewound.
     engine!.setHighWaterMark(99)
     const engine2 = createDbEngine()
     expect(engine2!.getHighWaterMark()).toBe(99)
+  })
+
+  it('re-runs when the device is behind the current generation', () => {
+    // A device that already ran an earlier generation's recovery.
+    localStorage.setItem(HWM_KEY, '77')
+    localStorage.setItem(RECOVERY_FLAG, '1')
+
+    const engine = createDbEngine()
+    expect(engine!.getHighWaterMark()).toBe(0)
+    expect(localStorage.getItem(RECOVERY_FLAG)).toBe(String(CURRENT_GEN))
   })
 })

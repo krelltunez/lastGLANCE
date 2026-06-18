@@ -20,6 +20,12 @@ import type { SyncCategory, SyncChore, SyncCompletionEvent, SyncUser } from './t
 import { getVaultConfig, isVaultEnabled } from './vaultConfig'
 import { getDeviceId } from './deviceId'
 import { addDeferredChore, removeDeferredChore, getDeferredChores } from './deferredChores'
+import {
+  addDeferredCompletion,
+  removeDeferredCompletion,
+  removeDeferredCompletionsForChore,
+  getDeferredCompletions,
+} from './deferredCompletions'
 
 const APP_ID = 'lastglance'
 const CRYPTO_DB_NAME = 'lastglance-crypto'
@@ -236,8 +242,15 @@ async function applyChore(chore: SyncChore): Promise<void> {
     }
   })
   // Buffer the chore when skipped; clear it from the buffer once applied.
-  if (skipped) addDeferredChore(chore)
-  else removeDeferredChore(chore.id)
+  if (skipped) {
+    addDeferredChore(chore)
+  } else {
+    removeDeferredChore(chore.id)
+    // The chore is now present, so any completion events parked waiting on it can
+    // be applied. Chains correctly when this chore itself was drained after its
+    // category landed (applyCategory → drainDeferredChores → applyChore → here).
+    await drainDeferredCompletions()
+  }
 }
 
 // Re-apply parked chores whose category is now present locally. Called after a
@@ -255,12 +268,19 @@ async function drainDeferredChores(): Promise<void> {
 }
 
 async function applyCompletionEvent(evt: SyncCompletionEvent): Promise<void> {
+  let skipped = false
   await db.transaction('rw', db.completionEvents, db.chores, async () => {
     // Insert-only: if it is already present, leave it untouched.
     const existing = await db.completionEvents.where('sync_id').equals(evt.id).first()
     if (existing) return
     const chore = await db.chores.where('sync_id').equals(evt.choreSyncId).first()
-    if (!chore) return // chore was deleted; skip orphaned event
+    // The chore may not be present yet (it arrives later in seq order when it was
+    // edited after this completion, or it is itself parked awaiting its category),
+    // OR it may have been deleted. We cannot tell the two apart here, so park the
+    // event and let drainDeferredCompletions retry once a chore with this sync_id
+    // lands. A completion is insert-only and never re-listed, so dropping it here
+    // would lose it permanently — that was the "some completions never arrive" bug.
+    if (!chore) { skipped = true; return }
     await db.completionEvents.add({
       sync_id: evt.id,
       chore_id: chore.id,
@@ -270,6 +290,21 @@ async function applyCompletionEvent(evt: SyncCompletionEvent): Promise<void> {
       completed_by_user_sync_id: evt.completedByUserSyncId ?? null,
     } as CompletionEvent)
   })
+  // Buffer the event when skipped; clear it from the buffer once applied/present.
+  if (skipped) addDeferredCompletion(evt)
+  else removeDeferredCompletion(evt.id)
+}
+
+// Re-apply parked completions whose chore is now present locally. Called after a
+// chore is applied. applyCompletionEvent removes each from the buffer on success
+// and re-parks any that still cannot resolve, so this is safe to call repeatedly.
+async function drainDeferredCompletions(): Promise<void> {
+  const deferred = getDeferredCompletions()
+  if (deferred.length === 0) return
+  for (const evt of deferred) {
+    const chore = await db.chores.where('sync_id').equals(evt.choreSyncId).first()
+    if (chore) await applyCompletionEvent(evt)
+  }
 }
 
 async function applyUser(user: SyncUser): Promise<void> {
@@ -325,8 +360,12 @@ export async function applyRemoteDelete(entityId: string): Promise<void> {
       if (user) { await db.users.delete(user.id); return }
     },
   )
-  // Drop any parked copy so a deleted chore is never resurrected by a later drain.
+  // Drop any parked copy so a deleted entity is never resurrected by a later
+  // drain: the chore itself, a parked completion with this id, and any parked
+  // completions that belonged to a now-deleted chore (their chore will never land).
   removeDeferredChore(entityId)
+  removeDeferredCompletion(entityId)
+  removeDeferredCompletionsForChore(entityId)
   notifyApplied()
 }
 
@@ -358,20 +397,30 @@ export interface DbEngineCallbacks {
 //
 // Reset the pull cursor to 0 once so the next pull re-lists the full account
 // history. Every apply is idempotent (categories/chores/users upsert by sync_id
-// with last-writer-wins; completion events are insert-only and skip if present),
-// so a full re-pull only fills the holes and cannot clobber newer local data.
-// Guarded by a versioned flag so it runs at most once per device.
-const HWM_RECOVERY_FLAG = `${APP_ID}-db-sync-hwm-recovery-v140`
+// with last-writer-wins; completion events are insert-only and skip if present,
+// and orphaned rows are now parked rather than dropped), so a full re-pull only
+// fills the holes and cannot clobber newer local data.
+//
+// Tracked by a monotonic generation rather than a boolean: each generation that
+// requires devices to re-pull the full history once bumps RECOVERY_GENERATION,
+// and a device re-runs the reset whenever its stored generation is behind.
+//   gen 1 (v1.8.6): split-cursor poisoning from @glance-apps/sync ≤ 1.3.x.
+//   gen 2 (v1.8.7): re-pull so completions dropped on a not-yet-present chore by
+//                   the old applyCompletionEvent are re-listed and now parked.
+const RECOVERY_GENERATION = 2
+const HWM_RECOVERY_FLAG = `${APP_ID}-db-sync-hwm-recovery-gen`
 
 function recoverStalePullCursor(engine: DbSyncEngine): void {
   if (typeof localStorage === 'undefined') return
-  if (localStorage.getItem(HWM_RECOVERY_FLAG)) return
+  // NaN (absent / legacy timestamp value) is treated as behind, so it runs.
+  const done = Number(localStorage.getItem(HWM_RECOVERY_FLAG))
+  if (done >= RECOVERY_GENERATION) return
   try {
     if (engine.getHighWaterMark() > 0) engine.setHighWaterMark(0)
   } catch (err) {
     console.warn('[lastglance] vault pull-cursor recovery failed:', err)
   } finally {
-    localStorage.setItem(HWM_RECOVERY_FLAG, new Date().toISOString())
+    localStorage.setItem(HWM_RECOVERY_FLAG, String(RECOVERY_GENERATION))
   }
 }
 
