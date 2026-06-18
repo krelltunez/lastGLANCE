@@ -148,6 +148,10 @@ function AppInner() {
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle')
   const [syncError, setSyncError] = useState<string | null>(null)
   const [syncHalted, setSyncHalted] = useState(false)
+  // Latest GLANCEvault (DB transport) error, surfaced from its onError callback.
+  // dbSyncCycle swallows errors internally and reports them here rather than
+  // throwing, so this is how the Cloud Sync modal shows what went wrong.
+  const [vaultSyncError, setVaultSyncError] = useState<string | null>(null)
 
   // Runs one DB sync cycle when the vault transport is enabled. No-op otherwise.
   // Fired on the same triggers as the file engine; errors are surfaced through
@@ -201,7 +205,10 @@ function AppInner() {
     // Construct the DB transport engine alongside the file engine when the vault
     // is enabled. It shares the local data but uses an entirely separate cycle.
     const dbEngine = createDbEngine({
-      onError: (msg) => { if (msg) console.warn('[lastglance] vault sync error:', msg) },
+      onError: (msg) => {
+        setVaultSyncError(msg)
+        if (msg) console.warn('[lastglance] vault sync error:', msg)
+      },
     })
     dbEngineRef.current = dbEngine
     registerDbEngine(dbEngine)
@@ -354,7 +361,7 @@ function AppInner() {
         {/* Logo + heatmap */}
         <div className="flex items-end gap-5 min-w-0">
           <div className="shrink-0">
-            <h1 className="text-3xl md:text-4xl font-black tracking-tight leading-none text-slate-900 dark:text-slate-100">
+            <h1 className="text-3xl sm:text-4xl font-black tracking-tight leading-none text-slate-900 dark:text-slate-100">
               last<span className="italic text-green-400">GLANCE</span>
             </h1>
             <p className="text-xs text-slate-400 dark:text-slate-600 mt-1 tracking-wide">{t('app.tagline')}</p>
@@ -363,11 +370,11 @@ function AppInner() {
           {heatmapWeeks.length > 0 && (
             <>
               {/* 26 weeks on landscape mobile / small screens */}
-              <div className="hidden md:block min-[1060px]:hidden pb-0.5 opacity-80">
+              <div className="hidden min-[828px]:block min-[1140px]:hidden pb-0.5 opacity-80">
                 <HeaderHeatmap key={waveKey} weeks={heatmapWeeks.slice(-26)} />
               </div>
               {/* 52 weeks on large screens */}
-              <div className="hidden min-[1060px]:block pb-0.5 opacity-80">
+              <div className="hidden min-[1140px]:block pb-0.5 opacity-80">
                 <HeaderHeatmap key={waveKey} weeks={heatmapWeeks} />
               </div>
             </>
@@ -418,15 +425,8 @@ function AppInner() {
 
           {/* ── Desktop: two-row layout ── */}
           <div className="hidden sm:flex flex-col items-end gap-1.5">
-            {/* Row 1: theme + filter (if multi-user) + edit */}
+            {/* Row 1: filter (if multi-user) + soon + edit */}
             <div className="flex items-center gap-2">
-              <button
-                onClick={toggleTheme}
-                className="p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors"
-                aria-label={t('app.toggleTheme')}
-              >
-                {isDark ? <Sun size={15} /> : <Moon size={15} />}
-              </button>
               {multiUserEnabled && meId && !editMode && (
                 <button
                   onClick={() => setFilter(filter === 'mine' ? 'all' : 'mine')}
@@ -465,16 +465,23 @@ function AppInner() {
                 {editMode ? <><Check size={14} /> {t('app.done')}</> : <><Pencil size={14} /> {t('app.edit')}</>}
               </button>
             </div>
-            {/* Row 2: users, intents, sync, archive, help */}
+            {/* Row 2: sync, intents, multi-user, theme, archive, help */}
             <div className="flex items-center gap-2">
-              <button onClick={() => setShowUsers(true)} className="p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors" aria-label={t('app.users')}><Users size={15} /></button>
-              <button onClick={() => setShowIntegration(true)} className="p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors" aria-label={t('app.dayglanceIntegration')}><Plug size={15} /></button>
               <button
                 onClick={() => setShowSyncSettings(true)}
                 className={`p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors ${syncHalted || syncError ? 'text-amber-400 dark:text-amber-400' : 'text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200'}`}
                 aria-label={t('app.cloudSync')}
               >
                 {syncStatus === 'uploading' || syncStatus === 'downloading' ? <RefreshCw size={15} className="animate-spin" /> : syncHalted || syncError ? <CloudOff size={15} /> : <Cloud size={15} />}
+              </button>
+              <button onClick={() => setShowIntegration(true)} className="p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors" aria-label={t('app.dayglanceIntegration')}><Plug size={15} /></button>
+              <button onClick={() => setShowUsers(true)} className="p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors" aria-label={t('app.users')}><Users size={15} /></button>
+              <button
+                onClick={toggleTheme}
+                className="p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors"
+                aria-label={t('app.toggleTheme')}
+              >
+                {isDark ? <Sun size={15} /> : <Moon size={15} />}
               </button>
               <button onClick={() => setShowBackup(true)} className="p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors" aria-label={t('app.backupRestore')}><Archive size={15} /></button>
               <button onClick={() => setShowHelp(true)} className="p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors" aria-label={t('app.helpFeedback')}><HelpCircle size={15} /></button>
@@ -529,6 +536,9 @@ function AppInner() {
       {showSyncSettings && (
         <SyncSettingsModal
           engine={engineRef.current}
+          dbEngine={dbEngineRef.current}
+          syncError={syncError}
+          vaultSyncError={vaultSyncError}
           onClose={() => { setShowSyncSettings(false); runSharedUserSync() }}
         />
       )}

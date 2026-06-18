@@ -38,8 +38,11 @@
      1.5rem floor applies on the web/PWA where there's no inset. */
   padding-top: max(1.5rem, calc(env(safe-area-inset-top) + 0.375rem));
 }
+/* Only trim the floor on native, where the status bar is actually hidden in
+   landscape. On the desktop browser/PWA a wide window is "landscape" too, so
+   without this guard the header would lose its top padding when widened. */
 @media (orientation: landscape) {
-  .app-safe-top {
+  html.native .app-safe-top {
     padding-top: max(0.5rem, env(safe-area-inset-top));
   }
 }
