@@ -1,5 +1,5 @@
 import 'fake-indexeddb/auto'
-import { describe, it, expect, beforeAll } from 'vitest'
+import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { db } from '@/db/client'
 import {
   getLocalEntity,
@@ -7,8 +7,10 @@ import {
   getEntityLastModified,
   applyRemoteEntity,
   markAllLocalEntitiesDirty,
+  createDbEngine,
 } from './dbEngine'
 import { getDeferredChores } from './deferredChores'
+import { setVaultConfig } from './vaultConfig'
 import type { DbSyncEngine } from '@glance-apps/sync'
 import type { Category, Chore, CompletionEvent, User } from '@/types'
 import type { SyncCategory, SyncChore } from './types'
@@ -176,5 +178,89 @@ describe('applyRemoteEntity out-of-order chore and category', () => {
     const cat = await db.categories.where('sync_id').equals(DCAT_ID).first()
     expect(landed!.category_id).toBe(cat!.id)
     expect(getDeferredChores().map(c => c.id)).not.toContain(DCHORE_ID)
+  })
+})
+
+describe('applyRemoteEntity subcategory before its parent', () => {
+  // Regression guard for the "all subcategories show as parent categories" bug:
+  // the vault applies categories one row at a time in seq order, which is NOT
+  // guaranteed parents-first. A subcategory whose parent has not arrived yet must
+  // still end up linked once the parent lands, because the UI groups strictly by
+  // parent_category_id — an unresolved (null/undefined) FK renders as a ROOT.
+  const PARENT_ID = '77777777-7777-7777-7777-777777777777'
+  const CHILD_A_ID = '88888888-8888-8888-8888-888888888888'
+  const CHILD_B_ID = '99999999-9999-9999-9999-999999999999'
+
+  const parent: SyncCategory = {
+    id: PARENT_ID, name: 'Home', sortOrder: 1, icon: 'House',
+    parentId: null, assignedUserSyncIds: [], updatedAt: '2026-06-01T00:00:00.000Z',
+  }
+  const childA: SyncCategory = {
+    id: CHILD_A_ID, name: 'Kitchen', sortOrder: 2, icon: 'Fork',
+    parentId: PARENT_ID, assignedUserSyncIds: [], updatedAt: '2026-06-02T00:00:00.000Z',
+  }
+  const childB: SyncCategory = {
+    id: CHILD_B_ID, name: 'Bathroom', sortOrder: 3, icon: 'Bath',
+    parentId: PARENT_ID, assignedUserSyncIds: [], updatedAt: '2026-06-03T00:00:00.000Z',
+  }
+
+  it('back-fills parent_category_id for children that arrive before their parent', async () => {
+    // Both children arrive first: parent is absent, so the local FK is unset and
+    // they would (wrongly) render as roots.
+    await applyRemoteEntity(CHILD_A_ID, childA)
+    await applyRemoteEntity(CHILD_B_ID, childB)
+    const beforeA = await db.categories.where('sync_id').equals(CHILD_A_ID).first()
+    const beforeB = await db.categories.where('sync_id').equals(CHILD_B_ID).first()
+    expect(beforeA!.parent_sync_id).toBe(PARENT_ID)
+    expect(beforeA!.parent_category_id).toBeUndefined()
+    expect(beforeB!.parent_category_id).toBeUndefined()
+
+    // Parent lands: both waiting children must now be linked to it.
+    await applyRemoteEntity(PARENT_ID, parent)
+    const parentRow = await db.categories.where('sync_id').equals(PARENT_ID).first()
+    const afterA = await db.categories.where('sync_id').equals(CHILD_A_ID).first()
+    const afterB = await db.categories.where('sync_id').equals(CHILD_B_ID).first()
+    expect(afterA!.parent_category_id).toBe(parentRow!.id)
+    expect(afterB!.parent_category_id).toBe(parentRow!.id)
+    // The parent itself stays a root.
+    expect(parentRow!.parent_category_id).toBeUndefined()
+  })
+})
+
+describe('createDbEngine stale pull-cursor recovery (≤1.3.x upgrade)', () => {
+  const HWM_KEY = 'lastglance-db-sync-hwm'
+  const RECOVERY_FLAG = 'lastglance-db-sync-hwm-recovery-v140'
+
+  beforeAll(() => {
+    setVaultConfig({
+      enabled: true,
+      vaultUrl: 'https://vault.example.test',
+      vaultToken: 'test-token',
+      accountId: 'acct-test',
+    })
+  })
+
+  afterAll(() => {
+    setVaultConfig(null)
+    localStorage.removeItem(HWM_KEY)
+    localStorage.removeItem(RECOVERY_FLAG)
+  })
+
+  it('resets a poisoned pull cursor to 0 exactly once, then leaves it alone', () => {
+    // Simulate a device whose KEY_HWM was advanced past unread peer rows by the
+    // 1.3.x push-advances-pull bug.
+    localStorage.setItem(HWM_KEY, '42')
+    localStorage.removeItem(RECOVERY_FLAG)
+
+    const engine = createDbEngine()
+    expect(engine).not.toBeNull()
+    // The cursor is rewound so the next pull re-lists the full history.
+    expect(engine!.getHighWaterMark()).toBe(0)
+    expect(localStorage.getItem(RECOVERY_FLAG)).not.toBeNull()
+
+    // Idempotent: a later cursor advance must NOT be rewound again.
+    engine!.setHighWaterMark(99)
+    const engine2 = createDbEngine()
+    expect(engine2!.getHighWaterMark()).toBe(99)
   })
 })
