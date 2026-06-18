@@ -11,13 +11,18 @@ import { useTranslation } from 'react-i18next'
 interface Props {
   engine: SyncEngine | null
   dbEngine: DbSyncEngine | null
+  // Latest error from each transport's onError callback. Both engines swallow
+  // sync errors internally (resolving rather than throwing), so these carry the
+  // reason a manual sync failed.
+  syncError: string | null
+  vaultSyncError: string | null
   onClose: () => void
 }
 
 type TestStatus = 'idle' | 'testing' | 'ok' | 'fail'
 type SyncResult = 'idle' | 'ok' | 'error'
 
-export function SyncSettingsModal({ engine, dbEngine, onClose }: Props) {
+export function SyncSettingsModal({ engine, dbEngine, syncError, vaultSyncError, onClose }: Props) {
   const { t } = useTranslation()
   const existingConfig = engine?.getConfig() ?? null
   const initFolder = localStorage.getItem(SYNC_FOLDER_KEY) ?? DEFAULT_SYNC_FOLDER
@@ -166,41 +171,60 @@ export function SyncSettingsModal({ engine, dbEngine, onClose }: Props) {
     }
   }
 
+  // Both engines report sync failures through their onError callback and resolve
+  // their sync promise either way — they only advance the stored "last synced"
+  // timestamp on success. So we treat an advanced timestamp as success and a
+  // resolved-but-unchanged one as failure, and read the reason from the engine's
+  // last error (threaded in from App). The try/catch still guards the few paths
+  // that do throw (e.g. ensureSyncFolder).
   async function handleSyncNow() {
-    if (!engine) return
+    if (!engine || syncing || engine.isSyncing()) return
     saveConfig()
     setSyncing(true)
     setSyncResult('idle')
     setSyncResultMsg('')
+    const before = engine.getLastSynced()
     try {
       await ensureSyncFolder(engine)
       await engine.sync()
-      const ts = engine.getLastSynced()
-      setLastSynced(ts)
-      setSyncResult('ok')
     } catch (err) {
       setSyncResult('error')
       setSyncResultMsg(err instanceof Error ? err.message : t('sync.syncFailed'))
-    } finally {
       setSyncing(false)
+      return
     }
+    const after = engine.getLastSynced()
+    if (after && after !== before) {
+      setLastSynced(after)
+      setSyncResult('ok')
+    } else {
+      setSyncResult('error')
+    }
+    setSyncing(false)
   }
 
   async function handleVaultSyncNow() {
-    if (!dbEngine) return
+    if (!dbEngine || vaultSyncing || dbEngine.isSyncing()) return
     setVaultSyncing(true)
     setVaultSyncResult('idle')
     setVaultSyncResultMsg('')
+    const before = dbEngine.getLastSynced()
     try {
       await dbEngine.dbSyncCycle()
-      setVaultLastSynced(dbEngine.getLastSynced())
-      setVaultSyncResult('ok')
     } catch (err) {
       setVaultSyncResult('error')
       setVaultSyncResultMsg(err instanceof Error ? err.message : t('sync.syncFailed'))
-    } finally {
       setVaultSyncing(false)
+      return
     }
+    const after = dbEngine.getLastSynced()
+    if (after && after !== before) {
+      setVaultLastSynced(after)
+      setVaultSyncResult('ok')
+    } else {
+      setVaultSyncResult('error')
+    }
+    setVaultSyncing(false)
   }
 
   function formatLastSynced(iso: string | null): string {
@@ -343,7 +367,7 @@ export function SyncSettingsModal({ engine, dbEngine, onClose }: Props) {
               {syncResult === 'error' && (
                 <span className="flex items-center gap-1.5 text-xs text-red-500 dark:text-red-400">
                   <XCircle size={13} />
-                  {syncResultMsg || t('sync.syncFailed')}
+                  {syncResultMsg || syncError || t('sync.syncFailed')}
                 </span>
               )}
               {syncResult === 'idle' && lastSynced && (
@@ -558,7 +582,7 @@ export function SyncSettingsModal({ engine, dbEngine, onClose }: Props) {
                   {vaultSyncResult === 'error' && (
                     <span className="flex items-center gap-1.5 text-xs text-red-500 dark:text-red-400">
                       <XCircle size={13} />
-                      {vaultSyncResultMsg || t('sync.syncFailed')}
+                      {vaultSyncResultMsg || vaultSyncError || t('sync.syncFailed')}
                     </span>
                   )}
                 </div>

@@ -148,6 +148,10 @@ function AppInner() {
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle')
   const [syncError, setSyncError] = useState<string | null>(null)
   const [syncHalted, setSyncHalted] = useState(false)
+  // Latest GLANCEvault (DB transport) error, surfaced from its onError callback.
+  // dbSyncCycle swallows errors internally and reports them here rather than
+  // throwing, so this is how the Cloud Sync modal shows what went wrong.
+  const [vaultSyncError, setVaultSyncError] = useState<string | null>(null)
 
   // Runs one DB sync cycle when the vault transport is enabled. No-op otherwise.
   // Fired on the same triggers as the file engine; errors are surfaced through
@@ -201,7 +205,10 @@ function AppInner() {
     // Construct the DB transport engine alongside the file engine when the vault
     // is enabled. It shares the local data but uses an entirely separate cycle.
     const dbEngine = createDbEngine({
-      onError: (msg) => { if (msg) console.warn('[lastglance] vault sync error:', msg) },
+      onError: (msg) => {
+        setVaultSyncError(msg)
+        if (msg) console.warn('[lastglance] vault sync error:', msg)
+      },
     })
     dbEngineRef.current = dbEngine
     registerDbEngine(dbEngine)
@@ -530,6 +537,8 @@ function AppInner() {
         <SyncSettingsModal
           engine={engineRef.current}
           dbEngine={dbEngineRef.current}
+          syncError={syncError}
+          vaultSyncError={vaultSyncError}
           onClose={() => { setShowSyncSettings(false); runSharedUserSync() }}
         />
       )}
