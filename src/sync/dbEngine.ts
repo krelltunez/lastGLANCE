@@ -30,6 +30,45 @@ import {
 const APP_ID = 'lastglance'
 const CRYPTO_DB_NAME = 'lastglance-crypto'
 
+// ── User-facing messages for the typed vault (DB transport) error codes ───────
+// These codes only occur on transportMode: 'database' (the GLANCEvault tier).
+
+// KEY_MISMATCH: the derived root key does not match the account's existing data.
+// The engine aborts BEFORE any upload, so a wrong key never pollutes the account.
+// Not silently retried — the user must fix the passphrase.
+export const VAULT_KEY_MISMATCH_MESSAGE =
+  'Wrong sync passphrase — it must exactly match the passphrase used on your other devices.'
+
+// VERIFIER_UNSUPPORTED: the GLANCEvault server is too old to host the key
+// verifier. A server problem, not a user error.
+export const VAULT_VERIFIER_UNSUPPORTED_MESSAGE =
+  'Your sync server needs to be updated to support key verification.'
+
+// ACCOUNT_ID_REQUIRED: a row-scoped call ran before the account id was populated.
+// Retryable — the next cycle (focus / interval) re-attempts once it is available,
+// so this is phrased as "not ready yet" rather than a hard failure.
+export const VAULT_ACCOUNT_ID_REQUIRED_MESSAGE =
+  'Finishing sync setup — try again in a moment.'
+
+// Map a vault onError (message, code) to the string to surface, or null for
+// nothing. PASSPHRASE_REQUIRED is handled by the caller (it prompts for the
+// passphrase instead of showing a message), so it is left untouched here.
+export function vaultErrorMessage(
+  message: string | null,
+  code: SyncErrorCode | null,
+): string | null {
+  switch (code) {
+    case 'KEY_MISMATCH':
+      return VAULT_KEY_MISMATCH_MESSAGE
+    case 'VERIFIER_UNSUPPORTED':
+      return VAULT_VERIFIER_UNSUPPORTED_MESSAGE
+    case 'ACCOUNT_ID_REQUIRED':
+      return VAULT_ACCOUNT_ID_REQUIRED_MESSAGE
+    default:
+      return message
+  }
+}
+
 // ── Entity-shape helpers (pure; safe to unit test without a DB) ──────────────
 
 type EntityKind = 'category' | 'chore' | 'completionEvent' | 'user'

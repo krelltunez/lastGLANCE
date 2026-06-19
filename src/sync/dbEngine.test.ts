@@ -9,6 +9,10 @@ import {
   markAllLocalEntitiesDirty,
   createDbEngine,
   resolveCategoryParents,
+  vaultErrorMessage,
+  VAULT_KEY_MISMATCH_MESSAGE,
+  VAULT_VERIFIER_UNSUPPORTED_MESSAGE,
+  VAULT_ACCOUNT_ID_REQUIRED_MESSAGE,
 } from './dbEngine'
 import { getDeferredChores } from './deferredChores'
 import { getDeferredCompletions } from './deferredCompletions'
@@ -356,5 +360,37 @@ describe('createDbEngine stale pull-cursor recovery', () => {
     const engine = createDbEngine()
     expect(engine!.getHighWaterMark()).toBe(0)
     expect(localStorage.getItem(RECOVERY_FLAG)).toBe(String(CURRENT_GEN))
+  })
+})
+
+// The single onError funnel in App.tsx routes the typed DB-transport codes
+// (1.5.0–1.5.2) through this pure mapper; assert each code's user-facing text.
+describe('vaultErrorMessage typed code mapping', () => {
+  it('maps KEY_MISMATCH to the wrong-passphrase message', () => {
+    expect(vaultErrorMessage('aes-gcm decrypt failed', 'KEY_MISMATCH'))
+      .toBe(VAULT_KEY_MISMATCH_MESSAGE)
+  })
+
+  it('maps VERIFIER_UNSUPPORTED to the server-update message', () => {
+    expect(vaultErrorMessage('404 on __glance_keycheck', 'VERIFIER_UNSUPPORTED'))
+      .toBe(VAULT_VERIFIER_UNSUPPORTED_MESSAGE)
+  })
+
+  it('maps the retryable ACCOUNT_ID_REQUIRED to a "not ready yet" message', () => {
+    expect(vaultErrorMessage('missing accountId', 'ACCOUNT_ID_REQUIRED'))
+      .toBe(VAULT_ACCOUNT_ID_REQUIRED_MESSAGE)
+  })
+
+  it('passes through the raw message for unmapped / unknown codes', () => {
+    expect(vaultErrorMessage('boom', 'NETWORK_ERROR')).toBe('boom')
+    expect(vaultErrorMessage('boom', null)).toBe('boom')
+    expect(vaultErrorMessage(null, 'NETWORK_ERROR')).toBeNull()
+  })
+
+  it('leaves PASSPHRASE_REQUIRED to the caller (returns the raw message, no remap)', () => {
+    // App.tsx intercepts PASSPHRASE_REQUIRED before calling this and prompts
+    // instead of surfacing text, so the mapper must not invent a message for it.
+    expect(vaultErrorMessage('enter passphrase', 'PASSPHRASE_REQUIRED'))
+      .toBe('enter passphrase')
   })
 })

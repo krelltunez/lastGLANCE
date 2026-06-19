@@ -19,7 +19,7 @@ import { useIntentsPoller } from '@/hooks/useIntentsPoller'
 import { IntentsProvider, useIntents } from '@/intents/IntentsContext'
 import { getAllCompletionCounts } from '@/db/queries'
 import { createEngine, initSessionKey, setupEncryptionKey, runAutoBackups, ensureSyncFolder, CRYPTO_CONFIG, getSyncWebdavConfig } from '@/sync/engine'
-import { createDbEngine } from '@/sync/dbEngine'
+import { createDbEngine, vaultErrorMessage } from '@/sync/dbEngine'
 import { registerDbEngine } from '@/sync/dirtyTracker'
 import { isVaultEnabled } from '@/sync/vaultConfig'
 import { applyStatusBarTheme, initFullScreenInLandscape } from '@/native/statusBar'
@@ -113,12 +113,6 @@ function HeaderHeatmap({ weeks }: { weeks: HeatDay[][] }) {
 }
 
 // ── App ───────────────────────────────────────────────────────────────────────
-
-// @glance-apps/sync 1.5.0 surfaces a wrong derived root key as a typed
-// KEY_MISMATCH error (the engine aborts BEFORE uploading anything, so the account
-// is never polluted). Replace the raw crypto text with a clear, actionable line.
-const VAULT_KEY_MISMATCH_MESSAGE =
-  'Wrong sync passphrase — it must exactly match the passphrase used on your other devices.'
 
 function AppInner() {
   const { t } = useTranslation()
@@ -228,9 +222,18 @@ function AppInner() {
     // is enabled. It shares the local data but uses an entirely separate cycle.
     const dbEngine = createDbEngine({
       onError: (msg, code) => {
-        // A wrong passphrase/salt now fails fast with KEY_MISMATCH and uploads
-        // NOTHING — show the plain-language reason instead of the raw crypto text.
-        const display = code === 'KEY_MISMATCH' ? VAULT_KEY_MISMATCH_MESSAGE : msg
+        // A missing passphrase isn't a sync failure — prompt for it the same way
+        // the file engine's onPassphraseRequired does, and surface no error.
+        if (code === 'PASSPHRASE_REQUIRED') {
+          setVaultSyncError(null)
+          setShowPassphrase(true)
+          return
+        }
+        // Map the typed DB-transport codes (KEY_MISMATCH / VERIFIER_UNSUPPORTED /
+        // ACCOUNT_ID_REQUIRED) to plain-language text; other codes pass through.
+        // A wrong key fails fast and uploads NOTHING, so the account is never
+        // polluted; ACCOUNT_ID_REQUIRED is retryable and phrased as "not ready yet".
+        const display = vaultErrorMessage(msg, code)
         setVaultSyncError(display)
         if (display) console.warn('[lastglance] vault sync error:', display)
       },
