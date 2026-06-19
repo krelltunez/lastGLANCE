@@ -13,7 +13,7 @@
 // remote applies never call markDirty and cannot loop back into a push.
 
 import { createDbSyncEngine } from '@glance-apps/sync'
-import type { DbSyncEngine, SyncStatus, SyncErrorCode } from '@glance-apps/sync'
+import type { DbSyncEngine, DbSyncResult, SyncStatus, SyncErrorCode } from '@glance-apps/sync'
 import { db } from '@/db/client'
 import type { Category, Chore, CompletionEvent, User } from '@/types'
 import type { SyncCategory, SyncChore, SyncCompletionEvent, SyncUser } from './types'
@@ -391,6 +391,10 @@ function notifyApplied(): void {
 export interface DbEngineCallbacks {
   onStatusChange?: (status: SyncStatus) => void
   onError?: (message: string | null, code: SyncErrorCode | null) => void
+  // Fired once per cycle that skipped > 0 undecryptable rows (@glance-apps/sync
+  // 1.5.0 per-row quarantine). We keep using the engine's own dbSyncCycle, so the
+  // engine invokes this for us; we only forward it to the UI signal.
+  onRowsSkipped?: (count: number, entityIds: string[]) => void
 }
 
 // One-time recovery for devices upgrading from @glance-apps/sync ≤ 1.3.x.
@@ -477,6 +481,7 @@ export function createDbEngine(callbacks: DbEngineCallbacks = {}): DbSyncEngine 
     getEntityLastModified,
     onStatusChange: callbacks.onStatusChange,
     onError: callbacks.onError,
+    onRowsSkipped: callbacks.onRowsSkipped,
   })
 
   // Recover devices whose pull cursor was poisoned by the ≤1.3.x push/pull bug
@@ -498,7 +503,7 @@ export function createDbEngine(callbacks: DbEngineCallbacks = {}): DbSyncEngine 
   // After a successful first push the high water mark advances past 0, so this
   // runs once. Seeding failures are non-fatal: the normal cycle still proceeds.
   const runCycle = engine.dbSyncCycle.bind(engine)
-  const dbSyncCycle = async (): Promise<void> => {
+  const dbSyncCycle = async (): Promise<DbSyncResult> => {
     if (engine.getHighWaterMark() === 0) {
       try {
         await markAllLocalEntitiesDirty(engine)
@@ -506,7 +511,10 @@ export function createDbEngine(callbacks: DbEngineCallbacks = {}): DbSyncEngine 
         console.warn('[lastglance] vault initial snapshot failed:', err)
       }
     }
-    await runCycle()
+    // The engine's own dbSyncCycle fires config.onRowsSkipped for any quarantined
+    // rows and resolves to { applied, skipped, skippedEntityIds }; pass that result
+    // straight through so callers can surface the per-cycle skip count.
+    const result = await runCycle()
     // A pull may have skipped already-present rows under last-writer-wins, so run
     // the repair after every cycle too; refresh the UI when it links anything.
     try {
@@ -514,6 +522,7 @@ export function createDbEngine(callbacks: DbEngineCallbacks = {}): DbSyncEngine 
     } catch (err) {
       console.warn('[lastglance] category parent repair failed:', err)
     }
+    return result
   }
 
   return { ...engine, dbSyncCycle, sync: dbSyncCycle }

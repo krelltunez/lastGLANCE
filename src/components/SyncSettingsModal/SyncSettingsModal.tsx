@@ -16,13 +16,17 @@ interface Props {
   // reason a manual sync failed.
   syncError: string | null
   vaultSyncError: string | null
+  // Count of rows the last vault cycle could not decrypt (1.5.0 per-row
+  // quarantine). Shown as a durable amber note so a key mismatch on some rows is
+  // visible after the transient toast dismisses.
+  vaultSkipped: number
   onClose: () => void
 }
 
 type TestStatus = 'idle' | 'testing' | 'ok' | 'fail'
 type SyncResult = 'idle' | 'ok' | 'error'
 
-export function SyncSettingsModal({ engine, dbEngine, syncError, vaultSyncError, onClose }: Props) {
+export function SyncSettingsModal({ engine, dbEngine, syncError, vaultSyncError, vaultSkipped, onClose }: Props) {
   const { t } = useTranslation()
   const existingConfig = engine?.getConfig() ?? null
   const initFolder = localStorage.getItem(SYNC_FOLDER_KEY) ?? DEFAULT_SYNC_FOLDER
@@ -592,6 +596,16 @@ export function SyncSettingsModal({ engine, dbEngine, syncError, vaultSyncError,
                       ? t('sync.lastSynced', { date: formatLastSynced(vaultLastSynced) })
                       : 'Save & reload to activate GLANCEvault sync.'}
                   </p>
+                )}
+                {vaultSkipped > 0 && (
+                  <div className="flex items-start gap-2 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/40">
+                    <AlertTriangle size={14} className="text-amber-500 shrink-0 mt-0.5" />
+                    <p className="text-xs text-amber-700 dark:text-amber-300">
+                      {vaultSkipped} {vaultSkipped === 1 ? 'item' : 'items'} couldn’t be read on the last sync.
+                      This usually means a wrong sync passphrase on some rows. They’re skipped and retried
+                      automatically on later syncs — nothing was lost or overwritten.
+                    </p>
+                  </div>
                 )}
               </div>
             )}
