@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { X, HelpCircle, ExternalLink } from 'lucide-react'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
+import { isNativePlatform } from '@/sync/nativeHttp'
 import { useTranslation } from 'react-i18next'
 
 interface Props {
@@ -36,6 +37,12 @@ export function HelpModal({ onClose, onOpenShortcuts }: Props) {
         setStorage({ used: est.usage, quota: est.quota })
       }
     }).catch(() => {})
+    // The persistent-storage prompt only applies to the browser, where the OS may
+    // evict an unpersisted origin. On the native (Capacitor) iOS/Android shells the
+    // app's data store is durably owned by the app, so navigator.storage.persisted()
+    // is irrelevant there (and may report false) — skip the check so the warning
+    // never shows. Mirrors the gating dayGLANCE uses for the same notice.
+    if (isNativePlatform) return
     navigator.storage?.persisted?.().then(p => setPersisted(p ?? null)).catch(() => {})
   }, [])
 

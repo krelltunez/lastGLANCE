@@ -13,7 +13,7 @@
 // remote applies never call markDirty and cannot loop back into a push.
 
 import { createDbSyncEngine } from '@glance-apps/sync'
-import type { DbSyncEngine, SyncStatus, SyncErrorCode } from '@glance-apps/sync'
+import type { DbSyncEngine, DbSyncResult, SyncStatus, SyncErrorCode } from '@glance-apps/sync'
 import { db } from '@/db/client'
 import type { Category, Chore, CompletionEvent, User } from '@/types'
 import type { SyncCategory, SyncChore, SyncCompletionEvent, SyncUser } from './types'
@@ -29,6 +29,45 @@ import {
 
 const APP_ID = 'lastglance'
 const CRYPTO_DB_NAME = 'lastglance-crypto'
+
+// ── User-facing messages for the typed vault (DB transport) error codes ───────
+// These codes only occur on transportMode: 'database' (the GLANCEvault tier).
+
+// KEY_MISMATCH: the derived root key does not match the account's existing data.
+// The engine aborts BEFORE any upload, so a wrong key never pollutes the account.
+// Not silently retried — the user must fix the passphrase.
+export const VAULT_KEY_MISMATCH_MESSAGE =
+  'Wrong sync passphrase — it must exactly match the passphrase used on your other devices.'
+
+// VERIFIER_UNSUPPORTED: the GLANCEvault server is too old to host the key
+// verifier. A server problem, not a user error.
+export const VAULT_VERIFIER_UNSUPPORTED_MESSAGE =
+  'Your sync server needs to be updated to support key verification.'
+
+// ACCOUNT_ID_REQUIRED: a row-scoped call ran before the account id was populated.
+// Retryable — the next cycle (focus / interval) re-attempts once it is available,
+// so this is phrased as "not ready yet" rather than a hard failure.
+export const VAULT_ACCOUNT_ID_REQUIRED_MESSAGE =
+  'Finishing sync setup — try again in a moment.'
+
+// Map a vault onError (message, code) to the string to surface, or null for
+// nothing. PASSPHRASE_REQUIRED is handled by the caller (it prompts for the
+// passphrase instead of showing a message), so it is left untouched here.
+export function vaultErrorMessage(
+  message: string | null,
+  code: SyncErrorCode | null,
+): string | null {
+  switch (code) {
+    case 'KEY_MISMATCH':
+      return VAULT_KEY_MISMATCH_MESSAGE
+    case 'VERIFIER_UNSUPPORTED':
+      return VAULT_VERIFIER_UNSUPPORTED_MESSAGE
+    case 'ACCOUNT_ID_REQUIRED':
+      return VAULT_ACCOUNT_ID_REQUIRED_MESSAGE
+    default:
+      return message
+  }
+}
 
 // ── Entity-shape helpers (pure; safe to unit test without a DB) ──────────────
 
@@ -391,6 +430,10 @@ function notifyApplied(): void {
 export interface DbEngineCallbacks {
   onStatusChange?: (status: SyncStatus) => void
   onError?: (message: string | null, code: SyncErrorCode | null) => void
+  // Fired once per cycle that skipped > 0 undecryptable rows (@glance-apps/sync
+  // 1.5.0 per-row quarantine). We keep using the engine's own dbSyncCycle, so the
+  // engine invokes this for us; we only forward it to the UI signal.
+  onRowsSkipped?: (count: number, entityIds: string[]) => void
 }
 
 // One-time recovery for devices upgrading from @glance-apps/sync ≤ 1.3.x.
@@ -477,6 +520,7 @@ export function createDbEngine(callbacks: DbEngineCallbacks = {}): DbSyncEngine 
     getEntityLastModified,
     onStatusChange: callbacks.onStatusChange,
     onError: callbacks.onError,
+    onRowsSkipped: callbacks.onRowsSkipped,
   })
 
   // Recover devices whose pull cursor was poisoned by the ≤1.3.x push/pull bug
@@ -498,7 +542,7 @@ export function createDbEngine(callbacks: DbEngineCallbacks = {}): DbSyncEngine 
   // After a successful first push the high water mark advances past 0, so this
   // runs once. Seeding failures are non-fatal: the normal cycle still proceeds.
   const runCycle = engine.dbSyncCycle.bind(engine)
-  const dbSyncCycle = async (): Promise<void> => {
+  const dbSyncCycle = async (): Promise<DbSyncResult> => {
     if (engine.getHighWaterMark() === 0) {
       try {
         await markAllLocalEntitiesDirty(engine)
@@ -506,7 +550,10 @@ export function createDbEngine(callbacks: DbEngineCallbacks = {}): DbSyncEngine 
         console.warn('[lastglance] vault initial snapshot failed:', err)
       }
     }
-    await runCycle()
+    // The engine's own dbSyncCycle fires config.onRowsSkipped for any quarantined
+    // rows and resolves to { applied, skipped, skippedEntityIds }; pass that result
+    // straight through so callers can surface the per-cycle skip count.
+    const result = await runCycle()
     // A pull may have skipped already-present rows under last-writer-wins, so run
     // the repair after every cycle too; refresh the UI when it links anything.
     try {
@@ -514,6 +561,7 @@ export function createDbEngine(callbacks: DbEngineCallbacks = {}): DbSyncEngine 
     } catch (err) {
       console.warn('[lastglance] category parent repair failed:', err)
     }
+    return result
   }
 
   return { ...engine, dbSyncCycle, sync: dbSyncCycle }

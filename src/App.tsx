@@ -10,7 +10,7 @@ import { PassphraseModal } from '@/components/PassphraseModal/PassphraseModal'
 import { HelpModal } from '@/components/HelpModal/HelpModal'
 import { ShortcutsModal } from '@/components/ShortcutsModal/ShortcutsModal'
 import { ActivityLogModal } from '@/components/ActivityLogModal/ActivityLogModal'
-import { ToastProvider } from '@/components/Toast/Toast'
+import { ToastProvider, useToast } from '@/components/Toast/Toast'
 import { UsersModal } from '@/components/UsersModal/UsersModal'
 import { UsersContext } from '@/multiuser/UsersContext'
 import { useUsers } from '@/multiuser/useUsers'
@@ -19,7 +19,7 @@ import { useIntentsPoller } from '@/hooks/useIntentsPoller'
 import { IntentsProvider, useIntents } from '@/intents/IntentsContext'
 import { getAllCompletionCounts } from '@/db/queries'
 import { createEngine, initSessionKey, setupEncryptionKey, runAutoBackups, ensureSyncFolder, CRYPTO_CONFIG, getSyncWebdavConfig } from '@/sync/engine'
-import { createDbEngine } from '@/sync/dbEngine'
+import { createDbEngine, vaultErrorMessage } from '@/sync/dbEngine'
 import { registerDbEngine } from '@/sync/dirtyTracker'
 import { isVaultEnabled } from '@/sync/vaultConfig'
 import { applyStatusBarTheme, initFullScreenInLandscape } from '@/native/statusBar'
@@ -116,6 +116,7 @@ function HeaderHeatmap({ weeks }: { weeks: HeatDay[][] }) {
 
 function AppInner() {
   const { t } = useTranslation()
+  const { showToast } = useToast()
   useNotifications()
   const { refreshConfig } = useIntents()
   const usersCtx = useUsers()
@@ -152,13 +153,28 @@ function AppInner() {
   // dbSyncCycle swallows errors internally and reports them here rather than
   // throwing, so this is how the Cloud Sync modal shows what went wrong.
   const [vaultSyncError, setVaultSyncError] = useState<string | null>(null)
+  // Durable count of rows the last vault cycle could not decrypt (1.5.0 per-row
+  // quarantine). Survives after the transient toast dismisses so a key mismatch on
+  // some rows stays visible in the Cloud Sync settings panel.
+  const [vaultSkipped, setVaultSkipped] = useState(0)
+
+  // showToast is stable, but the mount effect that builds the engine reads it from
+  // a ref so the onRowsSkipped closure always calls the live one.
+  const showToastRef = useRef(showToast)
+  showToastRef.current = showToast
 
   // Runs one DB sync cycle when the vault transport is enabled. No-op otherwise.
   // Fired on the same triggers as the file engine; errors are surfaced through
-  // the engine's onError callback (logged, non-fatal to the file tier).
+  // the engine's onError callback (logged, non-fatal to the file tier). The cycle
+  // resolves to { applied, skipped, ... }; mirror its skip count into the durable
+  // signal so a clean cycle clears it and a quarantining one keeps it visible.
   const runDbSync = useCallback(() => {
     const eng = dbEngineRef.current
-    if (eng) eng.dbSyncCycle().catch(() => {/* surfaced via onError */})
+    if (eng) {
+      eng.dbSyncCycle()
+        .then(res => setVaultSkipped(res?.skipped ?? 0))
+        .catch(() => {/* surfaced via onError */})
+    }
   }, [])
 
   useEffect(() => {
@@ -205,9 +221,30 @@ function AppInner() {
     // Construct the DB transport engine alongside the file engine when the vault
     // is enabled. It shares the local data but uses an entirely separate cycle.
     const dbEngine = createDbEngine({
-      onError: (msg) => {
-        setVaultSyncError(msg)
-        if (msg) console.warn('[lastglance] vault sync error:', msg)
+      onError: (msg, code) => {
+        // A missing passphrase isn't a sync failure — prompt for it the same way
+        // the file engine's onPassphraseRequired does, and surface no error.
+        if (code === 'PASSPHRASE_REQUIRED') {
+          setVaultSyncError(null)
+          setShowPassphrase(true)
+          return
+        }
+        // Map the typed DB-transport codes (KEY_MISMATCH / VERIFIER_UNSUPPORTED /
+        // ACCOUNT_ID_REQUIRED) to plain-language text; other codes pass through.
+        // A wrong key fails fast and uploads NOTHING, so the account is never
+        // polluted; ACCOUNT_ID_REQUIRED is retryable and phrased as "not ready yet".
+        const display = vaultErrorMessage(msg, code)
+        setVaultSyncError(display)
+        if (display) console.warn('[lastglance] vault sync error:', display)
+      },
+      onRowsSkipped: (count) => {
+        // Durable: keep the count visible in the sync settings panel after the toast.
+        setVaultSkipped(count)
+        // Transient: nudge the user toward the settings where the count lives.
+        showToastRef.current({
+          title: `${count} ${count === 1 ? 'item' : 'items'} couldn’t be read`,
+          body: 'Some synced rows couldn’t be decrypted. Check Cloud Sync settings.',
+        })
       },
     })
     dbEngineRef.current = dbEngine
@@ -539,6 +576,7 @@ function AppInner() {
           dbEngine={dbEngineRef.current}
           syncError={syncError}
           vaultSyncError={vaultSyncError}
+          vaultSkipped={vaultSkipped}
           onClose={() => { setShowSyncSettings(false); runSharedUserSync() }}
         />
       )}
