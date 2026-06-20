@@ -4,4 +4,5 @@
     <string name="title_activity_main">lastGLANCE</string>
     <string name="package_name">com.lastglance.app</string>
     <string name="custom_url_scheme">com.lastglance.app</string>
+    <string name="heatmap_widget_description">Your recent completion activity at a glance.</string>
 </resources>
