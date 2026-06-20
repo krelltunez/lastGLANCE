@@ -260,9 +260,11 @@ sync round-trip.
   Maximum control, proven exact behavior, more code to maintain.
 
 **Fall back to B if** Path A can't guarantee `setExactAndAllowWhileIdle`-grade
-timing under Doze, doesn't expose the exact-alarm permission flow, or doesn't
-survive reboot reliably. The snapshot bridge, widgets, and router are identical
-either way — only the alarm layer swaps.
+timing under Doze, doesn't expose the exact-alarm permission flow, doesn't
+survive reboot reliably, **or** OEM-killer testing proves we need the WorkManager
+re-arm backstop (see §6 — that backstop needs native ownership of the alarm set,
+which Path A doesn't provide). The snapshot bridge, widgets, and router are
+identical either way — only the alarm layer swaps.
 
 ---
 
@@ -271,10 +273,29 @@ either way — only the alarm layer swaps.
 - **Widget ↔ ChoreRow visual parity:** "clearly same family" is cheap; pixel-parity
   is ongoing maintenance (fonts, color bar, icon set as vectors). Decide the bar
   per widget.
-- **OEM background killers** (Samsung/Xiaomi) can clear alarms; dayGLANCE's only
-  defense is a 15-min WorkManager backstop (and even that doesn't re-arm task
-  reminders). Decide whether to add a WorkManager re-arm of reminders and/or a
-  battery-optimization exemption prompt.
+- **OEM background killers** (Samsung/Xiaomi) can clear alarms. dayGLANCE now
+  defends with a 15-min WorkManager backstop that **re-registers task reminders**
+  (its earlier version only re-armed widgets/Up-Next). The pattern to copy:
+  - One shared, **idempotent** `reregisterPersistedReminders()` that reads the
+    same persisted `scheduledReminders` JSON that `syncReminders` maintains,
+    skips already-fired entries, and re-schedules with `FLAG_UPDATE_CURRENT`
+    keyed on `id.hashCode()` — so repeated runs update alarms in place and
+    **never resurrect one the JS layer cancelled**.
+  - Both the `BOOT_COMPLETED` receiver and the 15-min `WidgetUpdateWorker`
+    delegate to that one method (no duplicated re-registration loop).
+  - **A-vs-B implication:** this backstop requires native code that *owns the
+    persisted alarm set and can re-register it without JS*. That's a Path B
+    trait. With Path A (`@capacitor/local-notifications`) the plugin owns
+    scheduling state and survives reboot itself, but does **not** expose a
+    "re-register the set" hook a WorkManager job could call — so true OEM-killer
+    resilience pulls toward owning the alarm layer (B) or a hybrid that keeps our
+    own persisted reminder JSON + native re-register. Keep the agreed posture:
+    don't build the backstop until on-device testing shows alarms actually get
+    cleared; if it does, treat that as a concrete signal to move the alarm layer
+    to B.
+- Battery-optimization exemption prompt: intentionally **not** planned for v1
+  (intrusive, Play-policy-sensitive, off-brand). Reconsider only if testing on
+  real OEM devices proves `setExactAndAllowWhileIdle` + the backstop insufficient.
 - **Timezone/DST:** dayGLANCE has no `TIMEZONE_CHANGED` receiver and re-syncs on
   open — a known gap. Cheap to add a receiver that re-runs `syncReminders`.
 - **Snapshot freshness while closed:** elapsed time keeps moving but the snapshot is
