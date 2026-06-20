@@ -7,6 +7,17 @@ This plan was informed by a teardown of how the sibling app **dayGLANCE**
 solved timely closed-app notifications (its process is referenced throughout).
 Where lastGLANCE differs from dayGLANCE, it is called out explicitly.
 
+> **▶ RESUME HERE (last updated end of session 2026-06-20)**
+> - **Phase 0 built** (snapshot bridge + heatmap widget) → **PR #126**, branch
+>   `claude/wonderful-mccarthy-abm730`. Web build + 58 tests green.
+> - **Next action is yours:** smoke-test the widget on a device
+>   (`npm run cap:android`) — Android side is **not yet compiled**.
+> - **Open decision before Phase 1:** RemoteViews (as built) vs Glance for widgets
+>   (see Phase 0). Then proceed to **Phase 1** (exact-alarm notifications, Path A).
+> - **Settled:** Path A chosen (B backup); visual target = "clearly same family";
+>   no battery-opt prompt; defer the WorkManager re-arm backstop until testing
+>   proves OEM killers clear our alarms.
+
 ---
 
 ## 1. Context & the core constraint
@@ -170,16 +181,23 @@ queue** in `SharedPreferences`; JS drains via `getPendingActions()` on
 
 ## 4. Phases
 
-### Phase 0 — Snapshot bridge + heatmap widget (read-only)
+### Phase 0 — Snapshot bridge + heatmap widget (read-only) — ✅ BUILT (PR #126)
 
 **Goal:** prove the whole pipeline with zero write-back risk.
 
-- `WidgetBridge` plugin with `updateSnapshot` only.
+- `WidgetBridge` plugin with `updateSnapshot` only. ✅
 - `src/native/snapshot.ts` + wire its triggers (start / `lg:chore-logged` /
-  `lg:sync-applied` / pause).
-- One **Glance** (Jetpack Compose) widget rendering the activity heatmap from
-  `snapshot.heatmap`. Honors light/dark (existing `drawable-night`).
-- Tap → `lastglance://filter/soon` (navigate only).
+  `lg:sync-applied` / pause). ✅ (via `src/hooks/useWidgetSnapshot.ts`)
+- A widget rendering the activity heatmap from `snapshot.heatmap`, honoring
+  light/dark. **Implemented as a classic `RemoteViews` AppWidget drawing a Canvas
+  bitmap (Java), NOT Jetpack Glance** — deliberate deviation to avoid the
+  Compose/Kotlin Gradle setup for a non-interactive widget and keep the change
+  dependency-free. **OPEN DECISION:** keep RemoteViews here and adopt Glance only
+  for the interactive Phase 2 widgets, or unify on Glance now. Awaiting an
+  on-device look before deciding.
+- Tap → `lastglance://filter/soon` (opens app only; router lands in Phase 2/3). ✅
+
+**Status:** web build + 58 tests green; **Android not yet compiled/device-tested.**
 
 **Exit criteria:** heatmap on the home screen reflects completions within one app
 foreground cycle; survives reboot (re-renders from persisted snapshot).
@@ -270,9 +288,9 @@ identical either way — only the alarm layer swaps.
 
 ## 6. Open questions / risks
 
-- **Widget ↔ ChoreRow visual parity:** "clearly same family" is cheap; pixel-parity
-  is ongoing maintenance (fonts, color bar, icon set as vectors). Decide the bar
-  per widget.
+- **Widget ↔ ChoreRow visual parity:** DECIDED — aim for **"clearly same family"**
+  (cheap), not pixel-parity (ongoing maintenance: fonts, color bar, icon set as
+  vectors). Revisit per widget after seeing it on-device.
 - **OEM background killers** (Samsung/Xiaomi) can clear alarms. dayGLANCE now
   defends with a 15-min WorkManager backstop that **re-registers task reminders**
   (its earlier version only re-armed widgets/Up-Next). The pattern to copy:
@@ -306,20 +324,23 @@ identical either way — only the alarm layer swaps.
 
 ## 7. File touch list (first two phases)
 
-**New**
-- `android/app/src/main/java/com/lastglance/app/WidgetBridgePlugin.kt`
-- `android/app/src/main/java/com/lastglance/app/widget/…` (Glance widgets, receivers)
-- `android/app/src/main/java/com/lastglance/app/data/SharedDataStore.kt`
-- `src/native/widgetBridge.ts` (JS wrappers)
-- `src/native/snapshot.ts` (snapshot builder + triggers)
-- `src/native/reminders.ts` (eligible-set + `syncReminders`)
+**Phase 0 — as built (Java, not Kotlin; RemoteViews, not Glance):**
+- `android/app/src/main/java/com/lastglance/app/WidgetBridgePlugin.java` ✅
+- `android/app/src/main/java/com/lastglance/app/SharedDataStore.java` ✅
+- `android/app/src/main/java/com/lastglance/app/HeatmapWidgetProvider.java` ✅
+- `android/app/src/main/res/layout/widget_heatmap.xml`, `res/xml/heatmap_widget_info.xml`,
+  `res/drawable[-night]/widget_background.xml`, `res/values[-night]/colors.xml` ✅
+- `src/native/widgetBridge.ts`, `src/native/snapshot.ts`,
+  `src/hooks/useWidgetSnapshot.ts` ✅
+- Modified: `MainActivity.java` (registerPlugin), `AndroidManifest.xml` (receiver),
+  `res/values/strings.xml`, `src/App.tsx` (call `useWidgetSnapshot()`) ✅
 
-**Modified**
-- `android/app/src/main/AndroidManifest.xml` (permissions, receivers, widget provider)
+**Phase 1+ — still to come:**
+- `src/native/reminders.ts` (eligible-set + `syncReminders`)
 - `capacitor.config.ts` (LocalNotifications config if needed)
-- `src/App.tsx` (wire snapshot/reminder triggers alongside existing
-  `loadHeatmap` listeners)
 - `src/hooks/useNotifications.ts` (keep in-app toast branch; drop closed-app web
   notification on native)
+- `AndroidManifest.xml` (POST_NOTIFICATIONS, SCHEDULE_EXACT_ALARM, BOOT_COMPLETED)
 - `package.json` (`@capacitor/local-notifications`)
+- If Path B: a Glance `widget/` package for the interactive Phase 2 widgets
 ```
