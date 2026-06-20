@@ -3,11 +3,12 @@ set -e
 
 # lastGLANCE Android build — ported from the dayGLANCE build script.
 # Differences: the Capacitor project dir is android/ (not renamed), and this
-# builds a single APK (no play/github flavors, no AAB yet).
+# builds a single APK (no play/github flavors).
 #
 # Usage:
 #   ./build-android.sh            debug APK + install on a connected device
-#   ./build-android.sh --release  signed release APK -> outputs/lastglance.apk
+#   ./build-android.sh --release  signed release APK + .aab for the Play Store
+#                                 -> outputs/lastglance.apk, outputs/lastglance.aab
 #   ./build-android.sh --clean    full gradle clean + wipe dist/ first
 # Flags combine, e.g. ./build-android.sh --clean --release
 
@@ -67,15 +68,22 @@ if $RELEASE; then
   cd "$SCRIPT_DIR"
   npm run build:android
 
-  echo "==> Building release APK..."
+  # Build the release APK (for sideloading/testing) and the AAB (App Bundle)
+  # that the Play Store requires for uploads, in a single Gradle invocation.
+  echo "==> Building release APK + AAB..."
   cd "$ANDROID_DIR"
-  ./gradlew assembleRelease
+  ./gradlew assembleRelease bundleRelease
 
   cp "app/build/outputs/apk/release/lastglance.apk" "$OUT_DIR/lastglance.apk"
   echo "    APK (release) → outputs/lastglance.apk"
 
+  # The bundle task ignores the APK outputFileName rename in build.gradle, so
+  # the .aab keeps its default name (app-release.aab); copy it to a stable path.
+  cp "app/build/outputs/bundle/release/app-release.aab" "$OUT_DIR/lastglance.aab"
+  echo "    AAB (release) → outputs/lastglance.aab"
+
   # Verify the APK carries a valid signature (catches a misconfigured or
-  # missing keystore.properties that would otherwise ship an unsigned APK).
+  # missing keystore.properties that would otherwise ship an unsigned APK/AAB).
   SDK_DIR="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
   APKSIGNER="$(command -v apksigner || true)"
   if [ -z "$APKSIGNER" ] && [ -n "$SDK_DIR" ]; then
