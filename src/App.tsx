@@ -15,6 +15,7 @@ import { UsersModal } from '@/components/UsersModal/UsersModal'
 import { UsersContext } from '@/multiuser/UsersContext'
 import { useUsers } from '@/multiuser/useUsers'
 import { useNotifications } from '@/hooks/useNotifications'
+import { useWidgetSnapshot } from '@/hooks/useWidgetSnapshot'
 import { useIntentsPoller } from '@/hooks/useIntentsPoller'
 import { IntentsProvider, useIntents } from '@/intents/IntentsContext'
 import { getAllCompletionCounts } from '@/db/queries'
@@ -118,6 +119,7 @@ function AppInner() {
   const { t } = useTranslation()
   const { showToast } = useToast()
   useNotifications()
+  useWidgetSnapshot()
   const { refreshConfig } = useIntents()
   const usersCtx = useUsers()
   const reloadUsers = usersCtx.reload
