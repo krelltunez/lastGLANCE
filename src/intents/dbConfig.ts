@@ -77,3 +77,52 @@ export function getReceiveCursor(): number | null {
 export function setReceiveCursor(seq: number | null): void {
   localStorage.setItem(DB_INTENTS_RECEIVE_CURSOR_KEY, formatSince(seq))
 }
+
+// --- Receive failure counters (app-owned, persisted) ------------------------
+// Per-seq consecutive failure counts for the bounded-retry drain. A row whose
+// handler THROWS (typically a transient IndexedDB error) is retried across poll
+// cycles instead of either wedging the channel or being dropped; the count must
+// therefore survive reloads, so it lives in localStorage next to the cursor.
+// Only actively-failing seqs hold an entry — the count is cleared on success
+// AND on give-up, so the map stays empty in steady state.
+const DB_INTENTS_RECEIVE_FAILURES_KEY = 'lg_db_intents_receive_failures'
+
+type FailureMap = Record<string, number>
+
+function readFailures(): FailureMap {
+  try {
+    const raw = localStorage.getItem(DB_INTENTS_RECEIVE_FAILURES_KEY)
+    if (!raw) return {}
+    const parsed = JSON.parse(raw)
+    return parsed && typeof parsed === 'object' ? (parsed as FailureMap) : {}
+  } catch {
+    return {}
+  }
+}
+
+function writeFailures(map: FailureMap): void {
+  if (Object.keys(map).length === 0) localStorage.removeItem(DB_INTENTS_RECEIVE_FAILURES_KEY)
+  else localStorage.setItem(DB_INTENTS_RECEIVE_FAILURES_KEY, JSON.stringify(map))
+}
+
+// Current consecutive failure count for a seq (0 when none recorded).
+export function getReceiveFailureCount(seq: number): number {
+  return readFailures()[String(seq)] ?? 0
+}
+
+// Increments and returns the new consecutive failure count for a seq.
+export function recordReceiveFailure(seq: number): number {
+  const map = readFailures()
+  const next = (map[String(seq)] ?? 0) + 1
+  map[String(seq)] = next
+  writeFailures(map)
+  return next
+}
+
+// Clears a seq's failure counter (on success or give-up).
+export function clearReceiveFailure(seq: number): void {
+  const map = readFailures()
+  if (map[String(seq)] === undefined) return
+  delete map[String(seq)]
+  writeFailures(map)
+}

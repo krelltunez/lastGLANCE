@@ -127,6 +127,13 @@ export async function listIntentsPage(since: number, limit = DEFAULT_LIST_LIMIT)
   }
 }
 
+// A handler that throws this many CONSECUTIVE times on the same seq is treated
+// as poison and given up on (advanced past), so a permanently-bad row cannot
+// wedge the channel forever. Below the threshold a throw is assumed transient
+// and the drain stops to retry from the same cursor next poll. Identical
+// name/value to dayGLANCE's intents drain.
+export const MAX_INTENT_RETRIES = 5
+
 export interface ReceiveDeps {
   // Reads the app-owned receive cursor (null = from the beginning / full backlog).
   getCursor: () => number | null
@@ -135,17 +142,36 @@ export interface ReceiveDeps {
   // Fetches one page from `since`. Injected so tests can drive the pagination
   // loop without a server; the poller passes listIntentsPage.
   listPage: (since: number) => Promise<ListPage | null>
-  // Handles one decoded row (route the envelope to the app's intent handling).
+  // Handles one decoded row. Returns normally on success OR on a decode/
+  // permanent-bad row (which it skip-logs internally). THROWS only when the
+  // handler itself failed (e.g. a transient IndexedDB error) — that throw drives
+  // the bounded-retry path below.
   processRow: (row: IntentEventRow) => Promise<void>
+  // Persisted per-seq failure counters (survive poll cycles / reloads). Inject
+  // so tests can drive retries in-memory; the poller wires the localStorage ones.
+  recordFailure: (seq: number) => number // increment, return new consecutive count
+  clearFailure: (seq: number) => void
+  // Called when a seq is given up on after MAX_INTENT_RETRIES, so the app can log
+  // loudly with the row's eventId. Optional (logging only).
+  onGiveUp?: (row: IntentEventRow, err: unknown, failures: number) => void
 }
 
-// RECEIVE with PAGINATION. Reading .rows once would silently truncate any
-// backlog over one page (default 500). So we LOOP: read .rows, process them,
-// advance the cursor to the last row's seq, and if hasMore is true immediately
-// list again from the new cursor — until hasMore is false.
+// RECEIVE with PAGINATION + BOUNDED RETRY. Reading .rows once would silently
+// truncate any backlog over one page (default 500). So we LOOP: read .rows,
+// process them, advance the cursor to the last row's seq, and if hasMore is true
+// immediately list again from the new cursor — until hasMore is false.
 //
-// Returns the number of rows processed. The cursor advances ONLY here, from
-// intents actually received and processed; nothing in the send path can move it.
+// Per-row handling is a three-way model so one bad row can neither abort the
+// drain nor wedge the channel:
+//   1. processRow returns       -> success / decode-skip: advance, clear, continue.
+//   2. processRow THROWS, count < MAX -> assumed transient: STOP the drain,
+//      cursor unadvanced, so the next poll retries this seq from here.
+//   3. processRow THROWS, count >= MAX -> poison: log, advance past it, clear,
+//      continue (the channel must not wedge on one permanently-bad row).
+//
+// Returns the number of rows consumed (advanced past — successes, decode-skips,
+// and give-ups). The cursor advances ONLY here, from intents actually received;
+// nothing in the send path can move it.
 export async function receiveAllIntents(deps: ReceiveDeps): Promise<number> {
   let cursor = deps.getCursor() ?? 0
   let processed = 0
@@ -155,13 +181,38 @@ export async function receiveAllIntents(deps: ReceiveDeps): Promise<number> {
     if (!page) break
 
     for (const row of page.rows) {
-      await deps.processRow(row)
-      // Advance the receive cursor to this row's seq. THE CURSOR MAY LEGITIMATELY
-      // ADVANCE PAST A SEQ WHOSE INTENT EXPIRED before this device listed it: the
-      // server returns only non-expired rows, so an expired intent is simply
-      // never delivered and its seq is skipped. THIS IS CORRECT AND INTENDED
-      // (TTL means a stale intent is meant to be missed) — it is NOT the sync
-      // cursor-skip bug and must not be "fixed" by re-listing from a lower seq.
+      try {
+        await deps.processRow(row)
+      } catch (err) {
+        // HANDLER THREW — catch so it can no longer abort the drain. Do NOT
+        // advance the cursor yet; bump this seq's persisted consecutive-failure
+        // count and decide retry vs give-up.
+        const failures = deps.recordFailure(row.seq)
+        if (failures >= MAX_INTENT_RETRIES) {
+          // Poison row: give up so the channel can't wedge forever. Log loudly
+          // (with eventId), advance past it, and clear its counter.
+          deps.onGiveUp?.(row, err, failures)
+          deps.clearFailure(row.seq)
+          cursor = row.seq
+          deps.setCursor(cursor)
+          processed++
+          continue
+        }
+        // Below the threshold — assume transient. Stop the WHOLE drain for this
+        // poll with the cursor unadvanced; the next poll resumes from this seq
+        // and retries it. Return cleanly (do not re-throw).
+        return processed
+      }
+
+      // No throw: success or a decode/permanent-bad skip. Advance past the row.
+      // Clear any failure counter for this seq (success path; a never-failed seq
+      // is a harmless no-op). THE CURSOR MAY LEGITIMATELY ADVANCE PAST A SEQ
+      // WHOSE INTENT EXPIRED before this device listed it: the server returns
+      // only non-expired rows, so an expired intent is simply never delivered
+      // and its seq is skipped. THIS IS CORRECT AND INTENDED (TTL means a stale
+      // intent is meant to be missed) — it is NOT the sync cursor-skip bug and
+      // must not be "fixed" by re-listing from a lower seq.
+      deps.clearFailure(row.seq)
       cursor = row.seq
       deps.setCursor(cursor)
       processed++

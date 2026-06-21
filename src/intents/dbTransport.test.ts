@@ -5,11 +5,29 @@ import {
   postIntentsBatch,
   sendCreateIntent,
   DEFAULT_LIST_LIMIT,
+  MAX_INTENT_RETRIES,
   type ListPage,
 } from './dbTransport'
-import { getReceiveCursor, setReceiveCursor } from './dbConfig'
+import {
+  getReceiveCursor,
+  setReceiveCursor,
+  getReceiveFailureCount,
+  recordReceiveFailure,
+  clearReceiveFailure,
+} from './dbConfig'
 import { setVaultConfig } from '@/sync/vaultConfig'
 import type { ChoreWithLastCompletion } from '@/types'
+
+// In-memory per-seq failure counters for driving the bounded-retry drain
+// without localStorage. Mirrors dbConfig's recordReceiveFailure/clearReceiveFailure.
+function memCounters() {
+  const counts = new Map<number, number>()
+  return {
+    recordFailure: (seq: number) => { const n = (counts.get(seq) ?? 0) + 1; counts.set(seq, n); return n },
+    clearFailure: (seq: number) => { counts.delete(seq) },
+    getCount: (seq: number) => counts.get(seq) ?? 0,
+  }
+}
 
 function installLocalStorage(): void {
   const store = new Map<string, string>()
@@ -64,11 +82,14 @@ describe('receiveAllIntents — pagination', () => {
 
     const seen: number[] = []
     let cursor: number | null = null
+    const mc = memCounters()
     const processed = await receiveAllIntents({
       getCursor: () => cursor,
       setCursor: (seq) => { cursor = seq },
       listPage,
       processRow: async (row) => { seen.push(row.seq) },
+      recordFailure: mc.recordFailure,
+      clearFailure: mc.clearFailure,
     })
 
     // Every row processed exactly once, in ascending order — nothing truncated.
@@ -87,15 +108,123 @@ describe('receiveAllIntents — pagination', () => {
     const rows = [makeRow(3), makeRow(4), makeRow(5)]
     const { listPage, sinceCalls } = makePagedServer(rows, DEFAULT_LIST_LIMIT)
     let cursor: number | null = null
+    const mc = memCounters()
     const processed = await receiveAllIntents({
       getCursor: () => cursor,
       setCursor: (seq) => { cursor = seq },
       listPage,
       processRow: async () => {},
+      recordFailure: mc.recordFailure,
+      clearFailure: mc.clearFailure,
     })
     expect(processed).toBe(3)
     expect(cursor).toBe(5)
     expect(sinceCalls).toEqual([0]) // single page, no re-list
+  })
+})
+
+describe('receiveAllIntents — bounded retry on handler throw', () => {
+  // A server that always lists every row with seq > since on one page. The drain
+  // is re-invoked once per "poll cycle" so retries span calls like real polls.
+  function singlePageServer(rows: IntentEventRow[]) {
+    return async (since: number): Promise<ListPage> => {
+      const after = [...rows].sort((a, b) => a.seq - b.seq).filter((r) => r.seq > since)
+      return { rows: after, hasMore: false }
+    }
+  }
+
+  it('(a) retries a row that throws once, then consumes it — not lost', async () => {
+    const rows = [makeRow(10), makeRow(11)]
+    const listPage = singlePageServer(rows)
+    const mc = memCounters()
+    let cursor: number | null = null
+    const seen: number[] = []
+    let shouldThrow = true
+    const processRow = async (row: IntentEventRow) => {
+      if (row.seq === 10 && shouldThrow) { shouldThrow = false; throw new Error('transient IndexedDB error') }
+      seen.push(row.seq)
+    }
+    const deps = {
+      getCursor: () => cursor,
+      setCursor: (s: number) => { cursor = s },
+      listPage,
+      processRow,
+      recordFailure: mc.recordFailure,
+      clearFailure: mc.clearFailure,
+    }
+
+    // Poll 1: seq 10 throws (count < MAX) -> whole drain stops, cursor unadvanced.
+    const p1 = await receiveAllIntents(deps)
+    expect(p1).toBe(0)
+    expect(cursor).toBeNull()        // held at the failing seq, not advanced past it
+    expect(mc.getCount(10)).toBe(1)  // one recorded failure
+    expect(seen).toEqual([])         // nothing consumed yet — 10 not dropped
+
+    // Poll 2: the SAME seq 10 now succeeds -> advance + clear, then 11 too.
+    const p2 = await receiveAllIntents(deps)
+    expect(p2).toBe(2)
+    expect(seen).toEqual([10, 11])   // 10 was retried, not lost
+    expect(cursor).toBe(11)
+    expect(mc.getCount(10)).toBe(0)  // counter CLEARED on success
+  })
+
+  it('(b) gives up after MAX_INTENT_RETRIES, logs the eventId, and skips so the channel does not wedge', async () => {
+    const rows = [makeRow(20), makeRow(21)]
+    const listPage = singlePageServer(rows)
+    const mc = memCounters()
+    const giveUps: Array<{ eventId: string; failures: number }> = []
+    let cursor: number | null = null
+    const seen: number[] = []
+    const processRow = async (row: IntentEventRow) => {
+      if (row.seq === 20) throw new Error('permanent handler failure')
+      seen.push(row.seq)
+    }
+    const deps = {
+      getCursor: () => cursor,
+      setCursor: (s: number) => { cursor = s },
+      listPage,
+      processRow,
+      recordFailure: mc.recordFailure,
+      clearFailure: mc.clearFailure,
+      onGiveUp: (row: IntentEventRow, _err: unknown, failures: number) => giveUps.push({ eventId: row.eventId, failures }),
+    }
+
+    // Polls below the threshold: each stops the drain with the cursor held.
+    for (let i = 1; i < MAX_INTENT_RETRIES; i++) {
+      const p = await receiveAllIntents(deps)
+      expect(p).toBe(0)
+      expect(cursor).toBeNull()
+      expect(mc.getCount(20)).toBe(i)
+      expect(giveUps).toEqual([])    // not given up yet
+      expect(seen).toEqual([])       // channel still wedged on 20 (by design, retrying)
+    }
+
+    // The MAX-th failure: give up — log with eventId, advance past 20, clear,
+    // then 21 is consumed (channel un-wedged).
+    const pFinal = await receiveAllIntents(deps)
+    expect(giveUps).toEqual([{ eventId: 'evt-20', failures: MAX_INTENT_RETRIES }])
+    expect(mc.getCount(20)).toBe(0)  // counter CLEARED on give-up
+    expect(seen).toEqual([21])       // 21 now flows — one bad row did not wedge the channel
+    expect(cursor).toBe(21)
+    expect(pFinal).toBe(2)           // 20 (given up) + 21 (success) advanced past
+  })
+
+  it('(c) the failure counter persists across a simulated reload', () => {
+    installLocalStorage()
+    // Use the REAL persisted counters (localStorage-backed), as the poller does.
+    expect(getReceiveFailureCount(77)).toBe(0)
+    expect(recordReceiveFailure(77)).toBe(1)
+    expect(recordReceiveFailure(77)).toBe(2)
+
+    // "Reload": dbConfig holds no in-memory state, so a fresh read goes back to
+    // localStorage, which survives a reload. The raw key holds the count.
+    expect(getReceiveFailureCount(77)).toBe(2)
+    expect(localStorage.getItem('lg_db_intents_receive_failures')).toBe(JSON.stringify({ '77': 2 }))
+
+    // Clearing removes the entry (and the key once empty), so steady state is clean.
+    clearReceiveFailure(77)
+    expect(getReceiveFailureCount(77)).toBe(0)
+    expect(localStorage.getItem('lg_db_intents_receive_failures')).toBeNull()
   })
 })
 

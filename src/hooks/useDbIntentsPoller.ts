@@ -17,8 +17,10 @@ import {
   isDbIntentsEnabled,
   getReceiveCursor,
   setReceiveCursor,
+  recordReceiveFailure,
+  clearReceiveFailure,
 } from '@/intents/dbConfig'
-import { listIntentsPage, receiveAllIntents } from '@/intents/dbTransport'
+import { listIntentsPage, receiveAllIntents, MAX_INTENT_RETRIES } from '@/intents/dbTransport'
 import { loadIntentsRootKey } from '@/intents/intentsKeyStore'
 import { processNotifyEnvelope } from '@/intents/processNotifyEnvelope'
 
@@ -45,19 +47,19 @@ export function useDbIntentsPoller(onNewCompletion?: () => void): void {
       if (isEncrypted) {
         const rootKey = await loadIntentsRootKey()
         if (!rootKey) {
-          addActivityEntry({ type: 'error', message: 'encrypted intent received but intents encryption not set up on this device' })
+          addActivityEntry({ type: 'error', message: `encrypted intent ${row.eventId} received but intents encryption not set up on this device` })
           return
         }
         let envelope
         try {
           envelope = await parseEncryptedEnvelope(data, (salt) => deriveEnvelopeKey(rootKey, salt))
         } catch (err) {
-          let message = 'Failed to decrypt intent'
-          if (err instanceof NoKeyError) message = 'No encryption key available to decrypt intent'
-          else if (err instanceof WrongKeyError) message = 'decryption failed (root key mismatch — try re-running intents encryption setup)'
-          else if (err instanceof NotEncryptedError) message = 'Intent is not encrypted as expected'
+          let message = `Failed to decrypt intent ${row.eventId}`
+          if (err instanceof NoKeyError) message = `No encryption key available to decrypt intent ${row.eventId}`
+          else if (err instanceof WrongKeyError) message = `decryption failed for intent ${row.eventId} (root key mismatch — try re-running intents encryption setup)`
+          else if (err instanceof NotEncryptedError) message = `Intent ${row.eventId} is not encrypted as expected`
           else if (err instanceof MalformedEnvelopeError) {
-            addActivityEntry({ type: 'warning', message: 'Malformed encrypted envelope', detail: err.message })
+            addActivityEntry({ type: 'warning', message: `Malformed encrypted envelope ${row.eventId}`, detail: err.message })
             return
           }
           addActivityEntry({ type: 'error', message, detail: err instanceof Error ? err.message : String(err) })
@@ -73,6 +75,7 @@ export function useDbIntentsPoller(onNewCompletion?: () => void): void {
       } catch {
         // Malformed plaintext envelope — skip this row but let the cursor advance
         // past it (it is consumed; re-listing would just hit the same bad row).
+        addActivityEntry({ type: 'warning', message: `Skipping malformed intent ${row.eventId}` })
         return
       }
       await processEnvelope(envelope)
@@ -97,6 +100,15 @@ export function useDbIntentsPoller(onNewCompletion?: () => void): void {
           setCursor: setReceiveCursor,
           listPage: (since) => listIntentsPage(since),
           processRow,
+          recordFailure: recordReceiveFailure,
+          clearFailure: clearReceiveFailure,
+          onGiveUp: (row, err, failures) => {
+            addActivityEntry({
+              type: 'error',
+              message: `Dropping intent ${row.eventId} after ${failures} failed attempts (limit ${MAX_INTENT_RETRIES})`,
+              detail: err instanceof Error ? err.message : String(err),
+            })
+          },
         })
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err)
