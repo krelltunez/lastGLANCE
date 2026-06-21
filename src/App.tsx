@@ -17,6 +17,7 @@ import { useUsers } from '@/multiuser/useUsers'
 import { useNotifications } from '@/hooks/useNotifications'
 import { useWidgetSnapshot } from '@/hooks/useWidgetSnapshot'
 import { useIntentsPoller } from '@/hooks/useIntentsPoller'
+import { useDbIntentsPoller } from '@/hooks/useDbIntentsPoller'
 import { IntentsProvider, useIntents } from '@/intents/IntentsContext'
 import { getAllCompletionCounts } from '@/db/queries'
 import { createEngine, initSessionKey, setupEncryptionKey, runAutoBackups, ensureSyncFolder, CRYPTO_CONFIG, getSyncWebdavConfig } from '@/sync/engine'
@@ -328,6 +329,9 @@ function AppInner() {
   }, [])
 
   useIntentsPoller(loadHeatmap)
+  // GLANCEvault DB intents transport — gated by isDbIntentsEnabled(); a no-op
+  // unless the per-user opt-in is on. WebDAV intents above remain the default.
+  useDbIntentsPoller(loadHeatmap)
 
   useEffect(() => { loadHeatmap() }, [loadHeatmap])
 
