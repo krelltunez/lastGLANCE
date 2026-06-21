@@ -1,41 +1,24 @@
-import { ACTIONS, SOURCE_APPS, buildEnvelope, buildEncryptedEnvelope, filenameFor, deriveEnvelopeKey } from '@glance-apps/intents'
+import { filenameFor } from '@glance-apps/intents'
 import type { ChoreWithLastCompletion } from '@/types'
 import { getIntentsConfig, isIntentsConfigured, addActivityEntry } from './config'
+import { isDbIntentsEnabled } from './dbConfig'
+import { sendCreateIntent } from './dbTransport'
 import { buildAuthHeader, ensureFolder, putFile } from './webdav'
-import { loadIntentsRootKey } from './intentsKeyStore'
-import dayjs from 'dayjs'
+import { buildCreateEnvelope, IntentsKeyMissingError } from './buildCreateEnvelope'
 
 export async function emitCreateIntent(chore: ChoreWithLastCompletion): Promise<boolean> {
+  // TRANSPORT SELECTION. When the per-user GLANCEvault DB intents transport is
+  // enabled, send there. Otherwise fall through to the WebDAV transport, which
+  // remains the default and is unchanged below. An app runs one or the other.
+  if (isDbIntentsEnabled()) return sendCreateIntent(chore)
+
   const config = getIntentsConfig()
   if (!isIntentsConfigured(config)) return false
 
   const authHeader = buildAuthHeader(config.webdavUsername, config.webdavPassword)
 
   try {
-    const assignedUserIds = chore.assigned_user_sync_ids ?? []
-    const payload = {
-      title: chore.name,
-      due: dayjs().format('YYYY-MM-DD'),
-      all_day: true,
-      source_app: SOURCE_APPS.LASTGLANCE,
-      source_entity_id: chore.sync_id,
-      ...(assignedUserIds.length > 0 && { assigned_user_ids: assignedUserIds }),
-    }
-
-    let envelope: Awaited<ReturnType<typeof buildEncryptedEnvelope>> | ReturnType<typeof buildEnvelope>
-    if (config.encryptionEnabled) {
-      const rootKey = await loadIntentsRootKey()
-      if (!rootKey) {
-        addActivityEntry({ type: 'error', message: 'intents encryption setup incomplete — open Settings to complete setup' })
-        return false
-      }
-      envelope = await buildEncryptedEnvelope(
-        { action: ACTIONS.CREATE, payload, emittedBy: SOURCE_APPS.LASTGLANCE },
-        (salt) => deriveEnvelopeKey(rootKey, salt)
-      )
-    } else {
-      envelope = buildEnvelope({ action: ACTIONS.CREATE, payload, emittedBy: SOURCE_APPS.LASTGLANCE })
-    }
+    const envelope = await buildCreateEnvelope(chore, config.encryptionEnabled)
 
     const filename = `${envelope.event_id}.json`
     const content = JSON.stringify(envelope)
@@ -46,6 +29,10 @@ export async function emitCreateIntent(chore: ChoreWithLastCompletion): Promise<
     addActivityEntry({ type: 'sent', message: `Sent "${chore.name}" to dayGLANCE` })
     return true
   } catch (err) {
+    if (err instanceof IntentsKeyMissingError) {
+      addActivityEntry({ type: 'error', message: 'intents encryption setup incomplete — open Settings to complete setup' })
+      return false
+    }
     const message = err instanceof Error ? err.message : String(err)
     addActivityEntry({ type: 'error', message: `Failed to send "${chore.name}" to dayGLANCE`, detail: message })
     return false
