@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { X, Loader } from 'lucide-react'
 import { hasEncryptionReady, getSyncPassphrase } from '@glance-apps/sync'
@@ -9,6 +9,8 @@ import {
   clearActivityLog,
   getActivityLog,
 } from '@/intents/config'
+import { getDbIntentsConfig, saveDbIntentsConfig } from '@/intents/dbConfig'
+import { getVaultConfig } from '@/sync/vaultConfig'
 import { ActivityLogModal } from '@/components/ActivityLogModal/ActivityLogModal'
 import { testConnection } from '@/intents/webdav'
 import { loadIntentsRootKey, clearIntentsRootKey } from '@/intents/intentsKeyStore'
@@ -46,6 +48,17 @@ export function IntegrationSettingsModal({ onClose, onSaved }: Props) {
   const [passphraseInput, setPassphraseInput] = useState('')
   const [setupError, setSetupError] = useState('')
   const [saving, setSaving] = useState(false)
+
+  // GLANCEvault DB intents transport (beta). Independent of the WebDAV intents
+  // config above and of the vault SYNC toggle: this only flips the `enabled`
+  // flag in lg_db_intents_config. The connection (URL/token/accountId) is NOT
+  // entered here — the transport inherits it from the GLANCEvault sync config
+  // (getVaultConfig), so the UI shows whether that connection is present rather
+  // than duplicating the fields.
+  const [dbIntentsEnabled, setDbIntentsEnabled] = useState(() => getDbIntentsConfig().enabled)
+  const initialDbIntentsEnabled = useRef(getDbIntentsConfig().enabled)
+  const vaultConn = getVaultConfig()
+  const vaultConfigured = !!(vaultConn?.vaultUrl && vaultConn?.vaultToken && vaultConn?.accountId)
 
   const encReady = hasEncryptionReady()
 
@@ -112,8 +125,22 @@ export function IntegrationSettingsModal({ onClose, onSaved }: Props) {
         setRootKeyReady(false)
       }
       saveIntentsConfig(localConfig)
+
+      // Persist the DB intents flag SEPARATELY, leaving the WebDAV intents config
+      // (saved just above) and the vault sync config untouched. Spread the
+      // existing config so ttlMs/pollIntervalMinutes are preserved and the
+      // written object matches the exact shape getDbIntentsConfig() reads.
+      const dbIntentsChanged = dbIntentsEnabled !== initialDbIntentsEnabled.current
+      saveDbIntentsConfig({ ...getDbIntentsConfig(), enabled: dbIntentsEnabled })
+
       onSaved()
       onClose()
+
+      // Reload on an enable change so useDbIntentsPoller remounts with the new
+      // config, mirroring how the vault sync toggle reloads to reconstruct its
+      // engine. (Sending already re-reads the gate per call; this is for the
+      // receive poller's cadence/startup.)
+      if (dbIntentsChanged) window.location.reload()
     } catch (err) {
       setSetupError(err instanceof Error ? err.message : t('integration.setupFailed'))
     } finally {
@@ -317,6 +344,48 @@ export function IntegrationSettingsModal({ onClose, onSaved }: Props) {
 
             {setupError && (
               <p className="text-xs text-red-500 dark:text-red-400">{setupError}</p>
+            )}
+          </div>
+
+          {/* GLANCEvault intents (beta) — alternative transport to WebDAV above.
+              Independent toggle; inherits its connection from Sync settings. */}
+          <div className="space-y-3">
+            <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+              GLANCEvault intents (beta)
+            </h3>
+            <p className="text-xs text-amber-600 dark:text-amber-400">
+              ⚠️ Experimental. Sends and receives intents over your GLANCEvault server instead of WebDAV. Requires the GLANCEvault connection set up in Sync settings.
+            </p>
+            <div className="flex items-center justify-between gap-3 py-1">
+              <div className="min-w-0">
+                <p className="text-sm text-slate-700 dark:text-slate-300">Intents via GLANCEvault</p>
+                <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
+                  Database-backed delivery using your GLANCEvault connection. Your WebDAV intents config is left intact.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDbIntentsEnabled(v => !v)}
+                className={`relative shrink-0 w-10 h-6 rounded-full transition-colors ${dbIntentsEnabled ? 'bg-green-400' : 'bg-slate-300 dark:bg-slate-600'}`}
+                aria-checked={dbIntentsEnabled}
+                role="switch"
+              >
+                <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${dbIntentsEnabled ? 'translate-x-4' : ''}`} />
+              </button>
+            </div>
+
+            {dbIntentsEnabled && (
+              vaultConfigured ? (
+                <p className="text-xs text-slate-400 dark:text-slate-500">
+                  Using your GLANCEvault connection (URL, device token, account ID) from Sync settings. Saved on close; the app reloads to start polling.
+                </p>
+              ) : (
+                <div className="flex items-start gap-2 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/40">
+                  <p className="text-xs text-amber-700 dark:text-amber-300">
+                    No GLANCEvault connection found. Set up the GLANCEvault server in Sync settings (URL, device token, account ID) first — until then this transport stays inactive.
+                  </p>
+                </div>
+              )
             )}
           </div>
 
