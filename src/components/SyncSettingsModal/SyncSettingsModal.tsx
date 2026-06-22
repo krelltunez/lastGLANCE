@@ -263,6 +263,8 @@ export function SyncSettingsModal({ engine, dbEngine, syncError, vaultSyncError,
         {/* Scrollable body */}
         <div className="overflow-y-auto flex-1 px-6 pb-4 space-y-5">
 
+          <p className="text-xs text-slate-400 dark:text-slate-500">{t('sync.autoSaveHint')}</p>
+
           {/* Hard stop warning */}
           {halted && (
             <div className="flex items-start gap-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/40">
@@ -287,7 +289,6 @@ export function SyncSettingsModal({ engine, dbEngine, syncError, vaultSyncError,
             <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
               {t('sync.webdavConnection')}
             </h3>
-            <p className="text-xs text-slate-400 dark:text-slate-500">{t('sync.autoSaveHint')}</p>
 
             <div className="flex items-center justify-between py-1">
               <div>
