@@ -176,12 +176,15 @@ export function IntegrationSettingsModal({ onClose, onSaved }: Props) {
             </h3>
 
             {/* Enable toggle */}
-            <div className="flex items-center justify-between py-1">
-              <span className="text-sm text-slate-700 dark:text-slate-300">{t('integration.enableIntegration')}</span>
+            <div className="flex items-start justify-between py-1">
+              <div className="min-w-0">
+                <p className="text-sm text-slate-700 dark:text-slate-300">{t('integration.enableIntegration')}</p>
+                <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{t('integration.enableIntegrationHint')}</p>
+              </div>
               <button
                 type="button"
                 onClick={() => set('enabled', !localConfig.enabled)}
-                className={`relative w-10 h-6 rounded-full transition-colors ${localConfig.enabled ? 'bg-green-400' : 'bg-slate-300 dark:bg-slate-600'}`}
+                className={`relative shrink-0 mt-0.5 w-10 h-6 rounded-full transition-colors ${localConfig.enabled ? 'bg-green-400' : 'bg-slate-300 dark:bg-slate-600'}`}
                 aria-checked={localConfig.enabled}
                 role="switch"
               >
