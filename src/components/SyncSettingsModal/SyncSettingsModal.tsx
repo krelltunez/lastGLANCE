@@ -263,7 +263,7 @@ export function SyncSettingsModal({ engine, dbEngine, syncError, vaultSyncError,
         {/* Scrollable body */}
         <div className="overflow-y-auto flex-1 px-6 pb-4 space-y-5">
 
-          <p className="text-xs text-slate-400 dark:text-slate-500">{t('sync.autoSaveHint')}</p>
+          <p className="text-sm text-slate-400 dark:text-slate-500">{t('sync.autoSaveHint')}</p>
 
           {/* Hard stop warning */}
           {halted && (
