@@ -46,6 +46,12 @@ export function SyncSettingsModal({ engine, dbEngine, syncError, vaultSyncError,
   const [testStatus, setTestStatus] = useState<TestStatus>('idle')
   const [testError, setTestError] = useState('')
 
+  // Master on/off for the WebDAV cloud sync. When off, the engine config is
+  // persisted with enabled:false — credentials are kept but all auto-sync and
+  // manual sync are paused. Defaults to on for new setups so filling in the
+  // connection fields activates sync as before.
+  const [syncEnabled, setSyncEnabled] = useState(() => Boolean(existingConfig?.enabled ?? true))
+
   const [encEnabled, setEncEnabled] = useState(() => engine?.hasEncryptionReady() ?? false)
   const [passphrase, setPassphrase] = useState('')
   const [confirmPassphrase, setConfirmPassphrase] = useState('')
@@ -95,7 +101,7 @@ export function SyncSettingsModal({ engine, dbEngine, syncError, vaultSyncError,
       (prevVault?.accountId ?? '') !== (nextVault?.accountId ?? '')
 
     if (engine) {
-      engine.setConfig(requiredFieldsFilled ? { provider, ...formData, syncFolder: folderPath, enabled: true, encryptionEnabled: encEnabled } : null)
+      engine.setConfig(requiredFieldsFilled ? { provider, ...formData, syncFolder: folderPath, enabled: syncEnabled, encryptionEnabled: encEnabled } : null)
       localStorage.setItem(SYNC_FOLDER_KEY, folderPath)
       resetEnsuredFolder()
     }
@@ -283,6 +289,24 @@ export function SyncSettingsModal({ engine, dbEngine, syncError, vaultSyncError,
             </h3>
             <p className="text-xs text-slate-400 dark:text-slate-500">{t('sync.autoSaveHint')}</p>
 
+            <div className="flex items-center justify-between py-1">
+              <div>
+                <p className="text-sm text-slate-700 dark:text-slate-300">{t('sync.syncEnabledLabel')}</p>
+                <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
+                  {syncEnabled ? t('sync.syncActive') : t('sync.syncInactive')}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSyncEnabled(v => !v)}
+                className={`relative shrink-0 w-10 h-6 rounded-full transition-colors ${syncEnabled ? 'bg-green-400' : 'bg-slate-300 dark:bg-slate-600'}`}
+                aria-checked={syncEnabled}
+                role="switch"
+              >
+                <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${syncEnabled ? 'translate-x-4' : ''}`} />
+              </button>
+            </div>
+
             <div>
               <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
                 {t('sync.provider')}
@@ -349,7 +373,7 @@ export function SyncSettingsModal({ engine, dbEngine, syncError, vaultSyncError,
                 </button>
                 <button
                   onClick={handleSyncNow}
-                  disabled={!engine || syncing || (engine?.isSyncing() ?? false)}
+                  disabled={!engine || !syncEnabled || syncing || (engine?.isSyncing() ?? false)}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-40 transition-colors"
                 >
                   {syncing && <Loader size={12} className="animate-spin" />}
