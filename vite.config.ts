@@ -112,7 +112,12 @@ export default defineConfig({
         'icons/*.png',
       ],
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+        // Include json so the i18next locale files (public/locales/**/*.json,
+        // loaded at runtime over HTTP) are precached with the rest of the app
+        // shell. Without this they are neither precached nor runtime-cached, so
+        // on reopen the service worker can't serve them and i18next renders raw
+        // keys (e.g. "app.cloudSync") until the user clears site data.
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,json}'],
         skipWaiting: true,
         clientsClaim: true,
       },
