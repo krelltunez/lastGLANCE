@@ -170,11 +170,16 @@ export default async function handler(req, res) {
 
     const response = await proxyRequest(req.method, url, headers, body);
 
-    // Some WebDAV servers return 200 HTML (error page) for missing resources.
-    // Normalise these so the sync library can treat them as "file not found".
+    // Some WebDAV servers answer a GET for a missing/empty resource with a 2xx
+    // whose body isn't the JSON the sync library expects — an HTML/XML error
+    // page, or an empty body. Parsing those as JSON throws, and the engine
+    // surfaces that as a generic sync error (the amber cloud indicator).
+    // Normalise them to 404 so the engine treats it as "file not found" and
+    // seeds the remote from local state instead.
     const contentType = response.headers['content-type'] || '';
+    const trimmedBody = response.body.trimStart();
     if (req.method === 'GET' && response.status >= 200 && response.status < 300 &&
-        (contentType.includes('text/html') || response.body.trimStart().startsWith('<'))) {
+        (contentType.includes('text/html') || trimmedBody === '' || trimmedBody.startsWith('<'))) {
       return res.status(404).end();
     }
 

@@ -207,9 +207,16 @@ function AppInner() {
     const engine = createEngine(import.meta.env.VITE_WEBDAV_PROXY_URL, {
       onStatusChange: (status) => {
         setSyncStatus(status)
-        if (status === 'success' && engineRef.current) {
-          runAutoBackups(engineRef.current).catch(() => {/* non-fatal */})
-          runSharedUserSync().catch(() => {/* non-fatal */})
+        if (status === 'success') {
+          // A completed sync clears any stale error so the cloud indicator
+          // doesn't stay amber after a transient failure that has recovered.
+          // (The engine only clears the error at the *start* of the next
+          // attempt, which can be far off under error backoff.)
+          setSyncError(null)
+          if (engineRef.current) {
+            runAutoBackups(engineRef.current).catch(() => {/* non-fatal */})
+            runSharedUserSync().catch(() => {/* non-fatal */})
+          }
         }
       },
       onError: (msg, _code, isHardStop) => {
