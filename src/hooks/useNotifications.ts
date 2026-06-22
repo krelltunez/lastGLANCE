@@ -3,6 +3,8 @@ import { getCategories, getChoresForCategory, logCompletion } from '@/db/queries
 import { useToast, type ToastOptions } from '@/components/Toast/Toast'
 import { useIntents } from '@/intents/IntentsContext'
 import { emitCreateIntent } from '@/intents/emitter'
+import { getMultiUserEnabled, getMeUserSyncId } from '@/multiuser/settings'
+import { ownedByMe } from '@/utils/choreFilter'
 import dayjs from 'dayjs'
 
 const STORAGE_KEY = (choreId: number) => `lg_notified_${choreId}`
@@ -45,7 +47,23 @@ export function useNotifications() {
       const categories = await getCategories()
       const allChores = (await Promise.all(categories.map(c => getChoresForCategory(c.id)))).flat()
 
+      // In multi-user mode, only act on chores owned by "Me" — shared
+      // (unassigned) or assigned to me, and not inside a category assigned to
+      // someone else. Mirrors the "Mine" view filter (filterCategoryData) so we
+      // don't surface (or auto-schedule) another user's chores.
+      const meId = getMeUserSyncId()
+      const filterByMe = getMultiUserEnabled() && !!meId
+      const categoryById = new Map(categories.map(c => [c.id, c]))
+
       for (const chore of allChores) {
+        if (filterByMe) {
+          const category = categoryById.get(chore.category_id)
+          if (!ownedByMe(category?.assigned_user_sync_ids ?? [], meId!) ||
+              !ownedByMe(chore.assigned_user_sync_ids ?? [], meId!)) {
+            continue
+          }
+        }
+
         const isOverdue = chore.notify_when_overdue &&
           chore.target_cadence_days &&
           chore.elapsed_days !== null &&
