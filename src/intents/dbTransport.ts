@@ -37,7 +37,7 @@ interface VaultResponse {
   text: () => Promise<string>
 }
 
-interface VaultConn {
+export interface VaultConn {
   vaultUrl: string
   vaultToken: string
   accountId: string
@@ -45,8 +45,9 @@ interface VaultConn {
 
 // Resolves the shared GLANCEvault connection (url, device token, account id).
 // Returns null when the vault is not configured — callers treat that as "DB
-// intents not available" and no-op.
-function getConn(): VaultConn | null {
+// intents not available" and no-op. Exported so the intents deliverers can reuse
+// the exact same connection + fetch path the receive/send drains use.
+export function getConn(): VaultConn | null {
   const v = getVaultConfig()
   if (!v || !v.vaultUrl || !v.vaultToken || !v.accountId) return null
   return { vaultUrl: v.vaultUrl, vaultToken: v.vaultToken, accountId: v.accountId }
@@ -56,7 +57,7 @@ function getConn(): VaultConn | null {
 // uses (Authorization: Bearer <token>). On native (Capacitor) it goes straight
 // through the native HTTP stack, CORS-free; in the browser/PWA it uses fetch
 // directly against the vault server (which serves CORS, unlike WebDAV).
-async function vaultFetch(
+export async function vaultFetch(
   conn: VaultConn,
   method: string,
   path: string,

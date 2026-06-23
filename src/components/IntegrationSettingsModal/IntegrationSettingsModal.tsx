@@ -12,9 +12,13 @@ import {
 import { getDbIntentsConfig, saveDbIntentsConfig } from '@/intents/dbConfig'
 import { getVaultConfig } from '@/sync/vaultConfig'
 import { ActivityLogModal } from '@/components/ActivityLogModal/ActivityLogModal'
+import { PassphraseModal } from '@/components/PassphraseModal/PassphraseModal'
 import { testConnection } from '@/intents/webdav'
 import { loadIntentsRootKey, clearIntentsRootKey } from '@/intents/intentsKeyStore'
+import { loadVaultIntentsRootKey } from '@/intents/vaultIntentsKeyStore'
 import { setupIntentsEncryption } from '@/intents/setupIntentsEncryption'
+import { setupVaultIntentsEncryption, ensureVaultIntentsKey, VaultConnMissingError, VaultSaltMissingError } from '@/intents/setupVaultIntentsEncryption'
+import { flushIntents } from '@/intents/flushIntents'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
 import { useTranslation } from 'react-i18next'
 
@@ -60,13 +64,25 @@ export function IntegrationSettingsModal({ onClose, onSaved }: Props) {
   const vaultConn = getVaultConfig()
   const vaultConfigured = !!(vaultConn?.vaultUrl && vaultConn?.vaultToken && vaultConn?.accountId)
 
+  // Interactive passphrase prompt for the vault intents key setup. promptForVault
+  // Passphrase() shows the shared sync PassphraseModal and resolves with the
+  // entered passphrase, or null if the user cancels.
+  const [showVaultPassphrase, setShowVaultPassphrase] = useState(false)
+  const vaultPassResolver = useRef<((p: string | null) => void) | null>(null)
+  function promptForVaultPassphrase(): Promise<string | null> {
+    return new Promise(resolve => {
+      vaultPassResolver.current = resolve
+      setShowVaultPassphrase(true)
+    })
+  }
+
   const encReady = hasEncryptionReady()
 
   useEffect(() => {
     loadIntentsRootKey().then(key => setRootKeyReady(key !== null))
   }, [])
 
-  useEscapeKey(showActivityLog ? () => {} : onClose)
+  useEscapeKey(showActivityLog || showVaultPassphrase ? () => {} : onClose)
 
   function set<K extends keyof LocalConfig>(key: K, value: LocalConfig[K]) {
     setLocalConfig(prev => ({ ...prev, [key]: value }))
@@ -110,6 +126,37 @@ export function IntegrationSettingsModal({ onClose, onSaved }: Props) {
     setSaving(true)
     setSetupError('')
     try {
+      // ── Vault intents key setup (stage 2b-i) ────────────────────────────────
+      // Run BEFORE any other save side effect and BEFORE the reload below, so the
+      // vault intents key is derived while the passphrase is available and is
+      // already cached in its slot when the app reloads. The vault deliverer
+      // reads that cached key (else returns transient), so without this the
+      // transport could never send.
+      //
+      // Trigger: vault intents is being turned on (off->on) OR is on with no key
+      // cached yet. If a key is already cached, do nothing.
+      if (dbIntentsEnabled) {
+        const r = await ensureVaultIntentsKey({
+          loadCachedKey: loadVaultIntentsRootKey,
+          getPassphrase: getSyncPassphrase,
+          promptForPassphrase: promptForVaultPassphrase,
+          derive: setupVaultIntentsEncryption,
+        })
+        if (r.status !== 'ready') {
+          // Cancelled or failed: never enable vault intents without a derived key.
+          setDbIntentsEnabled(false)
+          if (r.status === 'cancelled') setSetupError(t('integration.vaultIntentsEncryptionRequired'))
+          else if (r.error instanceof VaultSaltMissingError) setSetupError(t('integration.vaultIntentsSaltMissing'))
+          else if (r.error instanceof VaultConnMissingError) setSetupError(t('integration.vaultIntentsNoConnection'))
+          else setSetupError(t('integration.setupFailed'))
+          return
+        }
+        // Key is ready: flush now so any intents already held for the vault
+        // target (pending while the key was missing) are delivered immediately,
+        // not only after the next poll/reload.
+        flushIntents().catch(() => { /* surfaced via deliverers/outbox */ })
+      }
+
       if (localConfig.encryptionEnabled && !rootKeyReady) {
         const passphrase = getSyncPassphrase() ?? passphraseInput.trim()
         if (!passphrase) {
@@ -443,6 +490,22 @@ export function IntegrationSettingsModal({ onClose, onSaved }: Props) {
     <>
       {modal}
       {showActivityLog && <ActivityLogModal onClose={() => setShowActivityLog(false)} />}
+      {showVaultPassphrase && (
+        <PassphraseModal
+          onSubmit={async (p) => {
+            setShowVaultPassphrase(false)
+            const resolve = vaultPassResolver.current
+            vaultPassResolver.current = null
+            resolve?.(p)
+          }}
+          onClose={() => {
+            setShowVaultPassphrase(false)
+            const resolve = vaultPassResolver.current
+            vaultPassResolver.current = null
+            resolve?.(null)
+          }}
+        />
+      )}
     </>
   )
 }

@@ -1,5 +1,6 @@
 import { createContext, useContext, useState } from 'react'
 import { getIntentsConfig, isIntentsConfigured, type IntentsConfig } from './config'
+import { isDbIntentsEnabled } from './dbConfig'
 
 interface IntentsContextValue {
   isConfigured: boolean
@@ -16,7 +17,11 @@ export function IntentsProvider({ children }: { children: React.ReactNode }) {
     setConfig(getIntentsConfig())
   }
 
-  const isConfigured = isIntentsConfigured(config)
+  // Intents are "configured" (so the send-to-dayGLANCE buttons show) when ANY
+  // transport is enabled: the WebDAV intents config above, OR the GLANCEvault DB
+  // intents transport. Gating on WebDAV alone hid the buttons for vault-only
+  // setups. Mirrors enabledIntentTargets() in the emitter.
+  const isConfigured = isIntentsConfigured(config) || isDbIntentsEnabled()
 
   return (
     <IntentsContext.Provider value={{ isConfigured, config, refreshConfig }}>
