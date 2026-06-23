@@ -111,10 +111,13 @@ export function useNotifications() {
           chore.elapsed_days >= chore.target_cadence_days
         ) {
           if (localStorage.getItem(AUTO_SCHED_KEY(chore.id!)) !== today) {
-            localStorage.setItem(AUTO_SCHED_KEY(chore.id!), today)
-            emitCreateIntent(chore).catch(() => {
-              // ignore errors — activity log captures them
-            })
+            // Write the "sent today" marker ONLY after a durable enqueue. The old
+            // order wrote it BEFORE the send, so a failed send was both lost and
+            // suppressed for the rest of the day. Enqueue is durable, so once it
+            // resolves the intent will be delivered (retried as needed); a failed
+            // enqueue leaves the marker unset so the next pass retries.
+            const queued = await emitCreateIntent(chore).catch(() => false)
+            if (queued) localStorage.setItem(AUTO_SCHED_KEY(chore.id!), today)
           }
         }
       }

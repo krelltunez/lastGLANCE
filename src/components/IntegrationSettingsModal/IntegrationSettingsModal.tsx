@@ -18,6 +18,7 @@ import { loadIntentsRootKey, clearIntentsRootKey } from '@/intents/intentsKeySto
 import { loadVaultIntentsRootKey } from '@/intents/vaultIntentsKeyStore'
 import { setupIntentsEncryption } from '@/intents/setupIntentsEncryption'
 import { setupVaultIntentsEncryption, ensureVaultIntentsKey, VaultConnMissingError, VaultSaltMissingError } from '@/intents/setupVaultIntentsEncryption'
+import { flushIntents } from '@/intents/flushIntents'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
 import { useTranslation } from 'react-i18next'
 
@@ -150,6 +151,10 @@ export function IntegrationSettingsModal({ onClose, onSaved }: Props) {
           else setSetupError(t('integration.setupFailed'))
           return
         }
+        // Key is ready: flush now so any intents already held for the vault
+        // target (pending while the key was missing) are delivered immediately,
+        // not only after the next poll/reload.
+        flushIntents().catch(() => { /* surfaced via deliverers/outbox */ })
       }
 
       if (localConfig.encryptionEnabled && !rootKeyReady) {
