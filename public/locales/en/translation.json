@@ -155,7 +155,8 @@
   "integration": {
     "title": "dayGLANCE Integration",
     "connectionSection": "Connection",
-    "enableIntegration": "Enable integration",
+    "enableIntegration": "Enable WebDAV intents",
+    "enableIntegrationHint": "Controls the WebDAV intents transport only — GLANCEvault intents are set below.",
     "webdavUrl": "WebDAV URL",
     "webdavUrlPlaceholder": "https://your-server.com/remote.php/dav/files/user/",
     "webdavUrlHint": "Nextcloud: https://your-server/remote.php/dav/files/username/",
