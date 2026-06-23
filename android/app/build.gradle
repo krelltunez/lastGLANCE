@@ -5,7 +5,18 @@ apply plugin: 'com.android.application'
 def pkg = new groovy.json.JsonSlurper().parse(rootProject.file("../package.json"))
 def appVersionName = pkg.version as String
 def versionParts = appVersionName.tokenize('.')
-def appVersionCode = versionParts[0].toInteger() * 10000 + versionParts[1].toInteger() * 100 + versionParts[2].toInteger()
+def derivedVersionCode = versionParts[0].toInteger() * 10000 + versionParts[1].toInteger() * 100 + versionParts[2].toInteger()
+
+// One-off versionCode override for uploading pre-release builds (e.g. to the
+// Play internal test track) without disturbing the derived release numbering.
+// Play requires each upload to have a strictly higher versionCode than anything
+// previously uploaded to ANY track, so an internal build needs a code above the
+// current release's but below the NEXT release's derived code — pick from that
+// band (e.g. between 1.9.0's 10900 and 1.10.0's 11000, use 10901, 10902, …):
+//   ./gradlew bundleRelease -PappVersionCode=10901
+// Omit the property and the code derives from package.json exactly as before, so
+// real releases keep their clean derived numbering.
+def appVersionCode = (project.findProperty("appVersionCode") ?: derivedVersionCode).toString().toInteger()
 
 // Release signing is configured via android/keystore.properties (gitignored).
 // When absent (e.g. debug-only/CI without secrets) release builds stay unsigned.
