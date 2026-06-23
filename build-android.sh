@@ -11,6 +11,14 @@ set -e
 #                                 -> outputs/lastglance.apk, outputs/lastglance.aab
 #   ./build-android.sh --clean    full gradle clean + wipe dist/ first
 # Flags combine, e.g. ./build-android.sh --clean --release
+#
+# One-off versionCode override (for pre-release / internal-test uploads), via the
+# APP_VERSION_CODE env var. Play requires each upload to have a higher versionCode
+# than any previous upload, so to push an internal build without consuming the
+# next release's number, pass a code in the band between the current and next
+# release (e.g. 10901 between 1.9.0's 10900 and 1.10.0's 11000):
+#   APP_VERSION_CODE=10901 ./build-android.sh --release
+# Unset, the versionCode derives from package.json as usual.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ANDROID_DIR="$SCRIPT_DIR/android"
@@ -70,9 +78,15 @@ if $RELEASE; then
 
   # Build the release APK (for sideloading/testing) and the AAB (App Bundle)
   # that the Play Store requires for uploads, in a single Gradle invocation.
-  echo "==> Building release APK + AAB..."
+  # APP_VERSION_CODE, when set, overrides the package.json-derived versionCode
+  # (see build.gradle); otherwise the gradle property is simply not passed.
+  if [ -n "$APP_VERSION_CODE" ]; then
+    echo "==> Building release APK + AAB (versionCode override: $APP_VERSION_CODE)..."
+  else
+    echo "==> Building release APK + AAB..."
+  fi
   cd "$ANDROID_DIR"
-  ./gradlew assembleRelease bundleRelease
+  ./gradlew assembleRelease bundleRelease ${APP_VERSION_CODE:+-PappVersionCode="$APP_VERSION_CODE"}
 
   cp "app/build/outputs/apk/release/lastglance.apk" "$OUT_DIR/lastglance.apk"
   echo "    APK (release) → outputs/lastglance.apk"
