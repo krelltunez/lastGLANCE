@@ -12,7 +12,7 @@ import {
   clearReceiveFailure,
 } from '@/intents/dbConfig'
 import { listIntentsPage, receiveAllIntents, MAX_INTENT_RETRIES } from '@/intents/dbTransport'
-import { loadIntentsRootKey } from '@/intents/intentsKeyStore'
+import { loadVaultIntentsRootKey } from '@/intents/vaultIntentsKeyStore'
 import { routeIncomingVaultRow } from '@/intents/routeIncoming'
 import { processNotifyEnvelope } from '@/intents/processNotifyEnvelope'
 
@@ -33,8 +33,14 @@ export function useDbIntentsPoller(onNewCompletion?: () => void): void {
       // Route by the row's `encrypted` flag. A NON-encrypted row on the vault is
       // a zero-knowledge contract violation: routeIncomingVaultRow rejects it
       // (logs loudly, advances past it) and never routes plaintext into the app.
+      //
+      // Decrypt with the VAULT intents key — the SAME slot the vault deliverer
+      // encrypts with (loadVaultIntentsRootKey), NOT the WebDAV intents key. The
+      // two transports derive different keys from different salts, so using the
+      // WebDAV slot here fails: absent in a vault-only setup ("encryption not set
+      // up"), or a key mismatch when both are configured.
       await routeIncomingVaultRow(row, {
-        loadRootKey: loadIntentsRootKey,
+        loadRootKey: loadVaultIntentsRootKey,
         handleEnvelope: processEnvelope,
         addActivityEntry,
       })
