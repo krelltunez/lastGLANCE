@@ -27,7 +27,12 @@
     "clear": "Effacer",
     "noActivity": "Aucune activité pour l'instant.",
     "collapseDetails": "Réduire les détails",
-    "expandDetails": "Afficher les détails"
+    "expandDetails": "Afficher les détails",
+    "delivery": {
+      "queued": "En file d'attente",
+      "held": "En attente de la clé",
+      "delivered": "Remis"
+    }
   },
   "backup": {
     "title": "Sauvegarde & Restauration",

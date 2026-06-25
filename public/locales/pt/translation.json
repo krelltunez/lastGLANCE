@@ -27,7 +27,12 @@
     "clear": "Limpar",
     "noActivity": "Sem atividade por enquanto.",
     "collapseDetails": "Recolher detalhes",
-    "expandDetails": "Expandir detalhes"
+    "expandDetails": "Expandir detalhes",
+    "delivery": {
+      "queued": "Na fila",
+      "held": "A aguardar chave",
+      "delivered": "Entregue"
+    }
   },
   "backup": {
     "title": "Cópia de segurança e restauro",

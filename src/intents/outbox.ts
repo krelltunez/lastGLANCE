@@ -69,9 +69,42 @@ export interface OutboxEntry {
 //                     yet" (e.g. sync not unlocked): the outbox just keeps the
 //                     target pending and retries once the deliverer can proceed.
 //   permanent-fail  — will never succeed; give up on this target now.
-export type DeliveryResult = 'delivered' | 'transient-fail' | 'permanent-fail'
+export type DeliveryStatus = 'delivered' | 'transient-fail' | 'permanent-fail'
+
+// A deliverer may return a bare status OR a tagged outcome carrying a `reason`.
+// The reason is purely for OBSERVABILITY — it does not change the give-up math
+// (a tagged transient counts toward the bound exactly like a bare one). Today the
+// only reason is INTENTS_KEY_NOT_READY, which lets flush() surface a "waiting for
+// key" hold instead of a silent stall. Bare strings remain valid so deliverers
+// that have nothing to add keep returning them.
+export interface DeliveryOutcome {
+  status: DeliveryStatus
+  reason?: string
+}
+export type DeliveryResult = DeliveryStatus | DeliveryOutcome
 export type Deliverer = (intent: OutboxIntent) => Promise<DeliveryResult>
 export type Deliverers = { [transport: string]: Deliverer | undefined }
+
+// Shared reason tag for "held because the GLANCEvault intents key isn't cached on
+// this device yet". Referenced by BOTH the vault deliverer (which emits it) and
+// flush (which reports it), so the magic string lives in exactly one place.
+export const INTENTS_KEY_NOT_READY = 'intents_key_not_ready'
+
+// Normalizes a deliverer's return to the object shape so flush can read .status
+// and .reason uniformly regardless of which form the deliverer used.
+function asOutcome(result: DeliveryResult): DeliveryOutcome {
+  return typeof result === 'string' ? { status: result } : result
+}
+
+// What a single flush pass reports back for Activity-Log reconciliation. Both are
+// event_id lists (de-duplicated): the entries that had a target reach DELIVERED
+// this pass, and the entries whose vault target HELD because the intents key was
+// absent. An id can legitimately appear in both (e.g. webdav delivered while
+// vault waits for its key) — the forward-only reconcile resolves the precedence.
+export interface FlushResult {
+  deliveredIds: string[]
+  heldNoKeyIds: string[]
+}
 
 // Generous bound, much higher than the receive drain's MAX_INTENT_RETRIES (5):
 // losing OUTBOUND data is worse than retrying, so we lean hard toward retry.
@@ -161,7 +194,9 @@ export interface Outbox {
   // Attempt every still-pending target of every entry once, applying the result
   // model below. Overlapping flushes are guarded — a flush already in flight
   // makes a concurrent call a no-op, so a target is never delivered twice.
-  flush(deliverers: Deliverers): Promise<void>
+  // Returns the per-pass outcome ids for Activity-Log reconciliation (empty
+  // lists when a concurrent flush short-circuits this call).
+  flush(deliverers: Deliverers): Promise<FlushResult>
   // Number of entries still holding undelivered work (diagnostics/tests).
   pendingCount(): Promise<number>
   list(): Promise<OutboxEntry[]>
@@ -211,8 +246,13 @@ export function createOutbox(store: OutboxStore): Outbox {
     await store.put(entry)
   }
 
-  async function flush(deliverers: Deliverers): Promise<void> {
-    if (flushing) return
+  async function flush(deliverers: Deliverers): Promise<FlushResult> {
+    // De-duplicated per-pass id sets for Activity-Log reconciliation.
+    const deliveredIds = new Set<string>()
+    const heldNoKeyIds = new Set<string>()
+    const result: FlushResult = { deliveredIds: [], heldNoKeyIds: [] }
+
+    if (flushing) return result
     flushing = true
     try {
       const entries = await store.getAll()
@@ -228,27 +268,31 @@ export function createOutbox(store: OutboxStore): Outbox {
           // enabled): leave the target pending, untouched, for a later flush.
           if (!deliver) continue
 
-          let result: DeliveryResult
+          let outcome: DeliveryOutcome
           try {
-            result = await deliver(entry.intent)
+            outcome = asOutcome(await deliver(entry.intent))
           } catch {
             // A deliverer that throws instead of classifying is treated as a
             // transient failure: the outbox must never lose an intent because a
             // deliverer misbehaved.
-            result = 'transient-fail'
+            outcome = { status: 'transient-fail' }
           }
 
-          if (result === 'delivered') {
+          if (outcome.status === 'delivered') {
             entry.targets[target] = 'delivered'
             changed = true
-          } else if (result === 'permanent-fail') {
+            deliveredIds.add(entry.id)
+          } else if (outcome.status === 'permanent-fail') {
             // Decisive failure: give up on this target now, bypassing the bound.
             entry.targets[target] = 'given-up'
             changed = true
             logGiveUp(entry, target, 'permanent failure reported by deliverer')
           } else {
             // transient-fail: count it toward the bound and retry next flush,
-            // unless we have now hit the bound.
+            // unless we have now hit the bound. Surface the key-not-ready hold so
+            // the Activity Log can show "waiting for key" rather than stalling
+            // silently — this does NOT change the give-up math.
+            if (outcome.reason === INTENTS_KEY_NOT_READY) heldNoKeyIds.add(entry.id)
             const n = (entry.attempts[target] ?? 0) + 1
             entry.attempts[target] = n
             changed = true
@@ -272,6 +316,10 @@ export function createOutbox(store: OutboxStore): Outbox {
     } finally {
       flushing = false
     }
+
+    result.deliveredIds = [...deliveredIds]
+    result.heldNoKeyIds = [...heldNoKeyIds]
+    return result
   }
 
   async function pendingCount(): Promise<number> {

@@ -27,7 +27,12 @@
     "clear": "Löschen",
     "noActivity": "Noch keine Aktivität.",
     "collapseDetails": "Details einklappen",
-    "expandDetails": "Details ausklappen"
+    "expandDetails": "Details ausklappen",
+    "delivery": {
+      "queued": "In Warteschlange",
+      "held": "Warten auf Schlüssel",
+      "delivered": "Zugestellt"
+    }
   },
   "backup": {
     "title": "Sicherung & Wiederherstellung",

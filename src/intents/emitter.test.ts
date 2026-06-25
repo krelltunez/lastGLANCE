@@ -50,7 +50,7 @@ async function emitAndAwaitFlush(
   ob: ReturnType<typeof createOutbox>,
   deliverers: Record<string, Deliverer>,
 ): Promise<void> {
-  let flushPromise: Promise<void> = Promise.resolve()
+  let flushPromise: Promise<unknown> = Promise.resolve()
   await emitCreateIntent(chore, {
     targets: () => Object.keys(deliverers) as TransportName[],
     enqueue: (i, t) => ob.enqueue(i, t),

@@ -27,7 +27,12 @@
     "clear": "Clear",
     "noActivity": "No activity yet.",
     "collapseDetails": "Collapse details",
-    "expandDetails": "Expand details"
+    "expandDetails": "Expand details",
+    "delivery": {
+      "queued": "Queued",
+      "held": "Waiting for key",
+      "delivered": "Delivered"
+    }
   },
   "backup": {
     "title": "Backup & Restore",

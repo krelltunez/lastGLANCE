@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { X, RefreshCw, ChevronRight, ChevronDown } from 'lucide-react'
-import { type ActivityEntry, getActivityLog, clearActivityLog } from '@/intents/config'
+import { type ActivityEntry, type IntentDelivery, getActivityLog, clearActivityLog, INTENTS_ACTIVITY_EVENT } from '@/intents/config'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
 import { useTranslation } from 'react-i18next'
 
@@ -18,12 +18,31 @@ function badgeClass(type: ActivityEntry['type']): string {
   }
 }
 
+// Visual styling for the outbound delivery chip. Deliberately NOT the red error
+// palette — a "waiting for key" hold is a normal, recoverable state, not a
+// failure, so it must never render through the error path.
+function deliveryChipClass(delivery: IntentDelivery): string {
+  switch (delivery) {
+    case 'queued':    return 'bg-slate-100 dark:bg-slate-700/40  text-slate-500 dark:text-slate-400'
+    case 'held':      return 'bg-amber-100 dark:bg-amber-900/30  text-amber-600 dark:text-amber-400'
+    case 'delivered': return 'bg-green-100 dark:bg-green-900/30  text-green-600 dark:text-green-400'
+  }
+}
+
 export function ActivityLogModal({ onClose }: Props) {
   const { t } = useTranslation()
   const [log, setLog] = useState<ActivityEntry[]>(() => getActivityLog())
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
 
   useEscapeKey(onClose)
+
+  // Live-refresh while open: a background flush that advances a chip
+  // (queued -> waiting for key -> delivered) fires INTENTS_ACTIVITY_EVENT.
+  useEffect(() => {
+    const onChange = () => setLog(getActivityLog())
+    window.addEventListener(INTENTS_ACTIVITY_EVENT, onChange)
+    return () => window.removeEventListener(INTENTS_ACTIVITY_EVENT, onChange)
+  }, [])
 
   function refresh() { setLog(getActivityLog()) }
   function clear() { clearActivityLog(); setLog([]); setExpandedIds(new Set()) }
@@ -94,6 +113,11 @@ export function ActivityLogModal({ onClose }: Props) {
                       </span>
                       <div className="min-w-0 break-words flex-1">
                         <span className="text-slate-600 dark:text-slate-300">{entry.message}</span>
+                        {entry.direction === 'out' && entry.delivery && (
+                          <span className={`ml-2 align-middle inline-block px-1 py-0.5 rounded text-[10px] font-medium ${deliveryChipClass(entry.delivery)}`}>
+                            {t(`activityLog.delivery.${entry.delivery}`)}
+                          </span>
+                        )}
                       </div>
                       {entry.detail && (
                         <button
