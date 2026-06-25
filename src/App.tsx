@@ -22,12 +22,12 @@ import { useOutboxFlush } from '@/hooks/useOutboxFlush'
 import { IntentsProvider, useIntents } from '@/intents/IntentsContext'
 import { getAllCompletionCounts } from '@/db/queries'
 import { createEngine, initSessionKey, setupEncryptionKey, runAutoBackups, ensureSyncFolder, CRYPTO_CONFIG, getSyncWebdavConfig } from '@/sync/engine'
-import { createDbEngine, vaultErrorMessage } from '@/sync/dbEngine'
+import { createDbEngine } from '@/sync/dbEngine'
 import { registerDbEngine } from '@/sync/dirtyTracker'
 import { isVaultEnabled } from '@/sync/vaultConfig'
 import { applyStatusBarTheme, initFullScreenInLandscape } from '@/native/statusBar'
 import { hasDbRootKey, initDbRootKey, getSyncPassphrase } from '@glance-apps/sync'
-import type { SyncEngine, SyncStatus, DbSyncEngine } from '@glance-apps/sync'
+import type { SyncEngine, SyncStatus, DbSyncEngine, SyncErrorCode } from '@glance-apps/sync'
 import { syncSharedUsers } from '@/multiuser/sharedUsers'
 import { getUsersPath, getMultiUserEnabled } from '@/multiuser/settings'
 import dayjs from 'dayjs'
@@ -153,10 +153,16 @@ function AppInner() {
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle')
   const [syncError, setSyncError] = useState<string | null>(null)
   const [syncHalted, setSyncHalted] = useState(false)
+  // The typed code that accompanies each error message (null when the engine sent
+  // none). Stored alongside the raw message so the Cloud Sync modal can localize
+  // it via syncErrorText AT RENDER TIME — keeping the raw message in state means
+  // the existing cloud-indicator truthiness checks below stay unchanged.
+  const [syncErrorCode, setSyncErrorCode] = useState<SyncErrorCode | null>(null)
   // Latest GLANCEvault (DB transport) error, surfaced from its onError callback.
   // dbSyncCycle swallows errors internally and reports them here rather than
   // throwing, so this is how the Cloud Sync modal shows what went wrong.
   const [vaultSyncError, setVaultSyncError] = useState<string | null>(null)
+  const [vaultSyncErrorCode, setVaultSyncErrorCode] = useState<SyncErrorCode | null>(null)
   // Durable count of rows the last vault cycle could not decrypt (1.5.0 per-row
   // quarantine). Survives after the transient toast dismisses so a key mismatch on
   // some rows stays visible in the Cloud Sync settings panel.
@@ -214,14 +220,19 @@ function AppInner() {
           // (The engine only clears the error at the *start* of the next
           // attempt, which can be far off under error backoff.)
           setSyncError(null)
+          setSyncErrorCode(null)
           if (engineRef.current) {
             runAutoBackups(engineRef.current).catch(() => {/* non-fatal */})
             runSharedUserSync().catch(() => {/* non-fatal */})
           }
         }
       },
-      onError: (msg, _code, isHardStop) => {
+      onError: (msg, code, isHardStop) => {
+        // Keep the raw message + its typed code; the Cloud Sync modal localizes
+        // via syncErrorText at render time (file tier now USES the code instead
+        // of discarding it).
         setSyncError(msg)
+        setSyncErrorCode(code)
         if (isHardStop) setSyncHalted(true)
       },
       onLastSyncedChange: () => {/* last synced stored internally */},
@@ -237,16 +248,17 @@ function AppInner() {
         // the file engine's onPassphraseRequired does, and surface no error.
         if (code === 'PASSPHRASE_REQUIRED') {
           setVaultSyncError(null)
+          setVaultSyncErrorCode(null)
           setShowPassphrase(true)
           return
         }
-        // Map the typed DB-transport codes (KEY_MISMATCH / VERIFIER_UNSUPPORTED /
-        // ACCOUNT_ID_REQUIRED) to plain-language text; other codes pass through.
-        // A wrong key fails fast and uploads NOTHING, so the account is never
-        // polluted; ACCOUNT_ID_REQUIRED is retryable and phrased as "not ready yet".
-        const display = vaultErrorMessage(msg, code)
-        setVaultSyncError(display)
-        if (display) console.warn('[lastglance] vault sync error:', display)
+        // Store the raw message + typed code (KEY_MISMATCH / VERIFIER_UNSUPPORTED /
+        // ACCOUNT_ID_REQUIRED / …); the Cloud Sync modal localizes via syncErrorText
+        // at render time. A wrong key fails fast and uploads NOTHING, so the account
+        // is never polluted; ACCOUNT_ID_REQUIRED is retryable ("not ready yet").
+        setVaultSyncError(msg)
+        setVaultSyncErrorCode(code)
+        if (msg) console.warn('[lastglance] vault sync error:', code ?? '(no code)', msg)
       },
       onRowsSkipped: (count) => {
         // Durable: keep the count visible in the sync settings panel after the toast.
@@ -593,7 +605,9 @@ function AppInner() {
           engine={engineRef.current}
           dbEngine={dbEngineRef.current}
           syncError={syncError}
+          syncErrorCode={syncErrorCode}
           vaultSyncError={vaultSyncError}
+          vaultSyncErrorCode={vaultSyncErrorCode}
           vaultSkipped={vaultSkipped}
           onClose={() => { setShowSyncSettings(false); runSharedUserSync() }}
         />
