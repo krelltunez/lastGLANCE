@@ -4,6 +4,7 @@ import {
   createOutbox,
   createIndexedDbOutboxStore,
   MAX_OUTBOX_ATTEMPTS,
+  INTENTS_KEY_NOT_READY,
   type OutboxIntent,
   type Deliverer,
   type DeliveryResult,
@@ -247,5 +248,70 @@ describe('intents outbox', () => {
     await first
     expect(vault.calls).toBe(1)
     expect(await ob.pendingCount()).toBe(0)
+  })
+})
+
+describe('flush result reporting (for Activity-Log reconcile)', () => {
+  it('reports deliveredIds for targets that reached delivered this pass, and nothing held', async () => {
+    const ob = freshOutbox()
+    const vault = scriptedDeliverer('delivered')
+    await ob.enqueue(makeIntent('evt-d1'), ['vault'])
+
+    const result = await ob.flush({ vault })
+    expect(result.deliveredIds).toEqual(['evt-d1'])
+    expect(result.heldNoKeyIds).toEqual([])
+  })
+
+  it('reports an id once even when multiple targets deliver in the same pass', async () => {
+    const ob = freshOutbox()
+    const webdav = scriptedDeliverer('delivered')
+    const vault = scriptedDeliverer('delivered')
+    await ob.enqueue(makeIntent('evt-d2'), ['webdav', 'vault'])
+
+    const result = await ob.flush({ webdav, vault })
+    expect(result.deliveredIds).toEqual(['evt-d2']) // de-duplicated, not twice
+    expect(result.heldNoKeyIds).toEqual([])
+  })
+
+  it('reports heldNoKeyIds ONLY for the tagged key-not-ready transient, not a bare one', async () => {
+    const ob = freshOutbox()
+    const keyless = scriptedDeliverer({ status: 'transient-fail', reason: INTENTS_KEY_NOT_READY })
+    const bareTransient = scriptedDeliverer('transient-fail')
+    await ob.enqueue(makeIntent('evt-held'), ['vault'])
+    await ob.enqueue(makeIntent('evt-bare'), ['webdav'])
+
+    const result = await ob.flush({ vault: keyless, webdav: bareTransient })
+    expect(result.heldNoKeyIds).toEqual(['evt-held'])
+    expect(result.deliveredIds).toEqual([])
+    // Both are still held + retried regardless of the tag.
+    expect(await ob.pendingCount()).toBe(2)
+  })
+
+  it('an id can appear in BOTH lists when one target delivers and another holds for its key', async () => {
+    const ob = freshOutbox()
+    const webdav = scriptedDeliverer('delivered')
+    const vault = scriptedDeliverer({ status: 'transient-fail', reason: INTENTS_KEY_NOT_READY })
+    await ob.enqueue(makeIntent('evt-mix'), ['webdav', 'vault'])
+
+    const result = await ob.flush({ webdav, vault })
+    expect(result.deliveredIds).toEqual(['evt-mix'])
+    expect(result.heldNoKeyIds).toEqual(['evt-mix'])
+  })
+
+  it('returns empty lists when a concurrent flush short-circuits', async () => {
+    const ob = freshOutbox()
+    const vault = deferredDeliverer()
+    await ob.enqueue(makeIntent('evt-cc'), ['vault'])
+
+    const first = ob.flush({ vault })
+    await vault.called
+    // This call observes the in-flight flush and bails with empty lists.
+    const concurrent = await ob.flush({ vault })
+    expect(concurrent.deliveredIds).toEqual([])
+    expect(concurrent.heldNoKeyIds).toEqual([])
+
+    vault.resolve('delivered')
+    const firstResult = await first
+    expect(firstResult.deliveredIds).toEqual(['evt-cc'])
   })
 })

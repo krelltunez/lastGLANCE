@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll } from 'vitest'
 import { webcrypto } from 'node:crypto'
 import { deriveIntentsRootKey } from '@glance-apps/intents'
 import { createVaultDeliverer, createWebdavDeliverer } from './deliverers'
+import { INTENTS_KEY_NOT_READY } from './outbox'
 import type { OutboxIntent } from './outbox'
 import type { IntentsConfig } from './config'
 
@@ -76,8 +77,9 @@ describe('vault deliverer (always encrypted)', () => {
     expect(env.payload).toBeUndefined() // the title etc. is NOT in cleartext
   })
 
-  // (b) no cached key -> 'transient-fail', nothing built or sent.
-  it('returns transient and sends nothing when no key is cached', async () => {
+  // (b) no cached key -> tagged transient hold, nothing built or sent. The reason
+  // tag is what lets flush/the Activity Log show "waiting for key".
+  it('returns a key-not-ready transient and sends nothing when no key is cached', async () => {
     const send = captureSend({ ok: true, status: 200 })
     const deliver = createVaultDeliverer({
       loadRootKey: async () => null,
@@ -86,7 +88,7 @@ describe('vault deliverer (always encrypted)', () => {
     })
 
     const result = await deliver(makeIntent())
-    expect(result).toBe('transient-fail')
+    expect(result).toEqual({ status: 'transient-fail', reason: INTENTS_KEY_NOT_READY })
     expect(send.sent).toHaveLength(0) // built nothing, sent nothing
   })
 

@@ -47,7 +47,10 @@ export function enabledIntentTargets(): TransportName[] {
 export interface EmitDeps {
   targets: () => TransportName[]
   enqueue: (intent: OutboxIntent, targets: TransportName[]) => Promise<void>
-  flush: () => Promise<void>
+  // The emit path fires-and-forgets the flush and ignores its outcome (the
+  // Activity-Log reconcile happens inside flushIntents), so the result type is
+  // intentionally unconstrained here.
+  flush: () => Promise<unknown>
 }
 
 const defaultEmitDeps: EmitDeps = {
@@ -78,7 +81,16 @@ export async function emitCreateIntent(
   const intent = buildCreateIntent(chore)
   // Durable before returning: a resolved enqueue means "queued, will be delivered".
   await deps.enqueue(intent, targets)
-  addActivityEntry({ type: 'sent', message: `Queued "${chore.name}" for dayGLANCE` })
+  // Carry the event_id + direction + delivery state so a later flush can match
+  // this entry and advance its chip queued -> waiting for key -> delivered. The
+  // type stays 'sent' (the existing blue badge); delivery is a separate axis.
+  addActivityEntry({
+    type: 'sent',
+    direction: 'out',
+    eventId: intent.event_id,
+    delivery: 'queued',
+    message: `Queued "${chore.name}" for dayGLANCE`,
+  })
 
   // Trigger delivery now; the outbox's in-flight lock guards overlapping flushes.
   deps.flush().catch(() => { /* failures surface via the deliverers/outbox */ })

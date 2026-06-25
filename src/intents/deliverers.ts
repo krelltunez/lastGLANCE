@@ -22,6 +22,7 @@ import {
   deriveEnvelopeKey,
 } from '@glance-apps/intents'
 import type { CreatePayload, IntentEnvelope, OutboundIntentRow } from '@glance-apps/intents'
+import { INTENTS_KEY_NOT_READY } from './outbox'
 import type { Deliverer, DeliveryResult, OutboxIntent } from './outbox'
 import { getConn, vaultFetch, type VaultConn } from './dbTransport'
 import { getDbIntentsConfig } from './dbConfig'
@@ -96,7 +97,9 @@ export function createVaultDeliverer(deps: VaultDelivererDeps): Deliverer {
     const rootKey = await deps.loadRootKey()
     if (!rootKey) {
       // Key not set up yet (2b populates it): hold the intent, build/send NOTHING.
-      return 'transient-fail'
+      // Tag the hold so flush/the Activity Log can show "waiting for key" instead
+      // of an indistinguishable silent stall — the row is still held + retried.
+      return { status: 'transient-fail', reason: INTENTS_KEY_NOT_READY }
     }
 
     const envelope: IntentEnvelope = await buildEncryptedEnvelope(
