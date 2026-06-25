@@ -1,8 +1,9 @@
 import { useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { X, Loader, AlertTriangle, CheckCircle, XCircle } from 'lucide-react'
-import type { SyncEngine, DbSyncEngine } from '@glance-apps/sync'
+import type { SyncEngine, DbSyncEngine, SyncErrorCode } from '@glance-apps/sync'
 import { setupEncryptionKey, clearEncryptionKey, ensureSyncFolder, resetEnsuredFolder, CRYPTO_CONFIG, getRemoteBackupsEnabled, setRemoteBackupsEnabled, DEFAULT_SYNC_FOLDER, SYNC_FOLDER_KEY } from '@/sync/engine'
+import { syncErrorText } from '@/sync/syncErrorText'
 import { getVaultConfig, setVaultConfig } from '@/sync/vaultConfig'
 import { cloudSyncProviders } from '@/utils/cloudSyncProviders'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
@@ -13,9 +14,12 @@ interface Props {
   dbEngine: DbSyncEngine | null
   // Latest error from each transport's onError callback. Both engines swallow
   // sync errors internally (resolving rather than throwing), so these carry the
-  // reason a manual sync failed.
+  // reason a manual sync failed. The accompanying typed code (null when the engine
+  // sent none) is localized here at render time via syncErrorText.
   syncError: string | null
+  syncErrorCode: SyncErrorCode | null
   vaultSyncError: string | null
+  vaultSyncErrorCode: SyncErrorCode | null
   // Count of rows the last vault cycle could not decrypt (1.5.0 per-row
   // quarantine). Shown as a durable amber note so a key mismatch on some rows is
   // visible after the transient toast dismisses.
@@ -26,7 +30,7 @@ interface Props {
 type TestStatus = 'idle' | 'testing' | 'ok' | 'fail'
 type SyncResult = 'idle' | 'ok' | 'error'
 
-export function SyncSettingsModal({ engine, dbEngine, syncError, vaultSyncError, vaultSkipped, onClose }: Props) {
+export function SyncSettingsModal({ engine, dbEngine, syncError, syncErrorCode, vaultSyncError, vaultSyncErrorCode, vaultSkipped, onClose }: Props) {
   const { t } = useTranslation()
   const existingConfig = engine?.getConfig() ?? null
   const initFolder = localStorage.getItem(SYNC_FOLDER_KEY) ?? DEFAULT_SYNC_FOLDER
@@ -396,7 +400,7 @@ export function SyncSettingsModal({ engine, dbEngine, syncError, vaultSyncError,
               {syncResult === 'error' && (
                 <span className="flex items-center gap-1.5 text-xs text-red-500 dark:text-red-400">
                   <XCircle size={13} />
-                  {syncResultMsg || syncError || t('sync.syncFailed')}
+                  {syncResultMsg || syncErrorText(t, syncError, syncErrorCode) || t('sync.syncFailed')}
                 </span>
               )}
               {syncResult === 'idle' && lastSynced && (
@@ -611,7 +615,7 @@ export function SyncSettingsModal({ engine, dbEngine, syncError, vaultSyncError,
                   {vaultSyncResult === 'error' && (
                     <span className="flex items-center gap-1.5 text-xs text-red-500 dark:text-red-400">
                       <XCircle size={13} />
-                      {vaultSyncResultMsg || vaultSyncError || t('sync.syncFailed')}
+                      {vaultSyncResultMsg || syncErrorText(t, vaultSyncError, vaultSyncErrorCode) || t('sync.syncFailed')}
                     </span>
                   )}
                 </div>
