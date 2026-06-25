@@ -30,6 +30,8 @@ export function IntentsProvider({ children }: { children: React.ReactNode }) {
   )
 }
 
+// Provider + hook live together by design; the fast-refresh hint doesn't apply.
+// eslint-disable-next-line react-refresh/only-export-components
 export function useIntents(): IntentsContextValue {
   const ctx = useContext(IntentsContext)
   if (!ctx) throw new Error('useIntents must be used inside IntentsProvider')

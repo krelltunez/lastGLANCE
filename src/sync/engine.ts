@@ -9,6 +9,7 @@ import {
 } from '@glance-apps/sync'
 import type { SyncEngine, SyncStatus, SyncErrorCode, BackupFrequency } from '@glance-apps/sync'
 import { db } from '@/db/client'
+import type { Category, Chore, CompletionEvent, User } from '@/types'
 import { buildAuthHeader, ensureFolder } from '@/intents/webdav'
 import { isNativePlatform, nativeHttpFetch } from './nativeHttp'
 import type { SyncPayload, SyncSettings } from './types'
@@ -232,7 +233,9 @@ export const applyPayload = async (rawData: unknown, { allowEmpty }: { allowEmpt
     const userBySyncId   = new Map(existingUsers.map(u => [u.sync_id,  u]))
 
     // ── CATEGORIES pass 1: upsert by sync_id ──
-    const catsToAdd: any[] = []
+    // `id` is Dexie's auto-increment key, assigned on insert, so the accumulators
+    // hold the entity minus `id`; the bulkAdd casts back (Dexie fills it in).
+    const catsToAdd: Omit<Category, 'id'>[] = []
     const catsToUpdate: Array<[number, object]> = []
     for (const cat of (data.categories ?? [])) {
       if (tombstoneIds.has(cat.id)) continue
@@ -253,7 +256,7 @@ export const applyPayload = async (rawData: unknown, { allowEmpty }: { allowEmpt
       }
     }
     await Promise.all(catsToUpdate.map(([id, fields]) => db.categories.update(id, fields)))
-    await db.categories.bulkAdd(catsToAdd)
+    await db.categories.bulkAdd(catsToAdd as Category[])
 
     // ── CATEGORIES pass 2: resolve parent_sync_id → parent_category_id ──
     // Re-fetch after inserts so new categories are in the map
@@ -283,7 +286,7 @@ export const applyPayload = async (rawData: unknown, { allowEmpty }: { allowEmpt
     // Re-fetch categories (tombstones may have been deleted) for category_id resolution
     const allCatsForChores = await db.categories.toArray()
     const catMapForChores = new Map(allCatsForChores.map(c => [c.sync_id, c]))
-    const choresToAdd: any[] = []
+    const choresToAdd: Omit<Chore, 'id'>[] = []
     const choresToUpdate: Array<[number, object]> = []
     for (const chore of (data.chores ?? [])) {
       if (tombstoneIds.has(chore.id)) continue
@@ -324,7 +327,7 @@ export const applyPayload = async (rawData: unknown, { allowEmpty }: { allowEmpt
       }
     }
     await Promise.all(choresToUpdate.map(([id, fields]) => db.chores.update(id, fields)))
-    await db.chores.bulkAdd(choresToAdd)
+    await db.chores.bulkAdd(choresToAdd as Chore[])
 
     // ── Delete tombstoned chores ──
     const choreTombstoneIds = [...tombstoneIds]
@@ -336,7 +339,7 @@ export const applyPayload = async (rawData: unknown, { allowEmpty }: { allowEmpt
     // Re-fetch chores after upsert for chore_id resolution
     const allChoresForEvents = await db.chores.toArray()
     const choreMapForEvents = new Map(allChoresForEvents.map(c => [c.sync_id, c]))
-    const eventsToAdd: any[] = []
+    const eventsToAdd: Omit<CompletionEvent, 'id'>[] = []
     for (const evt of (data.completionEvents ?? [])) {
       if (tombstoneIds.has(evt.id)) continue
       if (eventBySyncId.has(evt.id)) continue  // immutable; already present
@@ -348,7 +351,7 @@ export const applyPayload = async (rawData: unknown, { allowEmpty }: { allowEmpt
         completed_by_user_sync_id: evt.completedByUserSyncId ?? null,
       })
     }
-    await db.completionEvents.bulkAdd(eventsToAdd)
+    await db.completionEvents.bulkAdd(eventsToAdd as CompletionEvent[])
 
     // ── Delete tombstoned completion events ──
     const evtTombstoneIds = [...tombstoneIds]
@@ -357,7 +360,7 @@ export const applyPayload = async (rawData: unknown, { allowEmpty }: { allowEmpt
     await db.completionEvents.bulkDelete(evtTombstoneIds)
 
     // ── USERS: upsert by sync_id ──
-    const usersToAdd: any[] = []
+    const usersToAdd: Omit<User, 'id'>[] = []
     const usersToUpdate: Array<[number, object]> = []
     for (const user of (data.users ?? [])) {
       if (tombstoneIds.has(user.id)) continue
@@ -369,7 +372,7 @@ export const applyPayload = async (rawData: unknown, { allowEmpty }: { allowEmpt
       }
     }
     await Promise.all(usersToUpdate.map(([id, fields]) => db.users.update(id, fields)))
-    await db.users.bulkAdd(usersToAdd)
+    await db.users.bulkAdd(usersToAdd as User[])
 
     // ── Delete tombstoned users ──
     const userTombstoneIds = [...tombstoneIds]
