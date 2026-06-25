@@ -281,6 +281,9 @@ function AppInner() {
     runDbSync()
 
     return () => { registerDbEngine(null) }
+    // Mount-once engine init; runSharedUserSync is a stable callback invoked
+    // imperatively elsewhere and intentionally not a dependency here.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [runDbSync])
 
   // Shared user roster sync — fire-and-forget, non-fatal

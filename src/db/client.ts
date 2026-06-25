@@ -157,7 +157,7 @@ class LastGlanceDB extends Dexie {
         const toDelete: number[] = []
         for (const group of bySyncId.values()) {
           if (group.length <= 1) continue
-          group.sort((a: any, b: any) => (b.updated_at ?? '').localeCompare(a.updated_at ?? ''))
+          group.sort((a: { updated_at?: string }, b: { updated_at?: string }) => (b.updated_at ?? '').localeCompare(a.updated_at ?? ''))
           for (const u of group.slice(1)) toDelete.push(u.id as number)
         }
         if (toDelete.length) await tx.table('users').bulkDelete(toDelete)
