@@ -136,7 +136,7 @@ describe('emit -> outbox wiring', () => {
     await emitAndAwaitFlush(ob, { webdav, vault })
 
     // webdav delivered, vault still pending (key missing) — entry retained, no loss.
-    let entries = await ob.list()
+    const entries = await ob.list()
     expect(entries).toHaveLength(1)
     expect(entries[0].targets.webdav).toBe('delivered')
     expect(entries[0].targets.vault).toBe('pending')

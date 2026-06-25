@@ -178,7 +178,6 @@ export function Ribbon({ editMode, onLogged }: Props) {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Sync localData from server when not dragging categories
@@ -276,7 +275,6 @@ export function Ribbon({ editMode, onLogged }: Props) {
     })
     obs.observe(el)
     return () => obs.disconnect()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [viewData.length])
 
   const sortedCatIdsKey = [
@@ -313,7 +311,6 @@ export function Ribbon({ editMode, onLogged }: Props) {
 
     grid.querySelectorAll<HTMLElement>('[data-cat-card-id]').forEach(el => obs.observe(el))
     return () => obs.disconnect()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sortedCatIdsKey])
 
   // A category card keeps a stable id but its *contents* change when a filter
@@ -338,7 +335,6 @@ export function Ribbon({ editMode, onLogged }: Props) {
       }
     })
     if (changed) setPackVersion(v => v + 1)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter, attentionOnly, editMode, sortedCatIdsKey])
 
   useEffect(() => {

@@ -464,7 +464,7 @@ export function CategorySection({
     try {
       const stored = localStorage.getItem(lsKey)
       if (stored) return new Set(JSON.parse(stored) as number[])
-    } catch {}
+    } catch { /* ignore malformed stored value */ }
     return new Set()
   })
 
@@ -477,7 +477,7 @@ export function CategorySection({
   function toggleSubCollapse(id: number) {
     setCollapsedSubs(prev => {
       const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
+      if (next.has(id)) next.delete(id); else next.add(id)
       return next
     })
   }

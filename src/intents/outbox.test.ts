@@ -199,7 +199,7 @@ describe('intents outbox', () => {
 
     // One short of the bound: still pending, still owed.
     for (let i = 0; i < MAX_OUTBOX_ATTEMPTS - 1; i++) await ob.flush({ vault })
-    let entries = await ob.list()
+    const entries = await ob.list()
     expect(entries).toHaveLength(1)
     expect(entries[0].targets.vault).toBe('pending')
     expect(entries[0].attempts.vault).toBe(MAX_OUTBOX_ATTEMPTS - 1)
