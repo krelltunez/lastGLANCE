@@ -170,7 +170,6 @@ export interface Outbox {
 function logGiveUp(entry: OutboxEntry, target: string, reason: string): void {
   // Loud, structured, and includes the event_id + transport so a give-up is
   // never silent — this is the only way an intent leaves the outbox undelivered.
-  // eslint-disable-next-line no-console
   console.error(
     `[lastglance] intents outbox: GIVING UP on intent ${entry.id} for transport "${target}" — ${reason} (attempts=${entry.attempts[target] ?? 0}/${MAX_OUTBOX_ATTEMPTS}). This intent will not be delivered over this transport.`,
   )

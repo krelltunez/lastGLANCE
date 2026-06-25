@@ -182,7 +182,7 @@ const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 // Strip records with non-UUID ids written by pre-dedup builds.
 function sanitizePayload(data: SyncPayload): SyncPayload {
-  let result = { ...data }
+  const result = { ...data }
 
   if (data.completionEvents?.length) {
     const bad = data.completionEvents.filter(e => !uuidRe.test(e.id) || !uuidRe.test(e.choreSyncId))

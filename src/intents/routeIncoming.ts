@@ -69,7 +69,6 @@ export async function routeIncomingVaultRow(
     // PLAINTEXT ON THE VAULT — reject. Log loudly, advance past it (return
     // normally so the cursor moves and the channel can't wedge), and do NOT call
     // parseEnvelope: a plaintext row is never routed into the app.
-    // eslint-disable-next-line no-console
     console.error(
       `[lastglance] intents: REJECTING non-encrypted intent ${row.eventId} on the GLANCEvault transport. Plaintext over the vault is a zero-knowledge contract violation; advancing past it without routing.`,
     )

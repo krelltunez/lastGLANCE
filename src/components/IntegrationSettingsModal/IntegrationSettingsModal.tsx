@@ -29,7 +29,7 @@ interface Props {
 
 type TestStatus = 'idle' | 'testing' | 'ok' | 'fail'
 
-interface LocalConfig extends IntentsConfig {}
+type LocalConfig = IntentsConfig
 
 export function IntegrationSettingsModal({ onClose, onSaved }: Props) {
   const { t } = useTranslation()
