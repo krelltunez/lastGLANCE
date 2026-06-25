@@ -12,8 +12,10 @@ import {
   clearReceiveFailure,
 } from '@/intents/dbConfig'
 import { listIntentsPage, receiveAllIntents, MAX_INTENT_RETRIES } from '@/intents/dbTransport'
+import { getSyncPassphrase } from '@glance-apps/sync'
 import { loadVaultIntentsRootKey } from '@/intents/vaultIntentsKeyStore'
-import { routeIncomingVaultRow } from '@/intents/routeIncoming'
+import { routeIncomingVaultRow, KeyNotAvailableError } from '@/intents/routeIncoming'
+import { ensureVaultIntentsKey, setupVaultIntentsEncryption } from '@/intents/setupVaultIntentsEncryption'
 import { processNotifyEnvelope } from '@/intents/processNotifyEnvelope'
 
 // Drives the GLANCEvault DB intents receive poll on the SAME cadence the WebDAV
@@ -57,8 +59,34 @@ export function useDbIntentsPoller(onNewCompletion?: () => void): void {
       })
     }
 
+    // Best-effort, SILENT self-heal of the vault intents key. The "enabled" flag
+    // lives in localStorage while the derived key lives in IndexedDB, so the two
+    // can desync — IndexedDB eviction (e.g. Safari/ITP after ~7 days), cleared
+    // site data, a PWA reinstall, or first run on a device set up elsewhere all
+    // leave us enabled-but-keyless. When that happens EVERY received intent fails
+    // to decrypt and is eventually dropped. If the sync passphrase is in memory we
+    // re-derive + re-cache the key here so incoming intents decrypt without the
+    // user having to re-save Integration settings. We never PROMPT from the poll
+    // (promptForPassphrase -> null): a missing passphrase simply leaves the key
+    // absent until the next poll (or a manual re-save) finds it. ensureVaultIntentsKey
+    // short-circuits to a single cached-key read once a key is present, so calling
+    // it every poll is cheap and only derives at most once.
+    async function selfHealVaultKey() {
+      try {
+        await ensureVaultIntentsKey({
+          loadCachedKey: loadVaultIntentsRootKey,
+          getPassphrase: getSyncPassphrase,
+          promptForPassphrase: async () => null,
+          derive: setupVaultIntentsEncryption,
+        })
+      } catch {
+        // Self-heal is opportunistic; never let it block the receive drain.
+      }
+    }
+
     async function poll() {
       if (!isDbIntentsEnabled()) return
+      await selfHealVaultKey()
       try {
         await receiveAllIntents({
           getCursor: getReceiveCursor,
@@ -68,10 +96,16 @@ export function useDbIntentsPoller(onNewCompletion?: () => void): void {
           recordFailure: recordReceiveFailure,
           clearFailure: clearReceiveFailure,
           onGiveUp: (row, err, failures) => {
+            // When the failure is a missing key (not a genuinely bad row), the
+            // generic decrypt-error detail is a dead end. Surface the one action
+            // that actually fixes it so the user isn't left guessing.
+            const keyMissing = err instanceof KeyNotAvailableError
             addActivityEntry({
               type: 'error',
               message: `Dropping intent ${row.eventId} after ${failures} failed attempts (limit ${MAX_INTENT_RETRIES})`,
-              detail: err instanceof Error ? err.message : String(err),
+              detail: keyMissing
+                ? 'This device has no GLANCEvault intents encryption key cached. Open Integration settings → GLANCEvault intents (beta) and Save to re-derive it (you may be asked for your sync passphrase).'
+                : err instanceof Error ? err.message : String(err),
             })
           },
         })
