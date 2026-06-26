@@ -116,7 +116,7 @@
     "cadencePlaceholder": "z. B. 14",
     "cadenceHint": "Leer lassen für reines Tracking ohne Ziel.",
     "notifyOverdue": "Benachrichtigen wenn überfällig",
-    "notifyBlocked": "Benachrichtigungen blockiert — in den Browsereinstellungen aktivieren.",
+    "notifyBlocked": "Benachrichtigungen blockiert — in den Einstellungen aktivieren.",
     "autoSendDayglance": "Bei Überfälligkeit automatisch an dayGLANCE senden",
     "autoSendHint": "Sendet einmal täglich eine Absicht, wenn diese Aufgabe überfällig ist",
     "assignedTo": "Zugewiesen an",

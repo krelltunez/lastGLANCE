@@ -116,7 +116,7 @@
     "cadencePlaceholder": "ex. 14",
     "cadenceHint": "Laisser vide pour suivre sans objectif.",
     "notifyOverdue": "Notifier quand en retard",
-    "notifyBlocked": "Notifications bloquées — activez-les dans les paramètres du navigateur.",
+    "notifyBlocked": "Notifications bloquées — activez-les dans les paramètres.",
     "autoSendDayglance": "Envoyer à dayGLANCE quand en retard",
     "autoSendHint": "Émet une intention une fois par jour quand cette tâche est en retard",
     "assignedTo": "Assigné à",

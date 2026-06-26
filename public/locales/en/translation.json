@@ -116,7 +116,7 @@
     "cadencePlaceholder": "e.g. 14",
     "cadenceHint": "Leave blank for no target — just tracking.",
     "notifyOverdue": "Notify when overdue",
-    "notifyBlocked": "Notifications blocked — enable them in your browser settings.",
+    "notifyBlocked": "Notifications blocked — enable in settings.",
     "autoSendDayglance": "Auto-send to dayGLANCE when overdue",
     "autoSendHint": "Emits a create intent once per day when this chore is overdue",
     "assignedTo": "Assigned to",

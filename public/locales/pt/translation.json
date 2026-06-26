@@ -116,7 +116,7 @@
     "cadencePlaceholder": "ex. 14",
     "cadenceHint": "Deixar em branco para apenas registar sem objetivo.",
     "notifyOverdue": "Notificar quando atrasada",
-    "notifyBlocked": "Notificações bloqueadas — ative-as nas definições do navegador.",
+    "notifyBlocked": "Notificações bloqueadas — ative-as nas definições.",
     "autoSendDayglance": "Enviar automaticamente para dayGLANCE quando atrasada",
     "autoSendHint": "Emite uma intenção uma vez por dia quando esta tarefa está atrasada",
     "assignedTo": "Atribuída a",
