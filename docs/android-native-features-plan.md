@@ -7,16 +7,19 @@ This plan was informed by a teardown of how the sibling app **dayGLANCE**
 solved timely closed-app notifications (its process is referenced throughout).
 Where lastGLANCE differs from dayGLANCE, it is called out explicitly.
 
-> **▶ RESUME HERE (last updated end of session 2026-06-20)**
-> - **Phase 0 built** (snapshot bridge + heatmap widget) → **PR #126**, branch
->   `claude/wonderful-mccarthy-abm730`. Web build + 58 tests green.
-> - **Next action is yours:** smoke-test the widget on a device
->   (`npm run cap:android`) — Android side is **not yet compiled**.
-> - **Open decision before Phase 1:** RemoteViews (as built) vs Glance for widgets
->   (see Phase 0). Then proceed to **Phase 1** (exact-alarm notifications, Path A).
-> - **Settled:** Path A chosen (B backup); visual target = "clearly same family";
->   no battery-opt prompt; defer the WorkManager re-arm backstop until testing
->   proves OEM killers clear our alarms.
+> **▶ RESUME HERE (last updated 2026-06-26)**
+> - **Phase 0 + Phase 1 built** on branch `claude/wonderful-mccarthy-abm730`
+>   (PR #126). Web build + 58 tests green; **Android not yet compiled/device-tested.**
+> - **Phase 1** = exact-alarm overdue notifications via `@capacitor/local-notifications`
+>   (Path A). Plugin handles reboot re-registration; we added `SCHEDULE_EXACT_ALARM`
+>   + a lazy one-time exact-alarm prompt.
+> - **Next action is yours:** on-device smoke test of both (widget refresh; kill the
+>   app, advance a chore past cadence, confirm the notification fires — test Doze via
+>   `adb shell dumpsys deviceidle force-idle`).
+> - **Still open:** RemoteViews (as built) vs Glance for widgets (Phase 0). Next code
+>   phase is **Phase 2** (action widgets + optimistic tap-to-complete).
+> - **Settled:** Path A (B backup); "clearly same family"; no battery-opt prompt;
+>   defer the WorkManager re-arm backstop until testing proves OEM killers clear alarms.
 
 ---
 
@@ -202,7 +205,20 @@ queue** in `SharedPreferences`; JS drains via `getPendingActions()` on
 **Exit criteria:** heatmap on the home screen reflects completions within one app
 foreground cycle; survives reboot (re-renders from persisted snapshot).
 
-### Phase 1 — Exact-alarm overdue notifications (Path A)
+### Phase 1 — Exact-alarm overdue notifications (Path A) — ✅ BUILT (PR #126)
+
+As-built notes: the plugin (`@capacitor/local-notifications@8.2.0`) already ships
+`POST_NOTIFICATIONS`, `RECEIVE_BOOT_COMPLETED`, and a boot-restore receiver, so
+**reboot re-registration is free** — we only added `SCHEDULE_EXACT_ALARM`.
+`allowWhileIdle: true` maps to `setExactAndAllowWhileIdle` when the exact-alarm
+permission is granted, so Path A meets the Doze bar and **Path B was not needed**.
+Reminders are single-shot at the future overdue instant (`last + cadence`);
+already-overdue chores are left to the in-app toast (we don't schedule a past
+`at`). The exact-alarm prompt fires lazily/once, only when there's a reminder to
+schedule. Files: `src/native/reminders.ts`, `src/hooks/useReminders.ts`,
+`src/utils/seasonal.ts` (extracted), plus guards in `useNotifications.ts`.
+Known v1 gaps to revisit: a reminder whose trigger falls outside the seasonal
+window still schedules; already-overdue chores get no closed-app nudge.
 
 **Goal:** replace the WebView-timer notifications that silently don't fire when
 closed (`useNotifications.ts:106` is the exact "fire from JS loop" anti-pattern

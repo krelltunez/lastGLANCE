@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { getCategories, getChoresForCategory, logCompletion } from '@/db/queries'
+import { Capacitor } from '@capacitor/core'
 import { useToast, type ToastOptions } from '@/components/Toast/Toast'
 import { useIntents } from '@/intents/IntentsContext'
 import { emitCreateIntent } from '@/intents/emitter'
@@ -94,7 +95,10 @@ export function useNotifications() {
                 toastOpts.onSendToDayGlance = async () => emitCreateIntent(chore)
               }
               showToastRef.current(toastOpts)
-            } else {
+            } else if (Capacitor.getPlatform() !== 'android') {
+              // On Android, native exact-alarm reminders (useReminders) own
+              // closed/backgrounded delivery — skip the web notification so it
+              // isn't duplicated. Other platforms keep the in-WebView path.
               await fireBrowserNotification(chore.name, body)
             }
 

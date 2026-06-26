@@ -11,6 +11,7 @@ import { deleteCategory, deleteChore, updateCategory, updateChore, reorderChores
 import { ICON_REGISTRY } from '@/icons/registry'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
 import { getFillRatio, getCadenceColor } from '@/utils/cadence'
+import { isInSeasonalWindow } from '@/utils/seasonal'
 import { useTranslation } from 'react-i18next'
 
 interface Props {
@@ -23,15 +24,6 @@ interface Props {
   onCategoryDragHandlePointerDown?: (e: React.PointerEvent) => void
   isCategoryDragging?: boolean
   wrapChores?: boolean
-}
-
-function isInSeasonalWindow(chore: ChoreWithLastCompletion): boolean {
-  if (!chore.seasonal_start || !chore.seasonal_end) return true
-  const now = new Date()
-  const today = `${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
-  const { seasonal_start: s, seasonal_end: e } = chore
-  // If start <= end it's a same-year window; otherwise it wraps the new year
-  return s <= e ? today >= s && today <= e : today >= s || today <= e
 }
 
 /**
@@ -186,7 +178,7 @@ function ChoreList({
     setDraggingId(choreId)
   }
 
-  const visibleChores = editMode ? localChores : localChores.filter(isInSeasonalWindow)
+  const visibleChores = editMode ? localChores : localChores.filter(c => isInSeasonalWindow(c))
 
   return (
     <>
@@ -302,7 +294,7 @@ function SubcategorySection({
   // When collapsed, surface a dot if any (in-season) chore is overdue, so it
   // isn't hidden. Colour matches the most-overdue chore (amber → red).
   const overdueRatio = collapsed
-    ? maxOverdueRatio(editMode ? data.chores : data.chores.filter(isInSeasonalWindow))
+    ? maxOverdueRatio(editMode ? data.chores : data.chores.filter(c => isInSeasonalWindow(c)))
     : null
 
   return (
