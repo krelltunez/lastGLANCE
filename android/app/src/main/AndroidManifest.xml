@@ -43,4 +43,7 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Exact alarms for Doze-proof overdue reminders (Android 12+). The plugin
+         already declares POST_NOTIFICATIONS and RECEIVE_BOOT_COMPLETED. -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 </manifest>

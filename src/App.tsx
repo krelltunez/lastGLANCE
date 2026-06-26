@@ -16,6 +16,7 @@ import { UsersContext } from '@/multiuser/UsersContext'
 import { useUsers } from '@/multiuser/useUsers'
 import { useNotifications } from '@/hooks/useNotifications'
 import { useWidgetSnapshot } from '@/hooks/useWidgetSnapshot'
+import { useReminders } from '@/hooks/useReminders'
 import { useIntentsPoller } from '@/hooks/useIntentsPoller'
 import { useDbIntentsPoller } from '@/hooks/useDbIntentsPoller'
 import { useOutboxFlush } from '@/hooks/useOutboxFlush'
@@ -122,6 +123,7 @@ function AppInner() {
   const { showToast } = useToast()
   useNotifications()
   useWidgetSnapshot()
+  useReminders()
   const { refreshConfig } = useIntents()
   const usersCtx = useUsers()
   const reloadUsers = usersCtx.reload
