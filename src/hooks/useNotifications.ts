@@ -101,7 +101,7 @@ export function useNotifications() {
                 body,
                 type: 'warning',
                 onAction: async () => {
-                  await logCompletion(choreId)
+                  await logCompletion(choreId, { completedByUserSyncId: getMeUserSyncId() })
                   window.dispatchEvent(new CustomEvent('lg:chore-logged'))
                 },
                 onDetails: () => {

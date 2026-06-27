@@ -1,6 +1,7 @@
 import { drainPendingCompletions } from './widgetBridge'
 import { db } from '@/db/client'
 import { logCompletion } from '@/db/queries'
+import { getMeUserSyncId } from '@/multiuser/settings'
 
 // Drain widget-originated completions into the DB. A widget tap can't write to
 // IndexedDB (it runs in the native process), so the native side optimistically
@@ -21,7 +22,11 @@ export async function drainWidgetCompletions(): Promise<void> {
       if (already > 0) continue
       const chore = await db.chores.where('sync_id').equals(p.choreSyncId).first()
       if (chore?.id == null) continue
-      await logCompletion(chore.id, { completedAt: p.completedAt, syncId: p.syncId })
+      await logCompletion(chore.id, {
+        completedAt: p.completedAt,
+        syncId: p.syncId,
+        completedByUserSyncId: getMeUserSyncId(),
+      })
       logged = true
     } catch {
       // Skip a malformed/unresolvable entry rather than failing the whole drain.
