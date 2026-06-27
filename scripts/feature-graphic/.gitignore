@@ -1,0 +1,4 @@
+# Fetched on demand (see README), never vendored
+*.woff2
+fontsource-inter-*.tgz
+package/

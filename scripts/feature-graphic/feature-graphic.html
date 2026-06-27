@@ -1,0 +1,40 @@
+<!doctype html>
+<!--
+  Generator for the Google Play feature graphic (1024x500) at
+  public/brand/feature-graphic.png. Renders the lastGLANCE brand icon
+  (public/brand/icon-primary.svg) + the wordmark in Inter (the app's `sans`
+  brand font) on the brand-dark background. See README.md to (re)render.
+  Fonts: Inter (SIL Open Font License 1.1), fetched via @fontsource/inter.
+-->
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face{font-family:'Inter';font-weight:500;font-style:normal;font-display:block;src:url('inter-500.woff2') format('woff2')}
+  @font-face{font-family:'Inter';font-weight:800;font-style:normal;font-display:block;src:url('inter-800.woff2') format('woff2')}
+  @font-face{font-family:'Inter';font-weight:800;font-style:italic;font-display:block;src:url('inter-800i.woff2') format('woff2')}
+  html,body{margin:0;padding:0;width:1024px;height:500px;background:#05081A;overflow:hidden}
+  .canvas{width:1024px;height:500px;background:#05081A;position:relative;overflow:hidden;font-family:'Inter',sans-serif}
+  .vignette{position:absolute;inset:0;background:radial-gradient(62% 72% at 40% 44%, #0d1633 0%, #070b1f 58%, #05081A 100%)}
+  .row{position:absolute;inset:0;display:flex;align-items:center;padding-left:74px;gap:44px}
+  .icon{width:220px;height:220px;flex:none;filter:drop-shadow(0 8px 24px rgba(0,0,0,0.45))}
+  .text{display:flex;flex-direction:column;justify-content:center}
+  .wm{font-size:104px;line-height:1;letter-spacing:-4px;white-space:nowrap}
+  .wm .last{color:#EEF1F8;font-weight:800}
+  .wm .glance{color:#3DDC84;font-style:italic;font-weight:800}
+  .tag{margin-top:20px;font-weight:500;font-size:26px;letter-spacing:-0.3px;color:#8B95AB}
+</style>
+</head>
+<body>
+  <div class="canvas">
+    <div class="vignette"></div>
+    <div class="row">
+      <img class="icon" src="../../public/brand/icon-primary.svg" width="220" height="220">
+      <div class="text">
+        <div class="wm"><span class="last">last</span><span class="glance">GLANCE</span></div>
+        <div class="tag">when did you last...?</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
