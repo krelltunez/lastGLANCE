@@ -88,6 +88,30 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/add_chore_widget_info" />
         </receiver>
+
+        <!-- Quick Settings tiles. Launch the app through the shared lastglance://
+             router; the Soon tile shows a live count subtitle from the snapshot. -->
+        <service
+            android:name=".tiles.AddChoreTileService"
+            android:exported="true"
+            android:icon="@drawable/ic_lucide_circle_plus"
+            android:label="@string/tile_add_chore"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
+        <service
+            android:name=".tiles.SoonTileService"
+            android:exported="true"
+            android:icon="@drawable/ic_lucide_flame"
+            android:label="@string/tile_soon"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
     </application>
 
     <!-- Permissions -->

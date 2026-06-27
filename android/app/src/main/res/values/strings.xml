@@ -26,4 +26,7 @@
     <string name="shortcut_search_long">Search chores</string>
     <string name="shortcut_add_short">Add chore</string>
     <string name="shortcut_add_long">Add a new chore</string>
+    <!-- Quick Settings tiles -->
+    <string name="tile_add_chore">Add chore</string>
+    <string name="tile_soon">Soon</string>
 </resources>
