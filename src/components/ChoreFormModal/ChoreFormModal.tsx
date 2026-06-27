@@ -15,6 +15,9 @@ interface Props {
   category: Category
   allCategories?: Category[]
   chore?: Chore
+  // Seed for the name on a new chore (e.g. text shared into the app). Ignored
+  // when editing an existing chore.
+  initialName?: string
   onClose: () => void
   onSaved: () => void
 }
@@ -50,10 +53,10 @@ function sortHierarchically(categories: Category[]): Category[] {
   return roots.flatMap(r => [r, ...(childrenByParent.get(r.id) ?? [])])
 }
 
-export function ChoreFormModal({ category, allCategories, chore, onClose, onSaved }: Props) {
+export function ChoreFormModal({ category, allCategories, chore, initialName, onClose, onSaved }: Props) {
   const { t } = useTranslation()
   const isEdit = Boolean(chore)
-  const [name, setName] = useState(chore?.name ?? '')
+  const [name, setName] = useState(chore?.name ?? initialName ?? '')
   const [cadence, setCadence] = useState(
     chore?.target_cadence_days != null ? String(chore.target_cadence_days) : ''
   )

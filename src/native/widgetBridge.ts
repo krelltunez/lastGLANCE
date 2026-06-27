@@ -12,6 +12,8 @@ export interface WidgetBridgePlugin {
   drainPendingCompletions(): Promise<{ completions: string }>
   // Return and clear the pending widget body-tap target, or null.
   consumeDeepLink(): Promise<{ deepLink: string | null }>
+  // Return and clear text shared into the app to seed a new chore, or null.
+  consumeSharedChore(): Promise<{ text: string | null }>
 }
 
 const WidgetBridge = registerPlugin<WidgetBridgePlugin>('WidgetBridge')
@@ -48,6 +50,16 @@ export async function consumeDeepLink(): Promise<string | null> {
   try {
     const res = await WidgetBridge.consumeDeepLink()
     return res?.deepLink ?? null
+  } catch {
+    return null
+  }
+}
+
+export async function consumeSharedChore(): Promise<string | null> {
+  if (Capacitor.getPlatform() !== 'android') return null
+  try {
+    const res = await WidgetBridge.consumeSharedChore()
+    return res?.text ?? null
   } catch {
     return null
   }

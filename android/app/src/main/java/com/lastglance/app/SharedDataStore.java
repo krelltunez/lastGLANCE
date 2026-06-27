@@ -19,6 +19,9 @@ public final class SharedDataStore {
     // A widget body-tap target ("chore:<syncId>" or "filter:soon") captured by
     // MainActivity, consumed by the web app on foreground.
     private static final String KEY_DEEPLINK = "pending_deeplink";
+    // Text shared into the app (ACTION_SEND) to seed a new chore's name, captured
+    // by MainActivity and consumed by the web app on foreground.
+    private static final String KEY_SHARED_CHORE = "pending_shared_chore";
 
     private SharedDataStore() {}
 
@@ -65,6 +68,16 @@ public final class SharedDataStore {
     public static String readAndClearPendingDeepLink(Context context) {
         String value = prefs(context).getString(KEY_DEEPLINK, null);
         if (value != null) prefs(context).edit().remove(KEY_DEEPLINK).apply();
+        return value;
+    }
+
+    public static void writePendingSharedChore(Context context, String value) {
+        prefs(context).edit().putString(KEY_SHARED_CHORE, value).apply();
+    }
+
+    public static String readAndClearPendingSharedChore(Context context) {
+        String value = prefs(context).getString(KEY_SHARED_CHORE, null);
+        if (value != null) prefs(context).edit().remove(KEY_SHARED_CHORE).apply();
         return value;
     }
 }

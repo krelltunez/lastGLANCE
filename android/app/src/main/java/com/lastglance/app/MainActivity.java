@@ -13,12 +13,29 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(WidgetBridgePlugin.class);
         super.onCreate(savedInstanceState);
         captureWidgetDeepLink(getIntent());
+        captureSharedText(getIntent());
     }
 
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         captureWidgetDeepLink(intent);
+        captureSharedText(intent);
+    }
+
+    // A share from another app (ACTION_SEND, text/plain) seeds a new chore. Prefer
+    // the subject (often a page title) over the raw text/URL for the chore name;
+    // the web app opens the new-chore form pre-filled on foreground.
+    private void captureSharedText(Intent intent) {
+        if (intent == null || !Intent.ACTION_SEND.equals(intent.getAction())) return;
+        String type = intent.getType();
+        if (type == null || !type.startsWith("text/")) return;
+        String subject = intent.getStringExtra(Intent.EXTRA_SUBJECT);
+        String text = intent.getStringExtra(Intent.EXTRA_TEXT);
+        String name = (subject != null && !subject.trim().isEmpty()) ? subject : text;
+        if (name != null && !name.trim().isEmpty()) {
+            SharedDataStore.writePendingSharedChore(this, name.trim());
+        }
     }
 
     // Widget body-taps and launcher shortcuts launch this activity with a

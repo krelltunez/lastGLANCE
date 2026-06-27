@@ -72,6 +72,8 @@ export function Ribbon({ editMode, onLogged }: Props) {
   const [selectedChore, setSelectedChore] = useState<ChoreWithLastCompletion | null>(null)
   const [addingCategory, setAddingCategory] = useState(false)
   const [newChoreCategory, setNewChoreCategory] = useState<Category | null>(null)
+  // Seed name for the new-chore form (e.g. from a share); '' for a blank add.
+  const [newChoreName, setNewChoreName] = useState('')
 
   const [showSearch, setShowSearch] = useState(false)
 
@@ -177,19 +179,23 @@ export function Ribbon({ editMode, onLogged }: Props) {
   const ribbonModalOpenRef = useRef(false)
   ribbonModalOpenRef.current = showSearch || selectedChore !== null || addingCategory || newChoreCategory !== null
 
-  // Launcher shortcuts / the Add widget: open Search or the new-chore form. New
-  // chore needs a category, which may not have loaded yet on a cold-start launch,
-  // so stash the request and open it once data arrives (mirrors pending-open).
-  const pendingNewChoreRef = useRef(false)
-  const openNewChore = useCallback(() => {
+  // Launcher shortcuts / the Add widget / a share: open Search or the new-chore
+  // form (optionally pre-filled with a shared name). A new chore needs a category,
+  // which may not have loaded yet on a cold-start launch, so stash the request and
+  // open it once data arrives (mirrors pending-open).
+  const pendingNewChoreRef = useRef<{ name: string } | null>(null)
+  const openNewChore = useCallback((name = '') => {
     const cat = viewDataRef.current[activeCategoryIndexRef.current]?.category
       ?? viewDataRef.current[0]?.category
-    if (cat) { setNewChoreCategory(cat); return true }
+    if (cat) { setNewChoreName(name); setNewChoreCategory(cat); return true }
     return false
   }, [])
   useEffect(() => {
     function onOpenSearch() { setShowSearch(true) }
-    function onNewChore() { if (!openNewChore()) pendingNewChoreRef.current = true }
+    function onNewChore(e: Event) {
+      const name = (e as CustomEvent<{ name?: string }>).detail?.name ?? ''
+      if (!openNewChore(name)) pendingNewChoreRef.current = { name }
+    }
     window.addEventListener('lg:open-search', onOpenSearch)
     window.addEventListener('lg:new-chore', onNewChore)
     return () => {
@@ -199,7 +205,8 @@ export function Ribbon({ editMode, onLogged }: Props) {
   }, [openNewChore])
 
   useEffect(() => {
-    if (pendingNewChoreRef.current && openNewChore()) pendingNewChoreRef.current = false
+    const pending = pendingNewChoreRef.current
+    if (pending && openNewChore(pending.name)) pendingNewChoreRef.current = null
   }, [localData, openNewChore])
 
   // Keyboard shortcuts owned by Ribbon: search, category nav, new chore
@@ -753,8 +760,9 @@ export function Ribbon({ editMode, onLogged }: Props) {
         <ChoreFormModal
           category={newChoreCategory}
           allCategories={localData.flatMap(d => [d.category, ...d.subcategories.map(s => s.category)])}
-          onClose={() => setNewChoreCategory(null)}
-          onSaved={() => { setNewChoreCategory(null); refresh() }}
+          initialName={newChoreName}
+          onClose={() => { setNewChoreCategory(null); setNewChoreName('') }}
+          onSaved={() => { setNewChoreCategory(null); setNewChoreName(''); refresh() }}
         />
       )}
     </>

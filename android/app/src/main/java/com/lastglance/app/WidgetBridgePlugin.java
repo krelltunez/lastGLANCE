@@ -58,6 +58,16 @@ public class WidgetBridgePlugin extends Plugin {
         call.resolve(ret);
     }
 
+    // Hand the pending shared text (for a new chore's name) to the web app, and
+    // clear it.
+    @PluginMethod
+    public void consumeSharedChore(PluginCall call) {
+        String value = SharedDataStore.readAndClearPendingSharedChore(getContext());
+        JSObject ret = new JSObject();
+        ret.put("text", value);
+        call.resolve(ret);
+    }
+
     // Nudge a Glance widget to recompose from the freshly written snapshot.
     private static void refreshGlanceWidget(Context context, Class<?> receiver) {
         ComponentName component = new ComponentName(context, receiver);
