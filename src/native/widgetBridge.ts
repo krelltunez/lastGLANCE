@@ -10,6 +10,8 @@ export interface WidgetBridgePlugin {
   // Return and clear the queue of completions logged from widgets (JSON array
   // string). The web app drains this into the DB on foreground.
   drainPendingCompletions(): Promise<{ completions: string }>
+  // Return and clear the pending widget body-tap target, or null.
+  consumeDeepLink(): Promise<{ deepLink: string | null }>
 }
 
 const WidgetBridge = registerPlugin<WidgetBridgePlugin>('WidgetBridge')
@@ -38,5 +40,15 @@ export async function drainPendingCompletions(): Promise<PendingCompletion[]> {
     return Array.isArray(arr) ? arr : []
   } catch {
     return []
+  }
+}
+
+export async function consumeDeepLink(): Promise<string | null> {
+  if (Capacitor.getPlatform() !== 'android') return null
+  try {
+    const res = await WidgetBridge.consumeDeepLink()
+    return res?.deepLink ?? null
+  } catch {
+    return null
   }
 }

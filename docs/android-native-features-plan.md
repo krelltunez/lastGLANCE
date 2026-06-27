@@ -283,10 +283,18 @@ Kotlin 2.2.0 + Compose plugin + Glance 1.1.1 (`buildFeatures.compose`, `jvmTarge
   soon+overdue chores (most-overdue first, cap 25), shared row styling + Done
   action with the tile. A completion refreshes both widgets (`updateAll`).
 
-**Still to do:** the **deep-link router** so a widget body-tap opens the specific
-chore (today taps only open the app / complete via Done); a configuration Activity
-for a user-picked single-chore tile. Possible later: migrate the Phase 0 heatmap
-from RemoteViews to Glance for uniformity.
+**Built, awaiting device test:**
+- **Deep-link router**: widget body-taps launch `MainActivity` with a
+  `lastglance://chore/<syncId>` or `lastglance://filter/soon` URI; `MainActivity`
+  stashes the target in `SharedDataStore`; the web app consumes it on foreground
+  (`consumeDeepLink` → `routeWidgetDeepLink` → reuses the pending-open mechanism
+  for a chore, or sets the attention filter for "soon"). The unique data URI also
+  keeps each row's `PendingIntent` distinct (filterEquals ignores extras). Wires
+  the single-chore tile body, every Soon-list row, and the heatmap "soon" tap.
+
+**Still to do:** a configuration Activity for a user-picked single-chore tile.
+Possible later: migrate the Phase 0 heatmap from RemoteViews to Glance for
+uniformity.
 
 **Original goal:** the marquee widgets, with completion that *feels instant* and is
 *safe*.

@@ -12,6 +12,7 @@ import androidx.glance.GlanceTheme
 import androidx.glance.Image
 import androidx.glance.ImageProvider
 import androidx.glance.action.actionParametersOf
+import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
@@ -86,7 +87,10 @@ class SoonListWidget : GlanceAppWidget() {
     @Composable
     private fun ChoreListRow(context: Context, chore: ChoreData) {
         Row(
-            modifier = GlanceModifier.fillMaxWidth().padding(vertical = 5.dp),
+            modifier = GlanceModifier
+                .fillMaxWidth()
+                .padding(vertical = 5.dp)
+                .clickable(actionStartActivity(openChoreIntent(context, chore.syncId))),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Spacer(

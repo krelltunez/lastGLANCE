@@ -45,6 +45,15 @@ public class WidgetBridgePlugin extends Plugin {
         call.resolve(ret);
     }
 
+    // Hand the pending widget body-tap target to the web app, and clear it.
+    @PluginMethod
+    public void consumeDeepLink(PluginCall call) {
+        String value = SharedDataStore.readAndClearPendingDeepLink(getContext());
+        JSObject ret = new JSObject();
+        ret.put("deepLink", value);
+        call.resolve(ret);
+    }
+
     // Nudge a Glance widget to recompose from the freshly written snapshot.
     private static void refreshGlanceWidget(Context context, Class<?> receiver) {
         ComponentName component = new ComponentName(context, receiver);
