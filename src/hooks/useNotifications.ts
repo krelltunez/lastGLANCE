@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { getCategories, getChoresForCategory, logCompletion } from '@/db/queries'
 import { Capacitor } from '@capacitor/core'
+import { LocalNotifications } from '@capacitor/local-notifications'
 import { useToast, type ToastOptions } from '@/components/Toast/Toast'
 import { useIntents } from '@/intents/IntentsContext'
 import { emitCreateIntent } from '@/intents/emitter'
@@ -27,6 +28,22 @@ async function fireBrowserNotification(title: string, body: string) {
 }
 
 export async function requestNotificationPermission(): Promise<NotificationPermission> {
+  // On Android the WebView's Notification API is unavailable; the real permission
+  // (POST_NOTIFICATIONS) lives in the native Local Notifications plugin, which
+  // also delivers the closed-app reminders. Check/request there and map the
+  // plugin's PermissionState onto the web NotificationPermission the UI expects.
+  if (Capacitor.getPlatform() === 'android') {
+    try {
+      let status = await LocalNotifications.checkPermissions()
+      if (status.display === 'prompt' || status.display === 'prompt-with-rationale') {
+        status = await LocalNotifications.requestPermissions()
+      }
+      if (status.display === 'granted') return 'granted'
+      return status.display === 'denied' ? 'denied' : 'default'
+    } catch {
+      return 'denied'
+    }
+  }
   if (!('Notification' in window)) return 'denied'
   if (Notification.permission === 'granted') return 'granted'
   return Notification.requestPermission()

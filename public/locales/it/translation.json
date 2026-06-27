@@ -116,7 +116,7 @@
     "cadencePlaceholder": "es. 14",
     "cadenceHint": "Lascia vuoto per tenere traccia senza un obiettivo.",
     "notifyOverdue": "Notifica quando in ritardo",
-    "notifyBlocked": "Notifiche bloccate — abilitale nelle impostazioni del browser.",
+    "notifyBlocked": "Notifiche bloccate — abilitale nelle impostazioni.",
     "autoSendDayglance": "Invia automaticamente a dayGLANCE quando in ritardo",
     "autoSendHint": "Emette un'intenzione una volta al giorno quando questa attività è in ritardo",
     "assignedTo": "Assegnata a",
