@@ -264,27 +264,29 @@ time (test on Doze via `adb shell dumpsys deviceidle force-idle`).
 
 ### Phase 2 — Action widgets + optimistic tap-to-complete — 🚧 IN PROGRESS
 
-**Decision (resolved):** widgets use **Jetpack Glance** (Kotlin + Compose). This
-adds a toolchain to the Java project: Kotlin 2.2.0 + the Compose compiler plugin
-+ `androidx.glance:glance-appwidget`/`glance-material3` 1.1.1 (`buildFeatures.compose`,
-`jvmTarget 21`). **Not compilable in the dev environment** — the first on-device
-build is where any version mismatch surfaces and may need a round of adjustment.
+**Decision (resolved):** widgets use **Jetpack Glance** (Kotlin + Compose), toolchain
+Kotlin 2.2.0 + Compose plugin + Glance 1.1.1 (`buildFeatures.compose`, `jvmTarget 21`).
+**Toolchain compiles on-device** (verified). `GlanceTheme` lives in `androidx.glance`.
 
-**Built so far (Phase 2a):**
-- **Tap-to-complete spine** (tech-agnostic, verified): native completion queue in
-  `SharedDataStore`; `WidgetBridge.drainPendingCompletions`; web drain
-  `src/native/pendingCompletions.ts` + `usePendingCompletions` replays each via
-  `logCompletion(choreId, { syncId })` — idempotent on the native-minted sync_id.
-- **Single-chore Glance tile** (`glance/SingleChoreWidget.kt`): shows the
-  most-overdue chore (no config Activity needed yet) with a recency color bar and
-  one-tap **Done**. Done → optimistic snapshot update (instant, offline) + queue;
-  the app drains on next foreground. The bridge nudges the Glance widget to
-  recompose on every snapshot push.
+**Built & device-tested:**
+- **Tap-to-complete spine**: native completion queue in `SharedDataStore`;
+  `WidgetBridge.drainPendingCompletions`; web drain `pendingCompletions.ts` +
+  `usePendingCompletions` replays each via `logCompletion(choreId, { syncId,
+  completedByUserSyncId })` — idempotent on the native-minted sync_id.
+- **Single-chore Glance tile** (`glance/SingleChoreWidget.kt`): most-overdue chore,
+  recency color bar **+ the chore's Lucide icon** (full set shipped as vector
+  drawables via `scripts/gen-lucide-drawables.mjs`, tinted to the recency color),
+  one-tap **Done** (optimistic snapshot update + queue).
 
-**Still to do:** the Soon/overdue **list** widget; a configuration Activity for a
-user-picked single-chore tile; the deep-link router so widget body-taps open the
-specific chore (today they just open the app). Possible later: migrate the Phase 0
-heatmap from RemoteViews to Glance for uniformity.
+**Built, awaiting device test:**
+- **Soon/overdue list widget** (`glance/SoonListWidget.kt`): Glance `LazyColumn` of
+  soon+overdue chores (most-overdue first, cap 25), shared row styling + Done
+  action with the tile. A completion refreshes both widgets (`updateAll`).
+
+**Still to do:** the **deep-link router** so a widget body-tap opens the specific
+chore (today taps only open the app / complete via Done); a configuration Activity
+for a user-picked single-chore tile. Possible later: migrate the Phase 0 heatmap
+from RemoteViews to Glance for uniformity.
 
 **Original goal:** the marquee widgets, with completion that *feels instant* and is
 *safe*.
