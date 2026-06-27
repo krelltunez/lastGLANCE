@@ -306,8 +306,18 @@ Kotlin 2.2.0 + Compose plugin + Glance 1.1.1 (`buildFeatures.compose`, `jvmTarge
   via `Image`; taps route through the deep-link router to the Soon view. Removed
   the RemoteViews `HeatmapWidgetProvider` + `widget_heatmap.xml`.
 
-Possible later: make silent "Mark done" for notifications (the Phase 1 carry-over)
-using this same native completion path.
+**Silent "Mark done" — DECIDED: leave as-is (deferred).** Today a notification
+"Mark done" opens the app, which logs the completion. Making it truly silent
+(background, no app launch) means a notification action whose `PendingIntent` is a
+`getBroadcast` to our own receiver. But `@capacitor/local-notifications` builds and
+posts its notifications from its **own** alarm receiver with no hook to inject a
+custom action — so owning the action means owning the notification, and since the
+plugin couples posting to its own alarm, that means owning the **alarm** too: i.e.
+the custom-Kotlin reminder layer (Path B) we skipped in Phase 1 (re-implementing
+exact-alarm scheduling, BOOT re-registration, channel, notification building, tap
+routing). The completion half is already done (the widget queue + drain). Verdict:
+not worth Path B for one button right now; "Mark done opens the app" stays.
+("Send to dayGLANCE" must open the app regardless — it needs network/config.)
 
 **Original goal:** the marquee widgets, with completion that *feels instant* and is
 *safe*.
@@ -334,11 +344,11 @@ sync round-trip.
 
 ### Phase 3 — Notifications actions, shortcuts, (optional) background sync
 
-- **Actionable notifications:** "Mark done" / "Open" action buttons → emit the
-  same `lastglance://complete|chore` intents through the Phase 2 queue. Mostly
-  wiring once the router exists.
+- **Actionable notifications:** ✅ DONE in Phase 1 (Mark done / Send to dayGLANCE).
 - **App shortcuts** (`res/xml/shortcuts.xml`): "Soon", "Log a chore" → navigate
-  intents.
+  intents. **The only remaining Phase 3 item.** Make the shortcut targets the
+  shared `lastglance://` deep links (routed through the existing router) so the
+  iOS equivalent later is just the native declaration.
 - **Background CRDT sync (stretch):** the only feature needing a background data
   runtime. Forces the headless-JS-vs-native-mirror decision. Defer until there's
   real demand; current "sync on open" is unchanged behavior.
@@ -422,3 +432,48 @@ identical either way — only the alarm layer swaps.
 - `package.json` (`@capacitor/local-notifications`)
 - If Path B: a Glance `widget/` package for the interactive Phase 2 widgets
 ```
+
+---
+
+## 8. iOS portability — what carries over
+
+The architecture was chosen to be cross-platform: decision logic lives in JS
+behind a thin Capacitor-plugin boundary, the snapshot is a plain JSON data
+contract, and navigation goes through one `lastglance://` router. So the *design*
+ports even though the native rendering does not. Status today: every native JS
+path is hard-guarded to `getPlatform() === 'android'`, so **none of this runs on
+iOS yet** — enabling iOS is additive, not a rewrite of the shared layer.
+
+**Reusable as-is (JS / design):**
+- `snapshot.ts` — the snapshot JSON. iOS widgets read the same contract.
+- `reminders.ts` scheduling model (eligibility, diff-replace, action types, body
+  text), `pendingCompletions.ts` drain, `pendingDeepLink.ts` / `pendingOpenChore.ts`
+  routing, the `@glance-apps/intents` action router, the user-attribution and
+  dayGLANCE-gating fixes.
+
+**Cross-platform native already (the big win):**
+- `@capacitor/local-notifications` works on iOS too. So **Phase 1 notifications are
+  ~70–80% portable** — mostly relax the `=== 'android'` guards and handle iOS
+  specifics (no exact-alarm prompt, no `smallIcon` — iOS uses the app icon, the
+  64-pending-notification cap, UNNotificationCategory actions the plugin abstracts).
+
+**Needs a Swift reimplementation (per-platform):**
+- **WidgetBridge plugin** — Java today; needs a Swift impl of the same JS interface
+  (`updateSnapshot` / `drainPendingCompletions` / `consumeDeepLink`) reading/writing
+  an **App Group** container (the iOS prerequisite, shared between app + widget
+  extension). The JS wrappers don't change.
+- **Widgets** — Glance/Kotlin → **WidgetKit + SwiftUI**. ~0% code reuse, but the
+  data contract and layout design carry over. Interactive tap-to-complete needs
+  **AppIntents** (iOS 17+) writing to the App-Group completion queue.
+- **Chore icons** — the Lucide *Android vector drawables* don't port. iOS needs its
+  own approach; likely rasterize the Lucide SVGs to PNGs into the App Group (the
+  approach set aside for Android is the natural fit for SwiftUI widgets), or render
+  SVGs in SwiftUI. Plan this early.
+- **Deep-link capture** (`MainActivity`) → AppDelegate/Scene URL handling or the
+  widget's `widgetURL`. **App shortcuts** → `UIApplicationShortcutItem` / AppIntents.
+  Native declaration differs; the `lastglance://` targets + JS routing are shared.
+
+**To stay iOS-friendly going forward:** keep decision logic in JS behind the plugin
+boundary; route every new entry point (shortcuts included) through the shared
+`lastglance://` router so only the native declaration is per-platform; set up the
+App Group before any iOS widget work; decide the iOS icon approach up front.
