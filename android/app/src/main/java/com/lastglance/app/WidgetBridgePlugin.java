@@ -11,6 +11,7 @@ import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 
+import com.lastglance.app.glance.HeatmapWidgetReceiver;
 import com.lastglance.app.glance.SingleChoreWidgetReceiver;
 import com.lastglance.app.glance.SoonListWidgetReceiver;
 
@@ -29,7 +30,7 @@ public class WidgetBridgePlugin extends Plugin {
         }
         Context context = getContext();
         SharedDataStore.writeSnapshot(context, json);
-        HeatmapWidgetProvider.refreshAll(context);
+        refreshGlanceWidget(context, HeatmapWidgetReceiver.class);
         refreshGlanceWidget(context, SingleChoreWidgetReceiver.class);
         refreshGlanceWidget(context, SoonListWidgetReceiver.class);
         call.resolve();

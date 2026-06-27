@@ -298,10 +298,16 @@ Kotlin 2.2.0 + Compose plugin + Glance 1.1.1 (`buildFeatures.compose`, `jvmTarge
   chore (or "automatic" = most overdue), keyed by appWidgetId in `SharedDataStore`.
   `provideGlance` reads the per-widget choice; `pickBySyncId` resolves it.
 
-**Phase 2 complete** (pending on-device verification of the config flow). Possible
-later: migrate the Phase 0 heatmap from RemoteViews to Glance for uniformity; make
-silent "Mark done" for notifications (the Phase 1 carry-over) using this same
-native completion path.
+**Phase 2 complete** (pending on-device verification of the config flow).
+
+**Post-Phase-2:**
+- **Heatmap migrated to Glance** (`glance/HeatmapWidget.kt`): all widgets are now
+  Glance. Kept the Canvas-bitmap render (cheaper than ~126 composed cells), shown
+  via `Image`; taps route through the deep-link router to the Soon view. Removed
+  the RemoteViews `HeatmapWidgetProvider` + `widget_heatmap.xml`.
+
+Possible later: make silent "Mark done" for notifications (the Phase 1 carry-over)
+using this same native completion path.
 
 **Original goal:** the marquee widgets, with completion that *feels instant* and is
 *safe*.
