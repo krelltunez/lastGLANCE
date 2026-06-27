@@ -19,4 +19,7 @@
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
         <item name="android:background">@drawable/splash</item>
     </style>
+
+    <!-- Floating dialog for the single-chore widget config picker (day/night). -->
+    <style name="AppTheme.Dialog" parent="Theme.AppCompat.DayNight.Dialog" />
 </resources>

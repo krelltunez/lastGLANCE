@@ -44,7 +44,7 @@
             android:name=".glance.SingleChoreConfigActivity"
             android:exported="true"
             android:label="@string/single_chore_widget_description"
-            android:theme="@style/AppTheme.NoActionBar">
+            android:theme="@style/AppTheme.Dialog">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
             </intent-filter>

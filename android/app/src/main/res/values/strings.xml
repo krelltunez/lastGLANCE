@@ -11,6 +11,8 @@
     <string name="widget_done">Done</string>
     <string name="widget_all_caught_up">All caught up</string>
     <string name="widget_config_auto">Most overdue (automatic)</string>
+    <string name="widget_config_title">Choose a chore</string>
+    <string name="widget_config_search">Search chores</string>
     <string name="widget_label_activity">lastGLANCE Activity</string>
     <string name="widget_label_chore">lastGLANCE Chore</string>
     <string name="widget_label_soon">lastGLANCE Soon</string>

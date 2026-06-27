@@ -16,9 +16,10 @@ import androidx.glance.action.ActionParameters
 import androidx.glance.action.actionParametersOf
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.action.actionStartActivity
+import androidx.datastore.preferences.core.Preferences
 import androidx.glance.appwidget.GlanceAppWidget
-import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
+import androidx.glance.currentState
 import androidx.glance.appwidget.action.ActionCallback
 import androidx.glance.appwidget.action.actionRunCallback
 import androidx.glance.appwidget.cornerRadius
@@ -260,13 +261,12 @@ class CompleteChoreCallback : ActionCallback {
 
 class SingleChoreWidget : GlanceAppWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        // A per-widget configured chore (set in SingleChoreConfigActivity) wins;
-        // otherwise fall back to the most-overdue chore.
-        val appWidgetId = GlanceAppWidgetManager(context).getAppWidgetId(id)
-        val configured = SharedDataStore.readWidgetChore(context, appWidgetId)
-        val chore = if (configured != null) ChoreSnapshot.pickBySyncId(context, configured)
-            else ChoreSnapshot.pickMostOverdue(context)
         provideContent {
+            // A per-widget configured chore (set in SingleChoreConfigActivity, stored
+            // in this widget's Glance state) wins; else fall back to most-overdue.
+            val configured = currentState<Preferences>()[CHORE_PREF_KEY]
+            val chore = if (configured != null) ChoreSnapshot.pickBySyncId(context, configured)
+                else ChoreSnapshot.pickMostOverdue(context)
             GlanceTheme {
                 Content(context, chore)
             }

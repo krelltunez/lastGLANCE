@@ -5,23 +5,43 @@ import android.appwidget.AppWidgetManager
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.widget.ArrayAdapter
+import android.widget.EditText
+import android.widget.LinearLayout
 import android.widget.ListView
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.glance.appwidget.GlanceAppWidgetManager
+import androidx.glance.appwidget.state.updateAppWidgetState
 import com.lastglance.app.R
 import com.lastglance.app.SharedDataStore
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.launch
 import org.json.JSONObject
 
+// The per-widget chosen chore, stored in the widget's own Glance state (keyed by
+// glanceId) — the canonical Glance mechanism. SingleChoreWidget reads it via
+// currentState.
+internal val CHORE_PREF_KEY = stringPreferencesKey("chore")
+
 // Configuration screen shown when a single-chore tile is placed: pick which chore
-// it tracks (or "automatic" = most overdue). Plain Activity + ListView so it needs
-// no Compose-UI dependencies. Choices come from the snapshot the web app pushes.
+// it tracks (or "automatic" = most overdue), with a search box for large lists.
+// Plain Activity + ListView (no Compose-UI deps); shown as a dialog. Choices come
+// from the snapshot the web app pushes.
 class SingleChoreConfigActivity : Activity() {
 
     private var appWidgetId = AppWidgetManager.INVALID_APPWIDGET_ID
 
+    // (syncId, label); the first entry is the "automatic" option with a null syncId.
+    private val all = ArrayList<Pair<String?, String>>()
+    private val shown = ArrayList<Pair<String?, String>>()
+    private lateinit var adapter: ArrayAdapter<String>
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // If the user backs out, the host cancels placement.
-        setResult(RESULT_CANCELED)
+        setResult(RESULT_CANCELED) // backing out cancels placement
+        setTitle(R.string.widget_config_title)
 
         appWidgetId = intent?.extras?.getInt(
             AppWidgetManager.EXTRA_APPWIDGET_ID,
@@ -32,35 +52,64 @@ class SingleChoreConfigActivity : Activity() {
             return
         }
 
-        // First row is the automatic option (syncId null); the rest are chores.
-        val labels = ArrayList<String>()
-        val syncIds = ArrayList<String?>()
-        labels.add(getString(R.string.widget_config_auto))
-        syncIds.add(null)
-        for ((syncId, name) in readChores(this)) {
-            labels.add(name)
-            syncIds.add(syncId)
-        }
+        all.add(null to getString(R.string.widget_config_auto))
+        for ((syncId, name) in readChores(this)) all.add(syncId to name)
+        shown.addAll(all)
 
-        val list = ListView(this)
-        list.adapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, labels)
-        list.setOnItemClickListener { _, _, position, _ ->
-            SharedDataStore.writeWidgetChore(this, appWidgetId, syncIds[position])
-            kickWidget()
-            setResult(
-                RESULT_OK,
-                Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId),
-            )
-            finish()
+        val pad = (16 * resources.displayMetrics.density).toInt()
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(pad, pad, pad, 0)
         }
-        setContentView(list)
+        val search = EditText(this).apply {
+            hint = getString(R.string.widget_config_search)
+            setSingleLine()
+        }
+        val list = ListView(this)
+        adapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, shown.map { it.second }.toMutableList())
+        list.adapter = adapter
+        root.addView(
+            search,
+            LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT),
+        )
+        root.addView(
+            list,
+            LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.MATCH_PARENT),
+        )
+        setContentView(root)
+
+        search.addTextChangedListener(object : TextWatcher {
+            override fun afterTextChanged(s: Editable?) {
+                val q = s?.toString()?.trim()?.lowercase().orEmpty()
+                shown.clear()
+                shown.add(all[0]) // keep the automatic option pinned at the top
+                for (i in 1 until all.size) {
+                    if (q.isEmpty() || all[i].second.lowercase().contains(q)) shown.add(all[i])
+                }
+                adapter.clear()
+                adapter.addAll(shown.map { it.second })
+                adapter.notifyDataSetChanged()
+            }
+
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+        })
+
+        list.setOnItemClickListener { _, _, position, _ ->
+            choose(shown[position].first)
+        }
     }
 
-    private fun kickWidget() {
-        val intent = Intent(this, SingleChoreWidgetReceiver::class.java)
-            .setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE)
-            .putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, intArrayOf(appWidgetId))
-        sendBroadcast(intent)
+    private fun choose(syncId: String?) {
+        MainScope().launch {
+            val glanceId = GlanceAppWidgetManager(this@SingleChoreConfigActivity).getGlanceIdBy(appWidgetId)
+            updateAppWidgetState(this@SingleChoreConfigActivity, glanceId) { prefs ->
+                if (syncId == null) prefs.remove(CHORE_PREF_KEY) else prefs[CHORE_PREF_KEY] = syncId
+            }
+            SingleChoreWidget().update(this@SingleChoreConfigActivity, glanceId)
+            setResult(RESULT_OK, Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId))
+            finish()
+        }
     }
 
     private fun readChores(context: Context): List<Pair<String, String>> {
