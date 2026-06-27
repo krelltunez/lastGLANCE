@@ -345,15 +345,18 @@ sync round-trip.
 ### Phase 3 — Notifications actions, shortcuts, (optional) background sync
 
 - **Actionable notifications:** ✅ DONE in Phase 1 (Mark done / Send to dayGLANCE).
-- **App shortcuts:** ✅ DONE. Static (`res/xml/shortcuts.xml`): **Soon**, **Search**,
-  **Add chore**, each launching MainActivity with a shared `lastglance://` deep
-  link (plus an `lglink` extra fallback) routed through the existing router — two
-  new router targets (`action:search` → `lg:open-search`, `action:add` →
-  `lg:new-chore`) handled in `Ribbon`. Dynamic: **top-overdue chores**
-  (`WidgetShortcuts.java`) pushed from the snapshot on every update (icons tinted
-  to recency color; respects the "Me" filter for free), deep-linking to each
-  chore's log modal. Note: launchers cap the *visible* count (~4–5), so the
-  static + dynamic ranks may want tuning after on-device use.
+- **App shortcuts:** ✅ DONE. All built as **dynamic** shortcuts in
+  `WidgetShortcuts.java`, pushed from the snapshot on every update, so their order
+  is fully controllable (a launcher sorts static vs dynamic separately, so an
+  interleaved priority is only deterministic when everything is dynamic + ranked).
+  Priority (rank 0 first): **Add chore** → `action/add`, **Search** →
+  `action/search`, **top-overdue chores** → `chore/<syncId>` (icons tinted to
+  recency color; respects the "Me" filter for free), **Soon** → `filter/soon`.
+  The two action targets route via `action:search` → `lg:open-search` and
+  `action:add` → `lg:new-chore`, handled in `Ribbon`. Trimmed to
+  `getMaxShortcutCountPerActivity()`; launchers also cap the *visible* count
+  (~4–5), dropping the lowest-priority tail (Soon) first. Trade-off of all-dynamic:
+  shortcuts populate after the first snapshot push (i.e. first app run).
 - **Add-chore widget:** ✅ DONE. A small Glance action tile (`AddChoreWidget.kt`)
   that opens the new-chore form via the same `lastglance://action/add` link — no
   snapshot needed.
