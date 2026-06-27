@@ -16,8 +16,10 @@ import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.state.updateAppWidgetState
 import com.lastglance.app.R
 import com.lastglance.app.SharedDataStore
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.json.JSONObject
 
 // The per-widget chosen chore, stored in the widget's own Glance state (keyed by
@@ -53,7 +55,6 @@ class SingleChoreConfigActivity : AppCompatActivity() {
         }
 
         all.add(null to getString(R.string.widget_config_auto))
-        for ((syncId, name) in readChores(this)) all.add(syncId to name)
         shown.addAll(all)
 
         val pad = (16 * resources.displayMetrics.density).toInt()
@@ -79,18 +80,7 @@ class SingleChoreConfigActivity : AppCompatActivity() {
         setContentView(root)
 
         search.addTextChangedListener(object : TextWatcher {
-            override fun afterTextChanged(s: Editable?) {
-                val q = s?.toString()?.trim()?.lowercase().orEmpty()
-                shown.clear()
-                shown.add(all[0]) // keep the automatic option pinned at the top
-                for (i in 1 until all.size) {
-                    if (q.isEmpty() || all[i].second.lowercase().contains(q)) shown.add(all[i])
-                }
-                adapter.clear()
-                adapter.addAll(shown.map { it.second })
-                adapter.notifyDataSetChanged()
-            }
-
+            override fun afterTextChanged(s: Editable?) { applyFilter(s?.toString().orEmpty()) }
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
         })
@@ -98,6 +88,29 @@ class SingleChoreConfigActivity : AppCompatActivity() {
         list.setOnItemClickListener { _, _, position, _ ->
             choose(shown[position].first)
         }
+
+        // Parsing the snapshot can be slow with many chores; load it off the main
+        // thread so the dialog appears immediately (just the automatic option),
+        // then fill in the chores.
+        MainScope().launch {
+            val items = withContext(Dispatchers.IO) { readChores(this@SingleChoreConfigActivity) }
+            all.clear()
+            all.add(null to getString(R.string.widget_config_auto))
+            for ((syncId, name) in items) all.add(syncId to name)
+            applyFilter(search.text?.toString().orEmpty())
+        }
+    }
+
+    private fun applyFilter(query: String) {
+        val q = query.trim().lowercase()
+        shown.clear()
+        shown.add(all[0]) // keep the automatic option pinned at the top
+        for (i in 1 until all.size) {
+            if (q.isEmpty() || all[i].second.lowercase().contains(q)) shown.add(all[i])
+        }
+        adapter.clear()
+        adapter.addAll(shown.map { it.second })
+        adapter.notifyDataSetChanged()
     }
 
     private fun choose(syncId: String?) {

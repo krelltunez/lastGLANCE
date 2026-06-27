@@ -28,9 +28,11 @@ import androidx.glance.layout.Spacer
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.padding
+import androidx.glance.layout.width
 import androidx.glance.text.FontStyle
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
+import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import com.lastglance.app.R
@@ -93,10 +95,18 @@ class HeatmapWidget : GlanceAppWidget() {
                                 fontSize = 24.sp,
                             ),
                         )
-                        Spacer(modifier = GlanceModifier.defaultWeight())
+                        // The stat takes the remaining width and truncates, so the
+                        // wordmark never clips even when the widget is narrow.
+                        Spacer(modifier = GlanceModifier.width(8.dp))
                         Text(
                             statText(context, overdue, soon),
-                            style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 18.sp),
+                            maxLines = 1,
+                            style = TextStyle(
+                                color = GlanceTheme.colors.onSurfaceVariant,
+                                fontSize = 16.sp,
+                                textAlign = TextAlign.End,
+                            ),
+                            modifier = GlanceModifier.defaultWeight(),
                         )
                     }
                 }
