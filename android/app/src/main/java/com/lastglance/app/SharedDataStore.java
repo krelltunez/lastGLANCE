@@ -58,6 +58,19 @@ public final class SharedDataStore {
         return raw;
     }
 
+    // Per-widget chosen chore (single-chore tile config). Null/absent = auto
+    // (most-overdue). Keyed by appWidgetId.
+    public static void writeWidgetChore(Context context, int appWidgetId, String syncId) {
+        SharedPreferences.Editor e = prefs(context).edit();
+        if (syncId == null) e.remove("widget_chore_" + appWidgetId);
+        else e.putString("widget_chore_" + appWidgetId, syncId);
+        e.apply();
+    }
+
+    public static String readWidgetChore(Context context, int appWidgetId) {
+        return prefs(context).getString("widget_chore_" + appWidgetId, null);
+    }
+
     public static void writePendingDeepLink(Context context, String value) {
         prefs(context).edit().putString(KEY_DEEPLINK, value).apply();
     }

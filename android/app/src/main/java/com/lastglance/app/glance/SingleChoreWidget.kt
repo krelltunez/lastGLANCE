@@ -17,6 +17,7 @@ import androidx.glance.action.actionParametersOf
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.GlanceAppWidget
+import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.action.ActionCallback
 import androidx.glance.appwidget.action.actionRunCallback
@@ -97,18 +98,39 @@ internal object ChoreSnapshot {
                     best = ch
                 }
             }
-            best?.let {
-                ChoreData(
-                    syncId = it.optString("syncId"),
-                    name = it.optString("name"),
-                    elapsed = elapsedLabel(it),
-                    colorInt = parseColor(it.optString("color", "#22c55e")),
-                    iconResId = resolveIcon(context, it.optString("icon", null)),
-                )
-            }
+            best?.let { toChoreData(context, it) }
         } catch (e: Exception) {
             null
         }
+    }
+
+    // The specific chore chosen for a configured single-chore tile. Null if it's
+    // gone from the snapshot (e.g. deleted) — the widget then shows empty.
+    fun pickBySyncId(context: Context, syncId: String): ChoreData? {
+        val raw = SharedDataStore.readSnapshot(context) ?: return null
+        return try {
+            val chores = JSONObject(raw).optJSONArray("chores") ?: return null
+            for (i in 0 until chores.length()) {
+                val ch = chores.getJSONObject(i)
+                if (ch.optString("syncId") == syncId) return toChoreData(context, ch)
+            }
+            null
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    private fun toChoreData(context: Context, ch: JSONObject): ChoreData {
+        // Like ChoreRow: recency color when there's a cadence + completion, else a
+        // neutral slate (chores chosen for a tile may have no cadence yet).
+        val color = if (ch.isNull("color")) "#94a3b8" else ch.optString("color", "#94a3b8")
+        return ChoreData(
+            syncId = ch.optString("syncId"),
+            name = ch.optString("name"),
+            elapsed = elapsedLabel(ch),
+            colorInt = parseColor(color),
+            iconResId = resolveIcon(context, ch.optString("icon", null)),
+        )
     }
 
     // Chores aged into the amber/red zone (state soon or overdue), most-overdue
@@ -123,15 +145,7 @@ internal object ChoreSnapshot {
                 val state = ch.optString("state")
                 if (state != "soon" && state != "overdue") continue
                 val ratio = if (ch.isNull("ratio")) 0.0 else ch.optDouble("ratio", 0.0)
-                rows.add(
-                    ratio to ChoreData(
-                        syncId = ch.optString("syncId"),
-                        name = ch.optString("name"),
-                        elapsed = elapsedLabel(ch),
-                        colorInt = parseColor(ch.optString("color", "#22c55e")),
-                        iconResId = resolveIcon(context, ch.optString("icon", null)),
-                    ),
-                )
+                rows.add(ratio to toChoreData(context, ch))
             }
             rows.sortByDescending { it.first }
             rows.take(limit).map { it.second }
@@ -246,7 +260,12 @@ class CompleteChoreCallback : ActionCallback {
 
 class SingleChoreWidget : GlanceAppWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val chore = ChoreSnapshot.pickMostOverdue(context)
+        // A per-widget configured chore (set in SingleChoreConfigActivity) wins;
+        // otherwise fall back to the most-overdue chore.
+        val appWidgetId = GlanceAppWidgetManager(context).getAppWidgetId(id)
+        val configured = SharedDataStore.readWidgetChore(context, appWidgetId)
+        val chore = if (configured != null) ChoreSnapshot.pickBySyncId(context, configured)
+            else ChoreSnapshot.pickMostOverdue(context)
         provideContent {
             GlanceTheme {
                 Content(context, chore)
