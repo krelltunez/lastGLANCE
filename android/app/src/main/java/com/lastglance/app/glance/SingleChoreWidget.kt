@@ -5,8 +5,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.glance.ColorFilter
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
+import androidx.glance.Image
+import androidx.glance.ImageProvider
 import androidx.glance.action.ActionParameters
 import androidx.glance.action.actionParametersOf
 import androidx.glance.action.clickable
@@ -24,6 +27,7 @@ import androidx.glance.layout.Spacer
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
+import androidx.glance.layout.size
 import androidx.glance.layout.width
 import androidx.glance.GlanceTheme
 import androidx.glance.text.FontWeight
@@ -52,6 +56,7 @@ private data class ChoreData(
     val name: String,
     val elapsed: String,
     val colorInt: Int,
+    val iconResId: Int, // ic_lucide_* drawable, or 0 when the chore has no icon
 )
 
 private object ChoreSnapshot {
@@ -78,11 +83,30 @@ private object ChoreSnapshot {
                     name = it.optString("name"),
                     elapsed = elapsedLabel(it),
                     colorInt = parseColor(it.optString("color", "#22c55e")),
+                    iconResId = resolveIcon(context, it.optString("icon", null)),
                 )
             }
         } catch (e: Exception) {
             null
         }
+    }
+
+    // chore.icon is the Lucide PascalCase name (e.g. "AlarmClock"); resolve it to
+    // ic_lucide_alarm_clock using the SAME transform the generator used, so the
+    // names always line up. 0 when the chore has no icon or it's missing.
+    private fun resolveIcon(context: Context, pascal: String?): Int {
+        if (pascal.isNullOrEmpty()) return 0
+        return context.resources.getIdentifier(lucideResName(pascal), "drawable", context.packageName)
+    }
+
+    private fun lucideResName(pascal: String): String {
+        val sb = StringBuilder("ic_lucide_")
+        for (i in pascal.indices) {
+            val ch = pascal[i]
+            if (ch in 'A'..'Z' && i > 0) sb.append('_')
+            sb.append(ch.lowercaseChar())
+        }
+        return sb.toString()
     }
 
     private fun elapsedLabel(chore: JSONObject): String {
@@ -205,13 +229,24 @@ class SingleChoreWidget : GlanceAppWidget() {
                     )
                 }
             } else {
-                Spacer(
-                    modifier = GlanceModifier
-                        .width(6.dp)
-                        .height(36.dp)
-                        .cornerRadius(3.dp)
-                        .background(ColorProvider(Color(chore.colorInt))),
-                )
+                // Mirror ChoreRow: the icon itself carries the recency color. Fall
+                // back to a colored bar when the chore has no icon.
+                if (chore.iconResId != 0) {
+                    Image(
+                        provider = ImageProvider(chore.iconResId),
+                        contentDescription = null,
+                        colorFilter = ColorFilter.tint(ColorProvider(Color(chore.colorInt))),
+                        modifier = GlanceModifier.size(22.dp),
+                    )
+                } else {
+                    Spacer(
+                        modifier = GlanceModifier
+                            .width(6.dp)
+                            .height(36.dp)
+                            .cornerRadius(3.dp)
+                            .background(ColorProvider(Color(chore.colorInt))),
+                    )
+                }
                 Spacer(modifier = GlanceModifier.width(10.dp))
                 Column(modifier = GlanceModifier.defaultWeight()) {
                     Text(
