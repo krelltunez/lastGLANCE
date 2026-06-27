@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { Capacitor } from '@capacitor/core'
 import { LocalNotifications } from '@capacitor/local-notifications'
 import type { PluginListenerHandle } from '@capacitor/core'
-import { syncReminders, handleNotificationTap } from '@/native/reminders'
+import { syncReminders, handleNotificationAction } from '@/native/reminders'
 
 // Keeps the native exact-alarm reminder set in sync with the chores, on the same
 // signals as the widget snapshot, and routes notification taps to the chore.
@@ -24,7 +24,7 @@ export function useReminders(): void {
 
     let tapHandle: PluginListenerHandle | undefined
     LocalNotifications.addListener('localNotificationActionPerformed', action => {
-      handleNotificationTap(action.notification.extra)
+      handleNotificationAction(action.actionId, action.notification.extra)
     }).then(handle => { tapHandle = handle })
 
     return () => {
