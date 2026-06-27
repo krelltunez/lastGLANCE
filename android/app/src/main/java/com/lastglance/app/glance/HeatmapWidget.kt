@@ -12,9 +12,11 @@ import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
 import androidx.glance.Image
 import androidx.glance.ImageProvider
+import androidx.glance.LocalSize
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
+import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.provideContent
@@ -49,11 +51,18 @@ private const val WEEKS = 26
 private const val DAYS = 7
 
 class HeatmapWidget : GlanceAppWidget() {
+    // Exact size mode so the content can react to the widget's real width — we
+    // drop the stat when it's resized narrow so the wordmark doesn't clip.
+    override val sizeMode = SizeMode.Exact
+
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val bitmap = renderHeatmap(context)
         val (overdue, soon) = readCounts(context)
         provideContent {
             GlanceTheme {
+                // At ~3 cells wide the wordmark + stat don't both fit; keep the
+                // wordmark and drop the stat below this width.
+                val showStat = LocalSize.current.width >= 280.dp
                 Column(
                     modifier = GlanceModifier
                         .fillMaxSize()
@@ -93,11 +102,13 @@ class HeatmapWidget : GlanceAppWidget() {
                                 fontSize = 24.sp,
                             ),
                         )
-                        Spacer(modifier = GlanceModifier.defaultWeight())
-                        Text(
-                            statText(context, overdue, soon),
-                            style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 18.sp),
-                        )
+                        if (showStat) {
+                            Spacer(modifier = GlanceModifier.defaultWeight())
+                            Text(
+                                statText(context, overdue, soon),
+                                style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 18.sp),
+                            )
+                        }
                     }
                 }
             }
