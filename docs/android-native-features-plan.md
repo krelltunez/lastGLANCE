@@ -11,15 +11,17 @@ Where lastGLANCE differs from dayGLANCE, it is called out explicitly.
 > - **Phase 0 + Phase 1 built** on branch `claude/wonderful-mccarthy-abm730`
 >   (PR #126). Web build + 58 tests green; **Android not yet compiled/device-tested.**
 > - **Phase 1** = exact-alarm overdue notifications via `@capacitor/local-notifications`
->   (Path A). Plugin handles reboot re-registration; we added `SCHEDULE_EXACT_ALARM`
->   + a lazy one-time exact-alarm prompt.
-> - **Next action is yours:** on-device smoke test of both (widget refresh; kill the
->   app, advance a chore past cadence, confirm the notification fires — test Doze via
->   `adb shell dumpsys deviceidle force-idle`).
-> - **Still open:** RemoteViews (as built) vs Glance for widgets (Phase 0). Next code
->   phase is **Phase 2** (action widgets + optimistic tap-to-complete).
+>   (Path A), **+ notification actions** (Mark done; Send to dayGLANCE when intents
+>   are configured) **+ branded contribution-grid notification icon**. Device-tested
+>   through step 6 (closed-app + Doze delivery) and the cold-start tap fix.
+> - **Phase 2 is now starting** (action widgets + optimistic tap-to-complete).
+> - **Gating decision before Phase 2 native UI:** RemoteViews (as built in Phase 0)
+>   vs Glance for the interactive widgets.
 > - **Settled:** Path A (B backup); "clearly same family"; no battery-opt prompt;
 >   defer the WorkManager re-arm backstop until testing proves OEM killers clear alarms.
+> - **Carry-over to Phase 2:** silent "Mark done" (the official plugin opens the app
+>   for every notification action; truly background completion needs native work —
+>   the same optimistic-native + queue path Phase 2 builds for widgets).
 
 ---
 
@@ -219,6 +221,20 @@ schedule. Files: `src/native/reminders.ts`, `src/hooks/useReminders.ts`,
 `src/utils/seasonal.ts` (extracted), plus guards in `useNotifications.ts`.
 Known v1 gaps to revisit: a reminder whose trigger falls outside the seasonal
 window still schedules; already-overdue chores get no closed-app nudge.
+
+Follow-ups landed after #126 (PRs #146/#148):
+- **Permission gate fix** — the "Notify when overdue" toggle now checks the native
+  Local Notifications permission, not the WebView Notification API (which is
+  unavailable in the Capacitor WebView). Copy simplified to "enable in settings".
+- **Cold-start tap routing** — notification taps survive a killed-app launch via a
+  durable pending-open request (`src/native/pendingOpenChore.ts`) the Ribbon
+  retries as its data loads, replacing a one-shot event that raced the DB load.
+- **Notification actions** — "Mark done" (logs completion, reschedules) and "Send
+  to dayGLANCE" (shown only when intents are configured, via a second action type).
+  Caveat: the official plugin opens the app for every action; silent Mark done is a
+  Phase 2 carry-over.
+- **Branded notification icon** — monochrome contribution-grid (`ic_stat_notify`) +
+  brand-green accent, replacing the default info glyph.
 
 **Goal:** replace the WebView-timer notifications that silently don't fire when
 closed (`useNotifications.ts:106` is the exact "fire from JS loop" anti-pattern
