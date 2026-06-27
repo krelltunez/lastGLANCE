@@ -14,9 +14,10 @@ Where lastGLANCE differs from dayGLANCE, it is called out explicitly.
 >   (Path A), **+ notification actions** (Mark done; Send to dayGLANCE when intents
 >   are configured) **+ branded contribution-grid notification icon**. Device-tested
 >   through step 6 (closed-app + Doze delivery) and the cold-start tap fix.
-> - **Phase 2 is now starting** (action widgets + optimistic tap-to-complete).
-> - **Gating decision before Phase 2 native UI:** RemoteViews (as built in Phase 0)
->   vs Glance for the interactive widgets.
+> - **Phase 2 in progress** (action widgets + optimistic tap-to-complete). Widget
+>   tech **decided: Jetpack Glance**. Phase 2a built: tap-to-complete spine +
+>   single-chore Glance tile. **Glance toolchain is unverified locally — first
+>   on-device build may need version adjustment.**
 > - **Settled:** Path A (B backup); "clearly same family"; no battery-opt prompt;
 >   defer the WorkManager re-arm backstop until testing proves OEM killers clear alarms.
 > - **Carry-over to Phase 2:** silent "Mark done" (the official plugin opens the app
@@ -261,9 +262,31 @@ dayGLANCE's war story warns about).
 **Exit criteria:** kill the app, advance a chore past its cadence, alarm fires on
 time (test on Doze via `adb shell dumpsys deviceidle force-idle`).
 
-### Phase 2 — Action widgets + optimistic tap-to-complete
+### Phase 2 — Action widgets + optimistic tap-to-complete — 🚧 IN PROGRESS
 
-**Goal:** the marquee widgets, with completion that *feels instant* and is
+**Decision (resolved):** widgets use **Jetpack Glance** (Kotlin + Compose). This
+adds a toolchain to the Java project: Kotlin 2.2.0 + the Compose compiler plugin
++ `androidx.glance:glance-appwidget`/`glance-material3` 1.1.1 (`buildFeatures.compose`,
+`jvmTarget 21`). **Not compilable in the dev environment** — the first on-device
+build is where any version mismatch surfaces and may need a round of adjustment.
+
+**Built so far (Phase 2a):**
+- **Tap-to-complete spine** (tech-agnostic, verified): native completion queue in
+  `SharedDataStore`; `WidgetBridge.drainPendingCompletions`; web drain
+  `src/native/pendingCompletions.ts` + `usePendingCompletions` replays each via
+  `logCompletion(choreId, { syncId })` — idempotent on the native-minted sync_id.
+- **Single-chore Glance tile** (`glance/SingleChoreWidget.kt`): shows the
+  most-overdue chore (no config Activity needed yet) with a recency color bar and
+  one-tap **Done**. Done → optimistic snapshot update (instant, offline) + queue;
+  the app drains on next foreground. The bridge nudges the Glance widget to
+  recompose on every snapshot push.
+
+**Still to do:** the Soon/overdue **list** widget; a configuration Activity for a
+user-picked single-chore tile; the deep-link router so widget body-taps open the
+specific chore (today they just open the app). Possible later: migrate the Phase 0
+heatmap from RemoteViews to Glance for uniformity.
+
+**Original goal:** the marquee widgets, with completion that *feels instant* and is
 *safe*.
 
 - **Overdue/"Soon" list widget** (Glance `LazyColumn` from `snapshot.chores`

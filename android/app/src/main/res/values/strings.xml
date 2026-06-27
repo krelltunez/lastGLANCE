@@ -5,4 +5,7 @@
     <string name="package_name">com.lastglance.app</string>
     <string name="custom_url_scheme">com.lastglance.app</string>
     <string name="heatmap_widget_description">Your recent completion activity at a glance.</string>
+    <string name="single_chore_widget_description">The chore most in need of attention, with one-tap done.</string>
+    <string name="widget_done">Done</string>
+    <string name="widget_all_caught_up">All caught up</string>
 </resources>

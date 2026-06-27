@@ -1,4 +1,6 @@
 apply plugin: 'com.android.application'
+apply plugin: 'org.jetbrains.kotlin.android'
+apply plugin: 'org.jetbrains.kotlin.plugin.compose'
 
 // Derive versionName/versionCode from package.json so the native build tracks
 // the web app version (e.g. 1.8.4 -> versionCode 10804) instead of drifting.
@@ -29,6 +31,13 @@ if (keystorePropertiesFile.exists()) {
 android {
     namespace = "com.lastglance.app"
     compileSdk = rootProject.ext.compileSdkVersion
+    // Jetpack Glance widgets are Kotlin + Compose.
+    buildFeatures {
+        compose true
+    }
+    kotlinOptions {
+        jvmTarget = '21'
+    }
     defaultConfig {
         applicationId "com.lastglance.app"
         minSdkVersion rootProject.ext.minSdkVersion
@@ -83,6 +92,9 @@ dependencies {
     implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
     implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
     implementation project(':capacitor-android')
+    // Jetpack Glance home-screen widgets (Compose-based).
+    implementation "androidx.glance:glance-appwidget:$glanceVersion"
+    implementation "androidx.glance:glance-material3:$glanceVersion"
     testImplementation "junit:junit:$junitVersion"
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"

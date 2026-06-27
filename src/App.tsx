@@ -17,6 +17,7 @@ import { useUsers } from '@/multiuser/useUsers'
 import { useNotifications } from '@/hooks/useNotifications'
 import { useWidgetSnapshot } from '@/hooks/useWidgetSnapshot'
 import { useReminders } from '@/hooks/useReminders'
+import { usePendingCompletions } from '@/hooks/usePendingCompletions'
 import { useIntentsPoller } from '@/hooks/useIntentsPoller'
 import { useDbIntentsPoller } from '@/hooks/useDbIntentsPoller'
 import { useOutboxFlush } from '@/hooks/useOutboxFlush'
@@ -124,6 +125,7 @@ function AppInner() {
   useNotifications()
   useWidgetSnapshot()
   useReminders()
+  usePendingCompletions()
   const { refreshConfig } = useIntents()
   const usersCtx = useUsers()
   const reloadUsers = usersCtx.reload
