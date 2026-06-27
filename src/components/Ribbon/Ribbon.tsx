@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useLayoutEffect, useMemo } from 'react'
+import { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback } from 'react'
 import { Plus, GripVertical, Search, UserCircle, Clock, ChevronDown, ChevronUp } from 'lucide-react'
 import { useChores } from '@/hooks/useChores'
 import { reorderCategories } from '@/db/queries'
@@ -8,6 +8,7 @@ import { CategoryFormModal } from '@/components/CategoryFormModal/CategoryFormMo
 import { ChoreFormModal } from '@/components/ChoreFormModal/ChoreFormModal'
 import { SearchModal } from '@/components/SearchModal/SearchModal'
 import { useUsersContext } from '@/multiuser/UsersContext'
+import { peekPendingOpenChore, clearPendingOpenChore } from '@/native/pendingOpenChore'
 import { filterCategoryData } from '@/utils/choreFilter'
 import type { Category, ChoreWithLastCompletion } from '@/types'
 import type { CategoryWithChores } from '@/hooks/useChores'
@@ -144,6 +145,31 @@ export function Ribbon({ editMode, onLogged }: Props) {
     window.addEventListener('lg:open-chore', handleOpenChore)
     return () => window.removeEventListener('lg:open-chore', handleOpenChore)
   }, [])
+
+  // Open LogModal for a chore requested via a notification tap. The request is
+  // stashed (by sync_id) rather than fired as a one-shot event, because a tap
+  // from a killed app can arrive before localData has loaded. We retry on every
+  // data change and on the kick event, consuming the request once the chore is
+  // found so a cold start still lands on the right chore.
+  const consumePendingOpenChore = useCallback(() => {
+    const syncId = peekPendingOpenChore()
+    if (!syncId) return
+    const chore = localDataRef.current.flatMap(d => [
+      ...d.chores,
+      ...d.subcategories.flatMap(s => s.chores),
+    ]).find(c => c.sync_id === syncId)
+    if (chore) {
+      setSelectedChore(chore)
+      clearPendingOpenChore()
+    }
+  }, [])
+
+  useEffect(() => {
+    window.addEventListener('lg:open-chore-pending', consumePendingOpenChore)
+    return () => window.removeEventListener('lg:open-chore-pending', consumePendingOpenChore)
+  }, [consumePendingOpenChore])
+
+  useEffect(() => { consumePendingOpenChore() }, [localData, consumePendingOpenChore])
 
   // Stable refs so shortcut handlers don't need to re-register on state changes
   const activeCategoryIndexRef = useRef(0)

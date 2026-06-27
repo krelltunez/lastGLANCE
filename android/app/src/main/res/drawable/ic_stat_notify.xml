@@ -1,0 +1,20 @@
+<!-- Notification status-bar icon: a 3x3 contribution-grid, echoing lastGLANCE's
+     heatmap brand motif. Status-bar icons are drawn as a flat silhouette (the
+     system tints them), so this is a single white path of nine rounded cells. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M2.7,1.5 h3.1 a1.2,1.2 0 0 1 1.2,1.2 v3.1 a1.2,1.2 0 0 1 -1.2,1.2 h-3.1 a1.2,1.2 0 0 1 -1.2,-1.2 v-3.1 a1.2,1.2 0 0 1 1.2,-1.2 z
+                          M10.45,1.5 h3.1 a1.2,1.2 0 0 1 1.2,1.2 v3.1 a1.2,1.2 0 0 1 -1.2,1.2 h-3.1 a1.2,1.2 0 0 1 -1.2,-1.2 v-3.1 a1.2,1.2 0 0 1 1.2,-1.2 z
+                          M18.2,1.5 h3.1 a1.2,1.2 0 0 1 1.2,1.2 v3.1 a1.2,1.2 0 0 1 -1.2,1.2 h-3.1 a1.2,1.2 0 0 1 -1.2,-1.2 v-3.1 a1.2,1.2 0 0 1 1.2,-1.2 z
+                          M2.7,9.25 h3.1 a1.2,1.2 0 0 1 1.2,1.2 v3.1 a1.2,1.2 0 0 1 -1.2,1.2 h-3.1 a1.2,1.2 0 0 1 -1.2,-1.2 v-3.1 a1.2,1.2 0 0 1 1.2,-1.2 z
+                          M10.45,9.25 h3.1 a1.2,1.2 0 0 1 1.2,1.2 v3.1 a1.2,1.2 0 0 1 -1.2,1.2 h-3.1 a1.2,1.2 0 0 1 -1.2,-1.2 v-3.1 a1.2,1.2 0 0 1 1.2,-1.2 z
+                          M18.2,9.25 h3.1 a1.2,1.2 0 0 1 1.2,1.2 v3.1 a1.2,1.2 0 0 1 -1.2,1.2 h-3.1 a1.2,1.2 0 0 1 -1.2,-1.2 v-3.1 a1.2,1.2 0 0 1 1.2,-1.2 z
+                          M2.7,17.0 h3.1 a1.2,1.2 0 0 1 1.2,1.2 v3.1 a1.2,1.2 0 0 1 -1.2,1.2 h-3.1 a1.2,1.2 0 0 1 -1.2,-1.2 v-3.1 a1.2,1.2 0 0 1 1.2,-1.2 z
+                          M10.45,17.0 h3.1 a1.2,1.2 0 0 1 1.2,1.2 v3.1 a1.2,1.2 0 0 1 -1.2,1.2 h-3.1 a1.2,1.2 0 0 1 -1.2,-1.2 v-3.1 a1.2,1.2 0 0 1 1.2,-1.2 z
+                          M18.2,17.0 h3.1 a1.2,1.2 0 0 1 1.2,1.2 v3.1 a1.2,1.2 0 0 1 -1.2,1.2 h-3.1 a1.2,1.2 0 0 1 -1.2,-1.2 v-3.1 a1.2,1.2 0 0 1 1.2,-1.2 z" />
+</vector>
