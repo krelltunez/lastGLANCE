@@ -22,6 +22,14 @@ const config: CapacitorConfig = {
       style: 'DARK',
       overlaysWebView: true,
     },
+    // Notification status-bar icon + accent. smallIcon points at the monochrome
+    // contribution-grid drawable (res/drawable/ic_stat_notify); without it the
+    // plugin falls back to a generic info glyph. iconColor tints the icon/accent
+    // with the brand green.
+    LocalNotifications: {
+      smallIcon: 'ic_stat_notify',
+      iconColor: '#22c55e',
+    },
   },
 }
 
