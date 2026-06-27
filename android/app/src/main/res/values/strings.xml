@@ -10,4 +10,5 @@
     <string name="soon_list_widget_title">Soon</string>
     <string name="widget_done">Done</string>
     <string name="widget_all_caught_up">All caught up</string>
+    <string name="widget_config_auto">Most overdue (automatic)</string>
 </resources>

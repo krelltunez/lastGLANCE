@@ -9,4 +9,5 @@
     android:widgetCategory="home_screen"
     android:initialLayout="@layout/glance_default_loading_layout"
     android:previewImage="@mipmap/ic_launcher"
+    android:configure="com.lastglance.app.glance.SingleChoreConfigActivity"
     android:description="@string/single_chore_widget_description" />

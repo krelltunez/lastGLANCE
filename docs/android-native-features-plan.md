@@ -292,9 +292,16 @@ Kotlin 2.2.0 + Compose plugin + Glance 1.1.1 (`buildFeatures.compose`, `jvmTarge
   keeps each row's `PendingIntent` distinct (filterEquals ignores extras). Wires
   the single-chore tile body, every Soon-list row, and the heatmap "soon" tap.
 
-**Still to do:** a configuration Activity for a user-picked single-chore tile.
-Possible later: migrate the Phase 0 heatmap from RemoteViews to Glance for
-uniformity.
+**Built, awaiting device test:**
+- **Config Activity** (`glance/SingleChoreConfigActivity.kt`): shown when a
+  single-chore tile is placed — a plain ListView (no Compose-UI deps) to pick the
+  chore (or "automatic" = most overdue), keyed by appWidgetId in `SharedDataStore`.
+  `provideGlance` reads the per-widget choice; `pickBySyncId` resolves it.
+
+**Phase 2 complete** (pending on-device verification of the config flow). Possible
+later: migrate the Phase 0 heatmap from RemoteViews to Glance for uniformity; make
+silent "Mark done" for notifications (the Phase 1 carry-over) using this same
+native completion path.
 
 **Original goal:** the marquee widgets, with completion that *feels instant* and is
 *safe*.

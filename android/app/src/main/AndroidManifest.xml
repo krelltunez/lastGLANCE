@@ -39,6 +39,16 @@
                 android:resource="@xml/heatmap_widget_info" />
         </receiver>
 
+        <activity
+            android:name=".glance.SingleChoreConfigActivity"
+            android:exported="true"
+            android:label="@string/single_chore_widget_description"
+            android:theme="@style/AppTheme.NoActionBar">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
         <receiver
             android:name=".glance.SingleChoreWidgetReceiver"
             android:exported="false">
