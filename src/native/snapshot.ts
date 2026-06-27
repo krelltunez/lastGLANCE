@@ -1,5 +1,7 @@
 import { getCategories, getChoresForCategory, getAllCompletionCounts } from '@/db/queries'
 import { getFillRatio, getCadenceColor, needsAttention } from '@/utils/cadence'
+import { getMeUserSyncId, getMultiUserEnabled } from '@/multiuser/settings'
+import { ownedByMe } from '@/utils/choreFilter'
 import { pushWidgetSnapshot } from './widgetBridge'
 import dayjs from 'dayjs'
 
@@ -42,12 +44,26 @@ export async function buildSnapshot(): Promise<WidgetSnapshot> {
   const choresByCat = await Promise.all(categories.map(c => getChoresForCategory(c.id)))
   const catName = new Map(categories.map(c => [c.id, c.name]))
 
+  // Mirror the in-app "Mine" semantics (and useNotifications): when multi-user is
+  // on and a "Me" is set, the widgets show only chores owned by me — unassigned
+  // or assigned to me, and not inside a category assigned to someone else.
+  const meId = getMeUserSyncId()
+  const filterByMe = getMultiUserEnabled() && !!meId
+  const categoryById = new Map(categories.map(c => [c.id, c]))
+
   const chores: SnapshotChore[] = []
   let overdue = 0
   let soon = 0
 
   for (const list of choresByCat) {
     for (const ch of list) {
+      if (filterByMe) {
+        const cat = categoryById.get(ch.category_id)
+        if (!ownedByMe(cat?.assigned_user_sync_ids ?? [], meId!) ||
+            !ownedByMe(ch.assigned_user_sync_ids ?? [], meId!)) {
+          continue
+        }
+      }
       const state = choreState(ch.target_cadence_days, ch.elapsed_days)
       if (state === 'overdue') overdue++
       else if (state === 'soon') soon++
