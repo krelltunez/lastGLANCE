@@ -345,10 +345,18 @@ sync round-trip.
 ### Phase 3 — Notifications actions, shortcuts, (optional) background sync
 
 - **Actionable notifications:** ✅ DONE in Phase 1 (Mark done / Send to dayGLANCE).
-- **App shortcuts** (`res/xml/shortcuts.xml`): "Soon", "Log a chore" → navigate
-  intents. **The only remaining Phase 3 item.** Make the shortcut targets the
-  shared `lastglance://` deep links (routed through the existing router) so the
-  iOS equivalent later is just the native declaration.
+- **App shortcuts:** ✅ DONE. Static (`res/xml/shortcuts.xml`): **Soon**, **Search**,
+  **Add chore**, each launching MainActivity with a shared `lastglance://` deep
+  link (plus an `lglink` extra fallback) routed through the existing router — two
+  new router targets (`action:search` → `lg:open-search`, `action:add` →
+  `lg:new-chore`) handled in `Ribbon`. Dynamic: **top-overdue chores**
+  (`WidgetShortcuts.java`) pushed from the snapshot on every update (icons tinted
+  to recency color; respects the "Me" filter for free), deep-linking to each
+  chore's log modal. Note: launchers cap the *visible* count (~4–5), so the
+  static + dynamic ranks may want tuning after on-device use.
+- **Add-chore widget:** ✅ DONE. A small Glance action tile (`AddChoreWidget.kt`)
+  that opens the new-chore form via the same `lastglance://action/add` link — no
+  snapshot needed.
 - **Background CRDT sync (stretch):** the only feature needing a background data
   runtime. Forces the headless-JS-vs-native-mirror decision. Defer until there's
   real demand; current "sync on open" is unchanged behavior.

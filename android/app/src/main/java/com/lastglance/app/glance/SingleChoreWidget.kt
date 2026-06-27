@@ -73,6 +73,13 @@ internal fun openSoonIntent(context: Context): Intent =
         .setData(Uri.parse("lastglance://filter/soon"))
         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
 
+// Opens the app straight into the new-chore form (Add-chore widget / shortcut).
+internal fun openAddIntent(context: Context): Intent =
+    Intent(context, MainActivity::class.java)
+        .setAction(Intent.ACTION_VIEW)
+        .setData(Uri.parse("lastglance://action/add"))
+        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+
 internal data class ChoreData(
     val syncId: String,
     val name: String,

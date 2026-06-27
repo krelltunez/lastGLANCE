@@ -33,6 +33,9 @@ public class WidgetBridgePlugin extends Plugin {
         refreshGlanceWidget(context, HeatmapWidgetReceiver.class);
         refreshGlanceWidget(context, SingleChoreWidgetReceiver.class);
         refreshGlanceWidget(context, SoonListWidgetReceiver.class);
+        // The Add-chore widget is a static action surface — no snapshot refresh
+        // needed. Dynamic "top overdue" launcher shortcuts do track the snapshot.
+        WidgetShortcuts.refresh(context, json);
         call.resolve();
     }
 
