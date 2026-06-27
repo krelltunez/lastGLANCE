@@ -22,22 +22,34 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
-// Pushes "top overdue chores" as dynamic launcher shortcuts from the same
-// snapshot the widgets read. Each shortcut deep-links to that chore's log modal
-// via lastglance://chore/<syncId>, mirroring a widget tap. Refreshed whenever the
-// web app updates the snapshot. The "Me" filter is respected for free — the
-// snapshot is already filtered upstream (see src/native/snapshot.ts).
+// Builds ALL app (long-press) shortcuts as DYNAMIC shortcuts, so their order is
+// fully under our control. A launcher groups/sorts static (manifest) and dynamic
+// shortcuts separately, so a mixed priority — fixed entries interleaved with
+// data-driven ones — is only deterministic when every entry is dynamic and ranked.
+// Rebuilt from the snapshot on every update (see WidgetBridgePlugin).
+//
+// Priority (rank 0 = highest, shown first):
+//   0      Add chore        -> lastglance://action/add
+//   1      Search           -> lastglance://action/search
+//   2..N   top overdue      -> lastglance://chore/<syncId>  (icon tinted to recency)
+//   last   Soon             -> lastglance://filter/soon
+//
+// Trimmed to getMaxShortcutCountPerActivity() when the device allows fewer; the
+// list is in priority order, so trimming drops the lowest-priority tail first
+// (Soon, then the least-overdue chores) — matching intent.
 final class WidgetShortcuts {
-    private static final int MAX = 3;
+    private static final int MAX_OVERDUE = 3;
 
     static void refresh(Context context, String json) {
         try {
-            List<ShortcutInfoCompat> shortcuts = build(context, json);
-            // Replace the whole dynamic set so stale chores drop off.
-            ShortcutManagerCompat.removeAllDynamicShortcuts(context);
-            if (!shortcuts.isEmpty()) {
-                ShortcutManagerCompat.addDynamicShortcuts(context, shortcuts);
+            List<ShortcutInfoCompat> list = build(context, json);
+            int max = ShortcutManagerCompat.getMaxShortcutCountPerActivity(context);
+            if (max > 0 && list.size() > max) {
+                // Keep the highest-priority prefix; ranks stay contiguous (0..max-1).
+                list = new ArrayList<>(list.subList(0, max));
             }
+            ShortcutManagerCompat.removeAllDynamicShortcuts(context);
+            if (!list.isEmpty()) ShortcutManagerCompat.addDynamicShortcuts(context, list);
         } catch (Exception ignored) {
             // Best-effort; shortcuts are a convenience, never critical.
         }
@@ -45,47 +57,78 @@ final class WidgetShortcuts {
 
     private static List<ShortcutInfoCompat> build(Context context, String json) throws Exception {
         List<ShortcutInfoCompat> out = new ArrayList<>();
+        int[] rank = {0};
+
+        // Fixed, top of the list (always present, even with no chores).
+        out.add(fixed(context, "add",
+                context.getString(R.string.shortcut_add_short),
+                context.getString(R.string.shortcut_add_long),
+                "lastglance://action/add", R.drawable.ic_shortcut_add, rank));
+        out.add(fixed(context, "search",
+                context.getString(R.string.shortcut_search_short),
+                context.getString(R.string.shortcut_search_long),
+                "lastglance://action/search", R.drawable.ic_shortcut_search, rank));
+
+        // Data-driven middle: top overdue/soon chores, most-overdue first.
         JSONArray chores = new JSONObject(json).optJSONArray("chores");
-        if (chores == null) return out;
-
-        // Soon/overdue chores, most-overdue (highest ratio) first.
-        List<JSONObject> ranked = new ArrayList<>();
-        for (int i = 0; i < chores.length(); i++) {
-            JSONObject ch = chores.getJSONObject(i);
-            String state = ch.optString("state");
-            if ("soon".equals(state) || "overdue".equals(state)) ranked.add(ch);
-        }
-        Collections.sort(ranked, new Comparator<JSONObject>() {
-            @Override public int compare(JSONObject a, JSONObject b) {
-                return Double.compare(b.optDouble("ratio", 0), a.optDouble("ratio", 0));
+        if (chores != null) {
+            List<JSONObject> ranked = new ArrayList<>();
+            for (int i = 0; i < chores.length(); i++) {
+                JSONObject ch = chores.getJSONObject(i);
+                String state = ch.optString("state");
+                if ("soon".equals(state) || "overdue".equals(state)) ranked.add(ch);
             }
-        });
-
-        int rank = 0;
-        for (JSONObject ch : ranked) {
-            if (rank >= MAX) break;
-            String syncId = ch.optString("syncId");
-            String name = ch.optString("name");
-            if (syncId.isEmpty() || name.isEmpty()) continue;
-            Intent intent = new Intent(context, MainActivity.class)
-                    .setAction(Intent.ACTION_VIEW)
-                    .setData(Uri.parse("lastglance://chore/" + syncId));
-            ShortcutInfoCompat.Builder b = new ShortcutInfoCompat.Builder(context, "chore_" + syncId)
-                    .setShortLabel(name)
-                    .setLongLabel(name)
-                    .setRank(rank)
-                    .setIntent(intent);
-            IconCompat icon = choreIcon(context, ch);
-            if (icon != null) b.setIcon(icon);
-            out.add(b.build());
-            rank++;
+            Collections.sort(ranked, new Comparator<JSONObject>() {
+                @Override public int compare(JSONObject a, JSONObject b) {
+                    return Double.compare(b.optDouble("ratio", 0), a.optDouble("ratio", 0));
+                }
+            });
+            int count = 0;
+            for (JSONObject ch : ranked) {
+                if (count >= MAX_OVERDUE) break;
+                String syncId = ch.optString("syncId");
+                String name = ch.optString("name");
+                if (syncId.isEmpty() || name.isEmpty()) continue;
+                ShortcutInfoCompat.Builder b = new ShortcutInfoCompat.Builder(context, "chore_" + syncId)
+                        .setShortLabel(name)
+                        .setLongLabel(name)
+                        .setRank(rank[0]++)
+                        .setIntent(viewIntent(context, "lastglance://chore/" + syncId));
+                IconCompat icon = choreIcon(context, ch);
+                if (icon != null) b.setIcon(icon);
+                out.add(b.build());
+                count++;
+            }
         }
+
+        // Fixed, bottom (lowest priority).
+        out.add(fixed(context, "soon",
+                context.getString(R.string.shortcut_soon_short),
+                context.getString(R.string.shortcut_soon_long),
+                "lastglance://filter/soon", R.drawable.ic_shortcut_soon, rank));
+
         return out;
     }
 
+    private static ShortcutInfoCompat fixed(Context context, String id, String shortLabel,
+                                            String longLabel, String uri, int iconRes, int[] rank) {
+        return new ShortcutInfoCompat.Builder(context, id)
+                .setShortLabel(shortLabel)
+                .setLongLabel(longLabel)
+                .setRank(rank[0]++)
+                .setIcon(IconCompat.createWithResource(context, iconRes))
+                .setIntent(viewIntent(context, uri))
+                .build();
+    }
+
+    private static Intent viewIntent(Context context, String uri) {
+        return new Intent(context, MainActivity.class)
+                .setAction(Intent.ACTION_VIEW)
+                .setData(Uri.parse(uri));
+    }
+
     // The chore's Lucide icon, tinted to its recency color (like the widgets),
-    // rendered to a bitmap so the launcher shows the color. Null → launcher uses
-    // the app's default badge.
+    // rendered to a bitmap so the launcher shows the color. Null → default badge.
     private static IconCompat choreIcon(Context context, JSONObject ch) {
         try {
             String pascal = ch.optString("icon", null);
