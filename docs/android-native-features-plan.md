@@ -11,15 +11,18 @@ Where lastGLANCE differs from dayGLANCE, it is called out explicitly.
 > - **Phase 0 + Phase 1 built** on branch `claude/wonderful-mccarthy-abm730`
 >   (PR #126). Web build + 58 tests green; **Android not yet compiled/device-tested.**
 > - **Phase 1** = exact-alarm overdue notifications via `@capacitor/local-notifications`
->   (Path A). Plugin handles reboot re-registration; we added `SCHEDULE_EXACT_ALARM`
->   + a lazy one-time exact-alarm prompt.
-> - **Next action is yours:** on-device smoke test of both (widget refresh; kill the
->   app, advance a chore past cadence, confirm the notification fires — test Doze via
->   `adb shell dumpsys deviceidle force-idle`).
-> - **Still open:** RemoteViews (as built) vs Glance for widgets (Phase 0). Next code
->   phase is **Phase 2** (action widgets + optimistic tap-to-complete).
+>   (Path A), **+ notification actions** (Mark done; Send to dayGLANCE when intents
+>   are configured) **+ branded contribution-grid notification icon**. Device-tested
+>   through step 6 (closed-app + Doze delivery) and the cold-start tap fix.
+> - **Phase 2 in progress** (action widgets + optimistic tap-to-complete). Widget
+>   tech **decided: Jetpack Glance**. Phase 2a built: tap-to-complete spine +
+>   single-chore Glance tile. **Glance toolchain is unverified locally — first
+>   on-device build may need version adjustment.**
 > - **Settled:** Path A (B backup); "clearly same family"; no battery-opt prompt;
 >   defer the WorkManager re-arm backstop until testing proves OEM killers clear alarms.
+> - **Carry-over to Phase 2:** silent "Mark done" (the official plugin opens the app
+>   for every notification action; truly background completion needs native work —
+>   the same optimistic-native + queue path Phase 2 builds for widgets).
 
 ---
 
@@ -220,6 +223,20 @@ schedule. Files: `src/native/reminders.ts`, `src/hooks/useReminders.ts`,
 Known v1 gaps to revisit: a reminder whose trigger falls outside the seasonal
 window still schedules; already-overdue chores get no closed-app nudge.
 
+Follow-ups landed after #126 (PRs #146/#148):
+- **Permission gate fix** — the "Notify when overdue" toggle now checks the native
+  Local Notifications permission, not the WebView Notification API (which is
+  unavailable in the Capacitor WebView). Copy simplified to "enable in settings".
+- **Cold-start tap routing** — notification taps survive a killed-app launch via a
+  durable pending-open request (`src/native/pendingOpenChore.ts`) the Ribbon
+  retries as its data loads, replacing a one-shot event that raced the DB load.
+- **Notification actions** — "Mark done" (logs completion, reschedules) and "Send
+  to dayGLANCE" (shown only when intents are configured, via a second action type).
+  Caveat: the official plugin opens the app for every action; silent Mark done is a
+  Phase 2 carry-over.
+- **Branded notification icon** — monochrome contribution-grid (`ic_stat_notify`) +
+  brand-green accent, replacing the default info glyph.
+
 **Goal:** replace the WebView-timer notifications that silently don't fire when
 closed (`useNotifications.ts:106` is the exact "fire from JS loop" anti-pattern
 dayGLANCE's war story warns about).
@@ -245,9 +262,31 @@ dayGLANCE's war story warns about).
 **Exit criteria:** kill the app, advance a chore past its cadence, alarm fires on
 time (test on Doze via `adb shell dumpsys deviceidle force-idle`).
 
-### Phase 2 — Action widgets + optimistic tap-to-complete
+### Phase 2 — Action widgets + optimistic tap-to-complete — 🚧 IN PROGRESS
 
-**Goal:** the marquee widgets, with completion that *feels instant* and is
+**Decision (resolved):** widgets use **Jetpack Glance** (Kotlin + Compose). This
+adds a toolchain to the Java project: Kotlin 2.2.0 + the Compose compiler plugin
++ `androidx.glance:glance-appwidget`/`glance-material3` 1.1.1 (`buildFeatures.compose`,
+`jvmTarget 21`). **Not compilable in the dev environment** — the first on-device
+build is where any version mismatch surfaces and may need a round of adjustment.
+
+**Built so far (Phase 2a):**
+- **Tap-to-complete spine** (tech-agnostic, verified): native completion queue in
+  `SharedDataStore`; `WidgetBridge.drainPendingCompletions`; web drain
+  `src/native/pendingCompletions.ts` + `usePendingCompletions` replays each via
+  `logCompletion(choreId, { syncId })` — idempotent on the native-minted sync_id.
+- **Single-chore Glance tile** (`glance/SingleChoreWidget.kt`): shows the
+  most-overdue chore (no config Activity needed yet) with a recency color bar and
+  one-tap **Done**. Done → optimistic snapshot update (instant, offline) + queue;
+  the app drains on next foreground. The bridge nudges the Glance widget to
+  recompose on every snapshot push.
+
+**Still to do:** the Soon/overdue **list** widget; a configuration Activity for a
+user-picked single-chore tile; the deep-link router so widget body-taps open the
+specific chore (today they just open the app). Possible later: migrate the Phase 0
+heatmap from RemoteViews to Glance for uniformity.
+
+**Original goal:** the marquee widgets, with completion that *feels instant* and is
 *safe*.
 
 - **Overdue/"Soon" list widget** (Glance `LazyColumn` from `snapshot.chores`

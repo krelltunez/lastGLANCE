@@ -7,6 +7,9 @@ import { Capacitor, registerPlugin } from '@capacitor/core'
 export interface WidgetBridgePlugin {
   // Persist the snapshot JSON and refresh any placed widgets.
   updateSnapshot(options: { json: string }): Promise<void>
+  // Return and clear the queue of completions logged from widgets (JSON array
+  // string). The web app drains this into the DB on foreground.
+  drainPendingCompletions(): Promise<{ completions: string }>
 }
 
 const WidgetBridge = registerPlugin<WidgetBridgePlugin>('WidgetBridge')
@@ -18,5 +21,22 @@ export async function pushWidgetSnapshot(json: string): Promise<void> {
   } catch {
     // Plugin unavailable or transient failure — widgets are a cosmetic extra,
     // so swallow rather than disrupt the app.
+  }
+}
+
+export interface PendingCompletion {
+  choreSyncId: string
+  syncId: string
+  completedAt: string
+}
+
+export async function drainPendingCompletions(): Promise<PendingCompletion[]> {
+  if (Capacitor.getPlatform() !== 'android') return []
+  try {
+    const res = await WidgetBridge.drainPendingCompletions()
+    const arr = JSON.parse(res?.completions ?? '[]')
+    return Array.isArray(arr) ? arr : []
+  } catch {
+    return []
   }
 }

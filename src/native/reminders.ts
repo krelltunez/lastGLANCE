@@ -6,6 +6,7 @@ import { db } from '@/db/client'
 import { setPendingOpenChore } from './pendingOpenChore'
 import { emitCreateIntent } from '@/intents/emitter'
 import { getIntentsConfig, isIntentsConfigured } from '@/intents/config'
+import { isDbIntentsEnabled } from '@/intents/dbConfig'
 import { ownedByMe } from '@/utils/choreFilter'
 import { isInSeasonalWindow } from '@/utils/seasonal'
 import { getMeUserSyncId } from '@/multiuser/settings'
@@ -160,7 +161,10 @@ export async function syncReminders(): Promise<void> {
     await ensureChannel()
     await ensureActionTypes()
 
-    const dgEnabled = isIntentsConfigured(getIntentsConfig())
+    // "Configured" means EITHER transport is enabled — WebDAV intents or the
+    // GLANCEvault DB transport — mirroring IntentsContext.isConfigured. Checking
+    // WebDAV alone hid the action on vault-only setups.
+    const dgEnabled = isIntentsConfigured(getIntentsConfig()) || isDbIntentsEnabled()
     const desired = await buildReminders(dgEnabled)
     if (desired.length > 0) await maybePromptExactAlarm()
 
@@ -214,7 +218,8 @@ export async function syncReminders(): Promise<void> {
 async function markChoreDone(choreSyncId: string): Promise<void> {
   const chore = await db.chores.where('sync_id').equals(choreSyncId).first()
   if (chore?.id == null) return
-  await logCompletion(chore.id)
+  // Attribute to the current "Me" user, matching in-app completion (ChoreRow).
+  await logCompletion(chore.id, { completedByUserSyncId: getMeUserSyncId() })
   // Refreshes the list/heatmap, repushes the widget snapshot, and re-runs
   // syncReminders — which reschedules this chore's next overdue alarm.
   window.dispatchEvent(new CustomEvent('lg:chore-logged'))
