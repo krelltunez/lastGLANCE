@@ -30,6 +30,7 @@
 
         <receiver
             android:name=".glance.HeatmapWidgetReceiver"
+            android:label="@string/widget_label_activity"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -51,6 +52,7 @@
 
         <receiver
             android:name=".glance.SingleChoreWidgetReceiver"
+            android:label="@string/widget_label_chore"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -62,6 +64,7 @@
 
         <receiver
             android:name=".glance.SoonListWidgetReceiver"
+            android:label="@string/widget_label_soon"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
