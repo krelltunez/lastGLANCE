@@ -18,6 +18,7 @@ import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.provideContent
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.sp
 import androidx.glance.background
 import androidx.glance.layout.Alignment
@@ -28,9 +29,11 @@ import androidx.glance.layout.Spacer
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.padding
+import androidx.glance.text.FontStyle
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
+import androidx.glance.unit.ColorProvider
 import com.lastglance.app.R
 import com.lastglance.app.SharedDataStore
 import org.json.JSONObject
@@ -60,28 +63,35 @@ class HeatmapWidget : GlanceAppWidget() {
                         .padding(12.dp)
                         .clickable(actionStartActivity(openSoonIntent(context))),
                 ) {
+                    // The grid takes all the space above the footer and centers
+                    // within it (no big void dumped at the bottom).
                     Image(
                         provider = ImageProvider(bitmap),
                         contentDescription = null,
-                        modifier = GlanceModifier.fillMaxWidth(),
+                        modifier = GlanceModifier.defaultWeight().fillMaxWidth(),
                         contentScale = ContentScale.Fit,
                     )
-                    // Fill any leftover height, then a footer: wordmark + a live stat.
-                    Spacer(modifier = GlanceModifier.defaultWeight())
+                    // Footer: the lastGLANCE wordmark (last + italic green GLANCE,
+                    // matching the app) and a live stat.
                     Row(
                         modifier = GlanceModifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
                             "last",
-                            style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 13.sp),
+                            style = TextStyle(
+                                color = GlanceTheme.colors.onSurface,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp,
+                            ),
                         )
                         Text(
                             "GLANCE",
                             style = TextStyle(
-                                color = GlanceTheme.colors.onSurface,
+                                color = ColorProvider(Color(0xFF3DDC84)),
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 13.sp,
+                                fontStyle = FontStyle.Italic,
+                                fontSize = 16.sp,
                             ),
                         )
                         Spacer(modifier = GlanceModifier.defaultWeight())
