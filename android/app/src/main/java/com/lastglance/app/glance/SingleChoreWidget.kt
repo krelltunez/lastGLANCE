@@ -19,6 +19,7 @@ import androidx.glance.appwidget.action.ActionCallback
 import androidx.glance.appwidget.action.actionRunCallback
 import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.provideContent
+import androidx.glance.appwidget.updateAll
 import androidx.glance.background
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Column
@@ -49,9 +50,9 @@ import java.util.UUID
 // snapshot and queues the completion for the app to replay into the DB on next
 // foreground (see SharedDataStore + drainWidgetCompletions on the web side).
 
-private val SYNC_ID_KEY = ActionParameters.Key<String>("choreSyncId")
+internal val SYNC_ID_KEY = ActionParameters.Key<String>("choreSyncId")
 
-private data class ChoreData(
+internal data class ChoreData(
     val syncId: String,
     val name: String,
     val elapsed: String,
@@ -59,7 +60,7 @@ private data class ChoreData(
     val iconResId: Int, // ic_lucide_* drawable, or 0 when the chore has no icon
 )
 
-private object ChoreSnapshot {
+internal object ChoreSnapshot {
     // The chore with the highest elapsed/target ratio (most overdue, or closest
     // to due). Null when nothing has a cadence + a completion yet.
     fun pickMostOverdue(context: Context): ChoreData? {
@@ -88,6 +89,35 @@ private object ChoreSnapshot {
             }
         } catch (e: Exception) {
             null
+        }
+    }
+
+    // Chores aged into the amber/red zone (state soon or overdue), most-overdue
+    // first, capped at `limit`. Powers the Soon list widget.
+    fun pickSoonList(context: Context, limit: Int): List<ChoreData> {
+        val raw = SharedDataStore.readSnapshot(context) ?: return emptyList()
+        return try {
+            val chores = JSONObject(raw).optJSONArray("chores") ?: return emptyList()
+            val rows = ArrayList<Pair<Double, ChoreData>>()
+            for (i in 0 until chores.length()) {
+                val ch = chores.getJSONObject(i)
+                val state = ch.optString("state")
+                if (state != "soon" && state != "overdue") continue
+                val ratio = if (ch.isNull("ratio")) 0.0 else ch.optDouble("ratio", 0.0)
+                rows.add(
+                    ratio to ChoreData(
+                        syncId = ch.optString("syncId"),
+                        name = ch.optString("name"),
+                        elapsed = elapsedLabel(ch),
+                        colorInt = parseColor(ch.optString("color", "#22c55e")),
+                        iconResId = resolveIcon(context, ch.optString("icon", null)),
+                    ),
+                )
+            }
+            rows.sortByDescending { it.first }
+            rows.take(limit).map { it.second }
+        } catch (e: Exception) {
+            emptyList()
         }
     }
 
@@ -189,7 +219,9 @@ class CompleteChoreCallback : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
         val syncId = parameters[SYNC_ID_KEY] ?: return
         CompletionStore.complete(context, syncId)
-        SingleChoreWidget().update(context, glanceId)
+        // Refresh every widget kind so the tile and the list both reflect it.
+        SingleChoreWidget().updateAll(context)
+        SoonListWidget().updateAll(context)
     }
 }
 

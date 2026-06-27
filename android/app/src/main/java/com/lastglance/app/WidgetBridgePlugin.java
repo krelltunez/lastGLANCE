@@ -12,6 +12,7 @@ import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 
 import com.lastglance.app.glance.SingleChoreWidgetReceiver;
+import com.lastglance.app.glance.SoonListWidgetReceiver;
 
 // Receives the denormalized snapshot from the web app and persists it for the
 // home-screen widgets to render, and hands back completions logged from widgets.
@@ -29,7 +30,8 @@ public class WidgetBridgePlugin extends Plugin {
         Context context = getContext();
         SharedDataStore.writeSnapshot(context, json);
         HeatmapWidgetProvider.refreshAll(context);
-        refreshGlanceWidget(context);
+        refreshGlanceWidget(context, SingleChoreWidgetReceiver.class);
+        refreshGlanceWidget(context, SoonListWidgetReceiver.class);
         call.resolve();
     }
 
@@ -43,12 +45,12 @@ public class WidgetBridgePlugin extends Plugin {
         call.resolve(ret);
     }
 
-    // Nudge the Glance widget to recompose from the freshly written snapshot.
-    private static void refreshGlanceWidget(Context context) {
-        ComponentName component = new ComponentName(context, SingleChoreWidgetReceiver.class);
+    // Nudge a Glance widget to recompose from the freshly written snapshot.
+    private static void refreshGlanceWidget(Context context, Class<?> receiver) {
+        ComponentName component = new ComponentName(context, receiver);
         int[] ids = AppWidgetManager.getInstance(context).getAppWidgetIds(component);
         if (ids == null || ids.length == 0) return;
-        Intent intent = new Intent(context, SingleChoreWidgetReceiver.class);
+        Intent intent = new Intent(context, receiver);
         intent.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
         intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids);
         context.sendBroadcast(intent);
