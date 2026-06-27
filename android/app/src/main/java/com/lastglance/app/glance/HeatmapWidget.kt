@@ -60,9 +60,10 @@ class HeatmapWidget : GlanceAppWidget() {
         val (overdue, soon) = readCounts(context)
         provideContent {
             GlanceTheme {
-                // At ~3 cells wide the wordmark + stat don't both fit; keep the
-                // wordmark and drop the stat below this width.
-                val showStat = LocalSize.current.width >= 280.dp
+                // Below ~4 cells wide the wordmark + stat don't both fit; keep the
+                // wordmark and drop the stat below this width (the 5x2 default keeps
+                // it). Tune the threshold here if the cut-off feels off on a grid.
+                val showStat = LocalSize.current.width >= 340.dp
                 Column(
                     modifier = GlanceModifier
                         .fillMaxSize()
