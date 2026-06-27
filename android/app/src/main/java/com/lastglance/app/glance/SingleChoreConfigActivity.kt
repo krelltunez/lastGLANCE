@@ -1,6 +1,5 @@
 package com.lastglance.app.glance
 
-import android.app.Activity
 import android.appwidget.AppWidgetManager
 import android.content.Context
 import android.content.Intent
@@ -11,6 +10,7 @@ import android.widget.ArrayAdapter
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ListView
+import androidx.appcompat.app.AppCompatActivity
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.state.updateAppWidgetState
@@ -29,7 +29,7 @@ internal val CHORE_PREF_KEY = stringPreferencesKey("chore")
 // it tracks (or "automatic" = most overdue), with a search box for large lists.
 // Plain Activity + ListView (no Compose-UI deps); shown as a dialog. Choices come
 // from the snapshot the web app pushes.
-class SingleChoreConfigActivity : Activity() {
+class SingleChoreConfigActivity : AppCompatActivity() {
 
     private var appWidgetId = AppWidgetManager.INVALID_APPWIDGET_ID
 
