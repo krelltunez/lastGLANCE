@@ -81,7 +81,7 @@ class HeatmapWidget : GlanceAppWidget() {
                             style = TextStyle(
                                 color = GlanceTheme.colors.onSurface,
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp,
+                                fontSize = 24.sp,
                             ),
                         )
                         Text(
@@ -90,13 +90,13 @@ class HeatmapWidget : GlanceAppWidget() {
                                 color = ColorProvider(androidx.compose.ui.graphics.Color(0xFF3DDC84)),
                                 fontWeight = FontWeight.Bold,
                                 fontStyle = FontStyle.Italic,
-                                fontSize = 16.sp,
+                                fontSize = 24.sp,
                             ),
                         )
                         Spacer(modifier = GlanceModifier.defaultWeight())
                         Text(
                             statText(context, overdue, soon),
-                            style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 12.sp),
+                            style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 18.sp),
                         )
                     }
                 }
