@@ -177,6 +177,31 @@ export function Ribbon({ editMode, onLogged }: Props) {
   const ribbonModalOpenRef = useRef(false)
   ribbonModalOpenRef.current = showSearch || selectedChore !== null || addingCategory || newChoreCategory !== null
 
+  // Launcher shortcuts / the Add widget: open Search or the new-chore form. New
+  // chore needs a category, which may not have loaded yet on a cold-start launch,
+  // so stash the request and open it once data arrives (mirrors pending-open).
+  const pendingNewChoreRef = useRef(false)
+  const openNewChore = useCallback(() => {
+    const cat = viewDataRef.current[activeCategoryIndexRef.current]?.category
+      ?? viewDataRef.current[0]?.category
+    if (cat) { setNewChoreCategory(cat); return true }
+    return false
+  }, [])
+  useEffect(() => {
+    function onOpenSearch() { setShowSearch(true) }
+    function onNewChore() { if (!openNewChore()) pendingNewChoreRef.current = true }
+    window.addEventListener('lg:open-search', onOpenSearch)
+    window.addEventListener('lg:new-chore', onNewChore)
+    return () => {
+      window.removeEventListener('lg:open-search', onOpenSearch)
+      window.removeEventListener('lg:new-chore', onNewChore)
+    }
+  }, [openNewChore])
+
+  useEffect(() => {
+    if (pendingNewChoreRef.current && openNewChore()) pendingNewChoreRef.current = false
+  }, [localData, openNewChore])
+
   // Keyboard shortcuts owned by Ribbon: search, category nav, new chore
   useEffect(() => {
     function onKey(e: KeyboardEvent) {

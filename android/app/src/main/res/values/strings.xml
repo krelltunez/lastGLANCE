@@ -16,4 +16,14 @@
     <string name="widget_label_activity">lastGLANCE Heatmap</string>
     <string name="widget_label_chore">lastGLANCE Chore</string>
     <string name="widget_label_soon">lastGLANCE Soon</string>
+    <string name="widget_label_add">lastGLANCE Add</string>
+    <string name="add_chore_widget_description">One tap to add a new chore.</string>
+    <string name="widget_add_chore">Add chore</string>
+    <!-- App shortcuts (long-press the launcher icon) -->
+    <string name="shortcut_soon_short">Soon</string>
+    <string name="shortcut_soon_long">What needs attention</string>
+    <string name="shortcut_search_short">Search</string>
+    <string name="shortcut_search_long">Search chores</string>
+    <string name="shortcut_add_short">Add chore</string>
+    <string name="shortcut_add_long">Add a new chore</string>
 </resources>
