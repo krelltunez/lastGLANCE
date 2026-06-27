@@ -229,8 +229,16 @@ class SingleChoreWidget : GlanceAppWidget() {
                     )
                 }
             } else {
-                // Mirror ChoreRow: the icon itself carries the recency color. Fall
-                // back to a colored bar when the chore has no icon.
+                // Recency color bar (always), then the chore's icon next to it,
+                // tinted to the same recency color like ChoreRow.
+                Spacer(
+                    modifier = GlanceModifier
+                        .width(6.dp)
+                        .height(36.dp)
+                        .cornerRadius(3.dp)
+                        .background(ColorProvider(Color(chore.colorInt))),
+                )
+                Spacer(modifier = GlanceModifier.width(10.dp))
                 if (chore.iconResId != 0) {
                     Image(
                         provider = ImageProvider(chore.iconResId),
@@ -238,16 +246,8 @@ class SingleChoreWidget : GlanceAppWidget() {
                         colorFilter = ColorFilter.tint(ColorProvider(Color(chore.colorInt))),
                         modifier = GlanceModifier.size(22.dp),
                     )
-                } else {
-                    Spacer(
-                        modifier = GlanceModifier
-                            .width(6.dp)
-                            .height(36.dp)
-                            .cornerRadius(3.dp)
-                            .background(ColorProvider(Color(chore.colorInt))),
-                    )
+                    Spacer(modifier = GlanceModifier.width(10.dp))
                 }
-                Spacer(modifier = GlanceModifier.width(10.dp))
                 Column(modifier = GlanceModifier.defaultWeight()) {
                     Text(
                         chore.name,
