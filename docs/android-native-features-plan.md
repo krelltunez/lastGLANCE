@@ -360,6 +360,14 @@ sync round-trip.
 - **Add-chore widget:** ✅ DONE. A small Glance action tile (`AddChoreWidget.kt`)
   that opens the new-chore form via the same `lastglance://action/add` link — no
   snapshot needed.
+- **Share target:** ✅ DONE. An `ACTION_SEND` (`text/plain`) intent-filter on
+  MainActivity makes lastGLANCE a share target; shared text/links are stashed
+  (`SharedDataStore.pending_shared_chore`, prefer `EXTRA_SUBJECT` title over the
+  raw URL) and consumed on foreground (`consumeSharedChore`) to open the new-chore
+  form **pre-filled** in the active category. Reuses the `lg:new-chore` handler
+  (now carrying an optional name) and the cold-start pending-retry. Name is the
+  only free-text chore field, so that's what gets seeded. iOS analog: a Share
+  Extension writing to the App Group, same web prefill.
 - **Background CRDT sync (stretch):** the only feature needing a background data
   runtime. Forces the headless-JS-vs-native-mirror decision. Defer until there's
   real demand; current "sync on open" is unchanged behavior.
