@@ -18,7 +18,6 @@ import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.provideContent
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.sp
 import androidx.glance.background
 import androidx.glance.layout.Alignment
@@ -88,7 +87,7 @@ class HeatmapWidget : GlanceAppWidget() {
                         Text(
                             "GLANCE",
                             style = TextStyle(
-                                color = ColorProvider(Color(0xFF3DDC84)),
+                                color = ColorProvider(androidx.compose.ui.graphics.Color(0xFF3DDC84)),
                                 fontWeight = FontWeight.Bold,
                                 fontStyle = FontStyle.Italic,
                                 fontSize = 16.sp,
