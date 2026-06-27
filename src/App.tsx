@@ -18,6 +18,7 @@ import { useNotifications } from '@/hooks/useNotifications'
 import { useWidgetSnapshot } from '@/hooks/useWidgetSnapshot'
 import { useReminders } from '@/hooks/useReminders'
 import { usePendingCompletions } from '@/hooks/usePendingCompletions'
+import { usePendingDeepLink } from '@/hooks/usePendingDeepLink'
 import { useIntentsPoller } from '@/hooks/useIntentsPoller'
 import { useDbIntentsPoller } from '@/hooks/useDbIntentsPoller'
 import { useOutboxFlush } from '@/hooks/useOutboxFlush'
@@ -126,6 +127,7 @@ function AppInner() {
   useWidgetSnapshot()
   useReminders()
   usePendingCompletions()
+  usePendingDeepLink()
   const { refreshConfig } = useIntents()
   const usersCtx = useUsers()
   const reloadUsers = usersCtx.reload
@@ -375,6 +377,14 @@ function AppInner() {
     window.addEventListener('lg:sync-applied', loadHeatmap)
     return () => window.removeEventListener('lg:sync-applied', loadHeatmap)
   }, [loadHeatmap])
+
+  // A widget "Soon" tap (heatmap, or the empty single-chore tile) switches on the
+  // attention filter once the app is foregrounded.
+  useEffect(() => {
+    function onFilterSoon() { setAttentionOnly(true) }
+    window.addEventListener('lg:widget-filter-soon', onFilterSoon)
+    return () => window.removeEventListener('lg:widget-filter-soon', onFilterSoon)
+  }, [setAttentionOnly])
 
   function toggleTheme() {
     setIsDark(d => !d)

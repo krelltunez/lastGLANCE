@@ -1,6 +1,8 @@
 package com.lastglance.app.glance
 
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -12,6 +14,7 @@ import androidx.glance.Image
 import androidx.glance.ImageProvider
 import androidx.glance.action.ActionParameters
 import androidx.glance.action.actionParametersOf
+import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
@@ -35,6 +38,7 @@ import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
+import com.lastglance.app.MainActivity
 import com.lastglance.app.R
 import com.lastglance.app.SharedDataStore
 import org.json.JSONObject
@@ -51,6 +55,21 @@ import java.util.UUID
 // foreground (see SharedDataStore + drainWidgetCompletions on the web side).
 
 internal val SYNC_ID_KEY = ActionParameters.Key<String>("choreSyncId")
+
+// Explicit intents that launch the app to a specific chore / the Soon view. The
+// unique data URI also keeps each widget element's PendingIntent distinct
+// (filterEquals ignores extras), so rows don't collide onto one target.
+internal fun openChoreIntent(context: Context, syncId: String): Intent =
+    Intent(context, MainActivity::class.java)
+        .setAction(Intent.ACTION_VIEW)
+        .setData(Uri.parse("lastglance://chore/$syncId"))
+        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+
+internal fun openSoonIntent(context: Context): Intent =
+    Intent(context, MainActivity::class.java)
+        .setAction(Intent.ACTION_VIEW)
+        .setData(Uri.parse("lastglance://filter/soon"))
+        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
 
 internal data class ChoreData(
     val syncId: String,
@@ -242,7 +261,13 @@ class SingleChoreWidget : GlanceAppWidget() {
                 .fillMaxSize()
                 .background(GlanceTheme.colors.surface)
                 .cornerRadius(16.dp)
-                .padding(12.dp),
+                .padding(12.dp)
+                .clickable(
+                    actionStartActivity(
+                        if (chore != null) openChoreIntent(context, chore.syncId)
+                        else openSoonIntent(context),
+                    ),
+                ),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (chore == null) {

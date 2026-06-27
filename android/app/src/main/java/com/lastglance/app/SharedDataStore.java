@@ -16,6 +16,9 @@ public final class SharedDataStore {
     // Completions logged from a widget tap, awaiting drain into the DB by the
     // web app on next foreground (a widget can't write IndexedDB itself).
     private static final String KEY_PENDING = "pending_completions";
+    // A widget body-tap target ("chore:<syncId>" or "filter:soon") captured by
+    // MainActivity, consumed by the web app on foreground.
+    private static final String KEY_DEEPLINK = "pending_deeplink";
 
     private SharedDataStore() {}
 
@@ -53,5 +56,15 @@ public final class SharedDataStore {
         String raw = prefs(context).getString(KEY_PENDING, "[]");
         prefs(context).edit().remove(KEY_PENDING).apply();
         return raw;
+    }
+
+    public static void writePendingDeepLink(Context context, String value) {
+        prefs(context).edit().putString(KEY_DEEPLINK, value).apply();
+    }
+
+    public static String readAndClearPendingDeepLink(Context context) {
+        String value = prefs(context).getString(KEY_DEEPLINK, null);
+        if (value != null) prefs(context).edit().remove(KEY_DEEPLINK).apply();
+        return value;
     }
 }
