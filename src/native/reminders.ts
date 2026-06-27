@@ -2,7 +2,7 @@ import { Capacitor } from '@capacitor/core'
 import { LocalNotifications } from '@capacitor/local-notifications'
 import type { PendingLocalNotificationSchema } from '@capacitor/local-notifications'
 import { getCategories, getChoresForCategory } from '@/db/queries'
-import { db } from '@/db/client'
+import { setPendingOpenChore } from './pendingOpenChore'
 import { ownedByMe } from '@/utils/choreFilter'
 import { isInSeasonalWindow } from '@/utils/seasonal'
 import { getMeUserSyncId } from '@/multiuser/settings'
@@ -169,14 +169,13 @@ export async function syncReminders(): Promise<void> {
   }
 }
 
-// Notification tap → focus the chore. Resolves the carried sync_id to a local
-// row id and reuses the existing lg:open-chore contract (Ribbon opens its log
-// modal). The tap launches the WebView, so the app is alive when this runs.
-export async function handleNotificationTap(extra: unknown): Promise<void> {
+// Notification tap → focus the chore. A tap from a killed app cold-starts the
+// WebView, and the event can replay before the chore list has loaded, so we
+// record a durable pending request (by sync_id) and kick the view to consume it.
+// The Ribbon retries consumption as its data loads, so ordering doesn't matter.
+export function handleNotificationTap(extra: unknown): void {
   const choreSyncId = (extra as { choreSyncId?: string } | null)?.choreSyncId
   if (!choreSyncId) return
-  const chore = await db.chores.where('sync_id').equals(choreSyncId).first()
-  if (chore?.id != null) {
-    window.dispatchEvent(new CustomEvent('lg:open-chore', { detail: { choreId: chore.id } }))
-  }
+  setPendingOpenChore(choreSyncId)
+  window.dispatchEvent(new Event('lg:open-chore-pending'))
 }
