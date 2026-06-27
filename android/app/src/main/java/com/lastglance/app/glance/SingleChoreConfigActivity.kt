@@ -41,7 +41,9 @@ class SingleChoreConfigActivity : AppCompatActivity() {
     private lateinit var adapter: ArrayAdapter<String>
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        val t0 = System.currentTimeMillis()
         super.onCreate(savedInstanceState)
+        android.util.Log.d("lgWidgetCfg", "onCreate (process+super) reached")
         setResult(RESULT_CANCELED) // backing out cancels placement
         setTitle(R.string.widget_config_title)
 
@@ -78,6 +80,7 @@ class SingleChoreConfigActivity : AppCompatActivity() {
             LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.MATCH_PARENT),
         )
         setContentView(root)
+        android.util.Log.d("lgWidgetCfg", "setContentView done +${System.currentTimeMillis() - t0}ms")
 
         search.addTextChangedListener(object : TextWatcher {
             override fun afterTextChanged(s: Editable?) { applyFilter(s?.toString().orEmpty()) }
@@ -93,7 +96,9 @@ class SingleChoreConfigActivity : AppCompatActivity() {
         // thread so the dialog appears immediately (just the automatic option),
         // then fill in the chores.
         MainScope().launch {
+            val ts = System.currentTimeMillis()
             val items = withContext(Dispatchers.IO) { readChores(this@SingleChoreConfigActivity) }
+            android.util.Log.d("lgWidgetCfg", "readChores done +${System.currentTimeMillis() - ts}ms (${items.size} chores)")
             all.clear()
             all.add(null to getString(R.string.widget_config_auto))
             for ((syncId, name) in items) all.add(syncId to name)
