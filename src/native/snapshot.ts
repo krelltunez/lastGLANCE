@@ -4,7 +4,8 @@ import { pushWidgetSnapshot } from './widgetBridge'
 import dayjs from 'dayjs'
 
 // How many days of completion history to ship to the heatmap widget.
-const HEATMAP_DAYS = 120
+// ~27 weeks, so the 26-week widget grid is fully covered (with week alignment).
+const HEATMAP_DAYS = 190
 
 export type ChoreState = 'fresh' | 'soon' | 'overdue' | 'none'
 
