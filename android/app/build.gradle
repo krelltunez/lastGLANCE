@@ -20,6 +20,8 @@ def derivedVersionCode = versionParts[0].toInteger() * 1000000 + versionParts[1]
 // current release's but below the NEXT release's derived code. Pick from that
 // band (e.g. between 1.12.0's 1120000 and 1.13.0's 1130000, use 1120001, ...):
 //   ./gradlew bundleRelease -PappVersionCode=1120001
+// Easier (computes the code for you, can't fat-finger it):
+//   npm run release:android -- --build 1     (see scripts/android-release.mjs)
 // Omit the property and the code derives from package.json exactly as before, so
 // real releases keep their clean derived numbering.
 def appVersionCode = (project.findProperty("appVersionCode") ?: derivedVersionCode).toString().toInteger()
