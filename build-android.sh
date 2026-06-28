@@ -6,19 +6,24 @@ set -e
 # builds a single APK (no play/github flavors).
 #
 # Usage:
-#   ./build-android.sh            debug APK + install on a connected device
-#   ./build-android.sh --release  signed release APK + .aab for the Play Store
-#                                 -> outputs/lastglance.apk, outputs/lastglance.aab
-#   ./build-android.sh --clean    full gradle clean + wipe dist/ first
-# Flags combine, e.g. ./build-android.sh --clean --release
+#   ./build-android.sh                     debug APK + install on a connected device
+#   ./build-android.sh --release           signed release APK + .aab for the Play Store
+#                                          -> outputs/lastglance.apk, outputs/lastglance.aab
+#   ./build-android.sh --release --build N  release build with a test versionCode
+#                                          (N = 1..99) for internal/closed-test uploads
+#   ./build-android.sh --clean             full gradle clean + wipe dist/ first
+# Flags combine, e.g. ./build-android.sh --clean --release --build 2
 #
-# One-off versionCode override (for pre-release / internal-test uploads), via the
-# APP_VERSION_CODE env var. Play requires each upload to have a higher versionCode
-# than any previous upload, so to push an internal build without consuming the
-# next release's number, pass a code in the band between the current and next
-# release (e.g. 10901 between 1.9.0's 10900 and 1.10.0's 11000):
-#   APP_VERSION_CODE=10901 ./build-android.sh --release
-# Unset, the versionCode derives from package.json as usual.
+# versionName always comes from package.json (e.g. 1.12.0). The versionCode
+# normally derives from it (android/app/build.gradle). Play requires each upload
+# to have a strictly higher versionCode than any previous upload, so for a
+# pre-release/internal build use --build N: it computes base + N (e.g. 1.12.0
+# build 2 -> 1120002), so you can't fat-finger a raw code. Keep incrementing N
+# per upload, then PROMOTE the bundle that passes to production (don't rebuild a
+# lower code for it).
+#
+# Escape hatch: APP_VERSION_CODE=<raw code> ./build-android.sh --release still
+# works if you ever need to set the code by hand. --build wins if both are given.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ANDROID_DIR="$SCRIPT_DIR/android"
@@ -27,13 +32,41 @@ OUT_DIR="$SCRIPT_DIR/outputs"
 # Flags
 FULL_CLEAN=false
 RELEASE=false
-for arg in "$@"; do
-  case "$arg" in
-    --clean)   FULL_CLEAN=true ;;
-    --release) RELEASE=true ;;
-    *) echo "Unknown flag: $arg (valid flags: --clean, --release)" && exit 1 ;;
+BUILD_NUM=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --clean)   FULL_CLEAN=true; shift ;;
+    --release) RELEASE=true; shift ;;
+    --build)
+      if [ $# -lt 2 ]; then echo "Error: --build needs a number, e.g. --build 3" >&2; exit 1; fi
+      BUILD_NUM="$2"; shift 2 ;;
+    --build=*) BUILD_NUM="${1#--build=}"; shift ;;
+    *) echo "Unknown flag: $1 (valid flags: --clean, --release, --build N)" >&2; exit 1 ;;
   esac
 done
+
+# --build N derives a pre-release versionCode (base + N) from package.json, so an
+# internal/closed-test upload gets a strictly higher code than the last without
+# hand-typing (and mistyping) a raw value. Sets APP_VERSION_CODE, which the
+# release build below passes through to Gradle.
+if [ -n "$BUILD_NUM" ]; then
+  if ! $RELEASE; then
+    echo "Error: --build N applies to release builds; add --release." >&2
+    exit 1
+  fi
+  if ! printf '%s' "$BUILD_NUM" | grep -Eq '^[0-9]+$' || [ "$BUILD_NUM" -lt 1 ] || [ "$BUILD_NUM" -gt 99 ]; then
+    echo "Error: --build N must be a whole number from 1 to 99." >&2
+    echo "       (Need more than 99 test builds? Bump the patch version: npm version patch.)" >&2
+    exit 1
+  fi
+  # Base versionCode must match android/app/build.gradle:
+  #   major*1000000 + minor*10000 + patch*100
+  VERSION="$(node -e 'console.log(require(process.argv[1]).version)' "$SCRIPT_DIR/package.json")"
+  IFS='.' read -r VMAJ VMIN VPAT <<< "$VERSION"
+  APP_VERSION_CODE=$(( VMAJ * 1000000 + VMIN * 10000 + VPAT * 100 + BUILD_NUM ))
+  export APP_VERSION_CODE
+  echo "==> Test build #$BUILD_NUM -> versionName $VERSION, versionCode $APP_VERSION_CODE"
+fi
 
 # ── Clean ──────────────────────────────────────────────────────────────────
 if $FULL_CLEAN; then
