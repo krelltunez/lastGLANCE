@@ -12,7 +12,6 @@
     "gen:icons": "node scripts/gen-lucide-drawables.mjs",
     "cap:sync": "npm run build && cap sync",
     "build:android": "npm run build && cap sync android",
-    "release:android": "node scripts/android-release.mjs",
     "build:ios": "npm run build && cap sync ios && node scripts/sync-ios-version.mjs",
     "sync:ios-version": "node scripts/sync-ios-version.mjs",
     "cap:android": "npm run cap:sync && cap open android",
