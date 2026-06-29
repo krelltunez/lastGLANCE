@@ -5,6 +5,7 @@ import type { SyncEngine, DbSyncEngine, SyncErrorCode } from '@glance-apps/sync'
 import { setupEncryptionKey, clearEncryptionKey, ensureSyncFolder, resetEnsuredFolder, CRYPTO_CONFIG, getRemoteBackupsEnabled, setRemoteBackupsEnabled, DEFAULT_SYNC_FOLDER, SYNC_FOLDER_KEY } from '@/sync/engine'
 import { syncErrorText } from '@/sync/syncErrorText'
 import { getVaultConfig, setVaultConfig } from '@/sync/vaultConfig'
+import { testVaultConnection } from '@/sync/testVaultConnection'
 import { cloudSyncProviders } from '@/utils/cloudSyncProviders'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
 import { useTranslation } from 'react-i18next'
@@ -29,6 +30,14 @@ interface Props {
 
 type TestStatus = 'idle' | 'testing' | 'ok' | 'fail'
 type SyncResult = 'idle' | 'ok' | 'error'
+
+// Messages for the vault "Test connection" failure outcomes. Hardcoded English
+// to match the rest of the GLANCEvault (beta) section, which is not localized.
+const VAULT_TEST_FAIL_TEXT: Record<'AUTH_FAILURE' | 'FORBIDDEN' | 'NETWORK_ERROR', string> = {
+  AUTH_FAILURE: 'Device token is incorrect.',
+  FORBIDDEN: 'Account ID not found or not permitted for this token.',
+  NETWORK_ERROR: 'Could not reach the vault at this URL.',
+}
 
 export function SyncSettingsModal({ engine, dbEngine, syncError, syncErrorCode, vaultSyncError, vaultSyncErrorCode, vaultSkipped, onClose }: Props) {
   const { t } = useTranslation()
@@ -72,6 +81,14 @@ export function SyncSettingsModal({ engine, dbEngine, syncError, syncErrorCode, 
   const [vaultUrl, setVaultUrl] = useState(() => initVault.current?.vaultUrl ?? '')
   const [vaultToken, setVaultToken] = useState(() => initVault.current?.vaultToken ?? '')
   const [vaultAccountId, setVaultAccountId] = useState(() => initVault.current?.accountId ?? '')
+
+  // Pre-save connection test for the vault credentials. 'ok' covers both good
+  // states (account initialized, or a fresh account with no salt yet); the
+  // message distinguishes them. Reset to idle whenever a field changes so a stale
+  // result can't outlive the credentials it verified.
+  const [vaultTestStatus, setVaultTestStatus] = useState<TestStatus>('idle')
+  const [vaultTestMsg, setVaultTestMsg] = useState('')
+  const vaultFieldsFilled = Boolean(vaultUrl.trim() && vaultToken.trim() && vaultAccountId.trim())
 
   const [syncing, setSyncing] = useState(false)
   const [syncResult, setSyncResult] = useState<SyncResult>('idle')
@@ -215,6 +232,34 @@ export function SyncSettingsModal({ engine, dbEngine, syncError, syncErrorCode, 
       setSyncResult('error')
     }
     setSyncing(false)
+  }
+
+  // Verify the entered vault credentials BEFORE they are saved/activated, using
+  // the same authenticated getSalt probe the intents key setup uses (native-safe
+  // via vaultFetchImpl). Mirrors the WebDAV "Test connection" UX, but the logic
+  // is the vault probe — it never runs engine.test() or saves anything.
+  async function handleVaultTest() {
+    if (!vaultFieldsFilled) return
+    setVaultTestStatus('testing')
+    setVaultTestMsg('')
+    const outcome = await testVaultConnection({
+      vaultUrl: vaultUrl.trim(),
+      vaultToken: vaultToken.trim(),
+      accountId: vaultAccountId.trim(),
+    })
+    if (outcome.ok) {
+      setVaultTestStatus('ok')
+      // A fresh account legitimately has no salt yet — this is success, not a
+      // failure; the salt is established on the first sync.
+      setVaultTestMsg(
+        outcome.salt
+          ? 'Connected.'
+          : 'Connected — this account will be initialized on first sync.',
+      )
+    } else {
+      setVaultTestStatus('fail')
+      setVaultTestMsg(VAULT_TEST_FAIL_TEXT[outcome.code])
+    }
   }
 
   async function handleVaultSyncNow() {
@@ -557,7 +602,7 @@ export function SyncSettingsModal({ engine, dbEngine, syncError, syncErrorCode, 
                   <input
                     type="text"
                     value={vaultUrl}
-                    onChange={e => setVaultUrl(e.target.value)}
+                    onChange={e => { setVaultUrl(e.target.value); setVaultTestStatus('idle'); setVaultTestMsg('') }}
                     placeholder="https://vault.glance-apps.com"
                     autoComplete="off"
                     className="w-full bg-slate-100 dark:bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
@@ -570,7 +615,7 @@ export function SyncSettingsModal({ engine, dbEngine, syncError, syncErrorCode, 
                   <input
                     type="password"
                     value={vaultToken}
-                    onChange={e => setVaultToken(e.target.value)}
+                    onChange={e => { setVaultToken(e.target.value); setVaultTestStatus('idle'); setVaultTestMsg('') }}
                     placeholder="Bearer token"
                     autoComplete="off"
                     className="w-full bg-slate-100 dark:bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
@@ -583,7 +628,7 @@ export function SyncSettingsModal({ engine, dbEngine, syncError, syncErrorCode, 
                   <input
                     type="text"
                     value={vaultAccountId}
-                    onChange={e => setVaultAccountId(e.target.value)}
+                    onChange={e => { setVaultAccountId(e.target.value); setVaultTestStatus('idle'); setVaultTestMsg('') }}
                     placeholder="Household account id"
                     autoComplete="off"
                     className="w-full bg-slate-100 dark:bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
@@ -592,6 +637,34 @@ export function SyncSettingsModal({ engine, dbEngine, syncError, syncErrorCode, 
                 <p className="text-xs text-slate-400 dark:text-slate-500">
                   Saved on close. The app reloads to apply vault changes. Uses your sync passphrase for encryption.
                 </p>
+
+                {/* Pre-save credential verification. Mirrors the WebDAV "Test
+                    connection" button, but runs the vault getSalt probe so bad
+                    credentials are caught here instead of failing at first sync. */}
+                <div className="space-y-2 pt-1">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <button
+                      onClick={handleVaultTest}
+                      disabled={vaultTestStatus === 'testing' || !vaultFieldsFilled}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-40 transition-colors"
+                    >
+                      {vaultTestStatus === 'testing' && <Loader size={12} className="animate-spin" />}
+                      {t('sync.testConnection')}
+                    </button>
+                    {vaultTestStatus === 'ok' && (
+                      <span className="flex items-center gap-1.5 text-xs text-green-500 dark:text-green-400">
+                        <CheckCircle size={13} />
+                        {vaultTestMsg}
+                      </span>
+                    )}
+                    {vaultTestStatus === 'fail' && (
+                      <span className="flex items-center gap-1.5 text-xs text-red-500 dark:text-red-400">
+                        <XCircle size={13} />
+                        {vaultTestMsg}
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
             )}
 
