@@ -22,6 +22,12 @@ public final class SharedDataStore {
     // Text shared into the app (ACTION_SEND) to seed a new chore's name, captured
     // by MainActivity and consumed by the web app on foreground.
     private static final String KEY_SHARED_CHORE = "pending_shared_chore";
+    // A single inbound Android/Tasker intent (app.lastglance.*), captured by the
+    // manifest IntentReceiver (broadcast) or MainActivity (Activity launch),
+    // drained by the web app via the IntentsBridge plugin. JSON: {action,payload}.
+    // Single-depth on purpose: each Activity intent is self-sufficient and a live
+    // broadcast wakes the WebView immediately, so bursts don't queue here.
+    private static final String KEY_PENDING_INTENT = "pending_intent";
 
     private SharedDataStore() {}
 
@@ -78,6 +84,18 @@ public final class SharedDataStore {
     public static String readAndClearPendingSharedChore(Context context) {
         String value = prefs(context).getString(KEY_SHARED_CHORE, null);
         if (value != null) prefs(context).edit().remove(KEY_SHARED_CHORE).apply();
+        return value;
+    }
+
+    // Store an inbound Android/Tasker intent as a JSON string {action, payload}.
+    public static void writePendingIntent(Context context, String json) {
+        prefs(context).edit().putString(KEY_PENDING_INTENT, json).apply();
+    }
+
+    // Read + clear the pending intent slot. Returns null when empty.
+    public static String readAndClearPendingIntent(Context context) {
+        String value = prefs(context).getString(KEY_PENDING_INTENT, null);
+        if (value != null) prefs(context).edit().remove(KEY_PENDING_INTENT).apply();
         return value;
     }
 }
