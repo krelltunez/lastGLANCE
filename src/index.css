@@ -46,3 +46,16 @@
     padding-top: max(0.5rem, env(safe-area-inset-top));
   }
 }
+
+/* Modal overlays cover the full screen; on mobile the panel is a bottom sheet
+   anchored to the bottom edge (items-end), where Android's transparent gesture
+   nav draws over its actions (issue #179). Pad the overlay's bottom by the
+   safe-area inset so the sheet is lifted clear of the nav bar — the overlay's
+   own backdrop still fills the screen behind the bar. Mobile only: at >=sm
+   (640px) the modal re-centers as a floating dialog and no longer touches the
+   edge, so the inset isn't needed there. */
+@media (max-width: 639.98px) {
+  .app-safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
