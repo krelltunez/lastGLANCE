@@ -45,6 +45,7 @@ import com.lastglance.app.R
 import com.lastglance.app.SharedDataStore
 import org.json.JSONObject
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
@@ -182,10 +183,42 @@ internal object ChoreSnapshot {
 
     private fun elapsedLabel(chore: JSONObject): String {
         if (chore.isNull("elapsedDays")) return "never"
+        // Prefer a calendar-day boundary off the real timestamp so a chore done
+        // "last night" reads "yesterday", not "today" — matching the app's
+        // formatElapsed(). elapsedDays alone is a duration (<24h reads "today"),
+        // which is why 10pm→8am wrongly showed "today".
+        val days = calendarDaysAgo(chore.optString("lastCompletedAt", ""))
+        if (days != null) {
+            return when {
+                days <= 0 -> "today"
+                days == 1 -> "yesterday"
+                else -> "${days}d ago"
+            }
+        }
+        // Fall back to the elapsed duration when the timestamp is missing.
         val d = chore.optDouble("elapsedDays", 0.0)
         if (d < 1) return "today"
-        val days = Math.round(d)
-        return "${days}d ago"
+        return "${Math.round(d)}d ago"
+    }
+
+    // Whole calendar days between the completion's local day and today's local
+    // day, mirroring the app's dayjs().startOf('day').diff(..., 'day'). Null if
+    // the timestamp is absent or unparseable.
+    private fun calendarDaysAgo(iso: String): Int? {
+        if (iso.isEmpty()) return null
+        val fmt = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
+        fmt.timeZone = TimeZone.getTimeZone("UTC")
+        val date = try { fmt.parse(iso) } catch (e: Exception) { null } ?: return null
+        val then = Calendar.getInstance().apply {
+            time = date
+            set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+        }
+        val now = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+        }
+        return Math.round((now.timeInMillis - then.timeInMillis) / 86_400_000.0).toInt()
     }
 
     private fun parseColor(hex: String): Int {
