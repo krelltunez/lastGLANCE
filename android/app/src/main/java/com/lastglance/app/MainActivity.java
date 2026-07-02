@@ -6,14 +6,23 @@ import android.os.Bundle;
 
 import com.getcapacitor.BridgeActivity;
 
+import com.lastglance.app.intents.IntentReceiver;
+import com.lastglance.app.intents.IntentsBridgePlugin;
+
+import org.json.JSONObject;
+
 public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         // Register app-local plugins before the bridge starts.
         registerPlugin(WidgetBridgePlugin.class);
+        registerPlugin(IntentsBridgePlugin.class);
         super.onCreate(savedInstanceState);
         captureWidgetDeepLink(getIntent());
         captureSharedText(getIntent());
+        // Cold start via a Tasker Activity intent: the web app drains the slot on
+        // mount, so just store it here (no wake needed — nothing is listening yet).
+        captureTaskerIntent(getIntent(), false);
     }
 
     @Override
@@ -21,6 +30,46 @@ public class MainActivity extends BridgeActivity {
         super.onNewIntent(intent);
         captureWidgetDeepLink(intent);
         captureSharedText(intent);
+        // Warm Activity intent (app already running): store it AND wake the WebView.
+        captureTaskerIntent(intent, true);
+    }
+
+    // Capture an Activity-target Tasker intent (app.lastglance.*). The manifest
+    // <receiver> handles the broadcast path (background/killed); this handles the
+    // Activity path a sender uses to foreground/cold-start the app. Stores the
+    // intent in the same {action, payload} shape IntentReceiver uses so the web
+    // drain is uniform. When `wake` is true, poke a running WebView via the same
+    // internal INTENT_RECEIVED signal the broadcast path uses.
+    private void captureTaskerIntent(Intent intent, boolean wake) {
+        if (intent == null) return;
+        String action = intent.getAction();
+        if (action == null || !action.startsWith("app.lastglance.")) return;
+        if (!action.equals("app.lastglance.CREATE")
+            && !action.equals("app.lastglance.COMPLETE")
+            && !action.equals("app.lastglance.OPEN")
+            && !action.equals("app.lastglance.QUERY")) {
+            return;
+        }
+
+        JSONObject payloadObj;
+        try {
+            String raw = intent.getStringExtra("payload");
+            payloadObj = (raw != null) ? new JSONObject(raw) : new JSONObject();
+        } catch (Exception e) {
+            payloadObj = new JSONObject();
+        }
+        try {
+            String pending = new JSONObject().put("action", action).put("payload", payloadObj).toString();
+            SharedDataStore.writePendingIntent(this, pending);
+        } catch (Exception e) {
+            return;
+        }
+
+        if (wake) {
+            Intent poke = new Intent(IntentReceiver.INTENT_RECEIVED);
+            poke.setPackage(getPackageName());
+            sendBroadcast(poke);
+        }
     }
 
     // A share from another app (ACTION_SEND, text/plain) seeds a new chore. Prefer

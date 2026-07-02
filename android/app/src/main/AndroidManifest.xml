@@ -24,7 +24,33 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="text/plain" />
             </intent-filter>
+            <!-- Tasker/automation Activity path: an Activity-target intent can
+                 launch/foreground the app and carry a payload (works on cold
+                 start; onCreate/onNewIntent store it). The broadcast <receiver>
+                 below handles the backgrounded/killed case. -->
+            <intent-filter>
+                <action android:name="app.lastglance.CREATE" />
+                <action android:name="app.lastglance.COMPLETE" />
+                <action android:name="app.lastglance.OPEN" />
+                <action android:name="app.lastglance.QUERY" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
         </activity>
+
+        <!-- Tasker/automation broadcast path: fires even when the app is
+             backgrounded or killed (manifest-declared, so Android instantiates
+             the receiver regardless of process state). Stored and drained by the
+             web app via the IntentsBridge plugin. -->
+        <receiver
+            android:name=".intents.IntentReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="app.lastglance.CREATE" />
+                <action android:name="app.lastglance.COMPLETE" />
+                <action android:name="app.lastglance.OPEN" />
+                <action android:name="app.lastglance.QUERY" />
+            </intent-filter>
+        </receiver>
 
         <provider
             android:name="androidx.core.content.FileProvider"

@@ -21,6 +21,7 @@ import { usePendingCompletions } from '@/hooks/usePendingCompletions'
 import { usePendingDeepLink } from '@/hooks/usePendingDeepLink'
 import { useIntentsPoller } from '@/hooks/useIntentsPoller'
 import { useDbIntentsPoller } from '@/hooks/useDbIntentsPoller'
+import { useAndroidIntentBridge } from '@/hooks/useAndroidIntentBridge'
 import { useOutboxFlush } from '@/hooks/useOutboxFlush'
 import { IntentsProvider, useIntents } from '@/intents/IntentsContext'
 import { getAllCompletionCounts } from '@/db/queries'
@@ -361,6 +362,9 @@ function AppInner() {
   // GLANCEvault DB intents transport — gated by isDbIntentsEnabled(); a no-op
   // unless the per-user opt-in is on. WebDAV intents above remain the default.
   useDbIntentsPoller(loadHeatmap)
+  // Android/Tasker intents transport — lets another Android app drive lastGLANCE
+  // via app.lastglance.* intents. No-op off native Android.
+  useAndroidIntentBridge(loadHeatmap)
   // OUTBOUND: drain the durable intents outbox on mount, on focus, and on the
   // poll cadence (enqueue also triggers a flush). Guarantees queued intents are
   // delivered/retried and never lost across restarts.
