@@ -24,6 +24,9 @@ import dayjs from 'dayjs'
 
 const CHANNEL_ID = 'overdue'
 const EXACT_PROMPTED_KEY = 'lg_exact_alarm_prompted'
+// Last app version we scheduled reminders under. See the force-reschedule note in
+// syncReminders for why a version change must re-bake every pending alarm.
+const BUILD_VERSION_KEY = 'lg_reminders_build_version'
 
 // Two action sets: "Mark done" alone, or with "Send to dayGLANCE" when cross-app
 // intents are configured. The choice is baked into each notification at schedule
@@ -168,6 +171,18 @@ export async function syncReminders(): Promise<void> {
     const desired = await buildReminders(dgEnabled)
     if (desired.length > 0) await maybePromptExactAlarm()
 
+    // Android bakes each scheduled notification — including its small-icon
+    // resource ID — at schedule time and re-posts that exact object when the
+    // alarm later fires. Resource IDs are reassigned on every rebuild, so an
+    // alarm scheduled by a previous build can fire under a new build with a stale
+    // icon ID that now resolves to a different drawable (the ~1.7k-icon Lucide
+    // set bundled for the widgets makes such a collision likely). On the first
+    // sync after a version change, force-reschedule every reminder so its
+    // notification is re-baked against the current resource IDs. Scheduling with
+    // an existing id replaces the alarm in place, so no cancel gap is introduced.
+    const buildVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'dev'
+    const force = localStorage.getItem(BUILD_VERSION_KEY) !== buildVersion
+
     const desiredById = new Map(desired.map(r => [r.id, r]))
     const pending: PendingLocalNotificationSchema[] =
       (await LocalNotifications.getPending()).notifications
@@ -182,16 +197,21 @@ export async function syncReminders(): Promise<void> {
       )
     }
 
+    // In force mode keep pending reminders that are still desired — rescheduling
+    // replaces them by id — and cancel only orphans; otherwise cancel what's
+    // removed or changed.
     const toCancel = pending.filter(p => {
       const d = desiredById.get(p.id)
-      return !d || changed(p, d)
+      return !d || (!force && changed(p, d))
     })
     if (toCancel.length > 0) {
       await LocalNotifications.cancel({ notifications: toCancel.map(p => ({ id: p.id })) })
     }
 
     const cancelledIds = new Set(toCancel.map(p => p.id))
-    const toSchedule = desired.filter(d => !pendingById.has(d.id) || cancelledIds.has(d.id))
+    const toSchedule = force
+      ? desired
+      : desired.filter(d => !pendingById.has(d.id) || cancelledIds.has(d.id))
     if (toSchedule.length > 0) {
       await LocalNotifications.schedule({
         notifications: toSchedule.map(d => ({
@@ -210,6 +230,10 @@ export async function syncReminders(): Promise<void> {
         })),
       })
     }
+
+    // Only after a clean pass — a mid-sync failure leaves the marker stale so the
+    // next sync retries the force-reschedule rather than skipping it.
+    localStorage.setItem(BUILD_VERSION_KEY, buildVersion)
   } catch {
     // Best-effort: reminders must never disrupt the app.
   }
