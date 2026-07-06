@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect } from 'react'
 import { Download, Upload, Cloud, X, Loader, Trash2 } from 'lucide-react'
-import { exportBackup, importBackup, hasSeedData, seedChoresUsed, clearSeedData, type BackupPayload } from '@/db/queries'
-import { applyPayload } from '@/sync/engine'
+import { exportBackup, restoreFromBackup, hasSeedData, seedChoresUsed, clearSeedData, type BackupPayload } from '@/db/queries'
+import { buildPayload } from '@/sync/engine'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
 import type { SyncEngine } from '@glance-apps/sync'
 import dayjs from 'dayjs'
@@ -14,13 +14,17 @@ interface Props {
 }
 
 type RemoteFile = { filename: string; lastModified: string | null }
-type State = 'idle' | 'exporting' | 'confirm' | 'importing' | 'remote-list' | 'remote-loading' | 'remote-confirm' | 'error'
+type State = 'idle' | 'exporting' | 'confirm' | 'sure' | 'importing' | 'remote-list' | 'remote-loading' | 'remote-confirm' | 'error'
 
 export function BackupModal({ engine, onClose, onImported }: Props) {
   const { t } = useTranslation()
   const [state, setState] = useState<State>('idle')
   const [errorMsg, setErrorMsg] = useState('')
   const [pending, setPending] = useState<BackupPayload | null>(null)
+  // The raw payload queued for the final "Are you sure?" gate — either the parsed
+  // file (pending) or a downloaded remote backup (remotePending). restoreFromBackup
+  // accepts both on-disk shapes, so we can hand it either verbatim.
+  const [pendingRaw, setPendingRaw] = useState<unknown>(null)
   const [remoteFiles, setRemoteFiles] = useState<RemoteFile[]>([])
   const [selectedRemote, setSelectedRemote] = useState<RemoteFile | null>(null)
   const [remotePending, setRemotePending] = useState<unknown>(null)
@@ -80,15 +84,44 @@ export function BackupModal({ engine, onClose, onImported }: Props) {
     reader.readAsText(file)
   }
 
-  async function handleConfirm() {
-    if (!pending) return
+  // Save a parachute of the CURRENT data before a destructive restore: a local
+  // file download (works everywhere) plus, if a remote is configured, a fresh
+  // snapshot in the WebDAV backups/ folder. Best-effort — a snapshot failure
+  // must not block the user from restoring.
+  async function saveSafetySnapshot() {
+    try {
+      const data = await exportBackup()
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `lastglance-before-restore-${dayjs().format('YYYY-MM-DD-HHmm')}.json`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch { /* best-effort local parachute */ }
+    if (engine && syncConfig) {
+      try {
+        const provider = engine.autoBackupProviders[syncConfig.provider as string] ?? engine.autoBackupProviders.webdav
+        await provider.uploadBackup(syncConfig as Record<string, unknown>, await buildPayload())
+      } catch { /* best-effort remote parachute */ }
+    }
+  }
+
+  // Final step after the "Are you sure?" gate: snapshot, then replace all data
+  // with the queued backup. restoreFromBackup re-stamps and tombstones so the
+  // restore wins the sync merge; kicking engine.sync() uploads it promptly.
+  async function performRestore() {
+    if (pendingRaw == null) return
     setState('importing')
     try {
-      await importBackup(pending)
+      await saveSafetySnapshot()
+      await restoreFromBackup(pendingRaw)
       onImported()
+      engine?.sync().catch(() => { /* surfaced via onError */ })
       onClose()
-    } catch {
-      setErrorMsg(t('backup.importFailed'))
+    } catch (err) {
+      const empty = err instanceof Error && err.message === 'empty backup'
+      setErrorMsg(empty ? t('backup.emptyBackup') : t('backup.restoreFailed'))
       setState('error')
     }
   }
@@ -117,19 +150,6 @@ export function BackupModal({ engine, onClose, onImported }: Props) {
       setState('remote-confirm')
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : t('backup.remoteDownloadFailed'))
-      setState('error')
-    }
-  }
-
-  async function handleRemoteConfirm() {
-    if (!remotePending) return
-    setState('importing')
-    try {
-      await applyPayload(remotePending, { allowEmpty: true })
-      onImported()
-      onClose()
-    } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : t('backup.restoreFailed'))
       setState('error')
     }
   }
@@ -170,8 +190,26 @@ export function BackupModal({ engine, onClose, onImported }: Props) {
               <button onClick={() => setState('idle')} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
                 {t('backup.cancel')}
               </button>
-              <button onClick={handleConfirm} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-white bg-green-500 hover:bg-green-400 transition-colors">
+              <button onClick={() => { setPendingRaw(pending); setState('sure') }} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-white bg-green-500 hover:bg-green-400 transition-colors">
                 {t('backup.restore')}
+              </button>
+            </div>
+          </div>
+
+        ) : state === 'sure' ? (
+          <div className="space-y-4">
+            <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">{t('backup.areYouSure')}</p>
+            <p className="text-sm text-slate-600 dark:text-slate-300">{t('backup.areYouSureBody')}</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 flex items-start gap-1.5">
+              <Download size={13} className="text-green-400 shrink-0 mt-0.5" />
+              {t('backup.snapshotNote')}
+            </p>
+            <div className="flex gap-3 pt-1">
+              <button onClick={() => setState('idle')} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
+                {t('backup.cancel')}
+              </button>
+              <button onClick={performRestore} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-white bg-red-500 hover:bg-red-400 transition-colors">
+                {t('backup.replaceEverything')}
               </button>
             </div>
           </div>
@@ -215,7 +253,7 @@ export function BackupModal({ engine, onClose, onImported }: Props) {
               <button onClick={() => setState('idle')} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
                 {t('backup.cancel')}
               </button>
-              <button onClick={handleRemoteConfirm} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-white bg-green-500 hover:bg-green-400 transition-colors">
+              <button onClick={() => { setPendingRaw(remotePending); setState('sure') }} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-white bg-green-500 hover:bg-green-400 transition-colors">
                 {t('backup.restore')}
               </button>
             </div>

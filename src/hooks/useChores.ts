@@ -26,12 +26,25 @@ export function useChores() {
 
       const byId = new Map(allWithChores.map(d => [d.category.id, d]))
 
-      // Attach children to their parent (one level only)
+      // Attach each category under a root, keeping the tree at the two levels the
+      // UI can draw. Normally a subcategory's parent is a root, so it attaches
+      // directly. But a category can end up nested deeper than two levels (a
+      // pre-fix re-parent, see #191) or point at a parent that no longer exists.
+      // Rather than let such a category — and every chore under it — silently
+      // disappear, walk up to its nearest root ancestor and attach it there; if no
+      // root ancestor resolves, surface it as a root itself. Nothing is ever hidden.
       const roots: CategoryWithChores[] = []
       for (const entry of allWithChores) {
         const parentId = entry.category.parent_category_id
-        if (parentId) {
-          byId.get(parentId)?.subcategories.push(entry)
+        if (!parentId) { roots.push(entry); continue }
+        let ancestor = byId.get(parentId)
+        const guard = new Set<number>([entry.category.id])
+        while (ancestor && ancestor.category.parent_category_id != null && !guard.has(ancestor.category.id)) {
+          guard.add(ancestor.category.id)
+          ancestor = byId.get(ancestor.category.parent_category_id)
+        }
+        if (ancestor && ancestor.category.id !== entry.category.id) {
+          ancestor.subcategories.push(entry)
         } else {
           roots.push(entry)
         }
