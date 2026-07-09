@@ -111,6 +111,12 @@ function proxyRequest(method, targetUrl, headers, body) {
 }
 
 export default async function handler(req, res) {
+  // Stamp every response so the client can tell a genuine proxy reply apart from
+  // a static host that 404s /api/webdav-proxy/ or serves an SPA index.html
+  // fallback. testConnection() in src/intents/webdav.ts checks for this marker.
+  res.setHeader('X-Webdav-Proxy', 'lastglance');
+  res.setHeader('Access-Control-Expose-Headers', 'ETag, X-Webdav-Proxy');
+
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     res.setHeader('Access-Control-Allow-Origin', '*');

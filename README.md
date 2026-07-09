@@ -114,11 +114,12 @@ CapacitorHttp plugin. See [docs/mobile.md](docs/mobile.md) for details.
 
 ## Configuration
 
-lastGLANCE is configured entirely in-app. One environment variable is available at build time:
+lastGLANCE is configured entirely in-app. A couple of environment variables are available at build time:
 
 | Variable | Required | Description |
 |---|---|---|
-| `VITE_WEBDAV_PROXY_URL` | No | Base URL of a [WebDAV CORS proxy](https://github.com/krelltunez/lastGLANCE/tree/main/api) to relay requests when the WebDAV server doesn't allow browser requests directly. Leave unset if your server has permissive CORS headers or you're using a reverse proxy that handles CORS. |
+| `VITE_WEBDAV_PROXY_URL` | No | Base URL of a [WebDAV CORS proxy](https://github.com/krelltunez/lastGLANCE/tree/main/api) to relay requests when the WebDAV server doesn't allow browser requests directly. Leave unset to use the same-origin proxy bundled with the Docker image. |
+| `VITE_WEBDAV_DIRECT` | No | Set to `true` to skip the CORS proxy entirely and connect straight to your WebDAV server from the browser. Use this only when your server sends permissive CORS headers or sits behind a reverse proxy that handles CORS — otherwise sync requests will fail CORS. Leave unset to keep using the proxy. |
 
 Create a `.env.local` for local development:
 

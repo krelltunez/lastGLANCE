@@ -2,6 +2,7 @@
 
 interface ImportMetaEnv {
   readonly VITE_WEBDAV_PROXY_URL?: string
+  readonly VITE_WEBDAV_DIRECT?: string
 }
 
 interface ImportMeta {

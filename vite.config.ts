@@ -19,6 +19,11 @@ function webdavProxyPlugin(): Plugin {
     apply: 'serve',
     configureServer(server: ViteDevServer) {
       server.middlewares.use('/api/webdav-proxy/', async (req: IncomingMessage, res: ServerResponse) => {
+        // Mirror the production proxy's marker header (see api/webdav-proxy.js)
+        // so testConnection() behaves identically in dev.
+        res.setHeader('X-Webdav-Proxy', 'lastglance')
+        res.setHeader('Access-Control-Expose-Headers', 'ETag, X-Webdav-Proxy')
+
         if (req.method === 'OPTIONS') {
           res.writeHead(204, {
             'Access-Control-Allow-Origin': '*',
