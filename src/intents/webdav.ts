@@ -18,12 +18,22 @@ function fetchWithTimeout(url: string, init: RequestInit): Promise<Response> {
 }
 
 // Minimal Response-like shape shared by both transports (Response satisfies it).
+// headers is optional because the native transport returns a plain object; the
+// proxy/direct transports return a real Response with a readable Headers.
 interface WebdavResponse {
   status: number
   ok: boolean
   statusText: string
   text: () => Promise<string>
+  headers?: { get: (name: string) => string | null }
 }
+
+// Marker header the WebDAV proxy stamps on every response. It lets a proxied
+// request tell a genuine proxy reply apart from a static host that 404s the
+// /api/webdav-proxy/ path or serves an SPA index.html fallback. Keep in sync
+// with api/webdav-proxy.js and the dev middleware in vite.config.ts.
+const WEBDAV_PROXY_MARKER = 'x-webdav-proxy'
+const WEBDAV_PROXY_MARKER_VALUE = 'lastglance'
 
 // Transport-selecting WebDAV request. On native (Capacitor) it calls the target
 // URL directly through the native HTTP stack with a standard Authorization
@@ -143,11 +153,22 @@ export async function getFileOrNull(baseUrl: string, folderPath: string, filenam
 export async function testConnection(baseUrl: string, folderPath: string, username: string, password: string): Promise<{ success: boolean; error?: string }> {
   const authHeader = buildAuthHeader(username, password)
   const folderUrl = buildFolderUrl(baseUrl, folderPath) + '/'
+  const usingProxy = !isNativePlatform && !webdavDirect
   try {
     const res = await webdavFetch('PROPFIND', folderUrl, authHeader, {
       extraHeaders: { Depth: '0', 'Content-Type': 'application/xml' },
       body: PROPFIND_BODY,
     })
+    // In proxy mode a reply without the proxy marker never reached the proxy —
+    // e.g. a static host 404ing /api/webdav-proxy/, or an SPA index.html
+    // fallback returning 200. Either way the WebDAV server was never contacted,
+    // so don't report success off a misleading status code.
+    if (usingProxy && res.headers?.get(WEBDAV_PROXY_MARKER) !== WEBDAV_PROXY_MARKER_VALUE) {
+      return {
+        success: false,
+        error: 'WebDAV proxy not reachable. The /api/webdav-proxy endpoint did not respond — deploy the proxy sidecar, or set VITE_WEBDAV_DIRECT=true to connect directly.',
+      }
+    }
     if (res.status === 401) return { success: false, error: 'Authentication failed' }
     if (res.status === 403) return { success: false, error: 'Access denied' }
     if (res.ok || res.status === 207 || res.status === 404) return { success: true }

@@ -15,10 +15,18 @@ async function loadWebdav(mock: { isNativePlatform: boolean; webdavDirect: boole
   return import('./webdav')
 }
 
-const OK_PROPFIND = new Response('<multistatus/>', { status: 207 })
+// Responses from the real proxy carry this marker; a static host 404 / SPA
+// fallback does not.
+const PROXY_MARKER = { 'X-Webdav-Proxy': 'lastglance' }
+
+function stubFetch(status: number, headers: Record<string, string> = {}) {
+  const fn = vi.fn(async () => new Response('<multistatus/>', { status, headers }))
+  vi.stubGlobal('fetch', fn)
+  return fn
+}
 
 beforeEach(() => {
-  vi.stubGlobal('fetch', vi.fn(async () => OK_PROPFIND.clone()))
+  vi.stubGlobal('fetch', vi.fn(async () => new Response('<multistatus/>', { status: 207, headers: PROXY_MARKER })))
 })
 
 afterEach(() => {
@@ -47,5 +55,51 @@ describe('webdavFetch transport selection (browser)', () => {
     expect(url).not.toContain('/api/webdav-proxy/')
     expect(init.headers.Authorization).toBe('Basic ' + btoa('user:pass'))
     expect(init.headers['X-WebDAV-Auth']).toBeUndefined()
+  })
+})
+
+describe('testConnection proxy reachability (issue #196)', () => {
+  it('proxy 404 WITHOUT the marker (missing sidecar / static host) -> failure, not success', async () => {
+    stubFetch(404) // no marker header — this is a plain static-host 404
+    const { testConnection } = await loadWebdav({ isNativePlatform: false, webdavDirect: false })
+    const r = await testConnection('https://dav.example.com', 'chores', 'user', 'pass')
+    expect(r.success).toBe(false)
+    expect(r.error).toMatch(/proxy not reachable/i)
+  })
+
+  it('SPA fallback 200 WITHOUT the marker (static host serves index.html) -> failure', async () => {
+    stubFetch(200) // no marker — index.html fallback masquerading as success
+    const { testConnection } = await loadWebdav({ isNativePlatform: false, webdavDirect: false })
+    const r = await testConnection('https://dav.example.com', 'chores', 'user', 'pass')
+    expect(r.success).toBe(false)
+    expect(r.error).toMatch(/proxy not reachable/i)
+  })
+
+  it('proxy 404 WITH the marker (server reachable, folder not created yet) -> success', async () => {
+    stubFetch(404, PROXY_MARKER)
+    const { testConnection } = await loadWebdav({ isNativePlatform: false, webdavDirect: false })
+    const r = await testConnection('https://dav.example.com', 'chores', 'user', 'pass')
+    expect(r).toEqual({ success: true })
+  })
+
+  it('proxy 207 WITH the marker -> success', async () => {
+    stubFetch(207, PROXY_MARKER)
+    const { testConnection } = await loadWebdav({ isNativePlatform: false, webdavDirect: false })
+    const r = await testConnection('https://dav.example.com', 'chores', 'user', 'pass')
+    expect(r).toEqual({ success: true })
+  })
+
+  it('proxy 401 WITH the marker -> auth failure (marker check does not mask real statuses)', async () => {
+    stubFetch(401, PROXY_MARKER)
+    const { testConnection } = await loadWebdav({ isNativePlatform: false, webdavDirect: false })
+    const r = await testConnection('https://dav.example.com', 'chores', 'user', 'pass')
+    expect(r).toEqual({ success: false, error: 'Authentication failed' })
+  })
+
+  it('direct mode 404 -> success without needing any marker', async () => {
+    stubFetch(404) // direct transport, no proxy marker expected
+    const { testConnection } = await loadWebdav({ isNativePlatform: false, webdavDirect: true })
+    const r = await testConnection('https://dav.example.com', 'chores', 'user', 'pass')
+    expect(r).toEqual({ success: true })
   })
 })
