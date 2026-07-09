@@ -1,4 +1,4 @@
-import { isNativePlatform, nativeHttpFetch } from '@/sync/nativeHttp'
+import { isNativePlatform, nativeHttpFetch, webdavDirect } from '@/sync/nativeHttp'
 
 export function buildAuthHeader(username: string, password: string): string {
   return 'Basic ' + btoa(`${username}:${password}`)
@@ -27,8 +27,10 @@ interface WebdavResponse {
 
 // Transport-selecting WebDAV request. On native (Capacitor) it calls the target
 // URL directly through the native HTTP stack with a standard Authorization
-// header — no CORS proxy. In the browser/PWA it routes through the CORS proxy
-// with the X-WebDAV-Auth header (which the proxy rewrites to Authorization).
+// header — no CORS proxy. When VITE_WEBDAV_DIRECT is enabled it does the same
+// from the browser with a plain fetch (the server must permit the cross-origin
+// request via CORS). Otherwise, in the browser/PWA, it routes through the CORS
+// proxy with the X-WebDAV-Auth header (which the proxy rewrites to Authorization).
 async function webdavFetch(
   method: string,
   targetUrl: string,
@@ -40,6 +42,13 @@ async function webdavFetch(
     const headers: Record<string, string> = { Authorization: authHeader, ...extraHeaders }
     const r = await nativeHttpFetch(method, targetUrl, headers, body ?? null)
     return { status: r.status, ok: r.ok, statusText: r.statusText, text: async () => r.body }
+  }
+  if (webdavDirect) {
+    return fetchWithTimeout(targetUrl, {
+      method,
+      headers: { Authorization: authHeader, ...extraHeaders },
+      ...(body !== undefined ? { body } : {}),
+    })
   }
   return fetchWithTimeout(withProxy(targetUrl), {
     method,

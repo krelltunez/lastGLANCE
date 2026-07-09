@@ -5,6 +5,13 @@ import { Capacitor, CapacitorHttp } from '@capacitor/core'
 // are not subject to the WebView's same-origin policy.
 export const isNativePlatform = Capacitor.isNativePlatform()
 
+// Opt-in browser/PWA setting: skip the WebDAV CORS proxy and talk to the target
+// server directly. Only meaningful off-native — native already connects
+// directly via CapacitorHttp. Enable with VITE_WEBDAV_DIRECT=true when the
+// WebDAV server sends permissive CORS headers or sits behind a reverse proxy
+// that does. Leaving it unset preserves the default same-origin proxy path.
+export const webdavDirect = !isNativePlatform && import.meta.env.VITE_WEBDAV_DIRECT === 'true'
+
 export interface NativeHttpResult {
   status: number
   ok: boolean
@@ -46,6 +53,35 @@ export async function nativeHttpFetch(
     ok,
     statusText: '',
     body: data,
+    headers: etag ? { etag } : undefined,
+  }
+}
+
+// Direct browser WebDAV request that bypasses the CORS proxy. Shares the
+// `ElectronProxyFetch` signature with nativeHttpFetch so the sync engine and the
+// app's WebDAV helpers can swap it in when VITE_WEBDAV_DIRECT is enabled. Unlike
+// the proxy path it sends a standard Authorization header, so the target server
+// must allow the browser request via CORS (a permissive server or a
+// CORS-handling reverse proxy). To expose the ETag cross-origin the server must
+// list it in Access-Control-Expose-Headers.
+export async function browserDirectFetch(
+  method: string,
+  url: string,
+  headers: Record<string, string>,
+  body: string | null,
+): Promise<NativeHttpResult> {
+  const res = await fetch(url, {
+    method,
+    headers,
+    ...(body !== null ? { body } : {}),
+  })
+  const text = await res.text()
+  const etag = res.headers.get('etag') ?? undefined
+  return {
+    status: res.status,
+    ok: res.ok,
+    statusText: res.statusText,
+    body: text,
     headers: etag ? { etag } : undefined,
   }
 }

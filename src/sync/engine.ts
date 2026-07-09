@@ -11,7 +11,7 @@ import type { SyncEngine, SyncStatus, SyncErrorCode, BackupFrequency } from '@gl
 import { db } from '@/db/client'
 import type { Category, Chore, CompletionEvent, User } from '@/types'
 import { buildAuthHeader, ensureFolder } from '@/intents/webdav'
-import { isNativePlatform, nativeHttpFetch } from './nativeHttp'
+import { browserDirectFetch, isNativePlatform, nativeHttpFetch, webdavDirect } from './nativeHttp'
 import type { SyncPayload, SyncSettings } from './types'
 import { getMultiUserEnabled, setMultiUserEnabled } from '@/multiuser/settings'
 
@@ -496,8 +496,10 @@ export function createEngine(proxyUrl: string | undefined, callbacks: EngineCall
     appName: 'lastGLANCE',
     proxyUrl,
     // On native (Capacitor) route WebDAV through the native HTTP stack so sync
-    // works without the CORS proxy. Takes priority over proxyUrl in the engine.
-    electronProxyFetch: isNativePlatform ? nativeHttpFetch : undefined,
+    // works without the CORS proxy. In the browser use a direct fetch when
+    // VITE_WEBDAV_DIRECT is enabled. Takes priority over proxyUrl in the engine,
+    // so leaving it undefined keeps the proxy path.
+    electronProxyFetch: isNativePlatform ? nativeHttpFetch : webdavDirect ? browserDirectFetch : undefined,
     buildPayload,
     buildBackupPayload: buildPayload,
     applyPayload,
