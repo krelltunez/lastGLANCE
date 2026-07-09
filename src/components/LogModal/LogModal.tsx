@@ -98,7 +98,7 @@ export function LogModal({ chore, onClose, onLogged }: Props) {
       ">
 
         {/* ── Left / top: log form ── */}
-        <div className="flex flex-col p-6 gap-4 overflow-y-auto min-h-0 lg:w-72 lg:shrink-0 lg:border-r lg:border-slate-100 dark:lg:border-slate-700/60 lg:self-stretch">
+        <div className="flex flex-col p-6 gap-4 overflow-y-auto min-h-0 shrink-0 lg:w-72 lg:border-r lg:border-slate-100 dark:lg:border-slate-700/60 lg:self-stretch">
           <div className="flex items-start justify-between gap-2">
             <div>
               <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100">{chore.name}</h2>
@@ -189,7 +189,10 @@ export function LogModal({ chore, onClose, onLogged }: Props) {
               {completions.length === 0 ? (
                 <p className="text-sm text-slate-400 dark:text-slate-600 py-4 text-center">{t('logModal.noCompletions')}</p>
               ) : (
-                <div>
+                // On the stacked (mobile/tablet) layout, cap the list to about
+                // one completion so the log form above stays visible; scroll for
+                // more. The lg side-by-side layout keeps the full-height list.
+                <div className="max-h-20 overflow-y-auto lg:max-h-none lg:overflow-visible">
                   {completions.map((evt, i) => {
                     const prev = completions[i + 1]
                     const gapDays = prev
