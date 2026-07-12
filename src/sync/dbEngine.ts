@@ -14,7 +14,7 @@
 
 import { createDbSyncEngine } from '@glance-apps/sync'
 import type { DbSyncEngine, DbSyncResult, SyncStatus, SyncErrorCode } from '@glance-apps/sync'
-import { db } from '@/db/client'
+import { db, isPristineSeed } from '@/db/client'
 import type { Category, Chore, CompletionEvent, User } from '@/types'
 import type { SyncCategory, SyncChore, SyncCompletionEvent, SyncUser } from './types'
 import { getVaultConfig, isVaultEnabled } from './vaultConfig'
@@ -451,6 +451,17 @@ function recoverStalePullCursor(engine: DbSyncEngine): void {
 // only future changes would be pushed. pushDirtyRows then snapshots each id via
 // getLocalEntity. markDirty is idempotent, so repeating this before a successful
 // first push is harmless.
+//
+// Pristine sample data is deliberately EXCLUDED. Seed rows share fixed sync_ids
+// and a frozen timestamp across every fresh install, so if a freshly-installed
+// device pushed its untouched seed on first sync, that stale copy would upsert
+// over — and overwrite — another device's edits to the same seed sync_id (the
+// vault push cycle pushes before it pulls, and the push is an unconditional
+// upsert with no updatedAt check). Keeping untouched seed local-only avoids the
+// clobber while preserving the no-doubling property (nothing to double if it
+// never syncs). The moment a user edits a seed row its updated_at bumps, so it
+// is no longer pristine and syncs normally; deletes still propagate as
+// tombstones.
 export async function markAllLocalEntitiesDirty(engine: DbSyncEngine): Promise<void> {
   const [cats, chores, events, users] = await Promise.all([
     db.categories.toArray(),
@@ -458,8 +469,8 @@ export async function markAllLocalEntitiesDirty(engine: DbSyncEngine): Promise<v
     db.completionEvents.toArray(),
     db.users.toArray(),
   ])
-  for (const c of cats) engine.markDirty(c.sync_id)
-  for (const c of chores) engine.markDirty(c.sync_id)
+  for (const c of cats) if (!isPristineSeed(c)) engine.markDirty(c.sync_id)
+  for (const c of chores) if (!isPristineSeed(c)) engine.markDirty(c.sync_id)
   for (const e of events) engine.markDirty(e.sync_id)
   for (const u of users) engine.markDirty(u.sync_id)
 }
