@@ -7,22 +7,29 @@ This plan was informed by a teardown of how the sibling app **dayGLANCE**
 solved timely closed-app notifications (its process is referenced throughout).
 Where lastGLANCE differs from dayGLANCE, it is called out explicitly.
 
-> **▶ RESUME HERE (last updated 2026-06-26)**
-> - **Phase 0 + Phase 1 built** on branch `claude/wonderful-mccarthy-abm730`
->   (PR #126). Web build + 58 tests green; **Android not yet compiled/device-tested.**
-> - **Phase 1** = exact-alarm overdue notifications via `@capacitor/local-notifications`
->   (Path A), **+ notification actions** (Mark done; Send to dayGLANCE when intents
->   are configured) **+ branded contribution-grid notification icon**. Device-tested
->   through step 6 (closed-app + Doze delivery) and the cold-start tap fix.
-> - **Phase 2 in progress** (action widgets + optimistic tap-to-complete). Widget
->   tech **decided: Jetpack Glance**. Phase 2a built: tap-to-complete spine +
->   single-chore Glance tile. **Glance toolchain is unverified locally — first
->   on-device build may need version adjustment.**
-> - **Settled:** Path A (B backup); "clearly same family"; no battery-opt prompt;
->   defer the WorkManager re-arm backstop until testing proves OEM killers clear alarms.
-> - **Carry-over to Phase 2:** silent "Mark done" (the official plugin opens the app
->   for every notification action; truly background completion needs native work —
->   the same optimistic-native + queue path Phase 2 builds for widgets).
+> **▶ STATUS (last updated 2026-07-12)**
+> **Android: feature-complete against this plan. iOS: not started (stock Capacitor
+> shell only) — see the companion `docs/ios-native-features-plan.md`.**
+>
+> - **Phases 0–3 are all built and in the tree.** Snapshot bridge, exact-alarm
+>   overdue notifications, action widgets with optimistic tap-to-complete, dynamic
+>   shortcuts, add-chore widget, and share target. The heatmap widget was migrated
+>   from RemoteViews to Jetpack Glance, so **every widget is now Glance**.
+> - **As-built extras beyond the original plan:** two Quick Settings tiles
+>   (`tiles/AddChoreTileService`, `tiles/SoonTileService`) and a native broadcast
+>   intents bridge (`intents/IntentReceiver` + `IntentsBridgePlugin`; actions
+>   `app.lastglance.{CREATE,COMPLETE,OPEN,QUERY}`) that exposes the shared
+>   `@glance-apps/intents` dispatcher to Tasker/automation.
+> - **Remaining on Android:** on-device verification of the last widgets and the
+>   single-chore config flow (a few were still marked "awaiting device test"); plus
+>   the deferred-by-choice items below. No new feature work outstanding.
+> - **Settled / deferred by choice:** Path A (B backup); "clearly same family"
+>   visual parity; no battery-opt prompt; silent "Mark done" left opening the app
+>   (truly background completion needs the Path B alarm layer); WorkManager
+>   OEM-killer re-arm backstop deferred until on-device testing proves alarms get
+>   cleared; background CRDT sync out of scope. Cheap known gaps not yet closed: a
+>   `TIMEZONE_CHANGED` receiver and a midnight snapshot re-render for "Xd ago"
+>   freshness while closed.
 
 ---
 
@@ -198,12 +205,13 @@ queue** in `SharedPreferences`; JS drains via `getPendingActions()` on
   light/dark. **Implemented as a classic `RemoteViews` AppWidget drawing a Canvas
   bitmap (Java), NOT Jetpack Glance** — deliberate deviation to avoid the
   Compose/Kotlin Gradle setup for a non-interactive widget and keep the change
-  dependency-free. **OPEN DECISION:** keep RemoteViews here and adopt Glance only
-  for the interactive Phase 2 widgets, or unify on Glance now. Awaiting an
-  on-device look before deciding.
+  dependency-free. **RESOLVED (post-Phase-2):** unified on Glance. The heatmap was
+  migrated to `glance/HeatmapWidget.kt` (keeping the cheaper Canvas-bitmap render,
+  shown via `Image`) and the RemoteViews provider + `widget_heatmap.xml` removed, so
+  every widget is now Glance. See the post-Phase-2 note under Phase 2.
 - Tap → `lastglance://filter/soon` (opens app only; router lands in Phase 2/3). ✅
 
-**Status:** web build + 58 tests green; **Android not yet compiled/device-tested.**
+**Status:** ✅ built and superseded by the Glance heatmap; snapshot pipeline live.
 
 **Exit criteria:** heatmap on the home screen reflects completions within one app
 foreground cycle; survives reboot (re-renders from persisted snapshot).
@@ -262,7 +270,7 @@ dayGLANCE's war story warns about).
 **Exit criteria:** kill the app, advance a chore past its cadence, alarm fires on
 time (test on Doze via `adb shell dumpsys deviceidle force-idle`).
 
-### Phase 2 — Action widgets + optimistic tap-to-complete — 🚧 IN PROGRESS
+### Phase 2 — Action widgets + optimistic tap-to-complete — ✅ BUILT
 
 **Decision (resolved):** widgets use **Jetpack Glance** (Kotlin + Compose), toolchain
 Kotlin 2.2.0 + Compose plugin + Glance 1.1.1 (`buildFeatures.compose`, `jvmTarget 21`).
@@ -342,7 +350,7 @@ not worth Path B for one button right now; "Mark done opens the app" stays.
 reopening the app shows exactly one completion logged; no double-count across a
 sync round-trip.
 
-### Phase 3 — Notifications actions, shortcuts, (optional) background sync
+### Phase 3 — Notifications actions, shortcuts, share target — ✅ BUILT (background sync deferred)
 
 - **Actionable notifications:** ✅ DONE in Phase 1 (Mark done / Send to dayGLANCE).
 - **App shortcuts:** ✅ DONE. All built as **dynamic** shortcuts in
@@ -368,6 +376,16 @@ sync round-trip.
   (now carrying an optional name) and the cold-start pending-retry. Name is the
   only free-text chore field, so that's what gets seeded. iOS analog: a Share
   Extension writing to the App Group, same web prefill.
+- **Quick Settings tiles:** ✅ DONE (not in the original plan). Two `TileService`s
+  in `tiles/` — **Add chore** (`AddChoreTileService`) and **Soon**
+  (`SoonTileService`) — route through the same `lastglance://` targets as the
+  shortcuts, so the launch/foreground handling is shared.
+- **Native intents bridge:** ✅ DONE (not in the original plan). A broadcast
+  `IntentReceiver` + `IntentsBridgePlugin` (`intents/`) exposes the shared
+  `@glance-apps/intents` dispatcher to external automation (Tasker) via the
+  `app.lastglance.{CREATE,COMPLETE,OPEN,QUERY}` actions declared on `MainActivity`
+  and the receiver. Wired on the JS side by `src/native/intentsBridge.ts` /
+  `src/hooks/useAndroidIntentBridge.ts`. See `docs/tasker-intents-architecture.md`.
 - **Background CRDT sync (stretch):** the only feature needing a background data
   runtime. Forces the headless-JS-vs-native-mirror decision. Defer until there's
   real demand; current "sync on open" is unchanged behavior.
