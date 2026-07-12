@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Auto Backup rules for Android 11 and below (API ≤ 30), referenced by
+     android:fullBackupContent in the manifest. Mirrors the cloud-backup section
+     of data_extraction_rules.xml — see the rationale there. (Pre-31 has no
+     separate device-transfer concept, so this governs cloud backup only.) -->
+<full-backup-content>
+    <exclude domain="root" path="app_webview/" />
+    <exclude domain="sharedpref" path="lastglance_shared.xml" />
+</full-backup-content>
