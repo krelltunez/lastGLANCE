@@ -10,6 +10,7 @@ import { cloudSyncProviders } from '@/utils/cloudSyncProviders'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
 import { useTranslation } from 'react-i18next'
 import { isWebCryptoAvailable } from '@/utils/secureContext'
+import { buildSyncConfigToSave } from './buildSyncConfig'
 
 interface Props {
   engine: SyncEngine | null
@@ -127,7 +128,13 @@ export function SyncSettingsModal({ engine, dbEngine, syncError, syncErrorCode, 
       (prevVault?.accountId ?? '') !== (nextVault?.accountId ?? '')
 
     if (engine) {
-      engine.setConfig(requiredFieldsFilled ? { provider, ...formData, syncFolder: folderPath, enabled: syncEnabled, encryptionEnabled: encEnabled } : null)
+      // Persist enabled:false (and keep credentials) when disabling; only clear the
+      // config when every field is blank. Never drop it just because a required
+      // field is empty — that reset the toggle back to on and wiped creds (#204).
+      engine.setConfig(buildSyncConfigToSave({
+        provider, formData, configFields: activeProvider?.configFields ?? [],
+        folderPath, syncEnabled, encEnabled,
+      }))
       localStorage.setItem(SYNC_FOLDER_KEY, folderPath)
       resetEnsuredFolder()
     }
