@@ -62,14 +62,23 @@ public class IntentsBridgePlugin extends Plugin {
 
     @PluginMethod
     public void getPendingIntent(PluginCall call) {
+        // Opt-in gate: while disabled, drain-and-drop so a payload stored before
+        // the user opted out can never be processed.
         String json = SharedDataStore.readAndClearPendingIntent(getContext());
+        boolean enabled = SharedDataStore.isAutomationIntentsEnabled(getContext());
         JSObject ret = new JSObject();
-        ret.put("value", json != null ? json : "");
+        ret.put("value", enabled && json != null ? json : "");
         call.resolve(ret);
     }
 
     @PluginMethod
     public void reportIntentResult(PluginCall call) {
+        // Opt-in gate: RESULT is an unrestricted broadcast (any app can listen),
+        // so it only fires when the user has enabled automation intents.
+        if (!SharedDataStore.isAutomationIntentsEnabled(getContext())) {
+            call.resolve();
+            return;
+        }
         String action = call.getString("action");
         String result = call.getString("result");
         Intent intent = new Intent(ACTION_RESULT);
@@ -81,10 +90,33 @@ public class IntentsBridgePlugin extends Plugin {
 
     @PluginMethod
     public void sendNotifyBroadcast(PluginCall call) {
+        // Opt-in gate: NOTIFY carries chore data (names, timestamps) as an
+        // unrestricted broadcast, so it only fires when the user has opted in.
+        if (!SharedDataStore.isAutomationIntentsEnabled(getContext())) {
+            call.resolve();
+            return;
+        }
         String payload = call.getString("payload");
         Intent intent = new Intent(ACTION_NOTIFY);
         intent.putExtra("payload", payload);
         getContext().sendBroadcast(intent);
+        call.resolve();
+    }
+
+    // The user-facing toggle (dayGLANCE Integration settings). Persisted in
+    // SharedPreferences so the manifest IntentReceiver can enforce it even when
+    // the app process is dead.
+    @PluginMethod
+    public void getAutomationIntentsEnabled(PluginCall call) {
+        JSObject ret = new JSObject();
+        ret.put("value", SharedDataStore.isAutomationIntentsEnabled(getContext()));
+        call.resolve(ret);
+    }
+
+    @PluginMethod
+    public void setAutomationIntentsEnabled(PluginCall call) {
+        Boolean enabled = call.getBoolean("enabled", false);
+        SharedDataStore.setAutomationIntentsEnabled(getContext(), Boolean.TRUE.equals(enabled));
         call.resolve();
     }
 }

@@ -159,6 +159,10 @@
   },
   "integration": {
     "title": "Integrazione dayGLANCE",
+    "automationSection": "Intent di automazione (Tasker)",
+    "automationDescription": "Consente a Tasker e ad altre app di automazione di creare, completare, aprire e interrogare le attività tramite intent Android.",
+    "enableAutomation": "Abilita intent di automazione",
+    "enableAutomationHint": "Disattivato per impostazione predefinita. Se attivo, qualsiasi app installata su questo dispositivo può creare, completare e leggere le tue attività e ricevere i dati delle attività (nomi e orari) via broadcast.",
     "connectionSection": "Connessione",
     "enableIntegration": "Abilita intent via WebDAV",
     "enableIntegrationHint": "Controlla solo il trasporto degli intent via WebDAV — gli intent via GLANCEvault si configurano sotto.",

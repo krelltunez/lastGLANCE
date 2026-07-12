@@ -19,6 +19,11 @@ export interface IntentsBridgePlugin {
   // Emit the NOTIFY broadcast (a chore changed state), plaintext, for a local
   // listener like Tasker to react to.
   sendNotifyBroadcast(options: { payload: string }): Promise<void>
+  // The user-facing opt-in for the whole transport (off by default). Persisted
+  // natively (SharedPreferences) so the manifest receiver enforces it even when
+  // the app process is dead.
+  getAutomationIntentsEnabled(): Promise<{ value: boolean }>
+  setAutomationIntentsEnabled(options: { enabled: boolean }): Promise<void>
   // Fired by native when a new intent lands while the app is running, so the web
   // app drains immediately rather than waiting for the next visibility/focus.
   addListener(eventName: 'pendingIntent', listenerFunc: () => void): Promise<PluginListenerHandle>
@@ -70,6 +75,27 @@ export async function nativeSendNotifyBroadcast(payloadJson: string): Promise<vo
     await IntentsBridge.sendNotifyBroadcast({ payload: payloadJson })
   } catch {
     // Best-effort; a dropped NOTIFY just means a local listener misses one event.
+  }
+}
+
+// Reads the automation-intents opt-in. False off Android or on any error, so
+// the settings UI defaults to the safe (disabled) state.
+export async function nativeGetAutomationIntentsEnabled(): Promise<boolean> {
+  if (!isAndroid()) return false
+  try {
+    const res = await IntentsBridge.getAutomationIntentsEnabled()
+    return res?.value === true
+  } catch {
+    return false
+  }
+}
+
+export async function nativeSetAutomationIntentsEnabled(enabled: boolean): Promise<void> {
+  if (!isAndroid()) return
+  try {
+    await IntentsBridge.setAutomationIntentsEnabled({ enabled })
+  } catch {
+    // Best-effort; the native default (disabled) is the safe state.
   }
 }
 

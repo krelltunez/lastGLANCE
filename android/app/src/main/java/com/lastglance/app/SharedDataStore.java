@@ -98,4 +98,25 @@ public final class SharedDataStore {
         if (value != null) prefs(context).edit().remove(KEY_PENDING_INTENT).apply();
         return value;
     }
+
+    // Master switch for the Android/Tasker automation-intents transport. OFF by
+    // default: the app.lastglance.* surface is open to every installed app (an
+    // exported receiver in, unrestricted RESULT/NOTIFY broadcasts out), so it
+    // only runs once the user opts in from the dayGLANCE Integration settings.
+    // While disabled, inbound intents are dropped without being stored and no
+    // outbound broadcasts are emitted — enforced natively in IntentReceiver,
+    // MainActivity, and IntentsBridgePlugin, not just ignored by the WebView.
+    private static final String KEY_AUTOMATION_INTENTS = "automation_intents_enabled";
+
+    public static boolean isAutomationIntentsEnabled(Context context) {
+        return prefs(context).getBoolean(KEY_AUTOMATION_INTENTS, false);
+    }
+
+    public static void setAutomationIntentsEnabled(Context context, boolean enabled) {
+        SharedPreferences.Editor edit = prefs(context).edit().putBoolean(KEY_AUTOMATION_INTENTS, enabled);
+        // Turning the transport off also drops any intent stored while it was on,
+        // so a stale payload can't be processed after the user opted out.
+        if (!enabled) edit.remove(KEY_PENDING_INTENT);
+        edit.apply();
+    }
 }
