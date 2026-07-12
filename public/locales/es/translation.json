@@ -225,7 +225,8 @@
     "description": "Introduce tu contraseña de cifrado para reanudar la sincronización.",
     "placeholder": "Contraseña",
     "unlock": "Desbloquear",
-    "failedToUnlock": "Error al desbloquear"
+    "failedToUnlock": "Error al desbloquear",
+    "insecureContext": "El cifrado de sincronización requiere una conexión segura: HTTPS o http://localhost. Esta página está en una dirección no segura, por lo que el cifrado no está disponible aquí."
   },
   "ribbon": {
     "loading": "Cargando…",

@@ -233,7 +233,8 @@
     "description": "Enter your encryption passphrase to resume syncing.",
     "placeholder": "Passphrase",
     "unlock": "Unlock",
-    "failedToUnlock": "Failed to unlock"
+    "failedToUnlock": "Failed to unlock",
+    "insecureContext": "Sync encryption requires a secure connection — HTTPS, or http://localhost. This page is on an insecure address, so encryption isn't available here."
   },
   "ribbon": {
     "loading": "Loading…",

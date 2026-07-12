@@ -1,7 +1,7 @@
 {
   "name": "lastglance",
   "private": true,
-  "version": "1.13.3",
+  "version": "1.14.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -24,7 +24,7 @@
     "@capacitor/local-notifications": "^8.2.0",
     "@capacitor/status-bar": "^8.0.2",
     "@glance-apps/intents": "1.4.0",
-    "@glance-apps/sync": "1.5.3",
+    "@glance-apps/sync": "1.6.0",
     "dayjs": "^1.11.13",
     "dexie": "^4.4.2",
     "i18next": "^26.3.1",

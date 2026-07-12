@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { X, Loader, AlertTriangle, CheckCircle, XCircle } from 'lucide-react'
+import { X, Loader, AlertTriangle, CheckCircle, XCircle, ShieldAlert } from 'lucide-react'
 import type { SyncEngine, DbSyncEngine, SyncErrorCode } from '@glance-apps/sync'
 import { setupEncryptionKey, clearEncryptionKey, ensureSyncFolder, resetEnsuredFolder, CRYPTO_CONFIG, getRemoteBackupsEnabled, setRemoteBackupsEnabled, DEFAULT_SYNC_FOLDER, SYNC_FOLDER_KEY } from '@/sync/engine'
 import { syncErrorText } from '@/sync/syncErrorText'
@@ -9,6 +9,7 @@ import { testVaultConnection } from '@/sync/testVaultConnection'
 import { cloudSyncProviders } from '@/utils/cloudSyncProviders'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
 import { useTranslation } from 'react-i18next'
+import { isWebCryptoAvailable } from '@/utils/secureContext'
 
 interface Props {
   engine: SyncEngine | null
@@ -71,6 +72,10 @@ export function SyncSettingsModal({ engine, dbEngine, syncError, syncErrorCode, 
   const [showPassphraseInput, setShowPassphraseInput] = useState(false)
   const [encSaving, setEncSaving] = useState(false)
   const [encError, setEncError] = useState('')
+  // Enabling encryption derives a key via Web Crypto (crypto.subtle), which is
+  // only available in a secure context. Over plain HTTP on a LAN IP/hostname it
+  // is absent, so gate the toggle and explain rather than throwing on submit.
+  const cryptoAvailable = isWebCryptoAvailable()
 
   const [remoteBackupsEnabled, setRemoteBackupsEnabledState] = useState(() => getRemoteBackupsEnabled())
 
@@ -481,7 +486,7 @@ export function SyncSettingsModal({ engine, dbEngine, syncError, syncErrorCode, 
                     setEncError('')
                   }
                 }}
-                disabled={encSaving}
+                disabled={encSaving || (!encEnabled && !cryptoAvailable)}
                 className={`relative w-10 h-6 rounded-full transition-colors disabled:opacity-40 ${encEnabled ? 'bg-green-400' : 'bg-slate-300 dark:bg-slate-600'}`}
                 aria-checked={encEnabled}
                 role="switch"
@@ -490,7 +495,16 @@ export function SyncSettingsModal({ engine, dbEngine, syncError, syncErrorCode, 
               </button>
             </div>
 
-            {showPassphraseInput && !encEnabled && (
+            {!encEnabled && !cryptoAvailable && (
+              <div className="flex items-start gap-3 rounded-xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 p-3">
+                <ShieldAlert size={16} className="mt-0.5 shrink-0 text-amber-500 dark:text-amber-400" />
+                <p className="text-sm text-amber-700 dark:text-amber-300">
+                  {t('passphrase.insecureContext')}
+                </p>
+              </div>
+            )}
+
+            {showPassphraseInput && !encEnabled && cryptoAvailable && (
               <div className="space-y-3">
                 <div>
                   <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">

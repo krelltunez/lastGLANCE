@@ -275,7 +275,7 @@ class LastGlanceDB extends Dexie {
 
 // Stable timestamp and sync_ids for seed data — every fresh install produces
 // identical records so cross-device merges deduplicate instead of doubling.
-const SEED_TIMESTAMP = '2024-01-01T00:00:00.000Z'
+export const SEED_TIMESTAMP = '2024-01-01T00:00:00.000Z'
 
 export const SEED_CAT_SYNC_IDS = [
   '00000000-0000-0000-0000-000000000001',
@@ -298,6 +298,19 @@ export const SEED_CHORE_SYNC_IDS = [
   '00000000-0000-0000-0000-000000000042',
   '00000000-0000-0000-0000-000000000043',
 ]
+
+const SEED_SYNC_IDS = new Set<string>([...SEED_CAT_SYNC_IDS, ...SEED_CHORE_SYNC_IDS])
+
+// A seed row is "pristine" while it still carries the frozen seed timestamp:
+// the user has never edited it. Any edit bumps updated_at (see updateChore /
+// updateCategory), so this reliably tells untouched sample data apart from a row
+// the user actually changed. Used to keep pristine sample data local-only so a
+// freshly-installed device never pushes its stale seed copy and overwrites
+// another device's edits to the same seed sync_id on the vault (issue: sample
+// task edits don't sync).
+export function isPristineSeed(row: { sync_id?: string; updated_at?: string }): boolean {
+  return !!row.sync_id && SEED_SYNC_IDS.has(row.sync_id) && row.updated_at === SEED_TIMESTAMP
+}
 
 const SEED_CATEGORIES: Omit<Category, 'id' | 'parent_sync_id' | 'updated_at' | 'assigned_user_sync_ids'>[] = [
   { name: 'Home',     sort_order: 0, icon: 'Home',       sync_id: '00000000-0000-0000-0000-000000000001' },

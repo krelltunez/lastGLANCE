@@ -225,7 +225,8 @@
     "description": "Verschlüsselungspassphrase eingeben, um die Synchronisierung fortzusetzen.",
     "placeholder": "Passphrase",
     "unlock": "Entsperren",
-    "failedToUnlock": "Entsperren fehlgeschlagen"
+    "failedToUnlock": "Entsperren fehlgeschlagen",
+    "insecureContext": "Die Sync-Verschlüsselung erfordert eine sichere Verbindung – HTTPS oder http://localhost. Diese Seite läuft über eine unsichere Adresse, daher ist die Verschlüsselung hier nicht verfügbar."
   },
   "ribbon": {
     "loading": "Wird geladen…",

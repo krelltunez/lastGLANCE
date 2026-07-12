@@ -1,6 +1,6 @@
 import 'fake-indexeddb/auto'
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { db } from '@/db/client'
+import { db, isPristineSeed, SEED_TIMESTAMP, SEED_CAT_SYNC_IDS, SEED_CHORE_SYNC_IDS } from '@/db/client'
 import {
   getLocalEntity,
   isInsertOnly,
@@ -136,7 +136,7 @@ describe('getEntityLastModified', () => {
 })
 
 describe('markAllLocalEntitiesDirty', () => {
-  it('marks every local entity across all four tables dirty', async () => {
+  it('marks user-owned entities across all four tables dirty', async () => {
     const marked: string[] = []
     const fakeEngine = { markDirty: (id: string) => { marked.push(id) } } as unknown as DbSyncEngine
     await markAllLocalEntitiesDirty(fakeEngine)
@@ -145,8 +145,47 @@ describe('markAllLocalEntitiesDirty', () => {
     expect(marked).toContain(CAT_ID)
     expect(marked).toContain(CHORE_ID)
     expect(marked).toContain(EVENT_ID)
-    // Seed categories/chores populated on first open are included too.
-    expect(marked.length).toBeGreaterThan(4)
+  })
+
+  it('excludes pristine sample data so a fresh device cannot clobber another device edits', async () => {
+    const marked: string[] = []
+    const fakeEngine = { markDirty: (id: string) => { marked.push(id) } } as unknown as DbSyncEngine
+    await markAllLocalEntitiesDirty(fakeEngine)
+    // Seed categories/chores populated on first open still carry SEED_TIMESTAMP,
+    // so none of their fixed sync_ids should be in the snapshot.
+    for (const id of [...SEED_CAT_SYNC_IDS, ...SEED_CHORE_SYNC_IDS]) {
+      expect(marked).not.toContain(id)
+    }
+  })
+
+  it('includes a seed row once it has been edited (updated_at bumped off SEED_TIMESTAMP)', async () => {
+    const editedSeedId = SEED_CHORE_SYNC_IDS[0]
+    const row = await db.chores.where('sync_id').equals(editedSeedId).first()
+    expect(row).toBeDefined()
+    await db.chores.update(row!.id!, { updated_at: '2026-06-06T00:00:00.000Z' })
+    try {
+      const marked: string[] = []
+      const fakeEngine = { markDirty: (id: string) => { marked.push(id) } } as unknown as DbSyncEngine
+      await markAllLocalEntitiesDirty(fakeEngine)
+      expect(marked).toContain(editedSeedId)
+    } finally {
+      // Restore so later tests see pristine seed again.
+      await db.chores.update(row!.id!, { updated_at: SEED_TIMESTAMP })
+    }
+  })
+})
+
+describe('isPristineSeed', () => {
+  it('is true for an untouched seed row', () => {
+    expect(isPristineSeed({ sync_id: SEED_CHORE_SYNC_IDS[0], updated_at: SEED_TIMESTAMP })).toBe(true)
+  })
+
+  it('is false for a seed row whose updated_at has been bumped by an edit', () => {
+    expect(isPristineSeed({ sync_id: SEED_CHORE_SYNC_IDS[0], updated_at: '2026-06-06T00:00:00.000Z' })).toBe(false)
+  })
+
+  it('is false for a non-seed row even at the seed timestamp', () => {
+    expect(isPristineSeed({ sync_id: CHORE_ID, updated_at: SEED_TIMESTAMP })).toBe(false)
   })
 })
 

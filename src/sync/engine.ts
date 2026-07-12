@@ -10,7 +10,7 @@ import {
 import type { SyncEngine, SyncStatus, SyncErrorCode, BackupFrequency } from '@glance-apps/sync'
 import { db } from '@/db/client'
 import type { Category, Chore, CompletionEvent, User } from '@/types'
-import { buildAuthHeader, ensureFolder } from '@/intents/webdav'
+import { buildAuthHeader, ensureFolder, forgetEnsuredFolders } from '@/intents/webdav'
 import { browserDirectFetch, isNativePlatform, nativeHttpFetch, webdavDirect } from './nativeHttp'
 import type { SyncPayload, SyncSettings } from './types'
 import { getMultiUserEnabled, setMultiUserEnabled } from '@/multiuser/settings'
@@ -426,10 +426,8 @@ export async function runAutoBackups(engine: SyncEngine): Promise<void> {
   }
 }
 
-let _ensuredForUrl = ''
-
 export function resetEnsuredFolder(): void {
-  _ensuredForUrl = ''
+  forgetEnsuredFolders()
 }
 
 export interface SyncWebdavConfig {
@@ -456,14 +454,13 @@ export async function ensureSyncFolder(engine: SyncEngine): Promise<void> {
   const username = (config.username as string) ?? ''
   const appPassword = (config.appPassword as string) ?? ''
   if (!webdavUrl || !username) return
-  // Only run MKCOL once per unique folder URL to avoid flooding the server
-  if (_ensuredForUrl === webdavUrl) return
+  // ensureFolder self-throttles via a persisted "folder exists" cache, so this
+  // is safe to call on every sync trigger (reload, tab focus) without re-MKCOLing.
   try {
     const url = new URL(webdavUrl)
     const baseUrl = `${url.protocol}//${url.host}${url.pathname.replace(/\/+$/, '')}`
     const folder = localStorage.getItem(SYNC_FOLDER_KEY) || DEFAULT_SYNC_FOLDER
     await ensureFolder(baseUrl, folder, buildAuthHeader(username, appPassword))
-    _ensuredForUrl = webdavUrl
   } catch {
     // non-fatal — if we can't create the folder the sync will surface its own error
   }
