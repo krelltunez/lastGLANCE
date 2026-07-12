@@ -51,6 +51,11 @@ public class MainActivity extends BridgeActivity {
             return;
         }
 
+        // User opt-in gate (off by default), mirroring IntentReceiver: while the
+        // automation-intents toggle is off, an Activity-target intent may still
+        // launch the app (that can't be prevented) but its payload is dropped.
+        if (!SharedDataStore.isAutomationIntentsEnabled(this)) return;
+
         JSONObject payloadObj;
         try {
             String raw = intent.getStringExtra("payload");

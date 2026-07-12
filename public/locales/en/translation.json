@@ -164,6 +164,10 @@
   },
   "integration": {
     "title": "dayGLANCE Integration",
+    "automationSection": "Automation intents (Tasker)",
+    "automationDescription": "Let Tasker and other automation apps create, complete, open, and query chores by sending Android intents.",
+    "enableAutomation": "Enable automation intents",
+    "enableAutomationHint": "Off by default. When on, any app installed on this device can create, complete, and read your chores, and receive chore data (names and times) via broadcasts.",
     "connectionSection": "Connection",
     "enableIntegration": "Enable WebDAV intents",
     "enableIntegrationHint": "Controls the WebDAV intents transport only — GLANCEvault intents are set below.",

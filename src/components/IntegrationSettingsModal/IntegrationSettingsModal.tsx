@@ -19,6 +19,7 @@ import { loadVaultIntentsRootKey } from '@/intents/vaultIntentsKeyStore'
 import { setupIntentsEncryption } from '@/intents/setupIntentsEncryption'
 import { setupVaultIntentsEncryption, ensureVaultIntentsKey, VaultConnMissingError, VaultSaltMissingError } from '@/intents/setupVaultIntentsEncryption'
 import { flushIntents } from '@/intents/flushIntents'
+import { isAndroid, nativeGetAutomationIntentsEnabled, nativeSetAutomationIntentsEnabled } from '@/native/intentsBridge'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
 import { useTranslation } from 'react-i18next'
 
@@ -52,6 +53,21 @@ export function IntegrationSettingsModal({ onClose, onSaved }: Props) {
   const [passphraseInput, setPassphraseInput] = useState('')
   const [setupError, setSetupError] = useState('')
   const [saving, setSaving] = useState(false)
+
+  // Android/Tasker automation-intents opt-in (off by default). The flag lives in
+  // native SharedPreferences — the manifest receiver enforces it even when the
+  // app is dead — so this toggle reads/writes through the plugin and applies
+  // immediately rather than riding the Save button.
+  const [automationEnabled, setAutomationEnabled] = useState(false)
+  useEffect(() => {
+    if (!isAndroid()) return
+    nativeGetAutomationIntentsEnabled().then(setAutomationEnabled)
+  }, [])
+  function toggleAutomation() {
+    const next = !automationEnabled
+    setAutomationEnabled(next)
+    void nativeSetAutomationIntentsEnabled(next)
+  }
 
   // GLANCEvault DB intents transport (beta). Independent of the WebDAV intents
   // config above and of the vault SYNC toggle: this only flips the `enabled`
@@ -216,6 +232,34 @@ export function IntegrationSettingsModal({ onClose, onSaved }: Props) {
 
         {/* Scrollable body */}
         <div className="overflow-y-auto flex-1 px-6 pb-4 space-y-5">
+          {/* Automation intents (Tasker) — Android only. Native opt-in gate for
+              the app.lastglance.* broadcast surface; applies immediately. */}
+          {isAndroid() && (
+            <div className="space-y-3">
+              <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                {t('integration.automationSection')}
+              </h3>
+              <p className="text-xs text-slate-400 dark:text-slate-500">
+                {t('integration.automationDescription')}
+              </p>
+              <div className="flex items-start justify-between py-1">
+                <div className="min-w-0">
+                  <p className="text-sm text-slate-700 dark:text-slate-300">{t('integration.enableAutomation')}</p>
+                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{t('integration.enableAutomationHint')}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={toggleAutomation}
+                  className={`relative shrink-0 mt-0.5 w-10 h-6 rounded-full transition-colors ${automationEnabled ? 'bg-green-400' : 'bg-slate-300 dark:bg-slate-600'}`}
+                  aria-checked={automationEnabled}
+                  role="switch"
+                >
+                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${automationEnabled ? 'translate-x-4' : ''}`} />
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Connection section */}
           <div className="space-y-3">
             <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">

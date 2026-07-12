@@ -13,6 +13,18 @@ This is Android-only. iOS has no equivalent broadcast mechanism; for cross-platf
 
 ## 1. What it does
 
+> **Opt-in gate (lastGLANCE, added post-port; mirrors dayGLANCE's toggle).**
+> The whole transport is gated behind a user toggle — "Enable automation
+> intents" in the dayGLANCE Integration settings — **off by default**, because
+> the surface is open to every installed app (exported receiver in,
+> unrestricted RESULT/NOTIFY broadcasts out). The flag lives in native
+> `SharedPreferences` (`SharedDataStore.isAutomationIntentsEnabled`) so it is
+> enforced natively even when the app process is dead: `IntentReceiver` and
+> `MainActivity` drop inbound intents without storing them, the plugin's
+> `getPendingIntent` drains-and-drops anything stored pre-opt-out, and
+> `reportIntentResult` / `sendNotifyBroadcast` are suppressed. Disabling also
+> clears the pending-intent slot.
+
 Let another Android app (Tasker, MacroDroid, Automate, …) drive the app by sending Android intents:
 
 | Inbound action | Meaning |

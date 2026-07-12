@@ -29,6 +29,11 @@ public class IntentReceiver extends BroadcastReceiver {
         String action = intent.getAction();
         if (action == null) return;
 
+        // User opt-in gate (off by default): this receiver is exported to every
+        // installed app, so while the toggle is off, drop the intent without
+        // storing or waking anything.
+        if (!SharedDataStore.isAutomationIntentsEnabled(context)) return;
+
         // Re-serialize the payload through JSONObject rather than trusting the raw
         // extra: a crafted `payload` string can't inject structure this way.
         JSONObject payloadObj;
