@@ -1,4 +1,4 @@
-import { useState, useEffect, useLayoutEffect, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { X, Trash2, NotebookPen } from 'lucide-react'
 import dayjs from 'dayjs'
 import type { ChoreWithLastCompletion, CompletionEvent } from '@/types'
@@ -31,30 +31,11 @@ export function LogModal({ chore, onClose, onLogged }: Props) {
   const [sendState, setSendState] = useState<SendState>('idle')
   const [completions, setCompletions] = useState<CompletionEvent[]>([])
   const heatmapRef = useRef<HTMLDivElement>(null)
-  const firstCompletionRef = useRef<HTMLDivElement>(null)
-  const [listMaxHeight, setListMaxHeight] = useState<number | undefined>(undefined)
   useEscapeKey(onClose)
 
   useEffect(() => {
     getCompletionHistory(chore.id, 1000).then(c => setCompletions(c))
   }, [chore.id])
-
-  // On the stacked (mobile/tablet) layout, cap the completion list to exactly the
-  // most recent entry so the log form above stays fully visible; the rest scroll
-  // into view. The lg side-by-side layout shows the full-height list.
-  useLayoutEffect(() => {
-    function recompute() {
-      const stacked = !window.matchMedia('(min-width: 1024px)').matches
-      setListMaxHeight(
-        stacked && completions.length > 1 && firstCompletionRef.current
-          ? firstCompletionRef.current.offsetHeight
-          : undefined,
-      )
-    }
-    recompute()
-    window.addEventListener('resize', recompute)
-    return () => window.removeEventListener('resize', recompute)
-  }, [completions])
 
   useEffect(() => {
     if (!heatmapRef.current) return
@@ -184,7 +165,11 @@ export function LogModal({ chore, onClose, onLogged }: Props) {
           )}
         </div>
 
-        {/* ── Right / bottom: history ── */}
+        {/* ── Right / bottom: history ──
+            The log form above is shrink-0 (pinned, never clipped); this column is
+            flex-1 min-h-0, so its single overflow-y-auto region below absorbs the
+            leftover height and scrolls the heatmap + full completion list together
+            as one continuous list — no nested/tiny scrollers, no height measuring. */}
         <div className="flex-1 min-w-0 flex flex-col min-h-0 border-t border-slate-100 dark:border-slate-700/60 lg:border-t-0 bg-slate-50 dark:bg-slate-900/60">
 
           <div className="shrink-0 flex divide-x divide-slate-100 dark:divide-slate-700/60 border-b border-slate-100 dark:border-slate-700/60">
@@ -208,10 +193,7 @@ export function LogModal({ chore, onClose, onLogged }: Props) {
               {completions.length === 0 ? (
                 <p className="text-sm text-slate-400 dark:text-slate-600 py-4 text-center">{t('logModal.noCompletions')}</p>
               ) : (
-                <div
-                  className={listMaxHeight != null ? 'overflow-y-auto' : undefined}
-                  style={listMaxHeight != null ? { maxHeight: listMaxHeight } : undefined}
-                >
+                <div>
                   {completions.map((evt, i) => {
                     const prev = completions[i + 1]
                     const gapDays = prev
@@ -219,19 +201,17 @@ export function LogModal({ chore, onClose, onLogged }: Props) {
                       : null
                     return (
                       <div key={evt.id}>
-                        <div ref={i === 0 ? firstCompletionRef : undefined}>
-                          <CompletionRow
-                            evt={evt}
-                            onDelete={() => handleDelete(evt.id)}
-                            onEditNote={async (note) => {
-                              await updateCompletionNote(evt.id, note)
-                              setCompletions(prev => prev.map(c => c.id === evt.id ? { ...c, note } : c))
-                            }}
-                            userName={multiUserEnabled && evt.completed_by_user_sync_id
-                              ? (users.find(u => u.sync_id === evt.completed_by_user_sync_id)?.name ?? null)
-                              : null}
-                          />
-                        </div>
+                        <CompletionRow
+                          evt={evt}
+                          onDelete={() => handleDelete(evt.id)}
+                          onEditNote={async (note) => {
+                            await updateCompletionNote(evt.id, note)
+                            setCompletions(prev => prev.map(c => c.id === evt.id ? { ...c, note } : c))
+                          }}
+                          userName={multiUserEnabled && evt.completed_by_user_sync_id
+                            ? (users.find(u => u.sync_id === evt.completed_by_user_sync_id)?.name ?? null)
+                            : null}
+                        />
                         {gapDays !== null && gapDays > 0 && (
                           <GapMarker days={gapDays} target={chore.target_cadence_days} />
                         )}
