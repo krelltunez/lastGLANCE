@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Backup/transfer rules for Android 12+ (API 31), referenced by
+     android:dataExtractionRules in the manifest.
+
+     Cloud backup excludes:
+     - app_webview/: the WebView profile holding ALL web-app storage — IndexedDB
+       (chore data + the sync crypto keys in lastglance-crypto) and localStorage
+       (WebDAV credentials, vault token, intents config). Keeps secrets and user
+       content out of Google cloud backups; WebView data restore is also known to
+       be unreliable (partial LevelDB restores). Sync or the in-app export is the
+       sanctioned recovery path.
+     - lastglance_shared.xml: the widget hand-off prefs. The snapshot inside
+       carries chore names/dates (same content excluded above), and it is derived
+       data the app regenerates on first open — restoring it would only show
+       stale widget content until then.
+
+     Device-to-device transfer is intentionally UNRESTRICTED: it is a direct,
+     encrypted phone-to-phone copy that never lands on a server, and keeping it
+     preserves seamless migration for users who don't use sync. -->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="root" path="app_webview/" />
+        <exclude domain="sharedpref" path="lastglance_shared.xml" />
+    </cloud-backup>
+</data-extraction-rules>
