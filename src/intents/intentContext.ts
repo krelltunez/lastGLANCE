@@ -124,6 +124,10 @@ export function buildIntentContext(onChanged?: () => void): IntentContext {
     createChore: async (input) => {
       const created = await createChore(input)
       addActivityEntry({ type: 'received', message: `Created "${input.name}" via Tasker` })
+      // Mirror the COMPLETE path and the poller transports: lg:chore-logged is
+      // what makes the Ribbon reload its data. Without it, an intent-created
+      // chore lands in the DB but stays invisible until the next app restart.
+      window.dispatchEvent(new CustomEvent('lg:chore-logged'))
       onChanged?.()
       return created
     },
