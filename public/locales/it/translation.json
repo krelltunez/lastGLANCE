@@ -225,7 +225,8 @@
     "description": "Inserisci la tua passphrase di crittografia per riprendere la sincronizzazione.",
     "placeholder": "Passphrase",
     "unlock": "Sblocca",
-    "failedToUnlock": "Sblocco fallito"
+    "failedToUnlock": "Sblocco fallito",
+    "insecureContext": "La crittografia della sincronizzazione richiede una connessione sicura: HTTPS o http://localhost. Questa pagina è su un indirizzo non sicuro, quindi la crittografia non è disponibile qui."
   },
   "ribbon": {
     "loading": "Caricamento…",

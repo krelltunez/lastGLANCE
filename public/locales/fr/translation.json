@@ -225,7 +225,8 @@
     "description": "Entrez votre phrase secrète de chiffrement pour reprendre la synchronisation.",
     "placeholder": "Phrase secrète",
     "unlock": "Déverrouiller",
-    "failedToUnlock": "Échec du déverrouillage"
+    "failedToUnlock": "Échec du déverrouillage",
+    "insecureContext": "Le chiffrement de la synchronisation nécessite une connexion sécurisée — HTTPS ou http://localhost. Cette page est sur une adresse non sécurisée, le chiffrement n'est donc pas disponible ici."
   },
   "ribbon": {
     "loading": "Chargement…",

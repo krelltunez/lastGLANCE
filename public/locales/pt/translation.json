@@ -225,7 +225,8 @@
     "description": "Introduza a sua frase-passe de encriptação para retomar a sincronização.",
     "placeholder": "Frase-passe",
     "unlock": "Desbloquear",
-    "failedToUnlock": "Falha ao desbloquear"
+    "failedToUnlock": "Falha ao desbloquear",
+    "insecureContext": "A encriptação de sincronização requer uma ligação segura — HTTPS ou http://localhost. Esta página está num endereço não seguro, por isso a encriptação não está disponível aqui."
   },
   "ribbon": {
     "loading": "A carregar…",

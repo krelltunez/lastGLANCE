@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
-import { X, Loader } from 'lucide-react'
+import { X, Loader, ShieldAlert } from 'lucide-react'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
 import { useTranslation } from 'react-i18next'
+import { isWebCryptoAvailable } from '@/utils/secureContext'
 
 interface Props {
   onSubmit: (passphrase: string) => Promise<void>
@@ -14,10 +15,15 @@ export function PassphraseModal({ onSubmit, onClose }: Props) {
   const [passphrase, setPassphrase] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+  // Deriving the key needs Web Crypto (crypto.subtle), which is only exposed in a
+  // secure context. Detect its absence so we explain it rather than throwing a
+  // cryptic "reading 'importKey'" error when the user submits.
+  const cryptoAvailable = isWebCryptoAvailable()
 
   useEscapeKey(onClose)
 
   async function handleSubmit() {
+    if (!cryptoAvailable) return
     if (!passphrase.trim()) return
     setSubmitting(true)
     setError('')
@@ -46,35 +52,46 @@ export function PassphraseModal({ onSubmit, onClose }: Props) {
           </button>
         </div>
 
-        <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
-          {t('passphrase.description')}
-        </p>
+        {cryptoAvailable ? (
+          <>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+              {t('passphrase.description')}
+            </p>
 
-        <div className="space-y-3">
-          <input
-            type="password"
-            value={passphrase}
-            onChange={e => setPassphrase(e.target.value)}
-            placeholder={t('passphrase.placeholder')}
-            autoComplete="current-password"
-            autoFocus
-            onKeyDown={e => { if (e.key === 'Enter') handleSubmit() }}
-            className="w-full bg-slate-100 dark:bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
-          />
+            <div className="space-y-3">
+              <input
+                type="password"
+                value={passphrase}
+                onChange={e => setPassphrase(e.target.value)}
+                placeholder={t('passphrase.placeholder')}
+                autoComplete="current-password"
+                autoFocus
+                onKeyDown={e => { if (e.key === 'Enter') handleSubmit() }}
+                className="w-full bg-slate-100 dark:bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
+              />
 
-          {error && (
-            <p className="text-xs text-red-500 dark:text-red-400">{error}</p>
-          )}
+              {error && (
+                <p className="text-xs text-red-500 dark:text-red-400">{error}</p>
+              )}
 
-          <button
-            onClick={handleSubmit}
-            disabled={!passphrase.trim() || submitting}
-            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium text-white bg-green-500 hover:bg-green-400 disabled:opacity-50 transition-colors"
-          >
-            {submitting && <Loader size={14} className="animate-spin" />}
-            {t('passphrase.unlock')}
-          </button>
-        </div>
+              <button
+                onClick={handleSubmit}
+                disabled={!passphrase.trim() || submitting}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium text-white bg-green-500 hover:bg-green-400 disabled:opacity-50 transition-colors"
+              >
+                {submitting && <Loader size={14} className="animate-spin" />}
+                {t('passphrase.unlock')}
+              </button>
+            </div>
+          </>
+        ) : (
+          <div className="flex items-start gap-3 rounded-xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 p-3">
+            <ShieldAlert size={16} className="mt-0.5 shrink-0 text-amber-500 dark:text-amber-400" />
+            <p className="text-sm text-amber-700 dark:text-amber-300">
+              {t('passphrase.insecureContext')}
+            </p>
+          </div>
+        )}
       </div>
     </div>,
     document.body
