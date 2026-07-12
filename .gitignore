@@ -11,3 +11,6 @@ outputs
 android/keystore.properties
 *.keystore
 *.jks
+
+# Generated marketing/store screenshots (npm run gen:screenshots)
+store-screenshots/
