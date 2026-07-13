@@ -19,7 +19,8 @@
     "all": "Todas",
     "done": "Concluído",
     "edit": "Editar",
-    "settings": "Definições"
+    "settings": "Definições",
+    "subscription": "Subscrição"
   },
   "activityLog": {
     "title": "Registo de atividade",
@@ -373,5 +374,27 @@
     "sendLabel": "→ dG",
     "done": "Feito",
     "details": "Detalhes"
+  },
+  "paywall": {
+    "pitch": "Acompanhe quando fez pela última vez tudo o que importa. Um desbloqueio, todas as funções.",
+    "annualTitle": "Anual",
+    "annualPer": "{{price}}/ano",
+    "lifetimeTitle": "Vitalício",
+    "lifetimeOnce": "{{price}} uma vez",
+    "lifetimeHint": "Pague uma vez, fique com ele para sempre.",
+    "trialDays_one": "Teste grátis de {{count}} dia",
+    "trialDays_other": "Teste grátis de {{count}} dias",
+    "trialGeneric": "Teste grátis incluído",
+    "restore": "Restaurar compra",
+    "nothingToRestore": "Nenhuma compra anterior encontrada.",
+    "haveCode": "Tem um código?",
+    "codePlaceholder": "Código de acesso",
+    "codeSubmit": "Aplicar",
+    "codeInvalid": "Esse código não é válido.",
+    "manage": "Gerir subscrição",
+    "sourceLifetime": "Desbloqueio vitalício ativo",
+    "sourceSubscription": "Subscrição anual ativa",
+    "sourceReviewer": "Acesso de revisão ativo",
+    "sourceNone": "Não desbloqueado"
   }
 }

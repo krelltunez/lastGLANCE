@@ -19,7 +19,8 @@
     "all": "Todas",
     "done": "Listo",
     "edit": "Editar",
-    "settings": "Ajustes"
+    "settings": "Ajustes",
+    "subscription": "Suscripción"
   },
   "activityLog": {
     "title": "Registro de actividad",
@@ -373,5 +374,27 @@
     "sendLabel": "→ dG",
     "done": "Hecho",
     "details": "Detalles"
+  },
+  "paywall": {
+    "pitch": "Controla cuándo hiciste por última vez todo lo que importa. Un desbloqueo, todas las funciones.",
+    "annualTitle": "Anual",
+    "annualPer": "{{price}}/año",
+    "lifetimeTitle": "De por vida",
+    "lifetimeOnce": "{{price}} una vez",
+    "lifetimeHint": "Paga una vez y quédatelo para siempre.",
+    "trialDays_one": "Prueba gratis de {{count}} día",
+    "trialDays_other": "Prueba gratis de {{count}} días",
+    "trialGeneric": "Prueba gratis incluida",
+    "restore": "Restaurar compra",
+    "nothingToRestore": "No se encontró ninguna compra anterior.",
+    "haveCode": "¿Tienes un código?",
+    "codePlaceholder": "Código de acceso",
+    "codeSubmit": "Aplicar",
+    "codeInvalid": "Ese código no es válido.",
+    "manage": "Gestionar suscripción",
+    "sourceLifetime": "Desbloqueo de por vida activo",
+    "sourceSubscription": "Suscripción anual activa",
+    "sourceReviewer": "Acceso de revisión activo",
+    "sourceNone": "No desbloqueado"
   }
 }

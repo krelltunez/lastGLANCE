@@ -6,6 +6,8 @@ import android.os.Bundle;
 
 import com.getcapacitor.BridgeActivity;
 
+import com.glanceapps.billing.BillingBridgePlugin;
+
 import com.lastglance.app.intents.IntentReceiver;
 import com.lastglance.app.intents.IntentsBridgePlugin;
 
@@ -17,6 +19,7 @@ public class MainActivity extends BridgeActivity {
         // Register app-local plugins before the bridge starts.
         registerPlugin(WidgetBridgePlugin.class);
         registerPlugin(IntentsBridgePlugin.class);
+        registerPlugin(BillingBridgePlugin.class);
         super.onCreate(savedInstanceState);
         captureWidgetDeepLink(getIntent());
         captureSharedText(getIntent());

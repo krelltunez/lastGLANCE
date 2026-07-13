@@ -19,7 +19,8 @@
     "all": "Toutes",
     "done": "Terminer",
     "edit": "Modifier",
-    "settings": "Paramètres"
+    "settings": "Paramètres",
+    "subscription": "Abonnement"
   },
   "activityLog": {
     "title": "Journal d'activité",
@@ -373,5 +374,27 @@
     "sendLabel": "→ dG",
     "done": "Fait",
     "details": "Détails"
+  },
+  "paywall": {
+    "pitch": "Suivez quand vous avez fait tout ce qui compte pour la dernière fois. Un déblocage, toutes les fonctions.",
+    "annualTitle": "Annuel",
+    "annualPer": "{{price}}/an",
+    "lifetimeTitle": "À vie",
+    "lifetimeOnce": "{{price}} une fois",
+    "lifetimeHint": "Payez une fois, gardez-le pour toujours.",
+    "trialDays_one": "Essai gratuit de {{count}} jour",
+    "trialDays_other": "Essai gratuit de {{count}} jours",
+    "trialGeneric": "Essai gratuit inclus",
+    "restore": "Restaurer l'achat",
+    "nothingToRestore": "Aucun achat antérieur trouvé.",
+    "haveCode": "Un code ?",
+    "codePlaceholder": "Code d'accès",
+    "codeSubmit": "Valider",
+    "codeInvalid": "Ce code n'est pas valide.",
+    "manage": "Gérer l'abonnement",
+    "sourceLifetime": "Déblocage à vie actif",
+    "sourceSubscription": "Abonnement annuel actif",
+    "sourceReviewer": "Accès de test actif",
+    "sourceNone": "Non débloqué"
   }
 }

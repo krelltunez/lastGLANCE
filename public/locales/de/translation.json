@@ -19,7 +19,8 @@
     "all": "Alle",
     "done": "Fertig",
     "edit": "Bearbeiten",
-    "settings": "Einstellungen"
+    "settings": "Einstellungen",
+    "subscription": "Abo"
   },
   "activityLog": {
     "title": "Aktivitätsprotokoll",
@@ -373,5 +374,27 @@
     "sendLabel": "→ dG",
     "done": "Erledigt",
     "details": "Details"
+  },
+  "paywall": {
+    "pitch": "Behalte im Blick, wann du alles Wichtige zuletzt erledigt hast. Einmal freischalten, alle Funktionen.",
+    "annualTitle": "Jährlich",
+    "annualPer": "{{price}}/Jahr",
+    "lifetimeTitle": "Lebenslang",
+    "lifetimeOnce": "{{price}} einmalig",
+    "lifetimeHint": "Einmal zahlen, für immer behalten.",
+    "trialDays_one": "{{count}} Tag kostenlos testen",
+    "trialDays_other": "{{count}} Tage kostenlos testen",
+    "trialGeneric": "Kostenlose Testphase inklusive",
+    "restore": "Kauf wiederherstellen",
+    "nothingToRestore": "Kein früherer Kauf gefunden.",
+    "haveCode": "Code vorhanden?",
+    "codePlaceholder": "Zugangscode",
+    "codeSubmit": "Einlösen",
+    "codeInvalid": "Dieser Code ist ungültig.",
+    "manage": "Abo verwalten",
+    "sourceLifetime": "Lebenslange Freischaltung aktiv",
+    "sourceSubscription": "Jahresabo aktiv",
+    "sourceReviewer": "Prüfzugang aktiv",
+    "sourceNone": "Nicht freigeschaltet"
   }
 }
