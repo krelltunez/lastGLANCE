@@ -148,6 +148,14 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Play Billing, declared ahead of the paywall integration: the Play Console
+         only allows creating in-app products/subscriptions once an uploaded
+         artifact carries this permission, so declaring it now lets the SKUs be
+         created (and start propagating) while @glance-apps/paywall is extracted.
+         Harmless at runtime — nothing queries billing until the paywall lands;
+         the Play Billing library will merge this same permission when added.
+         See docs/paywall-billing-plan.md. -->
+    <uses-permission android:name="com.android.vending.BILLING" />
     <!-- Exact alarms for Doze-proof overdue reminders (Android 12+). The plugin
          already declares POST_NOTIFICATIONS and RECEIVE_BOOT_COMPLETED. -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
