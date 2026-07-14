@@ -3,11 +3,13 @@ import { playManageSubscriptionUrl } from '@glance-apps/billing'
 import { createCapacitorAdapter, type CapacitorBillingPlugin } from '@glance-apps/billing/capacitor'
 import { useBilling, type UseBillingResult } from '@glance-apps/billing/react'
 
-// Play product ids, as created in the Play Console (docs/paywall-billing-plan.md):
-// the subscription product `pro` (base plan `annual`, $4.99/yr) queried as SUBS,
-// and the one-time INAPP product `pro_lifetime` ($19.99). Single source of truth
-// for the whole app — the gate UI and the native plugin both derive from here.
-export const PRODUCT_IDS = { yearly: 'pro', lifetime: 'pro_lifetime' }
+// Play product ids, as created in the Play Console. Following the GLANCE family
+// convention (dayGLANCE uses dayglance_pro_*): the subscription product
+// `lastglance_pro_annual` (base plan `annual`, $4.99/yr) queried as SUBS, and the
+// one-time INAPP product `lastglance_pro_lifetime` ($19.99). Permanent once
+// created. Single source of truth for the app — the gate UI and the native
+// plugin both derive from here.
+export const PRODUCT_IDS = { yearly: 'lastglance_pro_annual', lifetime: 'lastglance_pro_lifetime' }
 
 // Channel gating is structural (@glance-apps/billing README rule 10): only the
 // Play build constructs an adapter. The GitHub sideload APK and self-hosted
