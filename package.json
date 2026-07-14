@@ -11,6 +11,7 @@
     "test": "vitest run",
     "gen:icons": "node scripts/gen-lucide-drawables.mjs",
     "gen:screenshots": "node scripts/seed-demo-screenshots.mjs",
+    "reviewer-code": "node scripts/reviewer-code.mjs",
     "cap:sync": "npm run build && cap sync",
     "build:android": "npm run build && cap sync android",
     "build:ios": "npm run build && cap sync ios && node scripts/sync-ios-version.mjs",

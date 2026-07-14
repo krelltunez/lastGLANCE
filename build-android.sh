@@ -119,12 +119,10 @@ if $RELEASE; then
   cp "app/build/outputs/apk/release/lastglance.apk" "$OUT_DIR/lastglance.apk"
   echo "    APK (release, github channel) → outputs/lastglance.apk"
 
-  # The Play build must carry the reviewer bypass (@glance-apps/billing rule 9:
-  # store review needs a way past a hard gate).
-  if [ -z "$VITE_REVIEWER_SECRET" ]; then
-    echo "WARNING: VITE_REVIEWER_SECRET is not set — the Play build's reviewer"
-    echo "         bypass will be DISABLED. Set it before building a store AAB."
-  fi
+  # The reviewer bypass (@glance-apps/billing rule 9: store review needs a way
+  # past a hard gate) is compiled in from src/config/reviewerAccess.js — a
+  # committed secret, no env var to set. Run `npm run reviewer-code` to print
+  # the current month's code for the store review notes.
   echo "==> Building web assets (channel: play — gated AAB)..."
   cd "$SCRIPT_DIR"
   VITE_BUILD_CHANNEL=play npm run build:android

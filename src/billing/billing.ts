@@ -2,12 +2,15 @@ import { Capacitor, registerPlugin } from '@capacitor/core'
 import { playManageSubscriptionUrl } from '@glance-apps/billing'
 import { createCapacitorAdapter, type CapacitorBillingPlugin } from '@glance-apps/billing/capacitor'
 import { useBilling, type UseBillingResult } from '@glance-apps/billing/react'
+import { REVIEWER_SECRET } from '@/config/reviewerAccess'
 
-// Play product ids, as created in the Play Console (docs/paywall-billing-plan.md):
-// the subscription product `pro` (base plan `annual`, $4.99/yr) queried as SUBS,
-// and the one-time INAPP product `pro_lifetime` ($19.99). Single source of truth
-// for the whole app — the gate UI and the native plugin both derive from here.
-export const PRODUCT_IDS = { yearly: 'pro', lifetime: 'pro_lifetime' }
+// Play product ids, as created in the Play Console. Following the GLANCE family
+// convention (dayGLANCE uses dayglance_pro_*): the subscription product
+// `lastglance_pro_annual` (base plan `annual`, $4.99/yr) queried as SUBS, and the
+// one-time INAPP product `lastglance_pro_lifetime` ($19.99). Permanent once
+// created. Single source of truth for the app — the gate UI and the native
+// plugin both derive from here.
+export const PRODUCT_IDS = { yearly: 'lastglance_pro_annual', lifetime: 'lastglance_pro_lifetime' }
 
 // Channel gating is structural (@glance-apps/billing README rule 10): only the
 // Play build constructs an adapter. The GitHub sideload APK and self-hosted
@@ -27,11 +30,13 @@ const adapter = isGatedChannel
 export const MANAGE_SUBSCRIPTION_URL = playManageSubscriptionUrl('com.lastglance.app', PRODUCT_IDS.yearly)
 
 // The app-wide billing hook. Reviewer bypass (README rule 9: store review needs
-// a way past a hard gate) is derived from VITE_REVIEWER_SECRET, injected at
-// build time for the Play channel only — build-android.sh warns when unset.
+// a way past a hard gate) uses REVIEWER_SECRET from the committed config module
+// (dayGLANCE model) — the same constant the `npm run reviewer-code` CLI derives
+// from, so a printed code always matches. Only load-bearing on the gated Play
+// channel; on ungated builds the adapter is null and nothing is behind the gate.
 export function useSubscription(): UseBillingResult {
   return useBilling(() => ({
     adapter,
-    reviewerSecret: import.meta.env.VITE_REVIEWER_SECRET ?? null,
+    reviewerSecret: REVIEWER_SECRET,
   }))
 }
