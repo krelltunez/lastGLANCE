@@ -2,6 +2,7 @@ import { Capacitor, registerPlugin } from '@capacitor/core'
 import { playManageSubscriptionUrl } from '@glance-apps/billing'
 import { createCapacitorAdapter, type CapacitorBillingPlugin } from '@glance-apps/billing/capacitor'
 import { useBilling, type UseBillingResult } from '@glance-apps/billing/react'
+import { REVIEWER_SECRET } from '@/config/reviewerAccess'
 
 // Play product ids, as created in the Play Console. Following the GLANCE family
 // convention (dayGLANCE uses dayglance_pro_*): the subscription product
@@ -29,11 +30,13 @@ const adapter = isGatedChannel
 export const MANAGE_SUBSCRIPTION_URL = playManageSubscriptionUrl('com.lastglance.app', PRODUCT_IDS.yearly)
 
 // The app-wide billing hook. Reviewer bypass (README rule 9: store review needs
-// a way past a hard gate) is derived from VITE_REVIEWER_SECRET, injected at
-// build time for the Play channel only — build-android.sh warns when unset.
+// a way past a hard gate) uses REVIEWER_SECRET from the committed config module
+// (dayGLANCE model) — the same constant the `npm run reviewer-code` CLI derives
+// from, so a printed code always matches. Only load-bearing on the gated Play
+// channel; on ungated builds the adapter is null and nothing is behind the gate.
 export function useSubscription(): UseBillingResult {
   return useBilling(() => ({
     adapter,
-    reviewerSecret: import.meta.env.VITE_REVIEWER_SECRET ?? null,
+    reviewerSecret: REVIEWER_SECRET,
   }))
 }
