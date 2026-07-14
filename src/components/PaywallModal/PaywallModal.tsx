@@ -45,9 +45,11 @@ export function PaywallModal({ billing, mode, onClose }: Props) {
   const headline = hasTrial
     ? (days != null ? t('paywall.trialHeadline', { count: days }) : t('paywall.trialHeadlineGeneric'))
     : t('paywall.gateHeadline')
+  // The pitch is now the always-on tagline under the wordmark, so the subtitle
+  // is trial-only; non-trial gets the tagline + headline and no subtitle.
   const subtitle = hasTrial
     ? (days != null ? t('paywall.trialSubtitle', { count: days }) : t('paywall.trialSubtitleGeneric'))
-    : t('paywall.pitch')
+    : null
 
   // Annual card sub-line: "{n}-day free trial, then {price}/yr" once both known.
   const annualSub = hasTrial
@@ -117,10 +119,11 @@ export function PaywallModal({ billing, mode, onClose }: Props) {
           </>
         ) : (
           <>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">{t('paywall.pitch')}</p>
             <h3 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100 mt-4">{headline}</h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 mb-5">{subtitle}</p>
+            {subtitle && <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">{subtitle}</p>}
 
-            <div className="space-y-3">
+            <div className="space-y-3 mt-5">
               {/* Annual */}
               <button
                 onClick={() => { billing.clearBillingEvent(); billing.subscribe(PRODUCT_IDS.yearly) }}
@@ -145,7 +148,12 @@ export function PaywallModal({ billing, mode, onClose }: Props) {
                 className="w-full text-left p-4 rounded-xl border border-slate-200 dark:border-slate-600 hover:border-slate-300 dark:hover:border-slate-500 bg-slate-50 dark:bg-slate-700/40 transition-colors disabled:opacity-50"
               >
                 <div className="flex items-baseline justify-between">
-                  <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">{t('paywall.lifetimeTitle')}</span>
+                  <span className="inline-flex items-baseline gap-2">
+                    <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">{t('paywall.lifetimeTitle')}</span>
+                    <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-green-400 text-slate-900">
+                      {t('paywall.bestValue')}
+                    </span>
+                  </span>
                   <span className="text-sm font-bold text-slate-900 dark:text-slate-50 tabular-nums">
                     {lifetimePrice ? t('paywall.lifetimeOnce', { price: lifetimePrice }) : '…'}
                   </span>

@@ -437,6 +437,7 @@
     "subExplainer": "{{price}}/year, renews annually until canceled. Cancel anytime in your {{store}} subscription settings.",
     "paymentVia": "Payment via {{store}}.",
     "reviewerAccess": "Reviewer access",
-    "reviewerHint": "For app-store reviewers only. Not a promo code."
+    "reviewerHint": "For app-store reviewers only. Not a promo code.",
+    "bestValue": "Best value"
   }
 }

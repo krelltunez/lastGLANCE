@@ -411,6 +411,7 @@
     "subExplainer": "{{price}}/Jahr, verlängert sich jährlich, bis du kündigst. Jederzeit in deinen {{store}}-Aboeinstellungen kündbar.",
     "paymentVia": "Zahlung über {{store}}.",
     "reviewerAccess": "Prüfzugang",
-    "reviewerHint": "Nur für App-Store-Prüfer. Kein Gutscheincode."
+    "reviewerHint": "Nur für App-Store-Prüfer. Kein Gutscheincode.",
+    "bestValue": "Bester Wert"
   }
 }

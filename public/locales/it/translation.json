@@ -411,6 +411,7 @@
     "subExplainer": "{{price}}/anno, si rinnova ogni anno fino all'annullamento. Annulla quando vuoi nelle impostazioni degli abbonamenti di {{store}}.",
     "paymentVia": "Pagamento tramite {{store}}.",
     "reviewerAccess": "Accesso revisori",
-    "reviewerHint": "Solo per i revisori dello store. Non è un codice promozionale."
+    "reviewerHint": "Solo per i revisori dello store. Non è un codice promozionale.",
+    "bestValue": "Miglior valore"
   }
 }
