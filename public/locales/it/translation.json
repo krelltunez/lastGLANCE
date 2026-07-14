@@ -19,7 +19,8 @@
     "all": "Tutte",
     "done": "Fine",
     "edit": "Modifica",
-    "settings": "Impostazioni"
+    "settings": "Impostazioni",
+    "subscription": "Abbonamento"
   },
   "activityLog": {
     "title": "Registro attività",
@@ -373,5 +374,27 @@
     "sendLabel": "→ dG",
     "done": "Fatto",
     "details": "Dettagli"
+  },
+  "paywall": {
+    "pitch": "Tieni traccia di quando hai fatto l'ultima volta tutto ciò che conta. Uno sblocco, tutte le funzioni.",
+    "annualTitle": "Annuale",
+    "annualPer": "{{price}}/anno",
+    "lifetimeTitle": "A vita",
+    "lifetimeOnce": "{{price}} una tantum",
+    "lifetimeHint": "Paghi una volta, è tuo per sempre.",
+    "trialDays_one": "Prova gratuita di {{count}} giorno",
+    "trialDays_other": "Prova gratuita di {{count}} giorni",
+    "trialGeneric": "Prova gratuita inclusa",
+    "restore": "Ripristina acquisto",
+    "nothingToRestore": "Nessun acquisto precedente trovato.",
+    "haveCode": "Hai un codice?",
+    "codePlaceholder": "Codice di accesso",
+    "codeSubmit": "Applica",
+    "codeInvalid": "Codice non valido.",
+    "manage": "Gestisci abbonamento",
+    "sourceLifetime": "Sblocco a vita attivo",
+    "sourceSubscription": "Abbonamento annuale attivo",
+    "sourceReviewer": "Accesso di revisione attivo",
+    "sourceNone": "Non sbloccato"
   }
 }

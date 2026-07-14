@@ -24,6 +24,7 @@
     "@capacitor/ios": "^8.4.0",
     "@capacitor/local-notifications": "^8.2.0",
     "@capacitor/status-bar": "^8.0.2",
+    "@glance-apps/billing": "0.1.0",
     "@glance-apps/intents": "1.4.0",
     "@glance-apps/sync": "1.6.0",
     "dayjs": "^1.11.13",

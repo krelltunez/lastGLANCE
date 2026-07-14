@@ -105,29 +105,36 @@ if $RELEASE; then
     echo "         be UNSIGNED and not installable. See keystore.properties.example."
   fi
 
-  echo "==> Building web assets..."
+  # Channel-split release builds (docs/paywall-billing-plan.md): the sideload
+  # APK is UNGATED (github channel) and the Play AAB is GATED (play channel),
+  # so each artifact needs its own web build — VITE_BUILD_CHANNEL is baked in
+  # at Vite build time. APP_VERSION_CODE, when set, overrides the derived
+  # versionCode for both artifacts (see build.gradle).
+
+  echo "==> Building web assets (channel: github — ungated sideload APK)..."
   cd "$SCRIPT_DIR"
-  npm run build:android
-
-  # Build the release APK (for sideloading/testing) and the AAB (App Bundle)
-  # that the Play Store requires for uploads, in a single Gradle invocation.
-  # APP_VERSION_CODE, when set, overrides the package.json-derived versionCode
-  # (see build.gradle); otherwise the gradle property is simply not passed.
-  if [ -n "$APP_VERSION_CODE" ]; then
-    echo "==> Building release APK + AAB (versionCode override: $APP_VERSION_CODE)..."
-  else
-    echo "==> Building release APK + AAB..."
-  fi
+  VITE_BUILD_CHANNEL=github npm run build:android
   cd "$ANDROID_DIR"
-  ./gradlew assembleRelease bundleRelease ${APP_VERSION_CODE:+-PappVersionCode="$APP_VERSION_CODE"}
-
+  ./gradlew assembleRelease ${APP_VERSION_CODE:+-PappVersionCode="$APP_VERSION_CODE"}
   cp "app/build/outputs/apk/release/lastglance.apk" "$OUT_DIR/lastglance.apk"
-  echo "    APK (release) → outputs/lastglance.apk"
+  echo "    APK (release, github channel) → outputs/lastglance.apk"
+
+  # The Play build must carry the reviewer bypass (@glance-apps/billing rule 9:
+  # store review needs a way past a hard gate).
+  if [ -z "$VITE_REVIEWER_SECRET" ]; then
+    echo "WARNING: VITE_REVIEWER_SECRET is not set — the Play build's reviewer"
+    echo "         bypass will be DISABLED. Set it before building a store AAB."
+  fi
+  echo "==> Building web assets (channel: play — gated AAB)..."
+  cd "$SCRIPT_DIR"
+  VITE_BUILD_CHANNEL=play npm run build:android
+  cd "$ANDROID_DIR"
+  ./gradlew bundleRelease ${APP_VERSION_CODE:+-PappVersionCode="$APP_VERSION_CODE"}
 
   # The bundle task ignores the APK outputFileName rename in build.gradle, so
   # the .aab keeps its default name (app-release.aab); copy it to a stable path.
   cp "app/build/outputs/bundle/release/app-release.aab" "$OUT_DIR/lastglance.aab"
-  echo "    AAB (release) → outputs/lastglance.aab"
+  echo "    AAB (release, play channel) → outputs/lastglance.aab"
 
   # Verify the APK carries a valid signature (catches a misconfigured or
   # missing keystore.properties that would otherwise ship an unsigned APK/AAB).

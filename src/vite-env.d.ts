@@ -3,6 +3,11 @@
 interface ImportMetaEnv {
   readonly VITE_WEBDAV_PROXY_URL?: string
   readonly VITE_WEBDAV_DIRECT?: string
+  // Distribution channel, set per artifact by build-android.sh: 'play' (gated
+  // AAB), 'github' (ungated sideload APK); unset/'web' for web/PWA builds.
+  readonly VITE_BUILD_CHANNEL?: string
+  // Reviewer-bypass secret for the Play channel (@glance-apps/billing rule 9).
+  readonly VITE_REVIEWER_SECRET?: string
 }
 
 interface ImportMeta {

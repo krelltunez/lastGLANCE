@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Pencil, Check, Sun, Moon, Archive, Plug, Cloud, CloudOff, RefreshCw, HelpCircle, Users, Settings, UserCircle, Clock } from 'lucide-react'
+import { Pencil, Check, Sun, Moon, Archive, Plug, Cloud, CloudOff, RefreshCw, HelpCircle, Users, Settings, UserCircle, Clock, BadgeCheck } from 'lucide-react'
 import { Ribbon } from '@/components/Ribbon/Ribbon'
 import { BackupModal } from '@/components/BackupModal/BackupModal'
 import { WelcomeModal } from '@/components/WelcomeModal/WelcomeModal'
@@ -12,6 +12,8 @@ import { ShortcutsModal } from '@/components/ShortcutsModal/ShortcutsModal'
 import { ActivityLogModal } from '@/components/ActivityLogModal/ActivityLogModal'
 import { ToastProvider, useToast } from '@/components/Toast/Toast'
 import { UsersModal } from '@/components/UsersModal/UsersModal'
+import { PaywallModal } from '@/components/PaywallModal/PaywallModal'
+import { useSubscription } from '@/billing/billing'
 import { UsersContext } from '@/multiuser/UsersContext'
 import { useUsers } from '@/multiuser/useUsers'
 import { useNotifications } from '@/hooks/useNotifications'
@@ -133,6 +135,10 @@ function AppInner() {
   const usersCtx = useUsers()
   const reloadUsers = usersCtx.reload
   const { multiUserEnabled, meId, filter, setFilter, attentionOnly, setAttentionOnly } = usersCtx
+  // Billing/paywall — inert off the Play channel (adapter is null there, so
+  // gated stays false and the hard gate below never renders).
+  const billing = useSubscription()
+  const [showBillingStatus, setShowBillingStatus] = useState(false)
   const [editMode, setEditMode] = useState(false)
   const [showWelcome, setShowWelcome] = useState(() => !localStorage.getItem('lg-welcome-dismissed'))
   const [welcomeClearing, setWelcomeClearing] = useState(false)
@@ -432,6 +438,8 @@ function AppInner() {
     { label: isDark ? t('app.lightMode') : t('app.darkMode'), icon: isDark ? <Sun size={15} /> : <Moon size={15} />, onClick: () => { toggleTheme(); setShowSettingsSheet(false) } },
     { label: t('app.backupRestore'), icon: <Archive size={15} />, onClick: () => { setShowBackup(true); setShowSettingsSheet(false) } },
     { label: t('app.helpFeedback'), icon: <HelpCircle size={15} />, onClick: () => { setShowHelp(true); setShowSettingsSheet(false) } },
+    // Entitlement surface, Play builds only (gated is false on github/web).
+    ...(billing.gated ? [{ label: t('app.subscription'), icon: <BadgeCheck size={15} />, onClick: () => { setShowBillingStatus(true); setShowSettingsSheet(false) } }] : []),
   ]
 
   return (
@@ -678,6 +686,18 @@ function AppInner() {
           onUserMutated={runSharedUserSync}
           onClose={() => { setShowUsers(false); usersCtx.reload() }}
         />
+      )}
+
+      {/* Entitlement status (settings surface, unlocked installs). */}
+      {showBillingStatus && (
+        <PaywallModal billing={billing} mode="status" onClose={() => setShowBillingStatus(false)} />
+      )}
+
+      {/* Hard paywall — last in the tree and z-[80], above every other surface.
+          Only ever true on the Play channel; the engine's provisional unlock
+          keeps previously-entitled installs from ever flashing this. */}
+      {billing.gated && !billing.isUnlocked && (
+        <PaywallModal billing={billing} mode="gate" />
       )}
     </div>
     </UsersContext.Provider>
