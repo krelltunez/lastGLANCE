@@ -29,6 +29,13 @@ const adapter = isGatedChannel
 
 export const MANAGE_SUBSCRIPTION_URL = playManageSubscriptionUrl('com.lastglance.app', PRODUCT_IDS.yearly)
 
+// Store name for paywall copy ("Payment via …", "your … subscription
+// settings"). Bare brand name (no article) so it reads right in the possessive.
+// Only the gated channel shows the paywall — today that's Android (Google Play);
+// deriving from the platform means the planned iOS billing adapter needs no
+// copy change.
+export const STORE_NAME = Capacitor.getPlatform() === 'ios' ? 'App Store' : 'Google Play'
+
 // The app-wide billing hook. Reviewer bypass (README rule 9: store review needs
 // a way past a hard gate) uses REVIEWER_SECRET from the committed config module
 // (dayGLANCE model) — the same constant the `npm run reviewer-code` CLI derives
