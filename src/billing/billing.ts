@@ -44,6 +44,11 @@ export const STORE_NAME = Capacitor.getPlatform() === 'ios' ? 'App Store' : 'Goo
 export function useSubscription(): UseBillingResult {
   return useBilling(() => ({
     adapter,
+    // Engine-side product hints for entitlementSource classification. The
+    // adapter's `products` (for querying) do NOT feed this — without passing it
+    // here too, an active lifetime unlock misreports as 'subscription' (shows
+    // "Annual subscription active" + a Manage-subscription button).
+    products: PRODUCT_IDS,
     reviewerSecret: REVIEWER_SECRET,
   }))
 }
