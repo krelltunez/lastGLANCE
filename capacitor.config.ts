@@ -8,6 +8,15 @@ const config: CapacitorConfig = {
   // Vite emits the production build here; `cap sync` copies it into the
   // native projects' web assets.
   webDir: 'dist',
+  android: {
+    // WebView remote debugging (chrome://inspect). OFF by default so shipped
+    // builds are not inspectable — an inspectable production WebView would let
+    // anyone with a USB cable read localStorage (sync credentials, passphrase
+    // material). Enable ONLY for a throwaway internal test build via
+    // `./build-android.sh --release --webview-debug` (sets CAP_WEBVIEW_DEBUG=1);
+    // never promote such a build to production.
+    webContentsDebuggingEnabled: process.env.CAP_WEBVIEW_DEBUG === '1',
+  },
   plugins: {
     // Route fetch/XHR through the native HTTP stack so WebDAV/Nextcloud sync
     // works without a CORS proxy inside the native WebView.
