@@ -41,9 +41,18 @@ while [ $# -gt 0 ]; do
       if [ $# -lt 2 ]; then echo "Error: --build needs a number, e.g. --build 3" >&2; exit 1; fi
       BUILD_NUM="$2"; shift 2 ;;
     --build=*) BUILD_NUM="${1#--build=}"; shift ;;
-    *) echo "Unknown flag: $1 (valid flags: --clean, --release, --build N)" >&2; exit 1 ;;
+    # Enable chrome://inspect WebView debugging for THIS build only (read by
+    # capacitor.config.ts at cap sync time). For a throwaway internal test AAB —
+    # never promote a --webview-debug build to production.
+    --webview-debug) export CAP_WEBVIEW_DEBUG=1; shift ;;
+    *) echo "Unknown flag: $1 (valid flags: --clean, --release, --build N, --webview-debug)" >&2; exit 1 ;;
   esac
 done
+
+if [ "${CAP_WEBVIEW_DEBUG:-}" = "1" ]; then
+  echo "WARNING: WebView remote debugging is ENABLED (chrome://inspect) for this"
+  echo "         build. Internal testing ONLY — do NOT promote it to production."
+fi
 
 # --build N derives a pre-release versionCode (base + N) from package.json, so an
 # internal/closed-test upload gets a strictly higher code than the last without
