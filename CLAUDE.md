@@ -19,6 +19,12 @@ Working notes for AI-assisted sessions in this repo.
 - Play listing is FREE (locked by Google; cannot become paid). Monetization is
   in-app via Play Billing. The GitHub sideload APK ships without the paywall
   (dayGLANCE-style split).
+- Release builds intentionally keep `minifyEnabled false` — do NOT enable R8 or
+  `shrinkResources` (decided 2026-07). The native shell is thin (all product
+  logic is JS assets R8 never touches, so obfuscation buys ~nothing), Capacitor
+  plugin bridges rely on reflection that breaks at runtime only, and the widgets
+  resolve the ~1.7k `ic_lucide_*` drawables by name (`getIdentifier`), which
+  resource shrinking would strip.
 
 ## Google Play (learned the hard way, 2026-07)
 
