@@ -24,9 +24,12 @@ import dayjs from 'dayjs'
 
 const CHANNEL_ID = 'overdue'
 const EXACT_PROMPTED_KEY = 'lg_exact_alarm_prompted'
-// Last app version we scheduled reminders under. See the force-reschedule note in
-// syncReminders for why a version change must re-bake every pending alarm.
-const BUILD_VERSION_KEY = 'lg_reminders_build_version'
+// Per-build token reminders were last scheduled under. See the force-reschedule
+// note in syncReminders for why every new build must re-bake each pending alarm.
+// Keyed on the build timestamp, NOT the version name: resource IDs are reassigned
+// on every aapt2 run, and we ship multiple builds per version (internal-test
+// builds bump only versionCode), so a versionName check misses those rebuilds.
+const BUILD_TOKEN_KEY = 'lg_reminders_build_token'
 
 // Two action sets: "Mark done" alone, or with "Send to dayGLANCE" when cross-app
 // intents are configured. The choice is baked into each notification at schedule
@@ -173,15 +176,19 @@ export async function syncReminders(): Promise<void> {
 
     // Android bakes each scheduled notification — including its small-icon
     // resource ID — at schedule time and re-posts that exact object when the
-    // alarm later fires. Resource IDs are reassigned on every rebuild, so an
+    // alarm later fires. Resource IDs are reassigned on every aapt2 run, so an
     // alarm scheduled by a previous build can fire under a new build with a stale
     // icon ID that now resolves to a different drawable (the ~1.7k-icon Lucide
     // set bundled for the widgets makes such a collision likely). On the first
-    // sync after a version change, force-reschedule every reminder so its
-    // notification is re-baked against the current resource IDs. Scheduling with
-    // an existing id replaces the alarm in place, so no cancel gap is introduced.
-    const buildVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'dev'
-    const force = localStorage.getItem(BUILD_VERSION_KEY) !== buildVersion
+    // sync under a new build, force-reschedule every reminder so its notification
+    // is re-baked against the current resource IDs. Scheduling with an existing id
+    // replaces the alarm in place, so no cancel gap is introduced.
+    //
+    // The token is the build timestamp, not the version name: IDs churn per build,
+    // and same-version rebuilds (internal-test builds that bump only versionCode)
+    // would slip past a versionName check and keep firing the stale icon.
+    const buildToken = typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : 'dev'
+    const force = localStorage.getItem(BUILD_TOKEN_KEY) !== buildToken
 
     const desiredById = new Map(desired.map(r => [r.id, r]))
     const pending: PendingLocalNotificationSchema[] =
@@ -233,7 +240,7 @@ export async function syncReminders(): Promise<void> {
 
     // Only after a clean pass — a mid-sync failure leaves the marker stale so the
     // next sync retries the force-reschedule rather than skipping it.
-    localStorage.setItem(BUILD_VERSION_KEY, buildVersion)
+    localStorage.setItem(BUILD_TOKEN_KEY, buildToken)
   } catch {
     // Best-effort: reminders must never disrupt the app.
   }
