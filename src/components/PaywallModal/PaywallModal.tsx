@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
-import { X, Loader, BadgeCheck, KeyRound } from 'lucide-react'
+import { X, Check, Loader, BadgeCheck, KeyRound } from 'lucide-react'
 import type { UseBillingResult } from '@glance-apps/billing/react'
 import { PRODUCT_IDS, MANAGE_SUBSCRIPTION_URL, STORE_NAME } from '@/billing/billing'
 import { useTranslation } from 'react-i18next'
@@ -37,36 +37,32 @@ export function PaywallModal({ billing, mode, onClose }: Props) {
 
   // Trial-forward copy, all driven by the store's own offer (no hardcoded
   // lengths — rule 8): trialDays/trialEligible come from the Play offer on the
-  // annual base plan. Before the store answers, or with no configured trial,
-  // fall back to generic / non-trial copy.
+  // annual base plan. Trial copy requires BOTH eligibility and a known length:
+  // the adapter's pre-fetch state is optimistically eligible with days unknown,
+  // so gating on days too keeps trial language from flashing at users whose
+  // trial is already spent (the store omits the free phase for them, so a
+  // length never arrives). An eligible user just sees the plain gate for the
+  // beat until the store answers — under-promising in the safe direction.
   const days = billing.trialDays
-  const hasTrial = billing.trialEligible
+  const hasTrial = billing.trialEligible && days != null
 
-  const headline = hasTrial
-    ? (days != null ? t('paywall.trialHeadline', { count: days }) : t('paywall.trialHeadlineGeneric'))
-    : t('paywall.gateHeadline')
+  const headline = hasTrial ? t('paywall.trialHeadline', { count: days }) : t('paywall.gateHeadline')
   // The pitch is now the always-on tagline under the wordmark, so the subtitle
   // is trial-only; non-trial gets the tagline + headline and no subtitle.
-  const subtitle = hasTrial
-    ? (days != null ? t('paywall.trialSubtitle', { count: days }) : t('paywall.trialSubtitleGeneric'))
-    : null
+  const subtitle = hasTrial ? t('paywall.trialSubtitle', { count: days }) : null
 
   // Annual card sub-line: "{n}-day free trial, then {price}/yr" once both known.
   const annualSub = hasTrial
     ? (yearlyPrice
-        ? (days != null
-            ? t('paywall.annualTrialThen', { count: days, price: yearlyPrice })
-            : t('paywall.annualTrialThenGeneric', { price: yearlyPrice }))
-        : (days != null ? t('paywall.trialDays', { count: days }) : t('paywall.trialGeneric')))
+        ? t('paywall.annualTrialThen', { count: days, price: yearlyPrice })
+        : t('paywall.trialDays', { count: days }))
     : null
 
   // Renewal/finance explainer beneath the cards. It names the price, so it
   // appears once the store answers; the store name is platform-derived.
   const explainer = yearlyPrice
     ? (hasTrial
-        ? (days != null
-            ? t('paywall.trialExplainer', { count: days, price: yearlyPrice, store: STORE_NAME })
-            : t('paywall.trialExplainerGeneric', { price: yearlyPrice, store: STORE_NAME }))
+        ? t('paywall.trialExplainer', { count: days, price: yearlyPrice, store: STORE_NAME })
         : t('paywall.subExplainer', { price: yearlyPrice, store: STORE_NAME }))
     : null
 
@@ -120,6 +116,20 @@ export function PaywallModal({ billing, mode, onClose }: Props) {
         ) : (
           <>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">{t('paywall.pitch')}</p>
+
+            {/* Named benefits, not just scope: App Store review rejects paywalls
+                that don't describe what the price buys (Guideline 3.1.2 —
+                dayGLANCE learned this the hard way), and the list reads fine on
+                Play too. Keep it to what the unlock actually includes. */}
+            <ul className="mt-3 space-y-1.5">
+              {(['featureWidgets', 'featureReminders', 'featureSync', 'featureUsers', 'featureIntegrations'] as const).map(k => (
+                <li key={k} className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                  <Check size={14} className="text-green-400 shrink-0" />
+                  {t(`paywall.${k}`)}
+                </li>
+              ))}
+            </ul>
+
             <h3 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100 mt-4">{headline}</h3>
             {subtitle && <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">{subtitle}</p>}
 
