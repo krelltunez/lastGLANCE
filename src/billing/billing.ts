@@ -1,5 +1,5 @@
 import { Capacitor, registerPlugin } from '@capacitor/core'
-import { playManageSubscriptionUrl } from '@glance-apps/billing'
+import { DEFAULT_STORAGE_KEYS, playManageSubscriptionUrl } from '@glance-apps/billing'
 import { createCapacitorAdapter, type CapacitorBillingPlugin } from '@glance-apps/billing/capacitor'
 import { useBilling, type UseBillingResult } from '@glance-apps/billing/react'
 import { REVIEWER_SECRET } from '@/config/reviewerAccess'
@@ -51,4 +51,21 @@ export function useSubscription(): UseBillingResult {
     products: PRODUCT_IDS,
     reviewerSecret: REVIEWER_SECRET,
   }))
+}
+
+// Leave reviewer mode (the ReviewerBanner's "Exit & view plans" action): the
+// engine exposes no revoke, so clear the persisted unlock directly and reload —
+// the engine re-reads the now-absent key at start and, with no entitlement, the
+// hard gate (and its IAPs) returns. That way back is what App Review requires
+// (see docs/reviewer-access-flow.md). The key is read from DEFAULT_STORAGE_KEYS
+// because useSubscription passes no storageKeys override; deriving it from the
+// same constant the engine falls back to means the cleared key can never drift
+// from the one the engine wrote — the #1 porting bug the doc warns about.
+export function exitReviewerMode(): void {
+  try {
+    localStorage.removeItem(DEFAULT_STORAGE_KEYS.reviewerUnlock)
+  } catch {
+    // Storage unavailable — nothing was persisted, so nothing to clear.
+  }
+  window.location.reload()
 }

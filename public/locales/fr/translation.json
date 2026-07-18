@@ -412,6 +412,8 @@
     "paymentVia": "Paiement via {{store}}.",
     "reviewerAccess": "Accès évaluateur",
     "reviewerHint": "Réservé aux évaluateurs de la boutique. Ce n'est pas un code promo.",
+    "bannerActive": "Accès évaluateur actif — l'application est déverrouillée sans achat.",
+    "bannerExit": "Quitter et voir les offres",
     "bestValue": "Meilleure offre"
   }
 }
