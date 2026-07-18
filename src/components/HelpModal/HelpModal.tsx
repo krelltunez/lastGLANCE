@@ -88,6 +88,17 @@ export function HelpModal({ onClose, onOpenShortcuts }: Props) {
 
           <div className="border-t border-slate-100 dark:border-slate-700/40" />
 
+          {/* Legal */}
+          <div className="space-y-2.5">
+            <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+              {t('help.legal')}
+            </p>
+            <ExternalLinkRow href="https://www.glance-apps.com/privacy" label={t('help.privacyPolicy')} />
+            <ExternalLinkRow href="https://www.glance-apps.com/eula" label={t('help.termsOfUse')} />
+          </div>
+
+          <div className="border-t border-slate-100 dark:border-slate-700/40" />
+
           {/* Persistent storage notice */}
           {persisted === false && (
             <>
