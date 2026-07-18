@@ -13,7 +13,8 @@ import { ActivityLogModal } from '@/components/ActivityLogModal/ActivityLogModal
 import { ToastProvider, useToast } from '@/components/Toast/Toast'
 import { UsersModal } from '@/components/UsersModal/UsersModal'
 import { PaywallModal } from '@/components/PaywallModal/PaywallModal'
-import { useSubscription } from '@/billing/billing'
+import { ReviewerBanner } from '@/components/ReviewerBanner/ReviewerBanner'
+import { useSubscription, exitReviewerMode } from '@/billing/billing'
 import { UsersContext } from '@/multiuser/UsersContext'
 import { useUsers } from '@/multiuser/useUsers'
 import { useNotifications } from '@/hooks/useNotifications'
@@ -691,6 +692,16 @@ function AppInner() {
       {/* Entitlement status (settings surface, unlocked installs). */}
       {showBillingStatus && (
         <PaywallModal billing={billing} mode="status" onClose={() => setShowBillingStatus(false)} />
+      )}
+
+      {/* Reviewer-mode banner — shown while unlocked via the store-review
+          bypass code (never for paying customers). Its exit action is the
+          reviewer's way back to the wall to test the IAPs; without it the
+          review gets rejected for unlocatable purchases (learned on
+          dayGLANCE, see docs/reviewer-access-flow.md). Never visible with
+          the gate below: isReviewerUnlocked implies isUnlocked. */}
+      {billing.isReviewerUnlocked && (
+        <ReviewerBanner onExit={exitReviewerMode} />
       )}
 
       {/* Hard paywall — last in the tree and z-[80], above every other surface.

@@ -412,6 +412,8 @@
     "paymentVia": "Pagamento tramite {{store}}.",
     "reviewerAccess": "Accesso revisori",
     "reviewerHint": "Solo per i revisori dello store. Non è un codice promozionale.",
+    "bannerActive": "Accesso revisori attivo — l'app è sbloccata senza acquisto.",
+    "bannerExit": "Esci e vedi i piani",
     "bestValue": "Miglior valore"
   }
 }

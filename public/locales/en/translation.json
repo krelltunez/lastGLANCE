@@ -438,6 +438,8 @@
     "paymentVia": "Payment via {{store}}.",
     "reviewerAccess": "Reviewer access",
     "reviewerHint": "For app-store reviewers only. Not a promo code.",
+    "bannerActive": "Reviewer access active — the app is unlocked without a purchase.",
+    "bannerExit": "Exit & view plans",
     "bestValue": "Best value"
   }
 }

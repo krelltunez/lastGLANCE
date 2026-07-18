@@ -412,6 +412,8 @@
     "paymentVia": "Zahlung über {{store}}.",
     "reviewerAccess": "Prüfzugang",
     "reviewerHint": "Nur für App-Store-Prüfer. Kein Gutscheincode.",
+    "bannerActive": "Prüfzugang aktiv — die App ist ohne Kauf freigeschaltet.",
+    "bannerExit": "Beenden & Tarife ansehen",
     "bestValue": "Bester Wert"
   }
 }

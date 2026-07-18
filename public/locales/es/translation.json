@@ -412,6 +412,8 @@
     "paymentVia": "Pago a través de {{store}}.",
     "reviewerAccess": "Acceso de revisión",
     "reviewerHint": "Solo para revisores de la tienda. No es un código promocional.",
+    "bannerActive": "Acceso de revisión activo — la aplicación está desbloqueada sin compra.",
+    "bannerExit": "Salir y ver planes",
     "bestValue": "Mejor valor"
   }
 }
