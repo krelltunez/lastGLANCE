@@ -61,6 +61,7 @@
     "clearFailed": "Falha ao limpar os dados de exemplo.",
     "remoteListFailed": "Não foi possível listar as cópias de segurança remotas.",
     "remoteDownloadFailed": "Não foi possível transferir a cópia de segurança.",
+    "exportFailed": "Falha na exportação. Tente novamente.",
     "restoreFailed": "Restauro falhado.",
     "unknownDate": "Data desconhecida"
   },

@@ -103,6 +103,9 @@ dependencies {
     // Play Billing bridge bundled with @glance-apps/billing (see settings.gradle).
     implementation project(':glance-apps-billing')
     implementation "androidx.glance:glance-material3:$glanceVersion"
+    // WebDavHttpPlugin: CapacitorHttp's HttpURLConnection backend rejects WebDAV
+    // verbs (PROPFIND/MKCOL), OkHttp does not.
+    implementation "com.squareup.okhttp3:okhttp:$okhttpVersion"
     testImplementation "junit:junit:$junitVersion"
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"

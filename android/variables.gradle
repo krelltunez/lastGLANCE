@@ -15,4 +15,5 @@ ext {
     cordovaAndroidVersion = '14.0.1'
     glanceVersion = '1.1.1'
     playBillingVersion = '7.1.1'
+    okhttpVersion = '4.12.0'
 }
