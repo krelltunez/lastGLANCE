@@ -226,6 +226,30 @@ export function PaywallModal({ billing, mode, onClose }: Props) {
             {codeError && (
               <p className="text-xs text-red-500 dark:text-red-400 mt-2">{t('paywall.codeInvalid')}</p>
             )}
+
+            {/* Legal links on the wall itself: Apple 3.1.2 requires a privacy
+                policy and Terms of Use link on the subscription paywall (the
+                Help-modal links alone don't satisfy it); harmless on Play.
+                Labels reuse the localized help.* strings. */}
+            <div className="flex items-center justify-center gap-3 mt-5 text-[11px] text-slate-400 dark:text-slate-500">
+              <a
+                href="https://www.glance-apps.com/privacy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline underline-offset-2 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+              >
+                {t('help.privacyPolicy')}
+              </a>
+              <span aria-hidden="true">·</span>
+              <a
+                href="https://www.glance-apps.com/eula"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline underline-offset-2 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+              >
+                {t('help.termsOfUse')}
+              </a>
+            </div>
           </>
         )}
       </div>
