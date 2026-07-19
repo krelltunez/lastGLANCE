@@ -61,6 +61,7 @@
     "clearFailed": "Löschen der Beispieldaten fehlgeschlagen.",
     "remoteListFailed": "Remote-Sicherungen konnten nicht aufgelistet werden.",
     "remoteDownloadFailed": "Sicherung konnte nicht heruntergeladen werden.",
+    "exportFailed": "Export fehlgeschlagen. Bitte erneut versuchen.",
     "restoreFailed": "Wiederherstellung fehlgeschlagen.",
     "unknownDate": "Unbekanntes Datum"
   },

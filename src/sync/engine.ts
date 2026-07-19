@@ -508,12 +508,18 @@ export function createEngine(proxyUrl: string | undefined, callbacks: EngineCall
     ...callbacks,
   })
 
-  // The generic webdav auto-backup provider targets the WebDAV root URL instead
-  // of the sync folder's backups/ subdirectory. Patch it to match the nextcloud
-  // provider and the dayGLANCE convention: {syncFolder}/backups/.
+  // Patch the generic webdav auto-backup provider's directory resolution:
+  // - keep backups nested under the sync folder ({syncFolder}/backups/, the
+  //   nextcloud-provider/dayGLANCE convention) rather than the WebDAV root;
+  // - Koofr configs carry no webdavUrl (its WebDAV root is fixed) but fall back
+  //   to this provider, which would otherwise build "undefined/..." URLs.
   const webdavBackup = engine.autoBackupProviders.webdav as unknown as Record<string, unknown>
-  webdavBackup._getBackupDirUrl = (providerConfig: Record<string, string>) =>
-    `${providerConfig.webdavUrl.replace(/\/+$/, '')}/${appFolderName}/backups/`
+  webdavBackup._getBackupDirUrl = (providerConfig: Record<string, string>) => {
+    const base = providerConfig.webdavUrl
+      ?? (providerConfig.provider === 'koofr' ? 'https://app.koofr.net/dav/Koofr' : undefined)
+    if (!base) throw new Error('WebDAV URL is not configured')
+    return `${base.replace(/\/+$/, '')}/${appFolderName}/backups/`
+  }
 
   return engine
 }

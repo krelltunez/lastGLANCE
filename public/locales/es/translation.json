@@ -61,6 +61,7 @@
     "clearFailed": "Error al borrar los datos de ejemplo.",
     "remoteListFailed": "No se pudieron listar las copias de seguridad remotas.",
     "remoteDownloadFailed": "No se pudo descargar la copia de seguridad.",
+    "exportFailed": "Error al exportar. Inténtalo de nuevo.",
     "restoreFailed": "Error en la restauración.",
     "unknownDate": "Fecha desconocida"
   },

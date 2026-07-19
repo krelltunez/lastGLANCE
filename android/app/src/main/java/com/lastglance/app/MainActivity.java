@@ -20,6 +20,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(WidgetBridgePlugin.class);
         registerPlugin(IntentsBridgePlugin.class);
         registerPlugin(BillingBridgePlugin.class);
+        registerPlugin(WebDavHttpPlugin.class);
         super.onCreate(savedInstanceState);
         captureWidgetDeepLink(getIntent());
         captureSharedText(getIntent());

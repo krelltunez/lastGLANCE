@@ -2,6 +2,7 @@ import { useRef, useState, useEffect } from 'react'
 import { Download, Upload, Cloud, X, Loader, Trash2 } from 'lucide-react'
 import { exportBackup, restoreFromBackup, hasSeedData, seedChoresUsed, clearSeedData, type BackupPayload } from '@/db/queries'
 import { buildPayload } from '@/sync/engine'
+import { saveJsonFile, stashJsonFile } from '@/utils/exportFile'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
 import type { SyncEngine } from '@glance-apps/sync'
 import dayjs from 'dayjs'
@@ -43,7 +44,12 @@ export function BackupModal({ engine, onClose, onImported }: Props) {
   }, [])
 
   const syncConfig = engine?.getConfig() ?? null
-  const hasRemote = Boolean(syncConfig?.enabled && syncConfig?.webdavUrl)
+  // Every provider stores its base URL under a different key (webdavUrl,
+  // nextcloudUrl) and Koofr has a fixed WebDAV root with no URL field at all,
+  // so gate on "sync is enabled" per provider rather than one config key.
+  const hasRemote = Boolean(
+    syncConfig?.enabled && (syncConfig?.webdavUrl || syncConfig?.nextcloudUrl || syncConfig?.provider === 'koofr'),
+  )
 
   useEscapeKey(onClose)
 
@@ -51,15 +57,11 @@ export function BackupModal({ engine, onClose, onImported }: Props) {
     setState('exporting')
     try {
       const data = await exportBackup()
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `lastglance-${dayjs().format('YYYY-MM-DD')}.json`
-      a.click()
-      URL.revokeObjectURL(url)
-    } finally {
+      await saveJsonFile(`lastglance-${dayjs().format('YYYY-MM-DD')}.json`, JSON.stringify(data, null, 2))
       setState('idle')
+    } catch {
+      setErrorMsg(t('backup.exportFailed'))
+      setState('error')
     }
   }
 
@@ -91,13 +93,7 @@ export function BackupModal({ engine, onClose, onImported }: Props) {
   async function saveSafetySnapshot() {
     try {
       const data = await exportBackup()
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `lastglance-before-restore-${dayjs().format('YYYY-MM-DD-HHmm')}.json`
-      a.click()
-      URL.revokeObjectURL(url)
+      await stashJsonFile(`lastglance-before-restore-${dayjs().format('YYYY-MM-DD-HHmm')}.json`, JSON.stringify(data, null, 2))
     } catch { /* best-effort local parachute */ }
     if (engine && syncConfig) {
       try {

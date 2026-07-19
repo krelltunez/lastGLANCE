@@ -66,6 +66,7 @@
     "clearFailed": "Failed to clear sample data.",
     "remoteListFailed": "Failed to list remote backups.",
     "remoteDownloadFailed": "Failed to download backup.",
+    "exportFailed": "Export failed. Please try again.",
     "restoreFailed": "Restore failed.",
     "unknownDate": "Unknown date"
   },

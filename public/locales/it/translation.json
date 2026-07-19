@@ -61,6 +61,7 @@
     "clearFailed": "Impossibile cancellare i dati di esempio.",
     "remoteListFailed": "Impossibile elencare i backup remoti.",
     "remoteDownloadFailed": "Impossibile scaricare il backup.",
+    "exportFailed": "Esportazione non riuscita. Riprova.",
     "restoreFailed": "Ripristino fallito.",
     "unknownDate": "Data sconosciuta"
   },
