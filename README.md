@@ -191,7 +191,11 @@ Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for how to run
 
 ## License
 
-[MIT](LICENSE): free to use, self-host, modify, and distribute.
+The source code is [MIT-licensed](LICENSE): free to build, self-host, modify, and distribute. Free builds (including the sideload APK) are on the [releases page](../../releases).
+
+The paid Google Play / App Store builds are a convenience distribution that funds development: you're paying for the packaged, signed, auto-updating binary, not the code.
+
+The lastGLANCE name, logo, and app icon are trademarks and are not covered by the MIT license.
 
 ---
 
