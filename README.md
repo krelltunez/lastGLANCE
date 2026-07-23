@@ -4,6 +4,8 @@
 
 Part of the **GLANCE family**: focused, standalone apps connected through a shared intent protocol. See also [dayGLANCE](https://github.com/krelltunez/dayGLANCE) (today), lastGLANCE (recent upkeep), and [lifeGLANCE](https://github.com/krelltunez/lifeGLANCE) (your whole timeline).
 
+[<img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play" height="75">](https://play.google.com/store/apps/details?id=com.lastglance.app)
+
 [![Version](https://img.shields.io/badge/version-2.0.0-green.svg)](../../releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
@@ -12,6 +14,34 @@ Part of the **GLANCE family**: focused, standalone apps connected through a shar
 ![lastGLANCE dashboard](public/screenshot.png)
 
 lastGLANCE is a chore-tracking progressive web app that answers one question: *when did I last do this?* It tracks recency, not schedules. The emotional register is information, not guilt.
+
+---
+
+## Android App
+
+A native Android app is available on Google Play and as a direct APK download. The Google Play build is a commercial binary that supports continued development.
+
+[<img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play" height="60">](https://play.google.com/store/apps/details?id=com.lastglance.app)
+
+[**Download APK from Releases →**](../../releases)
+
+[**Get it on Obtainium →**](https://github.com/ImranR98/Obtainium)
+<br> *Just point Obtainium to `krelltunez/lastGLANCE`!*
+
+The Android app ships the full web app in a WebView with native enhancements that aren't possible in a browser:
+
+| Feature | Details |
+|---|---|
+| 🏠 **Home screen widgets** | A completion heatmap, a "soon" list, the single most-overdue chore, and a quick-add button, each with one-tap done |
+| ⚡ **Quick Settings tiles** | An "Add chore" tile and a "Soon" tile that shows a live overdue and soon count right in the notification shade |
+| 🔔 **Background reminders** | Overdue notifications fire reliably even when the app is closed |
+| 🔗 **Native dayGLANCE intents** | Hand overdue chores to dayGLANCE through the GLANCE intents protocol, with no browser round trip |
+| ☁️ **Proxy-free sync** | CapacitorHttp connects straight to WebDAV and Nextcloud with no CORS proxy required |
+| 🌗 **Offline-first shell** | The full app runs installable and offline, with dark and light themes |
+
+| Dashboard | Chore detail |
+|:-:|:-:|
+| ![lastGLANCE Android dashboard](public/screenshot_phone_dashboard.png) | ![lastGLANCE chore detail and history](public/screenshot_phone_detail.png) |
 
 ---
 
