@@ -19,7 +19,7 @@ lastGLANCE is a chore-tracking progressive web app that answers one question: *w
 
 ## Android App
 
-A native Android app is available on Google Play and as a direct APK download. lastGLANCE is free to install from Google Play, and an optional in-app unlock supports continued development. The APK on the releases page is the same app with the unlock already enabled (no paywall).
+A native Android app is available on Google Play and as a direct APK download. The Google Play build is a commercial binary that supports continued development.
 
 [<img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play" height="60">](https://play.google.com/store/apps/details?id=com.lastglance.app)
 
