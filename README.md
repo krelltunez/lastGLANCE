@@ -39,9 +39,9 @@ The Android app ships the full web app in a WebView with native enhancements tha
 | ☁️ **Proxy-free sync** | CapacitorHttp connects straight to WebDAV and Nextcloud with no CORS proxy required |
 | 🌗 **Offline-first shell** | The full app runs installable and offline, with dark and light themes |
 
-| Home screen widgets | Soon list |
+| Dashboard | Chore detail |
 |:-:|:-:|
-| ![lastGLANCE Android widgets](public/screenshot_widgets.png) | ![lastGLANCE soon list](public/screenshot_soon.png) |
+| ![lastGLANCE Android dashboard](public/screenshot_phone_dashboard.png) | ![lastGLANCE chore detail and history](public/screenshot_phone_detail.png) |
 
 ---
 
