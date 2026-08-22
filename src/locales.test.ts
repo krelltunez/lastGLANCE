@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll } from 'vitest'
-import { languages, loaders } from './locales'
+import { languages, loaders, resolveLanguage } from './locales'
 
 // de/es/fr/it/pt sat 8 keys behind en — the backup restore confirmation and
 // the GLANCEvault intents errors rendered in English for every non-English
@@ -30,6 +30,53 @@ describe('locale bundles', () => {
 
   it('exposes every shipped language', () => {
     expect(languages).toEqual(EXPECTED)
+  })
+
+  // Shared by the detector (convertDetectedLanguage) and the picker's value —
+  // the two must agree, or the UI renders one language while the picker
+  // displays another.
+  describe('resolveLanguage', () => {
+    it('passes through a tag that is already shipped', () => {
+      expect(resolveLanguage('de')).toBe('de')
+      expect(resolveLanguage('pt')).toBe('pt')
+    })
+
+    it('matches a shipped tag regardless of case', () => {
+      expect(resolveLanguage('DE')).toBe('de')
+      expect(resolveLanguage('Fr')).toBe('fr')
+    })
+
+    it('reduces a regional tag to a base language that is shipped', () => {
+      expect(resolveLanguage('en-US')).toBe('en')
+      expect(resolveLanguage('de-AT')).toBe('de')
+      expect(resolveLanguage('pt-BR')).toBe('pt')
+    })
+
+    it('falls back to en for a language that is not shipped', () => {
+      expect(resolveLanguage('ja')).toBe('en')
+      expect(resolveLanguage('zz-ZZ')).toBe('en')
+    })
+
+    it('handles a missing or non-string value', () => {
+      expect(resolveLanguage(undefined)).toBe('en')
+      expect(resolveLanguage(null)).toBe('en')
+      expect(resolveLanguage('')).toBe('en')
+      expect(resolveLanguage(42)).toBe('en')
+    })
+
+    it('prefers any variant of the right language over English', () => {
+      expect(resolveLanguage('pt', ['en', 'pt-BR'])).toBe('pt-BR')
+    })
+
+    it('falls back to the first option when en is not shipped', () => {
+      expect(resolveLanguage('ja', ['de', 'fr'])).toBe('de')
+    })
+
+    it('always returns something the picker can render', () => {
+      for (const reported of ['en', 'pt', 'de-AT', 'zz', '', undefined]) {
+        expect(languages).toContain(resolveLanguage(reported))
+      }
+    })
   })
 
   it.each(EXPECTED)('%s resolves to a non-empty bundle', (lng) => {

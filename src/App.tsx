@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Pencil, Check, Sun, Moon, Archive, Plug, Cloud, CloudOff, RefreshCw, HelpCircle, Users, Settings, UserCircle, Clock, BadgeCheck, NotebookText } from 'lucide-react'
+import { Pencil, Check, Sun, Moon, Archive, Plug, Cloud, CloudOff, RefreshCw, HelpCircle, Users, Settings, UserCircle, Clock, BadgeCheck, NotebookText, Languages } from 'lucide-react'
 import { Ribbon } from '@/components/Ribbon/Ribbon'
 import { BackupModal } from '@/components/BackupModal/BackupModal'
 import { WelcomeModal } from '@/components/WelcomeModal/WelcomeModal'
@@ -8,6 +8,7 @@ import { IntegrationSettingsModal } from '@/components/IntegrationSettingsModal/
 import { SyncSettingsModal } from '@/components/SyncSettingsModal/SyncSettingsModal'
 import { PassphraseModal } from '@/components/PassphraseModal/PassphraseModal'
 import { HelpModal } from '@/components/HelpModal/HelpModal'
+import { LanguagePicker } from '@/components/LanguagePicker/LanguagePicker'
 import { ShortcutsModal } from '@/components/ShortcutsModal/ShortcutsModal'
 import { ActivityLogModal } from '@/components/ActivityLogModal/ActivityLogModal'
 import { JournalModal } from '@/components/JournalModal/JournalModal'
@@ -537,6 +538,11 @@ function AppInner() {
                         {item.label}
                       </button>
                     ))}
+                    <label className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm w-full text-slate-600 dark:text-slate-300">
+                      <Languages size={15} className="shrink-0" />
+                      <span className="sr-only">{t('app.language')}</span>
+                      <LanguagePicker className="flex-1 min-w-0 bg-transparent text-sm text-slate-600 dark:text-slate-300 focus:outline-none" />
+                    </label>
                   </div>
                 </>
               )}
@@ -616,6 +622,11 @@ function AppInner() {
               </button>
               <button onClick={() => setShowBackup(true)} className="p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors" aria-label={t('app.backupRestore')} data-tooltip={t('app.backupRestore')}><Archive size={15} /></button>
               <button onClick={() => setShowHelp(true)} className="p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors" aria-label={t('app.helpFeedback')} data-tooltip={t('app.helpFeedback')}><HelpCircle size={15} /></button>
+              <label className="flex items-center gap-1.5 p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer" data-tooltip={t('app.language')}>
+                <Languages size={15} className="shrink-0" />
+                <span className="sr-only">{t('app.language')}</span>
+                <LanguagePicker className="bg-transparent text-sm text-slate-500 dark:text-slate-400 focus:outline-none cursor-pointer max-w-28" />
+              </label>
             </div>
           </div>
 

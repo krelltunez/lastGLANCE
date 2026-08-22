@@ -3,6 +3,7 @@ import { initReactI18next } from 'react-i18next'
 import LanguageDetector from 'i18next-browser-languagedetector'
 import HttpBackend from 'i18next-http-backend'
 import { applyDateLocale } from '@/utils/datetime'
+import { languages, resolveLanguage } from '@/locales'
 
 // Keep date handling on the same language as the UI strings. Registered before
 // .init() so this listener runs ahead of react-i18next's own — the locale is
@@ -16,7 +17,10 @@ i18n
   .use(initReactI18next)
   .init({
     fallbackLng: 'en',
-    supportedLngs: ['en', 'fr', 'de', 'es', 'it', 'pt'],
+    // Derived from the locale files on disk (src/locales.ts) — a hand-kept
+    // list here is how sibling app dayGLANCE shipped translations no user
+    // could reach.
+    supportedLngs: languages,
     ns: ['translation'],
     defaultNS: 'translation',
     backend: {
@@ -28,6 +32,11 @@ i18n
     detection: {
       order: ['localStorage', 'navigator', 'htmlTag'],
       caches: ['localStorage'],
+      // Runs on every detection source, the localStorage cache included, so
+      // whatever tag is stored or reported is mapped onto a language that
+      // actually ships. The picker resolves its value through the same
+      // function, so the option it shows always matches what renders.
+      convertDetectedLanguage: (lng: string) => resolveLanguage(lng),
     },
   })
 
