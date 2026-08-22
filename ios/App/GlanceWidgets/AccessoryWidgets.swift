@@ -95,18 +95,28 @@ struct AccessoryStatusWidget: Widget {
 // MARK: - Control Center control (iOS 18+)
 
 // Opens the app straight into the new-chore form — the Quick Settings
-// add-chore tile, relocated to where iOS puts such things. The intent writes
-// the same deep-link token every other entry point uses and lets
-// openAppWhenRun bring the app forward; the web router does the rest.
+// add-chore tile, relocated to where iOS puts such things.
+//
+// The intent's ONLY job is to hand back an OpenURLIntent for the same
+// lastglance:// URL every other entry point uses; the app then receives it
+// through the AppDelegate URL path, which is device-verified. Two designs
+// that look right do not work from a control, learned the hard way:
+//  - `openAppWhenRun` alone is ignored when the intent runs in the widget
+//    extension process — which is exactly where a control button's intent
+//    runs. The tap performed, wrote its token, and nothing opened.
+//  - Writing the pending token from the intent also had a warm-open race:
+//    the app's foreground drain could run before the token landed.
+// Chaining OpenURLIntent solves both: the system opens the URL itself, and
+// the token is minted by AppDelegate on receipt, exactly as for a widget tap.
 @available(iOS 18.0, *)
 struct OpenAddChoreIntent: AppIntent {
     static let title: LocalizedStringResource = "Add chore"
     static let isDiscoverable = false
     static let openAppWhenRun = true
 
-    func perform() async throws -> some IntentResult {
-        SharedDataStore.writePendingDeepLink("action:add")
-        return .result()
+    @MainActor
+    func perform() async throws -> some IntentResult & OpensIntent {
+        .result(opensIntent: OpenURLIntent(URL(string: "lastglance://action/add")!))
     }
 }
 
