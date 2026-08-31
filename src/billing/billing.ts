@@ -56,11 +56,11 @@ export function useSubscription(): UseBillingResult {
 // Leave reviewer mode (the ReviewerBanner's "Exit & view plans" action): the
 // engine exposes no revoke, so clear the persisted unlock directly and reload —
 // the engine re-reads the now-absent key at start and, with no entitlement, the
-// hard gate (and its IAPs) returns. That way back is what App Review requires
-// (see docs/reviewer-access-flow.md). The key is read from DEFAULT_STORAGE_KEYS
-// because useSubscription passes no storageKeys override; deriving it from the
-// same constant the engine falls back to means the cleared key can never drift
-// from the one the engine wrote — the #1 porting bug the doc warns about.
+// hard gate (and its IAPs) returns. That way back is what App Review requires.
+// The key is read from DEFAULT_STORAGE_KEYS because useSubscription passes no
+// storageKeys override; deriving it from the same constant the engine falls
+// back to means the cleared key can never drift from the one the engine wrote —
+// the #1 bug when porting this between apps.
 export function exitReviewerMode(): void {
   try {
     localStorage.removeItem(DEFAULT_STORAGE_KEYS.reviewerUnlock)

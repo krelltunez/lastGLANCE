@@ -523,6 +523,7 @@
     "sourceLifetime": "Lebenslange Freischaltung aktiv",
     "sourceSubscription": "Jahresabo aktiv",
     "sourceReviewer": "Prüfzugang aktiv",
+    "sourceChannel": "Diese Version ist vollständig freigeschaltet",
     "sourceNone": "Nicht freigeschaltet",
     "gateHeadline": "lastGLANCE freischalten",
     "trialHeadline_one": "Teste {{count}} Tag kostenlos",
