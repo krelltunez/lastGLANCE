@@ -523,6 +523,7 @@
     "sourceLifetime": "Sblocco a vita attivo",
     "sourceSubscription": "Abbonamento annuale attivo",
     "sourceReviewer": "Accesso di revisione attivo",
+    "sourceChannel": "Questa versione è completamente sbloccata",
     "sourceNone": "Non sbloccato",
     "gateHeadline": "Sblocca lastGLANCE",
     "trialHeadline_one": "Inizia la tua prova gratuita di {{count}} giorno",

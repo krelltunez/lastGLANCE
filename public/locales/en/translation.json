@@ -523,6 +523,7 @@
     "sourceLifetime": "Lifetime unlock active",
     "sourceSubscription": "Annual subscription active",
     "sourceReviewer": "Review access active",
+    "sourceChannel": "This build is fully unlocked",
     "sourceNone": "Not unlocked",
     "gateHeadline": "Unlock lastGLANCE",
     "trialHeadline_one": "Start your {{count}}-day free trial",

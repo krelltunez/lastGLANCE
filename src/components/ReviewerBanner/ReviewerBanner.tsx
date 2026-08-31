@@ -7,7 +7,7 @@ interface Props {
 
 // Shown while the install is reviewer-unlocked (store-review bypass code —
 // never a paying customer, who is entitled via Play/StoreKit instead). Ported
-// from dayGLANCE (docs/reviewer-access-flow.md): the launch paywall is the only
+// from dayGLANCE: the launch paywall is the only
 // IAP surface, so once the bypass code hides it the reviewer needs a way BACK
 // to locate and test the purchases (Guideline 2.1(b) / Play app-access).
 // "Exit & view plans" revokes the unlock and returns to the wall.
