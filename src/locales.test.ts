@@ -34,6 +34,16 @@ describe('locale bundles', () => {
     expect(languages).toEqual(EXPECTED)
   })
 
+  // completionsLabel routes 0 to its own key instead of a `_zero` plural
+  // suffix, on the grounds that no shipped language has a CLDR zero
+  // category. Pin that here so a language that does (Arabic, Latvian, Welsh)
+  // fails loudly when it is added instead of quietly reading "0 completions".
+  it('ships no language with a CLDR zero plural category', () => {
+    for (const lng of languages) {
+      expect(new Intl.PluralRules(lng).resolvedOptions().pluralCategories, lng).not.toContain('zero')
+    }
+  })
+
   // Shared by the detector (convertDetectedLanguage) and the picker's value —
   // the two must agree, or the UI renders one language while the picker
   // displays another.
@@ -62,6 +72,22 @@ describe('locale bundles', () => {
       expect(resolveLanguage('pt-MZ')).toBe('pt-PT')
     })
 
+    // Deliberate: Simplified is the only Chinese we ship, and for a
+    // Traditional-script reader (Taiwan, Hong Kong, Macau) it is closer than
+    // English. When a zh-TW locale lands, zh-TW resolves to itself and this
+    // test fails on purpose — that is the moment to add `zh: 'zh-CN'` (or
+    // whichever variant should own the bare tag) to REGIONAL_DEFAULTS and to
+    // decide where zh-HK / zh-MO go, since the generic fallback would
+    // otherwise hand them the alphabetically-first variant (zh-CN).
+    it('sends every Chinese tag to Simplified until a Traditional locale ships', () => {
+      expect(resolveLanguage('zh')).toBe('zh-CN')
+      expect(resolveLanguage('zh-Hans-CN')).toBe('zh-CN')
+      expect(resolveLanguage('zh-SG')).toBe('zh-CN')
+      expect(resolveLanguage('zh-TW')).toBe('zh-CN')
+      expect(resolveLanguage('zh-HK')).toBe('zh-CN')
+      expect(resolveLanguage('zh-Hant-TW')).toBe('zh-CN')
+    })
+
     it('reduces a regional tag to a base language that is shipped', () => {
       expect(resolveLanguage('en-US')).toBe('en')
       expect(resolveLanguage('de-AT')).toBe('de')
@@ -88,7 +114,7 @@ describe('locale bundles', () => {
     })
 
     it('always returns something the picker can render', () => {
-      for (const reported of ['en', 'pt', 'pt-AO', 'de-AT', 'zz', '', undefined]) {
+      for (const reported of ['en', 'pt', 'pt-AO', 'de-AT', 'zh-TW', 'zz', '', undefined]) {
         expect(languages).toContain(resolveLanguage(reported))
       }
     })

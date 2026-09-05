@@ -523,6 +523,7 @@
     "sourceLifetime": "永久版已解锁",
     "sourceSubscription": "年度订阅已生效",
     "sourceReviewer": "审核员访问权限已生效",
+    "sourceChannel": "此版本已完整解锁",
     "sourceNone": "未解锁",
     "gateHeadline": "解锁 lastGLANCE",
     "trialHeadline_one": "开始 {{count}} 天免费试用",
