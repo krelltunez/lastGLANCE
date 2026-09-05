@@ -34,6 +34,8 @@ describe('applyDateLocale', () => {
     // (European) "pt" — dayjs ships a dedicated "pt-br".
     applyDateLocale('pt-BR')
     expect(getActiveLocale()).toBe('pt-br')
+    applyDateLocale('zh-CN')
+    expect(getActiveLocale()).toBe('zh-cn')
   })
 
   it('takes the base language from a regional tag dayjs has no locale for', () => {
@@ -80,6 +82,9 @@ describe('display formatting', () => {
     expect(formatDayHeading(SAMPLE)).toMatch(/mercredi/)
     applyDateLocale('de')
     expect(formatDayHeading(SAMPLE)).toMatch(/Mittwoch/)
+    applyDateLocale('zh-CN')
+    expect(formatDayHeading(SAMPLE)).toMatch(/8月/)
+    expect(formatDayHeading(SAMPLE)).toMatch(/星期三/)
   })
 
   it('orders the short month-and-day form per locale', () => {

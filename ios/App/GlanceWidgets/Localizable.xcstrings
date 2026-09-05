@@ -38,6 +38,12 @@
             "state": "translated",
             "value": "%@ · %lld atrasadas"
           }
+        },
+        "zh-CN": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ · %lld 个逾期"
+          }
         }
       }
     },
@@ -77,6 +83,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "%lld atrasadas"
+          }
+        },
+        "zh-CN": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 个逾期"
           }
         }
       }
@@ -118,6 +130,12 @@
             "state": "translated",
             "value": "%lld atrasadas · %lld a vencer"
           }
+        },
+        "zh-CN": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 个逾期 · %lld 个即将到期"
+          }
         }
       }
     },
@@ -157,6 +175,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "há %lld d"
+          }
+        },
+        "zh-CN": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 天前"
           }
         }
       }
@@ -198,6 +222,12 @@
             "state": "translated",
             "value": "+%lld mais"
           }
+        },
+        "zh-CN": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "另有 %lld 个"
+          }
         }
       }
     },
@@ -237,6 +267,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Um atalho de um toque para adicionar uma nova tarefa."
+          }
+        },
+        "zh-CN": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一键添加新事项。"
           }
         }
       }
@@ -278,6 +314,12 @@
             "state": "translated",
             "value": "Atividade"
           }
+        },
+        "zh-CN": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "活动"
+          }
         }
       }
     },
@@ -317,6 +359,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Adicionar tarefa"
+          }
+        },
+        "zh-CN": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加事项"
           }
         }
       }
@@ -358,6 +406,12 @@
             "state": "translated",
             "value": "Tudo em dia"
           }
+        },
+        "zh-CN": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "都处理好了"
+          }
         }
       }
     },
@@ -397,6 +451,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Escolher tarefa"
+          }
+        },
+        "zh-CN": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择事项"
           }
         }
       }
@@ -438,6 +498,12 @@
             "state": "translated",
             "value": "Tarefa"
           }
+        },
+        "zh-CN": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "事项"
+          }
         }
       }
     },
@@ -477,6 +543,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tarefas a vencer em breve ou atrasadas, com Feito num toque."
+          }
+        },
+        "zh-CN": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "显示近期或逾期的事项，并可一键标记完成。"
           }
         }
       }
@@ -518,6 +590,12 @@
             "state": "translated",
             "value": "Feito"
           }
+        },
+        "zh-CN": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "完成"
+          }
         }
       }
     },
@@ -557,6 +635,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Quantas tarefas precisam de atenção, na tela de bloqueio."
+          }
+        },
+        "zh-CN": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在锁定屏幕上查看有多少事项需要关注。"
           }
         }
       }
@@ -598,6 +682,12 @@
             "state": "translated",
             "value": "Menos"
           }
+        },
+        "zh-CN": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "少"
+          }
         }
       }
     },
@@ -637,6 +727,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Marcar tarefa como concluída"
+          }
+        },
+        "zh-CN": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "将事项标记为完成"
           }
         }
       }
@@ -678,6 +774,12 @@
             "state": "translated",
             "value": "Mais"
           }
+        },
+        "zh-CN": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "多"
+          }
         }
       }
     },
@@ -717,6 +819,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Uma tarefa e há quanto tempo foi, com Feito num toque. Edite o widget para escolhê-la."
+          }
+        },
+        "zh-CN": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "显示一个事项及距上次完成的时间，并可一键标记完成。编辑小组件可选择要显示的事项。"
           }
         }
       }
@@ -758,6 +866,12 @@
             "state": "translated",
             "value": "Abra o lastGLANCE uma vez para sincronizar."
           }
+        },
+        "zh-CN": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开一次 lastGLANCE 以完成同步。"
+          }
         }
       }
     },
@@ -797,6 +911,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Abre o lastGLANCE pronto para adicionar uma nova tarefa."
+          }
+        },
+        "zh-CN": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开 lastGLANCE 并直接进入添加新事项界面。"
           }
         }
       }
@@ -838,6 +958,12 @@
             "state": "translated",
             "value": "Atrasadas num relance"
           }
+        },
+        "zh-CN": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "逾期概览"
+          }
         }
       }
     },
@@ -877,6 +1003,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Escolha a tarefa que este widget acompanha."
+          }
+        },
+        "zh-CN": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择此小组件要跟踪的事项。"
           }
         }
       }
@@ -918,6 +1050,12 @@
             "state": "translated",
             "value": "EM BREVE"
           }
+        },
+        "zh-CN": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "近期"
+          }
         }
       }
     },
@@ -957,6 +1095,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Instantâneo ilegível."
+          }
+        },
+        "zh-CN": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法读取快照。"
           }
         }
       }
@@ -998,6 +1142,12 @@
             "state": "translated",
             "value": "Em breve"
           }
+        },
+        "zh-CN": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "近期"
+          }
         }
       }
     },
@@ -1037,6 +1187,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "O seu histórico de conclusões num relance."
+          }
+        },
+        "zh-CN": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一览你的完成历史。"
           }
         }
       }
@@ -1078,6 +1234,12 @@
             "state": "translated",
             "value": "dia ativo"
           }
+        },
+        "zh-CN": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "活跃天数"
+          }
         }
       }
     },
@@ -1117,6 +1279,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "dias ativos"
+          }
+        },
+        "zh-CN": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "活跃天数"
           }
         }
       }
@@ -1158,6 +1326,12 @@
             "state": "translated",
             "value": "conclusão"
           }
+        },
+        "zh-CN": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "完成记录"
+          }
         }
       }
     },
@@ -1197,6 +1371,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "conclusões"
+          }
+        },
+        "zh-CN": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "完成记录"
           }
         }
       }
@@ -1238,6 +1418,12 @@
             "state": "translated",
             "value": "dias seguidos"
           }
+        },
+        "zh-CN": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "连续天数"
+          }
         }
       }
     },
@@ -1277,6 +1463,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "atrasadas"
+          }
+        },
+        "zh-CN": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "逾期"
           }
         }
       }
@@ -1318,6 +1510,12 @@
             "state": "translated",
             "value": "lastGLANCE · %lld atrasadas, %lld a vencer"
           }
+        },
+        "zh-CN": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "lastGLANCE · %lld 个逾期，%lld 个即将到期"
+          }
         }
       }
     },
@@ -1357,6 +1555,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "nunca"
+          }
+        },
+        "zh-CN": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "从未"
           }
         }
       }
@@ -1398,6 +1602,12 @@
             "state": "translated",
             "value": "hoje"
           }
+        },
+        "zh-CN": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今天"
+          }
         }
       }
     },
@@ -1437,6 +1647,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "ontem"
+          }
+        },
+        "zh-CN": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "昨天"
           }
         }
       }
