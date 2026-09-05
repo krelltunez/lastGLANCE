@@ -48,8 +48,10 @@ declare global {
 }
 
 // Full tags before base languages: pt-BR must land on dayjs's "pt-br", not be
-// stripped to the generic (European) "pt". i18next reports pt-PT and pt-BR
-// since the Portuguese split; every other language is still a bare tag.
+// stripped to the generic (European) "pt". i18next reports regional tags for
+// Portuguese (pt-PT, pt-BR) and Chinese (zh-CN); every other language is
+// still a bare tag. A new regional locale needs its lower-cased dayjs name
+// listed here, or it falls back to the base language's (or English's) format.
 const SUPPORTED = ['de', 'es', 'fr', 'it', 'pt', 'pt-br', 'zh-cn'] as const
 
 let activeLocale = 'en'
