@@ -8,7 +8,9 @@ set -e
 # Usage:
 #   ./build-android.sh                     debug APK + install on a connected device
 #   ./build-android.sh --release           signed release APK + .aab for the Play Store
-#                                          -> outputs/lastglance.apk, outputs/lastglance.aab
+#                                          -> outputs/lastglance-github.apk (ungated
+#                                             sideload), outputs/lastglance.aab (Play),
+#                                             outputs/SHA256SUMS.txt
 #   ./build-android.sh --release --build N  release build with a test versionCode
 #                                          (N = 1..99) for internal/closed-test uploads
 #   ./build-android.sh --clean             full gradle clean + wipe dist/ first
@@ -114,19 +116,40 @@ if $RELEASE; then
     echo "         be UNSIGNED and not installable. See keystore.properties.example."
   fi
 
-  # Channel-split release builds (docs/paywall-billing-plan.md): the sideload
-  # APK is UNGATED (github channel) and the Play AAB is GATED (play channel),
-  # so each artifact needs its own web build — VITE_BUILD_CHANNEL is baked in
-  # at Vite build time. APP_VERSION_CODE, when set, overrides the derived
+  # Channel-split release builds: the sideload APK is UNGATED (github channel)
+  # and the Play AAB is GATED (play channel), so each artifact needs its own web
+  # build — VITE_BUILD_CHANNEL is baked in at Vite build time, and
+  # src/billing/billing.ts builds a billing adapter only for 'play' on Android
+  # (@glance-apps/billing treats a null adapter as ungated, so any other value
+  # ships an unlocked app). APP_VERSION_CODE, when set, overrides the derived
   # versionCode for both artifacts (see build.gradle).
+  #
+  # The two artifacts share an applicationId, app name, icon and versionCode —
+  # only the web assets and the signing key differ — so the sideload build is
+  # marked in the two places a user can actually look: the file name
+  # (lastglance-github.apk, matching dayGLANCE's and lifeGLANCE's) and the
+  # versionName (2.5.2-github). Without that, "the GitHub APK is showing me the
+  # paywall" cannot be told apart from "I am running the Play build" — and
+  # mirror sites republish the gated Play build under the same name.
+
+  # Artifacts this script wrote under its pre-rename name. Left in place they
+  # are indistinguishable from a fresh build in outputs/ and are exactly the
+  # wrong file to attach to a release, so clear them (they were overwritten on
+  # every run anyway).
+  if [ -f "$OUT_DIR/lastglance.apk" ]; then
+    echo "==> Removing stale lastglance.apk from a pre-rename build..."
+    rm -f "$OUT_DIR/lastglance.apk"
+  fi
+
+  APK_OUT="lastglance-github.apk"
 
   echo "==> Building web assets (channel: github — ungated sideload APK)..."
   cd "$SCRIPT_DIR"
   VITE_BUILD_CHANNEL=github npm run build:android
   cd "$ANDROID_DIR"
-  ./gradlew assembleRelease ${APP_VERSION_CODE:+-PappVersionCode="$APP_VERSION_CODE"}
-  cp "app/build/outputs/apk/release/lastglance.apk" "$OUT_DIR/lastglance.apk"
-  echo "    APK (release, github channel) → outputs/lastglance.apk"
+  ./gradlew assembleRelease -PversionNameSuffix=github ${APP_VERSION_CODE:+-PappVersionCode="$APP_VERSION_CODE"}
+  cp "app/build/outputs/apk/release/lastglance.apk" "$OUT_DIR/$APK_OUT"
+  echo "    APK (release, github channel, versionName -github) → outputs/$APK_OUT"
 
   # The reviewer bypass (@glance-apps/billing rule 9: store review needs a way
   # past a hard gate) is compiled in from src/config/reviewerAccess.js — a
@@ -150,9 +173,14 @@ if $RELEASE; then
   if [ -z "$APKSIGNER" ] && [ -n "$SDK_DIR" ]; then
     APKSIGNER="$(ls "$SDK_DIR"/build-tools/*/apksigner 2>/dev/null | sort -V | tail -1)"
   fi
-  if [ -n "$APKSIGNER" ]; then
+  if [ ! -f "$ANDROID_DIR/keystore.properties" ]; then
+    echo "    (no keystore.properties; APK is unsigned, skipping signature check)"
+  elif [ -n "$APKSIGNER" ]; then
+    # No `|| true`: set -e is on, so a bad signature stops the release here
+    # rather than at the point someone tries to install the APK. The published
+    # fingerprint is in README.md ("Verifying the APK").
     echo "==> Verifying signature..."
-    "$APKSIGNER" verify --print-certs "$OUT_DIR/lastglance.apk"
+    "$APKSIGNER" verify --print-certs "$OUT_DIR/$APK_OUT"
   else
     echo "    (apksigner not found on PATH or in \$ANDROID_HOME; skipping signature check)"
   fi
@@ -166,9 +194,9 @@ if $RELEASE; then
   (
     cd "$OUT_DIR"
     if command -v sha256sum >/dev/null 2>&1; then
-      sha256sum lastglance.apk lastglance.aab > SHA256SUMS.txt
+      sha256sum "$APK_OUT" lastglance.aab > SHA256SUMS.txt
     else
-      shasum -a 256 lastglance.apk lastglance.aab > SHA256SUMS.txt
+      shasum -a 256 "$APK_OUT" lastglance.aab > SHA256SUMS.txt
     fi
     sed 's/^/    /' SHA256SUMS.txt
   )

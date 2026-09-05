@@ -523,6 +523,7 @@
     "sourceLifetime": "Déblocage à vie actif",
     "sourceSubscription": "Abonnement annuel actif",
     "sourceReviewer": "Accès de test actif",
+    "sourceChannel": "Cette version est entièrement débloquée",
     "sourceNone": "Non débloqué",
     "gateHeadline": "Débloquez lastGLANCE",
     "trialHeadline_one": "Commencez votre essai gratuit de {{count}} jour",

@@ -489,8 +489,12 @@ function AppInner() {
     { label: isDark ? t('app.lightMode') : t('app.darkMode'), icon: isDark ? <Sun size={15} /> : <Moon size={15} />, onClick: () => { toggleTheme(); setShowSettingsSheet(false) } },
     { label: t('app.backupRestore'), icon: <Archive size={15} />, onClick: () => { setShowBackup(true); setShowSettingsSheet(false) } },
     { label: t('app.helpFeedback'), icon: <HelpCircle size={15} />, onClick: () => { setShowHelp(true); setShowSettingsSheet(false) } },
-    // Entitlement surface, Play builds only (gated is false on github/web).
-    ...(billing.gated ? [{ label: t('app.subscription'), icon: <BadgeCheck size={15} />, onClick: () => { setShowBillingStatus(true); setShowSettingsSheet(false) } }] : []),
+    // Entitlement surface, every channel. On a gated Play install it shows the
+    // purchase/restore actions; on an ungated one (github sideload, web) it
+    // says "This build is fully unlocked" — the only way a sideload user can
+    // tell their build from the Play one, since the two artifacts share an
+    // applicationId, name, icon and version.
+    { label: t('app.subscription'), icon: <BadgeCheck size={15} />, onClick: () => { setShowBillingStatus(true); setShowSettingsSheet(false) } },
   ]
 
   return (
@@ -801,8 +805,8 @@ function AppInner() {
           bypass code (never for paying customers). Its exit action is the
           reviewer's way back to the wall to test the IAPs; without it the
           review gets rejected for unlocatable purchases (learned on
-          dayGLANCE, see docs/reviewer-access-flow.md). Never visible with
-          the gate below: isReviewerUnlocked implies isUnlocked. */}
+          dayGLANCE). Never visible with the gate below: isReviewerUnlocked
+          implies isUnlocked. */}
       {billing.isReviewerUnlocked && (
         <ReviewerBanner onExit={exitReviewerMode} />
       )}

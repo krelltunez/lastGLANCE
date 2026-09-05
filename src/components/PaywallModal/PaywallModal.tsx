@@ -11,7 +11,11 @@ interface Props {
   // 'gate': the hard paywall on a locked Play install — fullscreen, not
   // dismissible (store review passes it via the reviewer code, rule 9).
   // 'status': the settings surface on an unlocked install — dismissible,
-  // shows the entitlement and manage/restore actions.
+  // shows the entitlement and, where there is a store, manage/restore actions.
+  // Reachable on EVERY channel: on an ungated build (web/PWA, GitHub sideload
+  // APK) the entitlement reads 'channel' and the line says the build is fully
+  // unlocked. That is the only in-app way to tell the sideload build from the
+  // gated Play one — they share an applicationId, name, icon and version.
   mode: 'gate' | 'status'
   onClose?: () => void
 }
@@ -106,28 +110,35 @@ export function PaywallModal({ billing, mode, onClose }: Props) {
                 {billing.entitlementSource === 'lifetime' ? t('paywall.sourceLifetime')
                   : billing.entitlementSource === 'subscription' ? t('paywall.sourceSubscription')
                   : billing.entitlementSource === 'reviewer' ? t('paywall.sourceReviewer')
+                  : billing.entitlementSource === 'channel' ? t('paywall.sourceChannel')
                   : t('paywall.sourceNone')}
               </p>
             </div>
             {billing.productId && (
               <p className="text-xs text-slate-400 dark:text-slate-500 ml-6 mb-4">{billing.productId}</p>
             )}
-            <div className="space-y-2 mt-4">
-              {billing.entitlementSource === 'subscription' && (
+            {/* Store actions only where there is a store to talk to. On an
+                ungated channel entitlementSource is 'channel', the engine has
+                no adapter, and Restore could only ever report "nothing to
+                restore" — so the status line stands alone. */}
+            {billing.entitlementSource !== 'channel' && (
+              <div className="space-y-2 mt-4">
+                {billing.entitlementSource === 'subscription' && (
+                  <button
+                    onClick={() => window.open(MANAGE_SUBSCRIPTION_URL, '_blank')}
+                    className="w-full py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+                  >
+                    {t('paywall.manage')}
+                  </button>
+                )}
                 <button
-                  onClick={() => window.open(MANAGE_SUBSCRIPTION_URL, '_blank')}
+                  onClick={() => billing.restore()}
                   className="w-full py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
                 >
-                  {t('paywall.manage')}
+                  {t('paywall.restore')}
                 </button>
-              )}
-              <button
-                onClick={() => billing.restore()}
-                className="w-full py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
-              >
-                {t('paywall.restore')}
-              </button>
-            </div>
+              </div>
+            )}
           </>
         ) : (
           <>

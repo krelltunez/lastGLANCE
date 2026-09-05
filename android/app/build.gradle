@@ -9,9 +9,18 @@ apply plugin: 'org.jetbrains.kotlin.plugin.compose'
 // otherwise outrank the derived codes; it still increases monotonically with the
 // version, with 100 spare codes per patch for pre-release overrides.
 def pkg = new groovy.json.JsonSlurper().parse(rootProject.file("../package.json"))
-def appVersionName = pkg.version as String
-def versionParts = appVersionName.tokenize('.')
+def baseVersionName = pkg.version as String
+def versionParts = baseVersionName.tokenize('.')
 def derivedVersionCode = versionParts[0].toInteger() * 1000000 + versionParts[1].toInteger() * 10000 + versionParts[2].toInteger() * 100
+
+// Optional versionName tag, appended as "-<suffix>" (the versionCode is
+// untouched, so updates still work normally). build-android.sh passes
+// -PversionNameSuffix=github for the sideload APK: the Play and GitHub
+// artifacts otherwise share an applicationId, name, icon and versionCode, so
+// "2.5.2-github" in Android's app info is how a user — or a bug report — can
+// tell which of the two is installed.
+def versionNameTag = project.findProperty("versionNameSuffix") ?: System.getenv("LASTGLANCE_VERSION_SUFFIX")
+def appVersionName = versionNameTag ? "${baseVersionName}-${versionNameTag}" : baseVersionName
 
 // One-off versionCode override for uploading pre-release builds (e.g. to the
 // Play internal test track) without disturbing the derived release numbering.

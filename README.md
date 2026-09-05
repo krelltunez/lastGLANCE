@@ -28,6 +28,52 @@ A native Android app is available on Google Play and as a direct APK download. T
 [**Get it on Obtainium →**](https://github.com/ImranR98/Obtainium)
 <br> *Just point Obtainium to `krelltunez/lastGLANCE`!*
 
+### Which build am I running?
+
+The two Android builds differ in one way only: the **Play** build is a paid app
+(subscription or one-off lifetime unlock), the **GitHub APK is fully unlocked** —
+no paywall, no billing, every feature on. They otherwise share a package name,
+app name, icon and version, so once installed they look identical. Two ways to
+tell them apart:
+
+- **Settings → Subscription.** The GitHub APK says *"This build is fully
+  unlocked"* and offers nothing to buy. The Play build shows a purchase status
+  with *Manage subscription* / *Restore purchase* instead.
+- **The version.** The sideload APK's version ends in `-github`, e.g.
+  `2.5.2-github` (releases up to 2.5.2 do not carry this marker yet).
+
+**If you are seeing a paywall, you are running the Play build.** Third-party
+mirrors (APKPure, APKMirror, Aptoide and similar) republish the *Play* build
+under the same name and version — only the [releases page](../../releases) and
+Obtainium serve the ungated one. Switching from the Play build to the sideload
+APK needs an uninstall (the signing keys differ, so Android cannot update one
+into the other), and **uninstalling erases local data — export first**, or set
+up [sync](#sync--storage) before you switch.
+
+### Verifying the APK
+
+Every release publishes `SHA256SUMS.txt` next to the APK:
+
+```bash
+sha256sum -c SHA256SUMS.txt      # run in the folder you downloaded into
+```
+
+The APK is signed with this certificate — any APK claiming to be lastGLANCE
+with a different fingerprint was not built by us:
+
+```
+SHA-256: 50:D7:13:7E:92:B4:7A:6C:AB:C6:EF:57:22:AA:D2:07:AB:B9:00:CC:A0:1B:AB:23:85:A9:79:31:EF:76:04:69
+```
+
+```bash
+apksigner verify --print-certs lastglance-github.apk
+```
+
+(The Play copy is re-signed by Google Play App Signing, so it legitimately shows
+a *different* fingerprint — that is itself a way to tell the two apart. A
+single-engine antivirus flag on the sideload APK is the same story: the two
+signatures differ by design.)
+
 The Android app ships the full web app in a WebView with native enhancements that aren't possible in a browser:
 
 | Feature | Details |
