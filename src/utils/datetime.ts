@@ -12,6 +12,7 @@ import 'dayjs/locale/fr'
 import 'dayjs/locale/it'
 import 'dayjs/locale/pt'
 import 'dayjs/locale/pt-br'
+import 'dayjs/locale/zh-cn'
 
 dayjs.extend(localeData)
 dayjs.extend(updateLocale)
@@ -49,7 +50,7 @@ declare global {
 // Full tags before base languages: pt-BR must land on dayjs's "pt-br", not be
 // stripped to the generic (European) "pt". i18next reports pt-PT and pt-BR
 // since the Portuguese split; every other language is still a bare tag.
-const SUPPORTED = ['de', 'es', 'fr', 'it', 'pt', 'pt-br'] as const
+const SUPPORTED = ['de', 'es', 'fr', 'it', 'pt', 'pt-br', 'zh-cn'] as const
 
 let activeLocale = 'en'
 

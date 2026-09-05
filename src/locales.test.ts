@@ -8,7 +8,7 @@ import { languages, loaders, resolveLanguage } from './locales'
 // user. The backlog is translated, so this is a strict parity check: a key
 // added to en without translations fails here instead of silently falling back.
 describe('locale bundles', () => {
-  const EXPECTED = ['de', 'en', 'es', 'fr', 'it', 'pt-BR', 'pt-PT']
+  const EXPECTED = ['de', 'en', 'es', 'fr', 'it', 'pt-BR', 'pt-PT', 'zh-CN']
   const TRANSLATED = EXPECTED.filter((l) => l !== 'en')
 
   const bundles: Record<string, Record<string, unknown>> = {}

@@ -15,7 +15,7 @@ const IOS = join(__dirname, '../ios/App')
 const CATALOGS = ['GlanceWidgets/Localizable.xcstrings', 'ShareExtension/Localizable.xcstrings']
 const PBXPROJ = join(IOS, 'App.xcodeproj/project.pbxproj')
 
-const LANGS = ['de', 'es', 'fr', 'it', 'pt-PT', 'pt-BR']
+const LANGS = ['de', 'es', 'fr', 'it', 'pt-PT', 'pt-BR', 'zh-CN']
 
 interface StringUnit { stringUnit: { state: string; value: string } }
 interface CatalogEntry { localizations?: Record<string, StringUnit> }

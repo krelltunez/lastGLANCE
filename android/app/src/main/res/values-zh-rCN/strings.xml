@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="heatmap_widget_description">一览近期完成情况。</string>
+    <string name="single_chore_widget_description">显示最需要关注的事项，并可一键标记完成。</string>
+    <string name="soon_list_widget_description">显示近期需要关注的事项，并可一键标记完成。</string>
+    <string name="soon_list_widget_title">近期</string>
+    <string name="widget_done">完成</string>
+    <string name="widget_all_caught_up">都处理好了</string>
+    <string name="widget_config_auto">逾期最久（自动）</string>
+    <string name="widget_config_title">选择事项</string>
+    <string name="widget_config_search">搜索事项</string>
+    <string name="widget_label_activity">lastGLANCE 热力图</string>
+    <string name="widget_label_chore">lastGLANCE 事项</string>
+    <string name="widget_label_soon">lastGLANCE 近期</string>
+    <string name="widget_label_add">lastGLANCE 添加事项</string>
+    <string name="add_chore_widget_description">一键添加新事项。</string>
+    <string name="widget_add_chore">添加事项</string>
+    <string name="shortcut_soon_short">近期</string>
+    <string name="shortcut_soon_long">待关注事项</string>
+    <string name="shortcut_search_short">搜索</string>
+    <string name="shortcut_search_long">搜索事项</string>
+    <string name="shortcut_add_short">添加事项</string>
+    <string name="shortcut_add_long">添加新事项</string>
+    <string name="tile_add_chore">添加事项</string>
+    <string name="tile_soon">近期</string>
+    <string name="widget_never">从未</string>
+    <string name="widget_today">今天</string>
+    <string name="widget_yesterday">昨天</string>
+    <string name="widget_days_ago">%1$d 天前</string>
+    <string name="widget_count_overdue">%1$d 个逾期</string>
+    <string name="widget_count_soon">%1$d 个即将到期</string>
+</resources>

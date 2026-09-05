@@ -38,6 +38,12 @@
             "state": "translated",
             "value": "%@\n\nEla estará esperando como nova tarefa na próxima vez que você abrir o app."
           }
+        },
+        "zh-CN": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@\n\n下次打开应用时，它会作为一个新事项等待你处理。"
+          }
         }
       }
     },
@@ -77,6 +83,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Concluído"
+          }
+        },
+        "zh-CN": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "完成"
           }
         }
       }
@@ -118,6 +130,12 @@
             "state": "translated",
             "value": "Nada para salvar"
           }
+        },
+        "zh-CN": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有可保存的内容"
+          }
         }
       }
     },
@@ -158,6 +176,12 @@
             "state": "translated",
             "value": "Salvo no lastGLANCE"
           }
+        },
+        "zh-CN": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已保存到 lastGLANCE"
+          }
         }
       }
     },
@@ -197,6 +221,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Este item não continha texto nem links que o lastGLANCE possa usar."
+          }
+        },
+        "zh-CN": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此内容不包含 lastGLANCE 可使用的文本或链接。"
           }
         }
       }
