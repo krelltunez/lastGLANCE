@@ -13,6 +13,14 @@ env:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    # The arm64 half of the build runs under QEMU, and npm ci under emulation
+    # can deadlock with no output: the v2.6.0 release run sat there for five
+    # and a half hours before it was cancelled by hand. A healthy run finishes
+    # in about six minutes, so half an hour is generous headroom and turns a
+    # hang into a visible failure. Recover with "Re-run all jobs" on the
+    # failed run, which keeps the release event (and so the version tags);
+    # a manual run from main only publishes the :main and :sha-* tags.
+    timeout-minutes: 30
     permissions:
       contents: read
       packages: write
