@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { ICON_REGISTRY, ICON_NAMES, ICON_GROUPS } from '@/icons/registry'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
 
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export function IconPicker({ selected, onSelect, onClose }: Props) {
+  const { t } = useTranslation()
   const [query, setQuery] = useState('')
   useEscapeKey(onClose)
 
@@ -77,7 +79,7 @@ export function IconPicker({ selected, onSelect, onClose }: Props) {
               ) : (
                 <>
                   <p className="text-xs text-slate-400 dark:text-slate-500 mb-2 px-1">
-                    {filteredFlat.length} result{filteredFlat.length !== 1 ? 's' : ''}
+                    {t('iconPicker.results', { count: filteredFlat.length })}
                   </p>
                   <IconGrid names={filteredFlat} selected={selected} onPick={pick} />
                 </>

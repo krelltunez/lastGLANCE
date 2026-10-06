@@ -206,6 +206,10 @@
     "versionInfo": "v{{version}} · {{date}}",
     "shortcuts": "atalhos"
   },
+  "iconPicker": {
+    "results_one": "{{count}} resultado",
+    "results_other": "{{count}} resultados"
+  },
   "integration": {
     "title": "Integração dayGLANCE",
     "automationSection": "Intents de automação (Tasker)",
@@ -455,7 +459,10 @@
     "lastSynced": "Última sincronização: {{date}}",
     "neverSynced": "Nunca",
     "saveClose": "Salvar e fechar",
-    "provider": "Provedor"
+    "provider": "Provedor",
+    "vaultSkipped_one": "Não foi possível ler {{count}} item na última sincronização.",
+    "vaultSkipped_other": "Não foi possível ler {{count}} itens na última sincronização.",
+    "vaultSkippedHint": "Normalmente, a causa é uma frase de sincronização errada em alguns itens. São ignorados e tentados novamente de forma automática nas sincronizações seguintes — nada foi perdido nem substituído."
   },
   "users": {
     "title": "Usuários",

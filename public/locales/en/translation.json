@@ -206,6 +206,10 @@
     "versionInfo": "v{{version}} · {{date}}",
     "shortcuts": "shortcuts"
   },
+  "iconPicker": {
+    "results_one": "{{count}} result",
+    "results_other": "{{count}} results"
+  },
   "integration": {
     "title": "dayGLANCE Integration",
     "automationSection": "Automation intents (Tasker)",
@@ -455,7 +459,10 @@
     "lastSynced": "Last synced: {{date}}",
     "neverSynced": "Never",
     "saveClose": "Save & Close",
-    "provider": "Provider"
+    "provider": "Provider",
+    "vaultSkipped_one": "{{count}} item couldn’t be read on the last sync.",
+    "vaultSkipped_other": "{{count}} items couldn’t be read on the last sync.",
+    "vaultSkippedHint": "This usually means a wrong sync passphrase on some rows. They’re skipped and retried automatically on later syncs — nothing was lost or overwritten."
   },
   "users": {
     "title": "Users",

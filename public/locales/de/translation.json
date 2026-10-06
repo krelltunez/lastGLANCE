@@ -206,6 +206,10 @@
     "versionInfo": "v{{version}} · {{date}}",
     "shortcuts": "Tastenkürzel"
   },
+  "iconPicker": {
+    "results_one": "{{count}} Ergebnis",
+    "results_other": "{{count}} Ergebnisse"
+  },
   "integration": {
     "title": "dayGLANCE-Integration",
     "automationSection": "Automatisierungs-Intents (Tasker)",
@@ -455,7 +459,10 @@
     "lastSynced": "Zuletzt synchronisiert: {{date}}",
     "neverSynced": "Nie",
     "saveClose": "Speichern & Schließen",
-    "provider": "Anbieter"
+    "provider": "Anbieter",
+    "vaultSkipped_one": "{{count}} Eintrag konnte beim letzten Sync nicht gelesen werden.",
+    "vaultSkipped_other": "{{count}} Einträge konnten beim letzten Sync nicht gelesen werden.",
+    "vaultSkippedHint": "Meist liegt das an einer falschen Sync-Passphrase bei einigen Einträgen. Sie werden übersprungen und bei späteren Syncs automatisch erneut versucht — nichts ging verloren oder wurde überschrieben."
   },
   "users": {
     "title": "Benutzer",

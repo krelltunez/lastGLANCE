@@ -206,6 +206,10 @@
     "versionInfo": "v{{version}} · {{date}}",
     "shortcuts": "快捷键"
   },
+  "iconPicker": {
+    "results_one": "{{count}} 个结果",
+    "results_other": "{{count}} 个结果"
+  },
   "integration": {
     "title": "dayGLANCE 集成",
     "automationSection": "自动化 Intent（Tasker）",
@@ -455,7 +459,10 @@
     "lastSynced": "上次同步：{{date}}",
     "neverSynced": "从未",
     "saveClose": "保存并关闭",
-    "provider": "服务提供方"
+    "provider": "服务提供方",
+    "vaultSkipped_one": "上次同步时有 {{count}} 项无法读取。",
+    "vaultSkipped_other": "上次同步时有 {{count}} 项无法读取。",
+    "vaultSkippedHint": "这通常是因为部分条目的同步加密口令不正确。这些条目会被跳过，并在之后的同步中自动重试，不会丢失或覆盖任何数据。"
   },
   "users": {
     "title": "用户",

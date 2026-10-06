@@ -769,9 +769,7 @@ export function SyncSettingsModal({ engine, dbEngine, syncError, syncErrorCode, 
                   <div className="flex items-start gap-2 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/40">
                     <AlertTriangle size={14} className="text-amber-500 shrink-0 mt-0.5" />
                     <p className="text-xs text-amber-700 dark:text-amber-300">
-                      {vaultSkipped} {vaultSkipped === 1 ? 'item' : 'items'} couldn’t be read on the last sync.
-                      This usually means a wrong sync passphrase on some rows. They’re skipped and retried
-                      automatically on later syncs — nothing was lost or overwritten.
+                      {t('sync.vaultSkipped', { count: vaultSkipped })} {t('sync.vaultSkippedHint')}
                     </p>
                   </div>
                 )}

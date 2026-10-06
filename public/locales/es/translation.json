@@ -206,6 +206,10 @@
     "versionInfo": "v{{version}} · {{date}}",
     "shortcuts": "atajos"
   },
+  "iconPicker": {
+    "results_one": "{{count}} resultado",
+    "results_other": "{{count}} resultados"
+  },
   "integration": {
     "title": "Integración con dayGLANCE",
     "automationSection": "Intents de automatización (Tasker)",
@@ -455,7 +459,10 @@
     "lastSynced": "Última sincronización: {{date}}",
     "neverSynced": "Nunca",
     "saveClose": "Guardar y cerrar",
-    "provider": "Proveedor"
+    "provider": "Proveedor",
+    "vaultSkipped_one": "No se pudo leer {{count}} elemento en la última sincronización.",
+    "vaultSkipped_other": "No se pudieron leer {{count}} elementos en la última sincronización.",
+    "vaultSkippedHint": "Normalmente se debe a una contraseña de sincronización incorrecta en algunos elementos. Se omiten y se reintentan automáticamente en las siguientes sincronizaciones: no se ha perdido ni sobrescrito nada."
   },
   "users": {
     "title": "Usuarios",
