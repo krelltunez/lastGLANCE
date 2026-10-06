@@ -12,6 +12,7 @@ import { cloudSyncProviders } from '@/utils/cloudSyncProviders'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
 import { useTranslation } from 'react-i18next'
 import { isWebCryptoAvailable } from '@/utils/secureContext'
+import { formatDateTime } from '@/utils/datetime'
 import { buildSyncConfigToSave } from './buildSyncConfig'
 
 interface Props {
@@ -336,8 +337,7 @@ export function SyncSettingsModal({ engine, dbEngine, syncError, syncErrorCode, 
 
   function formatLastSynced(iso: string | null): string {
     if (!iso) return t('sync.neverSynced')
-    const d = new Date(iso)
-    return d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
+    return formatDateTime(iso)
   }
 
   return createPortal(

@@ -197,6 +197,16 @@ export function formatMonthDay(value: DateInput): string {
   return formatter({ month: 'short', day: 'numeric' }).format(toDate(value))
 }
 
+/**
+ * "Aug 12, 02:05 PM" · "12 août, 14:05" — the hour is zero-padded so a column
+ * of log timestamps lines up.
+ */
+export function formatMonthDayTime(value: DateInput): string {
+  return formatter({
+    month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+  }).format(toDate(value))
+}
+
 /** "August 2026" · "août 2026" */
 export function formatMonthYear(value: DateInput): string {
   return formatter({ month: 'long', year: 'numeric' }).format(toDate(value))
