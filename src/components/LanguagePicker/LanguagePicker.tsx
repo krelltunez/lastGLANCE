@@ -1,12 +1,14 @@
 import { useTranslation } from 'react-i18next'
 import { languages, resolveLanguage } from '@/locales'
 import { nativeLanguageName } from './nativeLanguageName'
+import { setNativeAppLanguage } from '@/native/appLocale'
 
 /**
  * One picker for every surface that offers a language choice, so the desktop
  * overflow menu and the mobile settings sheet cannot drift apart. Persistence
  * is i18next's own localStorage cache — changeLanguage writes it, the detector
- * reads it back on the next launch.
+ * reads it back on the next launch. On Android 13+ the choice is also handed
+ * to the system, so widgets, shortcuts and tiles follow it (issue #327).
  */
 export function LanguagePicker({ className, id }: { className?: string; id?: string }) {
   const { i18n } = useTranslation()
@@ -19,7 +21,10 @@ export function LanguagePicker({ className, id }: { className?: string; id?: str
     <select
       id={id}
       value={value}
-      onChange={e => i18n.changeLanguage(e.target.value)}
+      onChange={e => {
+        void i18n.changeLanguage(e.target.value)
+        void setNativeAppLanguage(e.target.value)
+      }}
       className={className}
     >
       {languages.map(lng => (

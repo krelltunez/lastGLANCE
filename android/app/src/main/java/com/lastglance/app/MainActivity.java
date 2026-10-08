@@ -1,10 +1,12 @@
 package com.lastglance.app;
 
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.net.Uri;
 import android.os.Bundle;
 
 import com.getcapacitor.BridgeActivity;
+import com.getcapacitor.PluginHandle;
 
 import com.glanceapps.billing.BillingBridgePlugin;
 
@@ -14,6 +16,10 @@ import com.lastglance.app.intents.IntentsBridgePlugin;
 import org.json.JSONObject;
 
 public class MainActivity extends BridgeActivity {
+    // The app language last seen, so a configuration change that is not a
+    // language change (rotation, dark mode) does not rebuild every widget.
+    private String lastLocaleTag;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         // Register app-local plugins before the bridge starts.
@@ -23,13 +29,39 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(WebDavHttpPlugin.class);
         registerPlugin(SecureStorePlugin.class);
         registerPlugin(com.lastglance.app.sse.VaultSsePlugin.class);
+        registerPlugin(AppLocalePlugin.class);
         super.onCreate(savedInstanceState);
+        lastLocaleTag = getResources().getConfiguration().getLocales().get(0).toLanguageTag();
         // Cold start via a widget tap, a share, or a Tasker Activity intent: the
         // web app drains the slots on mount, so just store them here (no wake
         // needed — nothing is listening yet). A non-null savedInstanceState means
         // the system is rebuilding an activity it killed and is replaying the
         // intent that rooted the task, not delivering a new one.
         captureLaunchIntent(getIntent(), savedInstanceState != null, false);
+    }
+
+    // configChanges includes locale, so a language change lands here instead of
+    // recreating the activity and reloading the WebView. That covers both ways
+    // the app language changes on Android 13+: the in-app picker (through
+    // AppLocalePlugin.set) and Settings > Apps > lastGLANCE > Language. Either
+    // way the widgets and shortcuts are rebuilt in the new language, and the web
+    // UI is told, so a choice made in Settings shows up without a restart.
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        String tag = newConfig.getLocales().get(0).toLanguageTag();
+        if (tag.equals(lastLocaleTag)) return;
+        lastLocaleTag = tag;
+        WidgetBridgePlugin.refreshAll(this);
+        // Only an explicit app language is passed on. A null tag means the app
+        // follows the system (or this is Android 12 or older, where a system
+        // language change lands here too); the web UI's own choice stands then.
+        String appTag = AppLocalePlugin.currentTag(this);
+        if (appTag == null || getBridge() == null) return;
+        PluginHandle handle = getBridge().getPlugin("AppLocale");
+        if (handle != null && handle.getInstance() instanceof AppLocalePlugin) {
+            ((AppLocalePlugin) handle.getInstance()).notifyChanged(appTag);
+        }
     }
 
     @Override

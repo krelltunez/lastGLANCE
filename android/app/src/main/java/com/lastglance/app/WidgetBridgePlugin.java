@@ -11,6 +11,7 @@ import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 
+import com.lastglance.app.glance.AddChoreWidgetReceiver;
 import com.lastglance.app.glance.HeatmapWidgetReceiver;
 import com.lastglance.app.glance.SingleChoreWidgetReceiver;
 import com.lastglance.app.glance.SoonListWidgetReceiver;
@@ -66,6 +67,20 @@ public class WidgetBridgePlugin extends Plugin {
         JSObject ret = new JSObject();
         ret.put("text", value);
         call.resolve(ret);
+    }
+
+    // Re-render every widget and the dynamic shortcuts from the stored snapshot,
+    // without new data. Used when the app language changes: their text comes from
+    // string resources, which only pick up the new locale when rebuilt. The
+    // Add-chore widget is included here, unlike in updateSnapshot, because its
+    // label is the one thing about it that can change.
+    static void refreshAll(Context context) {
+        refreshGlanceWidget(context, HeatmapWidgetReceiver.class);
+        refreshGlanceWidget(context, SingleChoreWidgetReceiver.class);
+        refreshGlanceWidget(context, SoonListWidgetReceiver.class);
+        refreshGlanceWidget(context, AddChoreWidgetReceiver.class);
+        String json = SharedDataStore.readSnapshot(context);
+        if (json != null) WidgetShortcuts.refresh(context, json);
     }
 
     // Nudge a Glance widget to recompose from the freshly written snapshot.
