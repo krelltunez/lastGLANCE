@@ -1,11 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('@capacitor/core', () => ({ registerPlugin: () => ({}) }))
-const platform = vi.hoisted(() => ({ android: true }))
-vi.mock('./platform', () => ({ isAndroid: () => platform.android }))
+const platform = vi.hoisted(() => ({ android: true, ios: false }))
+vi.mock('./platform', () => ({ isAndroid: () => platform.android, isIOS: () => platform.ios }))
 
 import type { i18n as I18n } from 'i18next'
-import { setNativeAppLanguage, syncAppLanguageFromNative, type AppLocalePlugin } from './appLocale'
+import {
+  IOS_LANGUAGE_SEEN_KEY,
+  followIOSLanguageChanges,
+  setNativeAppLanguage,
+  syncAppLanguageFromNative,
+  type AppLocalePlugin,
+} from './appLocale'
 
 function fakeI18n(language: string) {
   const i18n = {
@@ -93,5 +99,49 @@ describe('app language sync with Android', () => {
     await setNativeAppLanguage('pl', plugin)
     expect(plugin.get).not.toHaveBeenCalled()
     expect(plugin.set).not.toHaveBeenCalled()
+  })
+})
+
+describe('following iOS language changes', () => {
+  const store = (seen?: string) => {
+    const m = new Map<string, string>(seen ? [[IOS_LANGUAGE_SEEN_KEY, seen]] : [])
+    return { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => void m.set(k, v), m }
+  }
+  beforeEach(() => {
+    platform.android = false
+    platform.ios = true
+  })
+
+  it('adopts a language changed in iOS Settings since the last launch', () => {
+    const i18n = fakeI18n('en')
+    followIOSLanguageChanges(i18n as unknown as I18n, 'pl-PL', store('en-US'))
+    expect(i18n.changeLanguage).toHaveBeenCalledWith('pl')
+  })
+
+  it('keeps an in-app choice while the iOS language stays the same', () => {
+    const i18n = fakeI18n('uk')
+    followIOSLanguageChanges(i18n as unknown as I18n, 'en-US', store('en-US'))
+    expect(i18n.changeLanguage).not.toHaveBeenCalled()
+  })
+
+  it('only records the language on the first launch, so existing choices stand', () => {
+    const i18n = fakeI18n('de')
+    const s = store()
+    followIOSLanguageChanges(i18n as unknown as I18n, 'en-US', s)
+    expect(i18n.changeLanguage).not.toHaveBeenCalled()
+    expect(s.m.get(IOS_LANGUAGE_SEEN_KEY)).toBe('en-US')
+  })
+
+  it('maps the iOS tag onto a shipped language', () => {
+    const i18n = fakeI18n('en')
+    followIOSLanguageChanges(i18n as unknown as I18n, 'zh-Hans-CN', store('en-US'))
+    expect(i18n.changeLanguage).toHaveBeenCalledWith('zh-CN')
+  })
+
+  it('does nothing off iOS', () => {
+    platform.ios = false
+    const i18n = fakeI18n('en')
+    followIOSLanguageChanges(i18n as unknown as I18n, 'pl-PL', store('en-US'))
+    expect(i18n.changeLanguage).not.toHaveBeenCalled()
   })
 })

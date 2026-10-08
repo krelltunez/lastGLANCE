@@ -1,7 +1,7 @@
 import { registerPlugin } from '@capacitor/core'
 import type { i18n as I18n } from 'i18next'
 import { resolveLanguage } from '@/locales'
-import { isAndroid } from './platform'
+import { isAndroid, isIOS } from './platform'
 
 // Keeps the in-app language and Android's per-app language the same choice
 // (issue #327, AppLocalePlugin.java). Android 13+ only; below that the plugin
@@ -51,5 +51,39 @@ export async function syncAppLanguageFromNative(i18n: I18n, plugin: AppLocalePlu
     await plugin.addListener('changed', ({ tag }) => adopt(tag))
   } catch {
     // An older native shell without the plugin: nothing to sync with.
+  }
+}
+
+// iOS (issue: Settings > lastGLANCE > Language left the app UI behind).
+//
+// iOS keeps the app language itself: Settings > lastGLANCE > Language, or the
+// phone's language when none is set. The widgets follow it directly, but the web
+// UI reads i18next's cached choice before navigator.language, so after a change
+// in Settings the screens stayed on the old language while the widgets switched.
+//
+// There is no API to ask iOS whether the user set a per-app language, so this
+// watches for change instead: the language iOS hands the WebView is remembered,
+// and when it differs at the next launch (Settings relaunches the app), the user
+// changed it there, and the UI follows. The in-app picker still works on its own
+// terms in between, and is the only way to choose a language when the phone has
+// a single preferred language and iOS shows no Language row at all.
+export const IOS_LANGUAGE_SEEN_KEY = 'lastglance.iosLanguageSeen'
+
+export function followIOSLanguageChanges(
+  i18n: I18n,
+  reported: string | undefined = typeof navigator === 'undefined' ? undefined : navigator.language,
+  storage: Pick<Storage, 'getItem' | 'setItem'> | undefined = typeof localStorage === 'undefined' ? undefined : localStorage,
+): void {
+  if (!isIOS() || !reported || !storage) return
+  try {
+    const seen = storage.getItem(IOS_LANGUAGE_SEEN_KEY)
+    storage.setItem(IOS_LANGUAGE_SEEN_KEY, reported)
+    // First launch with this code: nothing to compare against, and adopting
+    // here would override every existing user's in-app choice.
+    if (seen === null || seen === reported) return
+    const lng = resolveLanguage(reported)
+    if (lng !== resolveLanguage(i18n.resolvedLanguage || i18n.language)) void i18n.changeLanguage(lng)
+  } catch {
+    // Storage unavailable: keep the cached language, as before.
   }
 }
