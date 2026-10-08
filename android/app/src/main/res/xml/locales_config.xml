@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The languages Android 13+ offers under Settings > Apps > lastGLANCE > Language.
+  Must match public/locales/* exactly (src/nativeLocaleParity.test.ts). Both
+  Portuguese standards are listed so the system list can tell them apart; their
+  native strings both resolve to values-pt.
+-->
+<locale-config xmlns:android="http://schemas.android.com/apk/res/android">
+    <locale android:name="en" />
+    <locale android:name="de" />
+    <locale android:name="es" />
+    <locale android:name="fr" />
+    <locale android:name="it" />
+    <locale android:name="pl" />
+    <locale android:name="pt-BR" />
+    <locale android:name="pt-PT" />
+    <locale android:name="uk" />
+    <locale android:name="zh-CN" />
+</locale-config>
