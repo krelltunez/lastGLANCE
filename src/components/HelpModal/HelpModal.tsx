@@ -4,6 +4,7 @@ import { X, HelpCircle, ExternalLink } from 'lucide-react'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
 import { isNativePlatform } from '@/sync/nativeHttp'
 import { useTranslation } from 'react-i18next'
+import { formatDateTime } from '@/utils/datetime'
 
 interface Props {
   onClose: () => void
@@ -52,9 +53,7 @@ export function HelpModal({ onClose, onOpenShortcuts }: Props) {
     return `${(n / (1024 * 1024)).toFixed(1)} MB`
   }
 
-  const buildDate = new Date(__BUILD_TIME__).toLocaleString(undefined, {
-    dateStyle: 'medium', timeStyle: 'short',
-  })
+  const buildDate = formatDateTime(__BUILD_TIME__)
 
   return createPortal(
     <div

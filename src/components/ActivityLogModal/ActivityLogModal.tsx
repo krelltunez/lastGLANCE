@@ -4,6 +4,7 @@ import { X, RefreshCw, ChevronRight, ChevronDown, ScrollText } from 'lucide-reac
 import { type ActivityEntry, type IntentDelivery, getActivityLog, clearActivityLog, INTENTS_ACTIVITY_EVENT } from '@/intents/config'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
 import { useTranslation } from 'react-i18next'
+import { formatMonthDayTime } from '@/utils/datetime'
 
 interface Props {
   onClose: () => void
@@ -104,10 +105,7 @@ export function ActivityLogModal({ onClose }: Props) {
                   >
                     <div className="flex items-start gap-2">
                       <span className="text-slate-400 dark:text-slate-500 tabular-nums shrink-0 pt-0.5">
-                        {new Date(entry.timestamp).toLocaleString([], {
-                          month: 'short', day: 'numeric',
-                          hour: '2-digit', minute: '2-digit',
-                        })}
+                        {formatMonthDayTime(entry.timestamp)}
                       </span>
                       <span className={`shrink-0 px-1 py-0.5 rounded text-[10px] font-medium uppercase tracking-wide ${badgeClass(entry.type)}`}>
                         {entry.type}

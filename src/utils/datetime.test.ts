@@ -1,12 +1,16 @@
 import { describe, it, expect, afterEach, vi } from 'vitest'
+import { readFileSync, readdirSync } from 'node:fs'
+import { join } from 'node:path'
 import dayjs from 'dayjs'
 import {
   applyDateLocale,
   getActiveLocale,
   formatDate,
   formatTime,
+  formatDateTime,
   formatDayHeading,
   formatMonthDay,
+  formatMonthDayTime,
   formatMonthYear,
   firstDayOfWeek,
   weekdayMinLabels,
@@ -107,6 +111,26 @@ describe('display formatting', () => {
     applyDateLocale('fr')
     // "12 août", never "août 12" — the reason this does not use a fixed token.
     expect(formatMonthDay(SAMPLE)).toMatch(/^12/)
+  })
+
+  it('stamps date and time in the app language', () => {
+    applyDateLocale('en')
+    expect(formatDateTime(SAMPLE)).toMatch(/^Aug 12, 2026, 2:05\sPM$/)
+    applyDateLocale('pl')
+    expect(formatDateTime(SAMPLE)).toMatch(/12 sie/)
+    expect(formatDateTime(SAMPLE)).toMatch(/14:05/)
+    applyDateLocale('uk')
+    expect(formatDateTime(SAMPLE)).toMatch(/12 серп/)
+    expect(formatDateTime(SAMPLE)).toMatch(/14:05/)
+  })
+
+  it('zero-pads the hour in log timestamps so the column lines up', () => {
+    const morning = '2026-08-02T09:05:00'
+    applyDateLocale('en')
+    expect(formatMonthDayTime(morning)).toMatch(/^Aug 2, 09:05\sAM$/)
+    applyDateLocale('fr')
+    expect(formatMonthDayTime(morning)).toMatch(/^2 août/)
+    expect(formatMonthDayTime(morning)).toMatch(/09:05$/)
   })
 
   it('localizes the month-and-year label', () => {
@@ -220,5 +244,36 @@ describe('week start', () => {
     // Monday-start: Monday is row 0 instead.
     expect(weekdayAtOffset(0).weekday).toBe(1)
     expect(weekdayAtOffset(6).weekday).toBe(0)
+  })
+})
+
+// Called with no locale, `undefined` or `[]`, these format in the browser's
+// language, not the app's: the sync "Last synced" stamps, the build date in
+// Help and the activity log all did, so a Polish UI on an English-language
+// phone showed "Oct 6, 2026". Dates go through this module instead.
+describe('nothing is formatted in the browser locale', () => {
+  const SRC = join(__dirname, '..')
+  // Matched against whole files, so a call wrapped onto the next line counts.
+  const DEFAULT_LOCALE =
+    /\.toLocale(?:Date|Time)?String\(\s*(?:\)|undefined\b|\[\s*\])|new Intl\.\w+Format\(\s*(?:\)|undefined\b|\[\s*\])/g
+  const sources = (readdirSync(SRC, { recursive: true }) as string[])
+    .filter((f) => /\.tsx?$/.test(f) && !/\.test\.tsx?$/.test(f))
+
+  it('scans the app sources', () => {
+    expect(sources).toContain(join('components', 'HelpModal', 'HelpModal.tsx'))
+  })
+
+  it('finds no call that leaves the locale to the browser', () => {
+    const hits = sources.flatMap((file) => {
+      const text = readFileSync(join(SRC, file), 'utf8')
+      return [...text.matchAll(DEFAULT_LOCALE)].map(
+        (m) => `  ${file}:${text.slice(0, m.index).split('\n').length}: ${m[0].replace(/\s+/g, ' ')}`,
+      )
+    })
+    expect(
+      hits,
+      `Formatted with the browser locale; use src/utils/datetime.ts for dates, ` +
+        `or pass getActiveLocale() for anything else:\n${hits.join('\n')}`,
+    ).toEqual([])
   })
 })

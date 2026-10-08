@@ -206,6 +206,10 @@
     "versionInfo": "v{{version}} · {{date}}",
     "shortcuts": "raccourcis"
   },
+  "iconPicker": {
+    "results_one": "{{count}} résultat",
+    "results_other": "{{count}} résultats"
+  },
   "integration": {
     "title": "Intégration dayGLANCE",
     "automationSection": "Intents d'automatisation (Tasker)",
@@ -455,7 +459,10 @@
     "lastSynced": "Dernière sync : {{date}}",
     "neverSynced": "Jamais",
     "saveClose": "Enregistrer & Fermer",
-    "provider": "Fournisseur"
+    "provider": "Fournisseur",
+    "vaultSkipped_one": "{{count}} élément n’a pas pu être lu lors de la dernière sync.",
+    "vaultSkipped_other": "{{count}} éléments n’ont pas pu être lus lors de la dernière sync.",
+    "vaultSkippedHint": "Cela vient généralement d’une phrase secrète de sync erronée sur certains éléments. Ils sont ignorés puis réessayés automatiquement lors des prochaines syncs — rien n’a été perdu ni écrasé."
   },
   "users": {
     "title": "Utilisateurs",

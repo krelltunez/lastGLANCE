@@ -210,6 +210,12 @@
     "versionInfo": "v{{version}} · {{date}}",
     "shortcuts": "skróty"
   },
+  "iconPicker": {
+    "results_one": "{{count}} wynik",
+    "results_few": "{{count}} wyniki",
+    "results_many": "{{count}} wyników",
+    "results_other": "{{count}} wyniku"
+  },
   "integration": {
     "title": "Integracja z dayGLANCE",
     "automationSection": "Intencje automatyzacji (Tasker)",
@@ -471,7 +477,12 @@
     "lastSynced": "Ostatnia synchronizacja: {{date}}",
     "neverSynced": "Nigdy",
     "saveClose": "Zapisz i zamknij",
-    "provider": "Dostawca"
+    "provider": "Dostawca",
+    "vaultSkipped_one": "Podczas ostatniej synchronizacji nie udało się odczytać {{count}} elementu.",
+    "vaultSkipped_few": "Podczas ostatniej synchronizacji nie udało się odczytać {{count}} elementów.",
+    "vaultSkipped_many": "Podczas ostatniej synchronizacji nie udało się odczytać {{count}} elementów.",
+    "vaultSkipped_other": "Podczas ostatniej synchronizacji nie udało się odczytać {{count}} elementu.",
+    "vaultSkippedHint": "Zwykle oznacza to nieprawidłowe hasło synchronizacji w części wierszy. Takie wiersze są pomijane, a próba ich odczytu jest automatycznie ponawiana przy kolejnych synchronizacjach — nic nie zostało utracone ani nadpisane."
   },
   "users": {
     "title": "Użytkownicy",
