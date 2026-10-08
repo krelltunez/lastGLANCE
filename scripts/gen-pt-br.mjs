@@ -222,6 +222,9 @@ const RULES = [
   ['agregado familiar', 'família'],
   ['atribuído a si', 'atribuído a você'],
   ['é altura de', 'é hora de'],
+  ['Multimédia', 'Multimídia'],
+  ['Desporto', 'Esporte'],
+  ['investigação', 'pesquisa'],
 ]
 
 // Whole-string replacements for the handful of sentences a word-level rule
