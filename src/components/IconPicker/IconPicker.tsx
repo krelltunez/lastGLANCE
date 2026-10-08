@@ -40,7 +40,7 @@ export function IconPicker({ selected, onSelect, onClose }: Props) {
             type="text"
             value={query}
             onChange={e => setQuery(e.target.value)}
-            placeholder="Search icons…"
+            placeholder={t('iconPicker.searchPlaceholder')}
             autoFocus
             className="flex-1 bg-slate-100 dark:bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
           />
@@ -55,14 +55,14 @@ export function IconPicker({ selected, onSelect, onClose }: Props) {
         {/* Current selection */}
         {selected && (
           <div className="px-4 py-2 border-b border-slate-100 dark:border-slate-700/40 shrink-0 flex items-center gap-2">
-            <span className="text-xs text-slate-400 dark:text-slate-500">Selected:</span>
+            <span className="text-xs text-slate-400 dark:text-slate-500">{t('iconPicker.selected')}</span>
             {(() => { const Icon = ICON_REGISTRY[selected]; return Icon ? <Icon size={15} className="text-green-400" /> : null })()}
             <span className="text-xs text-slate-600 dark:text-slate-300">{selected}</span>
             <button
               onClick={() => { onSelect(undefined); onClose() }}
               className="ml-auto text-xs text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 transition-colors"
             >
-              Remove
+              {t('iconPicker.remove')}
             </button>
           </div>
         )}
@@ -74,7 +74,7 @@ export function IconPicker({ selected, onSelect, onClose }: Props) {
             <div className="p-3">
               {filteredFlat.length === 0 ? (
                 <p className="text-sm text-slate-400 dark:text-slate-500 text-center py-8">
-                  No icons match "{query}"
+                  {t('iconPicker.noMatch', { query })}
                 </p>
               ) : (
                 <>
@@ -89,9 +89,9 @@ export function IconPicker({ selected, onSelect, onClose }: Props) {
             // Categorized view
             <div className="p-3 space-y-5">
               {ICON_GROUPS.map(group => (
-                <div key={group.label}>
+                <div key={group.id}>
                   <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2 px-1">
-                    {group.label}
+                    {t(`iconPicker.groups.${group.id}`)}
                   </p>
                   <IconGrid names={group.icons} selected={selected} onPick={pick} />
                 </div>

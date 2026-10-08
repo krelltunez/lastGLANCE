@@ -23,13 +23,14 @@ export const ICON_NAMES = Object.keys(ICON_REGISTRY).sort()
 // ── Categories ────────────────────────────────────────────────────────────────
 
 export interface IconGroup {
-  label: string
+  // Stable key; the visible name is the translation at iconPicker.groups.<id>.
+  id: string
   icons: string[]
 }
 
 const ALL_GROUPS: IconGroup[] = [
   {
-    label: 'Accessibility',
+    id: 'accessibility',
     icons: [
       'Accessibility', 'ALargeSmall', 'AArrowDown', 'AArrowUp',
       'Braille', 'Captions', 'Ear', 'EarOff',
@@ -38,7 +39,7 @@ const ALL_GROUPS: IconGroup[] = [
     ],
   },
   {
-    label: 'Animals',
+    id: 'animals',
     icons: [
       'Bird', 'Bug', 'BugOff', 'Cat', 'Dog', 'Egg', 'EggOff', 'EggFried',
       'Feather', 'Fish', 'FishOff', 'FishSymbol',
@@ -46,7 +47,7 @@ const ALL_GROUPS: IconGroup[] = [
     ],
   },
   {
-    label: 'Arrows',
+    id: 'arrows',
     icons: [
       'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight',
       'ArrowUpLeft', 'ArrowUpRight', 'ArrowDownLeft', 'ArrowDownRight',
@@ -76,7 +77,7 @@ const ALL_GROUPS: IconGroup[] = [
     ],
   },
   {
-    label: 'Buildings & Places',
+    id: 'buildings',
     icons: [
       'Building', 'Building2', 'Castle', 'Church', 'Factory', 'Fence',
       'Home', 'House', 'HousePlug', 'HousePlus',
@@ -86,7 +87,7 @@ const ALL_GROUPS: IconGroup[] = [
     ],
   },
   {
-    label: 'Charts & Data',
+    id: 'charts',
     icons: [
       'BarChart', 'BarChart2', 'BarChart3', 'BarChart4', 'BarChartBig',
       'BarChartHorizontal', 'BarChartHorizontalBig',
@@ -106,7 +107,7 @@ const ALL_GROUPS: IconGroup[] = [
     ],
   },
   {
-    label: 'Coding & Development',
+    id: 'coding',
     icons: [
       'Code', 'Code2', 'CodeXml', 'CodeSquare',
       'Terminal', 'TerminalSquare',
@@ -122,7 +123,7 @@ const ALL_GROUPS: IconGroup[] = [
     ],
   },
   {
-    label: 'Communication',
+    id: 'communication',
     icons: [
       'Mail', 'MailCheck', 'MailMinus', 'MailOpen', 'MailPlus', 'MailQuestion',
       'MailSearch', 'MailWarning', 'MailX', 'Mails',
@@ -143,7 +144,7 @@ const ALL_GROUPS: IconGroup[] = [
     ],
   },
   {
-    label: 'Connectivity',
+    id: 'connectivity',
     icons: [
       'Wifi', 'WifiHigh', 'WifiLow', 'WifiOff', 'WifiZero',
       'Bluetooth', 'BluetoothConnected', 'BluetoothOff', 'BluetoothSearching',
@@ -156,7 +157,7 @@ const ALL_GROUPS: IconGroup[] = [
     ],
   },
   {
-    label: 'Design & Creativity',
+    id: 'design',
     icons: [
       'Pen', 'PenLine', 'PenOff', 'PenTool',
       'Pencil', 'PencilLine', 'PencilOff', 'PencilRuler',
@@ -171,7 +172,7 @@ const ALL_GROUPS: IconGroup[] = [
     ],
   },
   {
-    label: 'Devices',
+    id: 'devices',
     icons: [
       'Monitor', 'MonitorCheck', 'MonitorDot', 'MonitorDown', 'MonitorOff',
       'MonitorPause', 'MonitorPlay', 'MonitorSmartphone', 'MonitorSpeaker',
@@ -192,7 +193,7 @@ const ALL_GROUPS: IconGroup[] = [
     ],
   },
   {
-    label: 'Emojis & Expressions',
+    id: 'emojis',
     icons: [
       'Smile', 'SmilePlus', 'Laugh', 'Meh', 'Frown',
       'Angry', 'Ghost', 'Skull',
@@ -201,7 +202,7 @@ const ALL_GROUPS: IconGroup[] = [
     ],
   },
   {
-    label: 'Files & Folders',
+    id: 'files',
     icons: [
       'File', 'FileArchive', 'FileAudio', 'FileAudio2', 'FileBadge', 'FileBadge2',
       'FileBarChart', 'FileBarChart2', 'FileBox', 'FileCheck', 'FileCheck2',
@@ -224,7 +225,7 @@ const ALL_GROUPS: IconGroup[] = [
     ],
   },
   {
-    label: 'Finance & Money',
+    id: 'finance',
     icons: [
       'DollarSign', 'Euro', 'PoundSterling', 'JapaneseYen', 'IndianRupee',
       'SwissFranc', 'RussianRuble', 'Bitcoin',
@@ -239,7 +240,7 @@ const ALL_GROUPS: IconGroup[] = [
     ],
   },
   {
-    label: 'Food & Drink',
+    id: 'food',
     icons: [
       'Apple', 'Banana', 'Cherry', 'Grape', 'Lemon',
       'Beer', 'BeerOff', 'Wine', 'WineOff', 'Coffee',
@@ -253,7 +254,7 @@ const ALL_GROUPS: IconGroup[] = [
     ],
   },
   {
-    label: 'Gaming',
+    id: 'gaming',
     icons: [
       'Gamepad', 'Gamepad2', 'Joystick',
       'Dice1', 'Dice2', 'Dice3', 'Dice4', 'Dice5', 'Dice6',
@@ -264,7 +265,7 @@ const ALL_GROUPS: IconGroup[] = [
     ],
   },
   {
-    label: 'Health & Medical',
+    id: 'health',
     icons: [
       'Heart', 'HeartCrack', 'HeartHandshake', 'HeartOff', 'HeartPulse',
       'Activity', 'ActivitySquare',
@@ -278,7 +279,7 @@ const ALL_GROUPS: IconGroup[] = [
     ],
   },
   {
-    label: 'Home & Furnishings',
+    id: 'home',
     icons: [
       'Home', 'House', 'HousePlug', 'HousePlus',
       'Hotel', 'Sofa', 'Armchair', 'Bed', 'BedDouble', 'BedSingle',
@@ -292,7 +293,7 @@ const ALL_GROUPS: IconGroup[] = [
     ],
   },
   {
-    label: 'Layout & UI',
+    id: 'layout',
     icons: [
       'Layout', 'LayoutDashboard', 'LayoutGrid', 'LayoutList', 'LayoutPanelLeft',
       'LayoutPanelTop', 'LayoutTemplate',
@@ -311,7 +312,7 @@ const ALL_GROUPS: IconGroup[] = [
     ],
   },
   {
-    label: 'Maps & Navigation',
+    id: 'maps',
     icons: [
       'Map', 'MapPin', 'MapPinCheck', 'MapPinCheckInside', 'MapPinMinusInside',
       'MapPinOff', 'MapPinPlus', 'MapPinPlusInside', 'MapPinX', 'MapPinXInside',
@@ -325,7 +326,7 @@ const ALL_GROUPS: IconGroup[] = [
     ],
   },
   {
-    label: 'Math',
+    id: 'math',
     icons: [
       'Plus', 'Minus', 'X', 'Divide',
       'CirclePlus', 'CircleMinus', 'CircleX',
@@ -337,7 +338,7 @@ const ALL_GROUPS: IconGroup[] = [
     ],
   },
   {
-    label: 'Media & Playback',
+    id: 'media',
     icons: [
       'Play', 'Pause', 'Square', 'CirclePlay', 'CirclePause', 'CircleStop',
       'SkipForward', 'SkipBack', 'FastForward', 'Rewind',
@@ -355,7 +356,7 @@ const ALL_GROUPS: IconGroup[] = [
     ],
   },
   {
-    label: 'Nature & Weather',
+    id: 'nature',
     icons: [
       'Leaf', 'LeafyGreen', 'Sprout', 'Flower', 'Flower2',
       'TreeDeciduous', 'TreePine', 'TreePalm', 'Trees',
@@ -370,7 +371,7 @@ const ALL_GROUPS: IconGroup[] = [
     ],
   },
   {
-    label: 'People & Social',
+    id: 'people',
     icons: [
       'User', 'UserCheck', 'UserCog', 'UserMinus', 'UserPen', 'UserPlus',
       'UserRound', 'UserRoundCheck', 'UserRoundCog', 'UserRoundMinus', 'UserRoundPen',
@@ -387,7 +388,7 @@ const ALL_GROUPS: IconGroup[] = [
     ],
   },
   {
-    label: 'Science & Research',
+    id: 'science',
     icons: [
       'Microscope', 'Telescope', 'TestTube', 'TestTube2',
       'FlaskConical', 'FlaskConicalOff', 'FlaskRound',
@@ -397,7 +398,7 @@ const ALL_GROUPS: IconGroup[] = [
     ],
   },
   {
-    label: 'Security',
+    id: 'security',
     icons: [
       'Lock', 'LockKeyhole', 'LockOpen', 'UnlockKeyhole',
       'Key', 'KeyRound', 'KeySquare',
@@ -410,7 +411,7 @@ const ALL_GROUPS: IconGroup[] = [
     ],
   },
   {
-    label: 'Shapes',
+    id: 'shapes',
     icons: [
       'Circle', 'CircleDashed', 'CircleDot', 'CircleDotDashed',
       'Square', 'SquareDashed', 'SquareDot',
@@ -420,7 +421,7 @@ const ALL_GROUPS: IconGroup[] = [
     ],
   },
   {
-    label: 'Shopping',
+    id: 'shopping',
     icons: [
       'ShoppingCart', 'ShoppingBag', 'ShoppingBasket',
       'Store', 'Package', 'Package2', 'PackageCheck', 'PackageMinus', 'PackageOpen',
@@ -432,7 +433,7 @@ const ALL_GROUPS: IconGroup[] = [
     ],
   },
   {
-    label: 'Sports & Fitness',
+    id: 'sports',
     icons: [
       'Dumbbell', 'Bike', 'PersonStanding', 'Footprints',
       'Trophy', 'Medal', 'Award', 'Sword', 'Swords', 'Target',
@@ -440,7 +441,7 @@ const ALL_GROUPS: IconGroup[] = [
     ],
   },
   {
-    label: 'Text & Typography',
+    id: 'text',
     icons: [
       'Bold', 'Italic', 'Underline', 'Strikethrough',
       'AlignLeft', 'AlignCenter', 'AlignRight', 'AlignJustify',
@@ -459,7 +460,7 @@ const ALL_GROUPS: IconGroup[] = [
     ],
   },
   {
-    label: 'Time & Calendar',
+    id: 'time',
     icons: [
       'Clock', 'Clock1', 'Clock2', 'Clock3', 'Clock4', 'Clock5', 'Clock6',
       'Clock7', 'Clock8', 'Clock9', 'Clock10', 'Clock11', 'Clock12',
@@ -474,7 +475,7 @@ const ALL_GROUPS: IconGroup[] = [
     ],
   },
   {
-    label: 'Tools & Settings',
+    id: 'tools',
     icons: [
       'Wrench', 'Hammer', 'Drill', 'Scissors', 'ScissorsLineDashed',
       'Ruler', 'Shovel', 'Pickaxe', 'Axe', 'Toolbox', 'Construction',
@@ -488,7 +489,7 @@ const ALL_GROUPS: IconGroup[] = [
     ],
   },
   {
-    label: 'Transportation',
+    id: 'transportation',
     icons: [
       'Car', 'CarFront', 'CarTaxiFront',
       'Truck', 'Bus', 'BusFront',
@@ -500,7 +501,7 @@ const ALL_GROUPS: IconGroup[] = [
     ],
   },
   {
-    label: 'Travel',
+    id: 'travel',
     icons: [
       'Plane', 'PlaneLanding', 'PlaneTakeoff',
       'Hotel', 'Tent', 'TentTree',
@@ -517,7 +518,7 @@ const ALL_GROUPS: IconGroup[] = [
 // Filter each group to icons that exist in the installed package
 export const ICON_GROUPS: IconGroup[] = ALL_GROUPS
   .map(group => ({
-    label: group.label,
+    id: group.id,
     icons: group.icons.filter(name => name in ICON_REGISTRY),
   }))
   .filter(group => group.icons.length > 0)
@@ -526,5 +527,5 @@ export const ICON_GROUPS: IconGroup[] = ALL_GROUPS
 const assignedNames = new Set(ALL_GROUPS.flatMap(g => g.icons))
 const ungrouped = ICON_NAMES.filter(name => !assignedNames.has(name))
 if (ungrouped.length > 0) {
-  ICON_GROUPS.push({ label: 'Other', icons: ungrouped })
+  ICON_GROUPS.push({ id: 'other', icons: ungrouped })
 }
