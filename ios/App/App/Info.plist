@@ -16,6 +16,26 @@
 	<string>$(CAPACITOR_DEBUG)</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
+	<!-- The languages lastGLANCE ships. The UI is web content, so the bundle has
+	     no .lproj folders of its own for iOS to discover them from; this list is
+	     what makes iOS offer Settings > lastGLANCE > Language (shown once the
+	     phone has more than one preferred language), and that choice carries to
+	     the widgets and share extension. Must match public/locales/*
+	     (src/nativeLocaleParity.test.ts). Simplified Chinese is zh-Hans here,
+	     iOS's name for what the web bundle calls zh-CN. -->
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>en</string>
+		<string>de</string>
+		<string>es</string>
+		<string>fr</string>
+		<string>it</string>
+		<string>pl</string>
+		<string>pt-BR</string>
+		<string>pt-PT</string>
+		<string>uk</string>
+		<string>zh-Hans</string>
+	</array>
 	<key>CFBundleDisplayName</key>
         <string>lastGLANCE</string>
 	<key>CFBundleExecutable</key>

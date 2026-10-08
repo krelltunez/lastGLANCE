@@ -23,6 +23,10 @@ const LOCALES_CONFIG = join(ANDROID_RES, 'xml/locales_config.xml')
 const ANDROID_QUALIFIER: Record<string, string> = { 'zh-CN': 'zh-rCN', 'pt-BR': 'pt', 'pt-PT': 'pt' }
 const androidDirFor = (tag: string) => `values-${ANDROID_QUALIFIER[tag] ?? tag}`
 
+// iOS names Simplified Chinese zh-Hans where the web bundle says zh-CN.
+const IOS_LOCALIZATION: Record<string, string> = { 'zh-CN': 'zh-Hans' }
+const INFO_PLIST = join(ROOT, 'ios/App/App/Info.plist')
+
 const IOS_CATALOGS = ['ios/App/GlanceWidgets/Localizable.xcstrings', 'ios/App/ShareExtension/Localizable.xcstrings']
 
 const declared = () =>
@@ -39,6 +43,18 @@ describe('native locales track the shipped web locales', () => {
   it('locales_config.xml lists exactly the web languages', () => {
     expect([...declared()].sort(), 'Settings > Language would offer a different list than the app').toEqual(
       [...languages].sort(),
+    )
+  })
+
+  // The iOS counterpart of locales_config.xml: without it the app bundle has
+  // no localizations iOS can see (the UI is web content), so Settings offers
+  // no per-app Language row and widgets can only follow the system language.
+  it('Info.plist declares exactly the web languages to iOS', () => {
+    const plist = readFileSync(INFO_PLIST, 'utf8')
+    const block = plist.match(/<key>CFBundleLocalizations<\/key>\s*<array>([\s\S]*?)<\/array>/)?.[1] ?? ''
+    const declared = [...block.matchAll(/<string>([^<]+)<\/string>/g)].map((m) => m[1]).sort()
+    expect(declared, 'Settings > lastGLANCE > Language would offer a different list than the app').toEqual(
+      languages.map((l) => IOS_LOCALIZATION[l] ?? l).sort(),
     )
   })
 
