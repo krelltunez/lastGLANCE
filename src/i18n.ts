@@ -4,7 +4,7 @@ import LanguageDetector from 'i18next-browser-languagedetector'
 import HttpBackend from 'i18next-http-backend'
 import { applyDateLocale } from '@/utils/datetime'
 import { languages, resolveLanguage } from '@/locales'
-import { syncAppLanguageFromNative } from '@/native/appLocale'
+import { followIOSLanguageChanges, syncAppLanguageFromNative } from '@/native/appLocale'
 
 // Keep date handling on the same language as the UI strings. Registered before
 // .init() so this listener runs ahead of react-i18next's own — the locale is
@@ -49,5 +49,8 @@ applyDateLocale(i18n.language)
 // On Android 13+, a language chosen in Settings > Apps > lastGLANCE > Language
 // wins over the cached one, at startup and live. No-op everywhere else.
 void syncAppLanguageFromNative(i18n)
+// On iOS, a language change in Settings > lastGLANCE > Language (or the
+// phone's language) is adopted at the next launch. No-op everywhere else.
+followIOSLanguageChanges(i18n)
 
 export default i18n
