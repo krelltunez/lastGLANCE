@@ -289,12 +289,15 @@ private struct HeatmapLegend: View {
 
 // MARK: - View
 
+// String(localized:), not a bare literal: the result reaches Text as a String,
+// which Text renders verbatim, so a plain literal here never touched the
+// catalog and stayed English in every language.
 private func statText(overdue: Int, soon: Int) -> String {
     switch (overdue, soon) {
-    case let (o, s) where o > 0 && s > 0: return "\(o) overdue · \(s) soon"
-    case let (o, _) where o > 0: return "\(o) overdue"
-    case let (_, s) where s > 0: return "\(s) soon"
-    default: return "All caught up"
+    case let (o, s) where o > 0 && s > 0: return String(localized: "\(o) overdue · \(s) soon")
+    case let (o, _) where o > 0: return String(localized: "\(o) overdue")
+    case let (_, s) where s > 0: return String(localized: "\(s) soon")
+    default: return String(localized: "All caught up")
     }
 }
 
@@ -316,10 +319,6 @@ private struct StatTile: View {
         }
         .lineLimit(1)
     }
-}
-
-private func plural(_ n: Int, _ singular: String, _ plural: String) -> String {
-    n == 1 ? singular : plural
 }
 
 struct HeatmapWidgetView: View {
@@ -401,18 +400,27 @@ struct HeatmapWidgetView: View {
             // composition read as unfinished. Spacers *between* the tiles and
             // none after the last one pins the outer two to the same margins the
             // grid uses.
+            //
+            // Each caption is a plural catalog entry keyed on the figure, so the
+            // noun agrees with it in every language (Polish "5 wykonań", French
+            // "0 réalisation"). The forms hold only the noun: the figure is drawn
+            // separately above, and the %#@noun@ substitution consumes the
+            // count without printing it.
             HStack(alignment: .top, spacing: 0) {
                 StatTile(
                     value: "\(stats.completions)",
-                    label: plural(stats.completions, String(localized: "completion"), String(localized: "completions"))
+                    label: String(localized: "\(stats.completions) completions")
                 )
                 Spacer(minLength: 16)
                 StatTile(
                     value: "\(stats.activeDays)",
-                    label: plural(stats.activeDays, String(localized: "active day"), String(localized: "active days"))
+                    label: String(localized: "\(stats.activeDays) active days")
                 )
                 Spacer(minLength: 16)
-                StatTile(value: "\(stats.streak)", label: String(localized: "day streak"))
+                StatTile(
+                    value: "\(stats.streak)",
+                    label: String(localized: "\(stats.streak) day streak")
+                )
             }
 
             Spacer(minLength: 0)
