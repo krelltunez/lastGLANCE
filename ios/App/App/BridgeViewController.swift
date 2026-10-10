@@ -11,5 +11,6 @@ class BridgeViewController: CAPBridgeViewController {
         bridge?.registerPluginInstance(VaultSsePlugin())
         bridge?.registerPluginInstance(WidgetBridgePlugin())
         bridge?.registerPluginInstance(SecureStorePlugin())
+        bridge?.registerPluginInstance(DirectAccessPlugin())
     }
 }

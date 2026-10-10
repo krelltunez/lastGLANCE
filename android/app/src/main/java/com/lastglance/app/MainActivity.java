@@ -30,6 +30,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(SecureStorePlugin.class);
         registerPlugin(com.lastglance.app.sse.VaultSsePlugin.class);
         registerPlugin(AppLocalePlugin.class);
+        registerPlugin(com.lastglance.app.directaccess.DirectAccessPlugin.class);
         super.onCreate(savedInstanceState);
         lastLocaleTag = getResources().getConfiguration().getLocales().get(0).toLanguageTag();
         // Cold start via a widget tap, a share, or a Tasker Activity intent: the
