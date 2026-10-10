@@ -148,7 +148,7 @@ export function ChoreFormModal({ category, allCategories, chore, initialName, on
             overflow ran off the TOP of the screen with nothing to scroll. On
             Android the on-screen keyboard makes even the short form overflow. */}
         <div className="w-full sm:max-w-md max-h-[90svh] flex flex-col bg-white dark:bg-slate-800 rounded-t-2xl sm:rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700/50">
-          <div className="shrink-0 flex items-center justify-between px-6 pt-6 pb-4">
+          <div className="shrink-0 flex items-center justify-between px-6 pt-6 pb-3">
             <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100">
               {isEdit ? t('choreForm.editChore') : t('choreForm.addChore', { category: category.name })}
             </h2>
@@ -157,7 +157,7 @@ export function ChoreFormModal({ category, allCategories, chore, initialName, on
             </button>
           </div>
 
-          <div className="flex-1 min-h-0 overflow-y-auto px-6 pb-1 space-y-3">
+          <div className="flex-1 min-h-0 overflow-y-auto px-6 py-1 space-y-3">
             <div className="flex gap-2">
               <div className="flex-1">
                 <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">{t('choreForm.nameLabel')}</label>
