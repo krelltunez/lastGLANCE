@@ -539,7 +539,7 @@ function AppInner() {
         {/* Logo + heatmap */}
         <div className="flex items-end gap-5 min-w-0">
           <div className="shrink-0">
-            <h1 className="text-3xl sm:text-4xl font-black tracking-tight leading-none text-slate-900 dark:text-slate-100">
+            <h1 className="text-2xl min-[360px]:text-3xl sm:text-4xl font-black tracking-tight leading-none text-slate-900 dark:text-slate-100">
               last<span className="italic text-green-400">GLANCE</span>
             </h1>
             <p className="text-xs text-slate-400 dark:text-slate-600 mt-1 tracking-wide">{t('app.tagline')}</p>
@@ -580,12 +580,16 @@ function AppInner() {
             >
               <Settings size={15} />
             </button>
+            {/* Icon-only, the same size as its neighbours. With a label the
+                controls ran into the logo: below 375px in English, and on
+                every phone in languages with a long word for it ("Bearbeiten",
+                "Редагувати"). */}
             <button
               onClick={() => setEditMode(e => !e)}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors border ${editMode ? 'text-green-400 border-green-400/40 hover:text-green-300 hover:bg-green-400/10 hover:border-green-400/60' : 'text-slate-500 dark:text-slate-500 border-slate-200 dark:border-slate-700 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+              className={`p-2 rounded-lg transition-colors border ${editMode ? 'text-green-400 border-green-400/40 hover:text-green-300 hover:bg-green-400/10 hover:border-green-400/60' : 'text-slate-500 dark:text-slate-500 border-slate-200 dark:border-slate-700 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
               aria-label={editMode ? t('app.doneEditing') : t('app.editCategoriesChores')}
             >
-              {editMode ? <><Check size={14} /> {t('app.done')}</> : <><Pencil size={14} /> {t('app.edit')}</>}
+              {editMode ? <Check size={15} /> : <Pencil size={15} />}
             </button>
           </div>
 
