@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import {
@@ -8,7 +8,6 @@ import {
 import type { SyncEngine } from '@glance-apps/sync'
 import type { UseBillingResult } from '@glance-apps/billing/react'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
-import { pushBackHandler } from '@/native/backButton'
 import { LanguagePicker } from '@/components/LanguagePicker/LanguagePicker'
 import { UsersPanel } from '@/components/UsersPanel/UsersPanel'
 import { BackupPanel } from '@/components/BackupModal/BackupModal'
@@ -18,10 +17,13 @@ import { formatTimeSample, type TimeFormat } from '@/utils/datetime'
 
 export type ThemePref = 'light' | 'dark' | 'system'
 
-type SectionId = 'appearance' | 'sync' | 'integrations' | 'household' | 'data' | 'about'
+export type SettingsSection = 'appearance' | 'sync' | 'integrations' | 'household' | 'data' | 'about'
+type SectionId = SettingsSection
 
 interface Props {
   onClose: () => void
+  /** Open on this section, e.g. when coming back from a window launched here. */
+  initialSection?: SettingsSection
   themePref: ThemePref
   onThemeChange: (pref: ThemePref) => void
   timeFormat: TimeFormat
@@ -50,15 +52,15 @@ interface Props {
 export function SettingsPanel(props: Props) {
   const { t } = useTranslation()
   const { onClose } = props
-  // Sync opens on its own when it needs attention, so the problem is the first
+  // Back from a window launched here lands on the section it came from. Else
+  // sync opens on its own when it needs attention, so the problem is the first
   // thing seen; otherwise the everyday preferences.
-  const [open, setOpen] = useState<SectionId | null>(props.syncWarn ? 'sync' : 'appearance')
+  const [open, setOpen] = useState<SectionId | null>(
+    props.initialSection ?? (props.syncWarn ? 'sync' : 'appearance'),
+  )
 
+  // Escape and Android's Back both close the sheet.
   useEscapeKey(onClose)
-  // Android's Back closes the sheet instead of backgrounding the app.
-  const onCloseRef = useRef(onClose)
-  onCloseRef.current = onClose
-  useEffect(() => pushBackHandler(() => onCloseRef.current()), [])
 
   const toggle = (id: SectionId) => setOpen(o => (o === id ? null : id))
 

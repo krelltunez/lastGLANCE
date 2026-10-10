@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { formatDayPeriod, uses24HourClock } from '@/utils/datetime'
+import { useEscapeKey } from '@/hooks/useEscapeKey'
 
 interface Props {
   /** "HH:mm", 24-hour. */
@@ -24,17 +25,18 @@ export function ClockTimePicker({ value, onChange, onClose }: Props) {
   const use24 = uses24HourClock()
   const isAM = hour < 12
 
-  // Capture phase + stopPropagation so Escape closes only this picker, not the
-  // modal underneath it (which listens on window).
+  // Escape and Android's Back close only this picker, not the modal under it:
+  // it opened last, so it is the top of the dismiss stack.
+  useEscapeKey(onClose)
+
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape') { e.stopPropagation(); onClose() }
-      else if (e.key === 'ArrowUp' || e.key === 'ArrowRight') { e.preventDefault(); setMode('minute'); setMinute(m => (m + 1) % 60) }
+      if (e.key === 'ArrowUp' || e.key === 'ArrowRight') { e.preventDefault(); setMode('minute'); setMinute(m => (m + 1) % 60) }
       else if (e.key === 'ArrowDown' || e.key === 'ArrowLeft') { e.preventDefault(); setMode('minute'); setMinute(m => (m + 59) % 60) }
     }
     document.addEventListener('keydown', onKeyDown, true)
     return () => document.removeEventListener('keydown', onKeyDown, true)
-  }, [onClose])
+  }, [])
 
   const wide = typeof window !== 'undefined' && window.matchMedia('(min-width: 640px)').matches
   const clockSize = wide ? 280 : 240

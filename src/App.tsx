@@ -14,7 +14,7 @@ import { JournalModal } from '@/components/JournalModal/JournalModal'
 import { TooltipHost } from '@/components/Tooltip/Tooltip'
 import { ToastProvider, useToast } from '@/components/Toast/Toast'
 import { PaywallModal } from '@/components/PaywallModal/PaywallModal'
-import { SettingsPanel, type ThemePref } from '@/components/SettingsPanel/SettingsPanel'
+import { SettingsPanel, type ThemePref, type SettingsSection } from '@/components/SettingsPanel/SettingsPanel'
 import { getTimeFormat, setTimeFormat as applyTimeFormat, type TimeFormat } from '@/utils/datetime'
 import { ReviewerBanner } from '@/components/ReviewerBanner/ReviewerBanner'
 import { useSubscription, exitReviewerMode } from '@/billing/billing'
@@ -168,6 +168,10 @@ function AppInner() {
   const [showJournal, setShowJournal] = useState(false)
   const [journalDate, setJournalDate] = useState<string | null>(null)
   const [showSettings, setShowSettings] = useState(false)
+  // Set while a window opened from Settings is up (Cloud Sync, Integrations,
+  // Shortcuts): closing it, by Back, Escape or its X, reopens Settings on the
+  // section it was opened from. Cleared when Settings itself closes.
+  const [settingsReturn, setSettingsReturn] = useState<SettingsSection | null>(null)
   const [timeFormat, setTimeFormatState] = useState<TimeFormat>(getTimeFormat)
   const [ribbonKey, setRibbonKey] = useState(0)
   const [heatmapWeeks, setHeatmapWeeks] = useState<HeatDay[][]>([])
@@ -505,7 +509,12 @@ function AppInner() {
 
   // Every launcher in the settings panel closes it first, so modals never
   // stack on top of it.
-  const fromSettings = (open: () => void) => () => { setShowSettings(false); open() }
+  const fromSettings = (section: SettingsSection, open: () => void) => () => {
+    setSettingsReturn(section)
+    setShowSettings(false)
+    open()
+  }
+  const backToSettings = () => { if (settingsReturn) setShowSettings(true) }
 
   const handleImported = () => { loadHeatmap(); setRibbonKey(k => k + 1) }
 
@@ -688,8 +697,8 @@ function AppInner() {
 
       {showIntegration && (
         <IntegrationSettingsModal
-          onClose={() => setShowIntegration(false)}
-          onSaved={() => { refreshConfig(); setShowIntegration(false) }}
+          onClose={() => { setShowIntegration(false); backToSettings() }}
+          onSaved={() => { refreshConfig(); setShowIntegration(false); backToSettings() }}
         />
       )}
 
@@ -702,7 +711,7 @@ function AppInner() {
           vaultSyncError={vaultSyncError}
           vaultSyncErrorCode={vaultSyncErrorCode}
           vaultSkipped={vaultSkipped}
-          onClose={() => { setShowSyncSettings(false); runSharedUserSync() }}
+          onClose={() => { setShowSyncSettings(false); runSharedUserSync(); backToSettings() }}
         />
       )}
 
@@ -730,7 +739,7 @@ function AppInner() {
       )}
 
       {showShortcuts && (
-        <ShortcutsModal onClose={() => setShowShortcuts(false)} />
+        <ShortcutsModal onClose={() => { setShowShortcuts(false); backToSettings() }} />
       )}
 
       {showPassphrase && (
@@ -758,16 +767,17 @@ function AppInner() {
 
       {showSettings && (
         <SettingsPanel
-          onClose={() => { setShowSettings(false); usersCtx.reload() }}
+          initialSection={settingsReturn ?? undefined}
+          onClose={() => { setShowSettings(false); setSettingsReturn(null); usersCtx.reload() }}
           themePref={themePref}
           onThemeChange={setThemePref}
           timeFormat={timeFormat}
           onTimeFormatChange={changeTimeFormat}
           syncIcon={syncIcon}
           syncWarn={syncWarn}
-          onOpenSync={fromSettings(() => setShowSyncSettings(true))}
-          onOpenIntegration={fromSettings(() => setShowIntegration(true))}
-          onOpenShortcuts={fromSettings(() => setShowShortcuts(true))}
+          onOpenSync={fromSettings('sync', () => setShowSyncSettings(true))}
+          onOpenIntegration={fromSettings('integrations', () => setShowIntegration(true))}
+          onOpenShortcuts={fromSettings('about', () => setShowShortcuts(true))}
           engine={engineRef.current}
           billing={billing}
           onUserMutated={() => { void runSharedUserSync(); usersCtx.reload() }}
