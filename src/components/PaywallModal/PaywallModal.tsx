@@ -4,6 +4,7 @@ import { X, Check, Loader, KeyRound } from 'lucide-react'
 import type { UseBillingResult } from '@glance-apps/billing/react'
 import { PRODUCT_IDS, STORE_NAME } from '@/billing/billing'
 import { leaveApp } from '@/native/backButton'
+import { useEscapeKey } from '@/hooks/useEscapeKey'
 import { useTranslation } from 'react-i18next'
 
 interface Props {
@@ -18,6 +19,10 @@ export function PaywallModal({ billing }: Props) {
   const [showCode, setShowCode] = useState(false)
   const [code, setCode] = useState('')
   const [codeError, setCodeError] = useState(false)
+  // The gate sits above everything, so it owns Back (and Escape) while it is
+  // up: both leave the app, exactly like its X. Without this, Back would
+  // dismiss whatever is underneath, such as the welcome screen.
+  useEscapeKey(leaveApp)
 
   async function submitCode() {
     if (!code.trim()) return
@@ -75,9 +80,9 @@ export function PaywallModal({ billing }: Props) {
              body-copy color, not the muted footer token — it must be obvious
              against the card. 22px glyph; the 12px padding makes a 46px hit
              target; negative margins keep the glyph aligned with the wordmark
-             and the card's padding edge. leaveApp is the same function the
-             app-wide backButton listener lands on here (the gate has no
-             WebView history), so X and back are identical by construction. */}
+             and the card's padding edge. leaveApp is also what the gate
+             registers for Back (useEscapeKey above), so X and back are
+             identical by construction. */}
           <button
             onClick={leaveApp}
             aria-label="Close"

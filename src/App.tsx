@@ -14,7 +14,7 @@ import { JournalModal } from '@/components/JournalModal/JournalModal'
 import { TooltipHost } from '@/components/Tooltip/Tooltip'
 import { ToastProvider, useToast } from '@/components/Toast/Toast'
 import { PaywallModal } from '@/components/PaywallModal/PaywallModal'
-import { SettingsPanel, type ThemePref } from '@/components/SettingsPanel/SettingsPanel'
+import { SettingsPanel, type ThemePref, type SettingsSection } from '@/components/SettingsPanel/SettingsPanel'
 import { getTimeFormat, setTimeFormat as applyTimeFormat, type TimeFormat } from '@/utils/datetime'
 import { ReviewerBanner } from '@/components/ReviewerBanner/ReviewerBanner'
 import { useSubscription, exitReviewerMode } from '@/billing/billing'
@@ -168,6 +168,10 @@ function AppInner() {
   const [showJournal, setShowJournal] = useState(false)
   const [journalDate, setJournalDate] = useState<string | null>(null)
   const [showSettings, setShowSettings] = useState(false)
+  // Set while a window opened from Settings is up (Cloud Sync, Integrations,
+  // Shortcuts): closing it, by Back, Escape or its X, reopens Settings on the
+  // section it was opened from. Cleared when Settings itself closes.
+  const [settingsReturn, setSettingsReturn] = useState<SettingsSection | null>(null)
   const [timeFormat, setTimeFormatState] = useState<TimeFormat>(getTimeFormat)
   const [ribbonKey, setRibbonKey] = useState(0)
   const [heatmapWeeks, setHeatmapWeeks] = useState<HeatDay[][]>([])
@@ -505,7 +509,12 @@ function AppInner() {
 
   // Every launcher in the settings panel closes it first, so modals never
   // stack on top of it.
-  const fromSettings = (open: () => void) => () => { setShowSettings(false); open() }
+  const fromSettings = (section: SettingsSection, open: () => void) => () => {
+    setSettingsReturn(section)
+    setShowSettings(false)
+    open()
+  }
+  const backToSettings = () => { if (settingsReturn) setShowSettings(true) }
 
   const handleImported = () => { loadHeatmap(); setRibbonKey(k => k + 1) }
 
@@ -530,7 +539,7 @@ function AppInner() {
         {/* Logo + heatmap */}
         <div className="flex items-end gap-5 min-w-0">
           <div className="shrink-0">
-            <h1 className="text-3xl sm:text-4xl font-black tracking-tight leading-none text-slate-900 dark:text-slate-100">
+            <h1 className="text-2xl min-[360px]:text-3xl sm:text-4xl font-black tracking-tight leading-none text-slate-900 dark:text-slate-100">
               last<span className="italic text-green-400">GLANCE</span>
             </h1>
             <p className="text-xs text-slate-400 dark:text-slate-600 mt-1 tracking-wide">{t('app.tagline')}</p>
@@ -571,12 +580,16 @@ function AppInner() {
             >
               <Settings size={15} />
             </button>
+            {/* Icon-only, the same size as its neighbours. With a label the
+                controls ran into the logo: below 375px in English, and on
+                every phone in languages with a long word for it ("Bearbeiten",
+                "Редагувати"). */}
             <button
               onClick={() => setEditMode(e => !e)}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors border ${editMode ? 'text-green-400 border-green-400/40 hover:text-green-300 hover:bg-green-400/10 hover:border-green-400/60' : 'text-slate-500 dark:text-slate-500 border-slate-200 dark:border-slate-700 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+              className={`p-2 rounded-lg transition-colors border ${editMode ? 'text-green-400 border-green-400/40 hover:text-green-300 hover:bg-green-400/10 hover:border-green-400/60' : 'text-slate-500 dark:text-slate-500 border-slate-200 dark:border-slate-700 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
               aria-label={editMode ? t('app.doneEditing') : t('app.editCategoriesChores')}
             >
-              {editMode ? <><Check size={14} /> {t('app.done')}</> : <><Pencil size={14} /> {t('app.edit')}</>}
+              {editMode ? <Check size={15} /> : <Pencil size={15} />}
             </button>
           </div>
 
@@ -688,8 +701,8 @@ function AppInner() {
 
       {showIntegration && (
         <IntegrationSettingsModal
-          onClose={() => setShowIntegration(false)}
-          onSaved={() => { refreshConfig(); setShowIntegration(false) }}
+          onClose={() => { setShowIntegration(false); backToSettings() }}
+          onSaved={() => { refreshConfig(); setShowIntegration(false); backToSettings() }}
         />
       )}
 
@@ -702,7 +715,7 @@ function AppInner() {
           vaultSyncError={vaultSyncError}
           vaultSyncErrorCode={vaultSyncErrorCode}
           vaultSkipped={vaultSkipped}
-          onClose={() => { setShowSyncSettings(false); runSharedUserSync() }}
+          onClose={() => { setShowSyncSettings(false); runSharedUserSync(); backToSettings() }}
         />
       )}
 
@@ -730,7 +743,7 @@ function AppInner() {
       )}
 
       {showShortcuts && (
-        <ShortcutsModal onClose={() => setShowShortcuts(false)} />
+        <ShortcutsModal onClose={() => { setShowShortcuts(false); backToSettings() }} />
       )}
 
       {showPassphrase && (
@@ -758,16 +771,17 @@ function AppInner() {
 
       {showSettings && (
         <SettingsPanel
-          onClose={() => { setShowSettings(false); usersCtx.reload() }}
+          initialSection={settingsReturn ?? undefined}
+          onClose={() => { setShowSettings(false); setSettingsReturn(null); usersCtx.reload() }}
           themePref={themePref}
           onThemeChange={setThemePref}
           timeFormat={timeFormat}
           onTimeFormatChange={changeTimeFormat}
           syncIcon={syncIcon}
           syncWarn={syncWarn}
-          onOpenSync={fromSettings(() => setShowSyncSettings(true))}
-          onOpenIntegration={fromSettings(() => setShowIntegration(true))}
-          onOpenShortcuts={fromSettings(() => setShowShortcuts(true))}
+          onOpenSync={fromSettings('sync', () => setShowSyncSettings(true))}
+          onOpenIntegration={fromSettings('integrations', () => setShowIntegration(true))}
+          onOpenShortcuts={fromSettings('about', () => setShowShortcuts(true))}
           engine={engineRef.current}
           billing={billing}
           onUserMutated={() => { void runSharedUserSync(); usersCtx.reload() }}

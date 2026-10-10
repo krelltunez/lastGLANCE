@@ -233,7 +233,17 @@ export const applyPayload = async (rawData: unknown, { allowEmpty }: { allowEmpt
     setMultiUserEnabled(data.settings.multiUserEnabled)
   }
 
-  const tombstoneIds = new Set(Object.keys(data.tombstones ?? {}))
+  // A tombstone deletes only what it is newer than: the rule mergePayloads
+  // (mergeArrayById) already applies. Treating every tombstoned id as dead
+  // here deleted rows the merge had just kept, such as a restored backup whose
+  // ids an earlier restore elsewhere had tombstoned (#337).
+  const tombstones = data.tombstones ?? {}
+  const deletedAfter = (syncId: string, updatedAt: string | null | undefined): boolean => {
+    const deletedAt = tombstones[syncId]
+    return deletedAt != null && new Date(deletedAt).getTime() > new Date(updatedAt || 0).getTime()
+  }
+  // Ids the payload carries a live copy of; a tombstone never removes these.
+  const live = new Set<string>()
 
   await db.transaction('rw', [db.categories, db.chores, db.completionEvents, db.tombstones, db.users], async () => {
     // ── Bulk-fetch existing records into Maps for O(1) lookup ──
@@ -254,7 +264,8 @@ export const applyPayload = async (rawData: unknown, { allowEmpty }: { allowEmpt
     const catsToAdd: Omit<Category, 'id'>[] = []
     const catsToUpdate: Array<[number, object]> = []
     for (const cat of (data.categories ?? [])) {
-      if (tombstoneIds.has(cat.id)) continue
+      if (deletedAfter(cat.id, cat.updatedAt)) continue
+      live.add(cat.id)
       const existing = catBySyncId.get(cat.id)
       if (existing) {
         catsToUpdate.push([existing.id!, {
@@ -280,7 +291,7 @@ export const applyPayload = async (rawData: unknown, { allowEmpty }: { allowEmpt
     const catBySync2 = new Map(allCatsAfterUpsert.map(c => [c.sync_id, c]))
     const parentUpdates: Array<[number, object]> = []
     for (const cat of (data.categories ?? [])) {
-      if (!cat.parentId || tombstoneIds.has(cat.id)) continue
+      if (!cat.parentId || !live.has(cat.id)) continue
       const child = catBySync2.get(cat.id)
       if (!child) continue
       const parent = catBySync2.get(cat.parentId)
@@ -293,9 +304,9 @@ export const applyPayload = async (rawData: unknown, { allowEmpty }: { allowEmpt
     await Promise.all(parentUpdates.map(([id, fields]) => db.categories.update(id, fields)))
 
     // ── Delete tombstoned categories ──
-    const catTombstoneIds = [...tombstoneIds]
-      .map(sid => catBySyncId.get(sid)?.id)
-      .filter((id): id is number => id != null)
+    const catTombstoneIds = existingCats
+      .filter(c => !live.has(c.sync_id) && deletedAfter(c.sync_id, c.updated_at))
+      .map(c => c.id!)
     await db.categories.bulkDelete(catTombstoneIds)
 
     // ── CHORES: upsert by sync_id ──
@@ -305,7 +316,8 @@ export const applyPayload = async (rawData: unknown, { allowEmpty }: { allowEmpt
     const choresToAdd: Omit<Chore, 'id'>[] = []
     const choresToUpdate: Array<[number, object]> = []
     for (const chore of (data.chores ?? [])) {
-      if (tombstoneIds.has(chore.id)) continue
+      if (deletedAfter(chore.id, chore.updatedAt)) continue
+      live.add(chore.id)
       const category_id = chore.categorySyncId ? catMapForChores.get(chore.categorySyncId)?.id : undefined
       const existing = choreBySyncId.get(chore.id)
       if (existing) {
@@ -348,9 +360,9 @@ export const applyPayload = async (rawData: unknown, { allowEmpty }: { allowEmpt
     await db.chores.bulkAdd(choresToAdd as Chore[])
 
     // ── Delete tombstoned chores ──
-    const choreTombstoneIds = [...tombstoneIds]
-      .map(sid => choreBySyncId.get(sid)?.id)
-      .filter((id): id is number => id != null)
+    const choreTombstoneIds = existingChores
+      .filter(c => !live.has(c.sync_id) && deletedAfter(c.sync_id, c.updated_at))
+      .map(c => c.id!)
     await db.chores.bulkDelete(choreTombstoneIds)
 
     // ── COMPLETION EVENTS: insert new; update notes on existing ──
@@ -365,7 +377,8 @@ export const applyPayload = async (rawData: unknown, { allowEmpty }: { allowEmpt
     const eventsToAdd: Omit<CompletionEvent, 'id'>[] = []
     const eventNoteUpdates: Array<[number, object]> = []
     for (const evt of (data.completionEvents ?? [])) {
-      if (tombstoneIds.has(evt.id)) continue
+      if (deletedAfter(evt.id, evt.updatedAt ?? evt.completedAt)) continue
+      live.add(evt.id)
       const existing = eventBySyncId.get(evt.id)
       if (existing) {
         const incomingUpdated = evt.updatedAt ?? evt.completedAt
@@ -388,16 +401,17 @@ export const applyPayload = async (rawData: unknown, { allowEmpty }: { allowEmpt
     await db.completionEvents.bulkAdd(eventsToAdd as CompletionEvent[])
 
     // ── Delete tombstoned completion events ──
-    const evtTombstoneIds = [...tombstoneIds]
-      .map(sid => eventBySyncId.get(sid)?.id)
-      .filter((id): id is number => id != null)
+    const evtTombstoneIds = existingEvents
+      .filter(e => !live.has(e.sync_id) && deletedAfter(e.sync_id, e.updated_at ?? e.completed_at))
+      .map(e => e.id!)
     await db.completionEvents.bulkDelete(evtTombstoneIds)
 
     // ── USERS: upsert by sync_id ──
     const usersToAdd: Omit<User, 'id'>[] = []
     const usersToUpdate: Array<[number, object]> = []
     for (const user of (data.users ?? [])) {
-      if (tombstoneIds.has(user.id)) continue
+      if (deletedAfter(user.id, user.updatedAt)) continue
+      live.add(user.id)
       const existing = userBySyncId.get(user.id)
       if (existing) {
         usersToUpdate.push([existing.id!, { name: user.name, updated_at: user.updatedAt }])
@@ -409,9 +423,9 @@ export const applyPayload = async (rawData: unknown, { allowEmpty }: { allowEmpt
     await db.users.bulkAdd(usersToAdd as User[])
 
     // ── Delete tombstoned users ──
-    const userTombstoneIds = [...tombstoneIds]
-      .map(sid => userBySyncId.get(sid)?.id)
-      .filter((id): id is number => id != null)
+    const userTombstoneIds = existingUsers
+      .filter(u => !live.has(u.sync_id) && deletedAfter(u.sync_id, u.updated_at))
+      .map(u => u.id!)
     await db.users.bulkDelete(userTombstoneIds)
 
     // ── Persist tombstones ──

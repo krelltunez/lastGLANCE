@@ -777,7 +777,9 @@ export async function restoreFromBackup(raw: unknown): Promise<{ categories: num
         if (!chore) return null
         return {
           sync_id: e.sync_id, chore_id: chore.id!, completed_at: e.completed_at,
-          updated_at: e.updated_at,
+          // Stamped like every other restored row, so the history also wins
+          // over an older tombstone for its id (#337).
+          updated_at: now,
           note: e.note, source: e.source, completed_by_user_sync_id: e.completed_by_user_sync_id,
         } as CompletionEvent
       })
