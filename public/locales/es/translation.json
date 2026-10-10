@@ -598,5 +598,26 @@
     "bannerActive": "Acceso de revisión activo — la aplicación está desbloqueada sin compra.",
     "bannerExit": "Salir y ver planes",
     "bestValue": "Mejor valor"
+  },
+  "settings": {
+    "title": "Ajustes",
+    "close": "Cerrar ajustes",
+    "appearance": "Apariencia",
+    "theme": "Tema",
+    "themeLight": "Claro",
+    "themeDark": "Oscuro",
+    "themeSystem": "Sistema",
+    "timeFormat": "Formato de hora",
+    "timeAuto": "Automático",
+    "timeAutoHint": "Automático usa el reloj de tu idioma ({{example}}).",
+    "syncAttention": "Requiere atención",
+    "syncDesc": "Mantén tus tareas y tu historial sincronizados entre tus dispositivos.",
+    "household": "Hogar",
+    "householdDesc": "Añade a las personas con las que compartes tareas y asígnales tareas.",
+    "integrations": "Integraciones",
+    "integrationsDesc": "Conecta lastGLANCE con dayGLANCE y con apps de automatización.",
+    "data": "Datos",
+    "dataDesc": "Guarda un archivo de copia de seguridad o restaura desde uno.",
+    "about": "Acerca de"
   }
 }

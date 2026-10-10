@@ -598,5 +598,26 @@
     "bannerActive": "Reviewer access active — the app is unlocked without a purchase.",
     "bannerExit": "Exit & view plans",
     "bestValue": "Best value"
+  },
+  "settings": {
+    "title": "Settings",
+    "close": "Close settings",
+    "appearance": "Appearance",
+    "theme": "Theme",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "themeSystem": "System",
+    "timeFormat": "Time format",
+    "timeAuto": "Automatic",
+    "timeAutoHint": "Automatic uses your language's clock ({{example}}).",
+    "syncAttention": "Needs attention",
+    "syncDesc": "Keep your chores and history in step across your devices.",
+    "household": "Household",
+    "householdDesc": "Add the people you share chores with and tag chores to them.",
+    "integrations": "Integrations",
+    "integrationsDesc": "Connect lastGLANCE with dayGLANCE and with automation apps.",
+    "data": "Data",
+    "dataDesc": "Save a backup file or restore from one.",
+    "about": "About"
   }
 }

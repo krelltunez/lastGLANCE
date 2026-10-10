@@ -4,8 +4,8 @@ import { nativeLanguageName } from './nativeLanguageName'
 import { setNativeAppLanguage } from '@/native/appLocale'
 
 /**
- * One picker for every surface that offers a language choice, so the desktop
- * overflow menu and the mobile settings sheet cannot drift apart. Persistence
+ * One picker for every surface that offers a language choice (today, the
+ * settings panel), so any future one cannot drift from it. Persistence
  * is i18next's own localStorage cache — changeLanguage writes it, the detector
  * reads it back on the next launch. On Android 13+ the choice is also handed
  * to the system, so widgets, shortcuts and tiles follow it (issue #327).

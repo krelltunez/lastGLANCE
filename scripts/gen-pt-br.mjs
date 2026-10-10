@@ -238,6 +238,16 @@ const OVERRIDES = {
   // says "ajuda você". ("fazê-lo" further on is fine in both.)
   'welcome.description':
     'O lastGLANCE ajuda você a registrar quando foi a última vez que fez algo e, opcionalmente, a saber quando é hora de fazê-lo novamente.',
+  // Settings panel. Brazilian product vocabulary differs here beyond word
+  // swaps: Aparência (not Aspeto), Sobre (not Acerca de), Conectar (not
+  // Ligar), and "você" phrasing without the European possessive article.
+  'settings.appearance': 'Aparência',
+  'settings.timeFormat': 'Formato de hora',
+  'settings.syncDesc': 'Mantenha suas tarefas e seu histórico sincronizados entre seus dispositivos.',
+  'settings.householdDesc': 'Adicione as pessoas com quem você divide tarefas e atribua tarefas a elas.',
+  'settings.integrationsDesc': 'Conecte o lastGLANCE ao dayGLANCE e a apps de automação.',
+  'settings.dataDesc': 'Salve um arquivo de backup ou restaure a partir de um.',
+  'settings.about': 'Sobre',
 }
 
 const escape = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')

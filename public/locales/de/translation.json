@@ -598,5 +598,26 @@
     "bannerActive": "Prüfzugang aktiv — die App ist ohne Kauf freigeschaltet.",
     "bannerExit": "Beenden & Tarife ansehen",
     "bestValue": "Bester Wert"
+  },
+  "settings": {
+    "title": "Einstellungen",
+    "close": "Einstellungen schließen",
+    "appearance": "Darstellung",
+    "theme": "Design",
+    "themeLight": "Hell",
+    "themeDark": "Dunkel",
+    "themeSystem": "System",
+    "timeFormat": "Zeitformat",
+    "timeAuto": "Automatisch",
+    "timeAutoHint": "Automatisch verwendet die Uhr deiner Sprache ({{example}}).",
+    "syncAttention": "Erfordert Aufmerksamkeit",
+    "syncDesc": "Halte deine Aufgaben und den Verlauf auf all deinen Geräten synchron.",
+    "household": "Haushalt",
+    "householdDesc": "Füge die Personen hinzu, mit denen du Aufgaben teilst, und weise ihnen Aufgaben zu.",
+    "integrations": "Integrationen",
+    "integrationsDesc": "Verbinde lastGLANCE mit dayGLANCE und mit Automatisierungs-Apps.",
+    "data": "Daten",
+    "dataDesc": "Speichere eine Sicherungsdatei oder stelle daraus wieder her.",
+    "about": "Über"
   }
 }

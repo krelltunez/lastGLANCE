@@ -598,5 +598,26 @@
     "bannerActive": "Accès évaluateur actif — l'application est déverrouillée sans achat.",
     "bannerExit": "Quitter et voir les offres",
     "bestValue": "Meilleure offre"
+  },
+  "settings": {
+    "title": "Paramètres",
+    "close": "Fermer les paramètres",
+    "appearance": "Apparence",
+    "theme": "Thème",
+    "themeLight": "Clair",
+    "themeDark": "Sombre",
+    "themeSystem": "Système",
+    "timeFormat": "Format de l'heure",
+    "timeAuto": "Automatique",
+    "timeAutoHint": "Automatique utilise l'horloge de votre langue ({{example}}).",
+    "syncAttention": "Action requise",
+    "syncDesc": "Gardez vos tâches et votre historique synchronisés sur tous vos appareils.",
+    "household": "Foyer",
+    "householdDesc": "Ajoutez les personnes avec qui vous partagez les tâches et attribuez-leur des tâches.",
+    "integrations": "Intégrations",
+    "integrationsDesc": "Connectez lastGLANCE à dayGLANCE et aux applications d'automatisation.",
+    "data": "Données",
+    "dataDesc": "Enregistrez un fichier de sauvegarde ou restaurez à partir de celui-ci.",
+    "about": "À propos"
   }
 }

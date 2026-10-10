@@ -18,10 +18,26 @@ export function leaveApp(): void {
   CapacitorApp.minimizeApp().catch(() => {})
 }
 
+// Full-screen surfaces that Back should dismiss before it leaves the app (the
+// settings sheet). Last registered wins, so a surface opened on top of another
+// closes first.
+const backHandlers: Array<() => void> = []
+
+/** Make Back close a surface while it is open. Returns the unregister function. */
+export function pushBackHandler(handler: () => void): () => void {
+  backHandlers.push(handler)
+  return () => {
+    const i = backHandlers.lastIndexOf(handler)
+    if (i !== -1) backHandlers.splice(i, 1)
+  }
+}
+
 export function initHardwareBackButton(): void {
   if (Capacitor.getPlatform() !== 'android') return
   void CapacitorApp.addListener('backButton', ({ canGoBack }) => {
-    if (canGoBack) window.history.back()
+    const top = backHandlers[backHandlers.length - 1]
+    if (top) top()
+    else if (canGoBack) window.history.back()
     else leaveApp()
   })
 }

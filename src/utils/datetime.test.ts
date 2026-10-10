@@ -15,6 +15,11 @@ import {
   firstDayOfWeek,
   weekdayMinLabels,
   weekdayAtOffset,
+  setTimeFormat,
+  getTimeFormat,
+  loadTimeFormat,
+  uses24HourClock,
+  formatTimeSample,
 } from './datetime'
 
 // A Wednesday, deliberately in the afternoon so the 12-/24-hour split shows.
@@ -22,6 +27,7 @@ const SAMPLE = '2026-08-12T14:05:00'
 
 afterEach(() => {
   vi.unstubAllGlobals()
+  setTimeFormat('auto')
   applyDateLocale('en')
 })
 
@@ -147,6 +153,63 @@ describe('display formatting', () => {
     expect(formatDate(SAMPLE)).not.toBe(english)
     applyDateLocale('en')
     expect(formatDate(SAMPLE)).toBe(english)
+  })
+})
+
+describe('time format preference', () => {
+  it('follows the locale on auto', () => {
+    expect(uses24HourClock()).toBe(false)
+    applyDateLocale('de')
+    expect(uses24HourClock()).toBe(true)
+    expect(formatTime(SAMPLE)).toBe('14:05')
+  })
+
+  it('forces a 24-hour clock in English', () => {
+    setTimeFormat('24')
+    expect(uses24HourClock()).toBe(true)
+    expect(formatTime(SAMPLE)).toBe('14:05')
+    expect(formatDateTime(SAMPLE)).toContain('14:05')
+    expect(formatMonthDayTime(SAMPLE)).toContain('14:05')
+  })
+
+  it('renders midnight as 00, never 24', () => {
+    setTimeFormat('24')
+    expect(formatTime('2026-08-12T00:05:00')).toBe('00:05')
+  })
+
+  it('forces a 12-hour clock in a 24-hour locale', () => {
+    applyDateLocale('de')
+    setTimeFormat('12')
+    expect(uses24HourClock()).toBe(false)
+    expect(formatTime(SAMPLE)).toMatch(/^2:05/)
+  })
+
+  it('leaves date-only formats alone', () => {
+    const before = formatDate(SAMPLE)
+    setTimeFormat('24')
+    expect(formatDate(SAMPLE)).toBe(before)
+  })
+
+  it('samples each choice without changing the active one', () => {
+    expect(formatTimeSample(SAMPLE, '24')).toBe('14:05')
+    expect(formatTimeSample(SAMPLE, '12')).toMatch(/2:05\s?PM/i)
+    expect(getTimeFormat()).toBe('auto')
+  })
+
+  it('persists and reloads the choice', () => {
+    const store = new Map<string, string>()
+    vi.stubGlobal('localStorage', {
+      getItem: (k: string) => store.get(k) ?? null,
+      setItem: (k: string, v: string) => { store.set(k, v) },
+    })
+    setTimeFormat('24')
+    expect(store.get('lg-time-format')).toBe('24')
+    store.set('lg-time-format', 'bogus')
+    loadTimeFormat()
+    expect(getTimeFormat()).toBe('24')
+    store.set('lg-time-format', '12')
+    loadTimeFormat()
+    expect(getTimeFormat()).toBe('12')
   })
 })
 
