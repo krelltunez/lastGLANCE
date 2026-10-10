@@ -27,10 +27,45 @@ function ExternalLinkRow({ href, label }: { href: string; label: string }) {
 
 export function HelpModal({ onClose, onOpenShortcuts }: Props) {
   const { t } = useTranslation()
+  useEscapeKey(onClose)
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-60 flex items-end sm:items-center justify-center app-safe-bottom bg-black/40 dark:bg-black/60 backdrop-blur-sm"
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}
+    >
+      <div className="w-full sm:max-w-sm max-h-[90svh] bg-white dark:bg-slate-800 rounded-t-2xl sm:rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700/50 flex flex-col">
+        {/* Header */}
+        <div className="flex items-center gap-3 px-6 pt-5 pb-4 border-b border-slate-100 dark:border-slate-700/40">
+          <HelpCircle size={18} className="text-green-400 shrink-0" />
+          <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100 flex-1">
+            {t('help.title')}
+          </h2>
+          <button
+            onClick={onClose}
+            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4">
+          <HelpContent onOpenShortcuts={() => { onClose(); onOpenShortcuts() }} />
+        </div>
+      </div>
+    </div>,
+    document.body
+  )
+}
+
+/**
+ * Contact, legal, storage and build info. Shown by HelpModal (the header's
+ * help button) and inline in the settings panel's About section.
+ */
+export function HelpContent({ onOpenShortcuts }: { onOpenShortcuts: () => void }) {
+  const { t } = useTranslation()
   const [storage, setStorage] = useState<{ used: number; quota: number } | null>(null)
   const [persisted, setPersisted] = useState<boolean | null>(null)
-
-  useEscapeKey(onClose)
 
   useEffect(() => {
     navigator.storage?.estimate().then(est => {
@@ -55,94 +90,69 @@ export function HelpModal({ onClose, onOpenShortcuts }: Props) {
 
   const buildDate = formatDateTime(__BUILD_TIME__)
 
-  return createPortal(
-    <div
-      className="fixed inset-0 z-60 flex items-end sm:items-center justify-center app-safe-bottom bg-black/40 dark:bg-black/60 backdrop-blur-sm"
-      onClick={e => { if (e.target === e.currentTarget) onClose() }}
-    >
-      <div className="w-full sm:max-w-sm max-h-[90svh] bg-white dark:bg-slate-800 rounded-t-2xl sm:rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700/50 flex flex-col">
-        {/* Header */}
-        <div className="flex items-center gap-3 px-6 pt-5 pb-4 border-b border-slate-100 dark:border-slate-700/40">
-          <HelpCircle size={18} className="text-green-400 shrink-0" />
-          <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100 flex-1">
-            {t('help.title')}
-          </h2>
+  return (
+    <div className="space-y-5">
+      {/* Contact & Issues */}
+      <div className="space-y-2.5">
+        <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+          {t('help.contactIssues')}
+        </p>
+        <ExternalLinkRow href="mailto:support@glance-apps.com" label={t('help.supportEmail')} />
+        <ExternalLinkRow href="https://github.com/krelltunez/lastGLANCE/issues" label={t('help.reportIssue')} />
+      </div>
+
+      <div className="border-t border-slate-100 dark:border-slate-700/40" />
+
+      {/* Legal */}
+      <div className="space-y-2.5">
+        <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+          {t('help.legal')}
+        </p>
+        <ExternalLinkRow href="https://www.glance-apps.com/privacy" label={t('help.privacyPolicy')} />
+        <ExternalLinkRow href="https://www.glance-apps.com/eula" label={t('help.termsOfUse')} />
+      </div>
+
+      <div className="border-t border-slate-100 dark:border-slate-700/40" />
+
+      {/* Persistent storage notice */}
+      {persisted === false && (
+        <div className="rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/40 px-3 py-2.5 space-y-2">
+          <p className="text-xs text-amber-800 dark:text-amber-300 leading-snug">
+            {t('help.persistentStorageWarning')}
+          </p>
           <button
-            onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+            onClick={() => {
+              navigator.storage?.persist?.().then(granted => {
+                if (granted) setPersisted(true)
+              }).catch(() => {})
+            }}
+            className="text-xs font-medium px-2.5 py-1 rounded-md bg-amber-100 dark:bg-amber-800/40 text-amber-900 dark:text-amber-200 hover:bg-amber-200 dark:hover:bg-amber-700/50 transition-colors"
           >
-            <X size={18} />
+            {t('help.allowPersistentStorage')}
           </button>
         </div>
+      )}
 
-        <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4 space-y-5">
-          {/* Contact & Issues */}
-          <div className="space-y-2.5">
-            <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-              {t('help.contactIssues')}
+      {/* Build info + shortcuts button */}
+      <div className="flex items-end justify-between gap-4">
+        <div className="space-y-1">
+          {storage && (
+            <p className="text-xs text-slate-400 dark:text-slate-500">
+              {t('help.storageInfo', { used: fmtBytes(storage.used), quota: fmtBytes(storage.quota) })}
             </p>
-            <ExternalLinkRow href="mailto:support@glance-apps.com" label={t('help.supportEmail')} />
-            <ExternalLinkRow href="https://github.com/krelltunez/lastGLANCE/issues" label={t('help.reportIssue')} />
-          </div>
-
-          <div className="border-t border-slate-100 dark:border-slate-700/40" />
-
-          {/* Legal */}
-          <div className="space-y-2.5">
-            <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-              {t('help.legal')}
-            </p>
-            <ExternalLinkRow href="https://www.glance-apps.com/privacy" label={t('help.privacyPolicy')} />
-            <ExternalLinkRow href="https://www.glance-apps.com/eula" label={t('help.termsOfUse')} />
-          </div>
-
-          <div className="border-t border-slate-100 dark:border-slate-700/40" />
-
-          {/* Persistent storage notice */}
-          {persisted === false && (
-            <>
-              <div className="border-t border-slate-100 dark:border-slate-700/40" />
-              <div className="rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/40 px-3 py-2.5 space-y-2">
-                <p className="text-xs text-amber-800 dark:text-amber-300 leading-snug">
-                  {t('help.persistentStorageWarning')}
-                </p>
-                <button
-                  onClick={() => {
-                    navigator.storage?.persist?.().then(granted => {
-                      if (granted) setPersisted(true)
-                    }).catch(() => {})
-                  }}
-                  className="text-xs font-medium px-2.5 py-1 rounded-md bg-amber-100 dark:bg-amber-800/40 text-amber-900 dark:text-amber-200 hover:bg-amber-200 dark:hover:bg-amber-700/50 transition-colors"
-                >
-                  {t('help.allowPersistentStorage')}
-                </button>
-              </div>
-            </>
           )}
-
-          {/* Build info + shortcuts button */}
-          <div className="flex items-end justify-between gap-4">
-            <div className="space-y-1">
-              {storage && (
-                <p className="text-xs text-slate-400 dark:text-slate-500">
-                  {t('help.storageInfo', { used: fmtBytes(storage.used), quota: fmtBytes(storage.quota) })}
-                </p>
-              )}
-              <p className="text-xs text-slate-400 dark:text-slate-500">
-                {t('help.versionInfo', { version: __APP_VERSION__, date: buildDate })}
-              </p>
-            </div>
-            <button
-              onClick={() => { onClose(); onOpenShortcuts() }}
-              className="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
-            >
-              <kbd className="inline-flex items-center justify-center w-4 h-4 rounded bg-slate-300 dark:bg-slate-500 text-[10px] font-mono text-slate-600 dark:text-slate-200 leading-none">?</kbd>
-              <span className="text-xs text-slate-500 dark:text-slate-400">{t('help.shortcuts')}</span>
-            </button>
-          </div>
+          <p className="text-xs text-slate-400 dark:text-slate-500">
+            {t('help.versionInfo', { version: __APP_VERSION__, date: buildDate })}
+          </p>
         </div>
+        <button
+          onClick={onOpenShortcuts}
+          className="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+        >
+          <kbd className="inline-flex items-center justify-center w-4 h-4 rounded bg-slate-300 dark:bg-slate-500 text-[10px] font-mono text-slate-600 dark:text-slate-200 leading-none">?</kbd>
+          <span className="text-xs text-slate-500 dark:text-slate-400">{t('help.shortcuts')}</span>
+        </button>
       </div>
-    </div>,
-    document.body
+    </div>
   )
 }

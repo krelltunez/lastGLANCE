@@ -5,9 +5,6 @@
     "dayglanceIntegration": "Integracja z dayGLANCE",
     "journal": "Dziennik",
     "journalTooltip": "Przejrzyj wszystko, co zostało zrobione",
-    "users": "Użytkownicy",
-    "lightMode": "Tryb jasny",
-    "darkMode": "Tryb ciemny",
     "backupRestore": "Kopia zapasowa i przywracanie",
     "helpFeedback": "Pomoc i opinie",
     "toggleTheme": "Przełącz motyw",
@@ -22,8 +19,7 @@
     "done": "Gotowe",
     "edit": "Edytuj",
     "settings": "Ustawienia",
-    "language": "Język",
-    "subscription": "Subskrypcja"
+    "language": "Język"
   },
   "activityLog": {
     "title": "Dziennik aktywności",
@@ -550,8 +546,7 @@
     "syncNow": "Synchronizuj teraz",
     "syncOk": "Zsynchronizowano!",
     "syncFailed": "Synchronizacja nie powiodła się",
-    "syncNotConfigured": "Synchronizacja w chmurze nie jest skonfigurowana. Najpierw skonfiguruj WebDAV w Ustawienia → Synchronizacja w chmurze.",
-    "done": "Gotowe"
+    "syncNotConfigured": "Synchronizacja w chmurze nie jest skonfigurowana. Najpierw skonfiguruj WebDAV w Ustawienia → Synchronizacja w chmurze."
   },
   "welcome": {
     "title": "Witaj w lastGLANCE",
@@ -628,5 +623,23 @@
     "bannerActive": "Dostęp recenzenta aktywny — aplikacja jest odblokowana bez zakupu.",
     "bannerExit": "Wyjdź i zobacz plany",
     "bestValue": "Najlepsza oferta"
+  },
+  "settings": {
+    "title": "Ustawienia",
+    "close": "Zamknij ustawienia",
+    "appearance": "Wygląd",
+    "theme": "Motyw",
+    "themeLight": "Jasny",
+    "themeDark": "Ciemny",
+    "themeSystem": "Systemowy",
+    "timeFormat": "Format godziny",
+    "timeAuto": "Automatyczny",
+    "timeAutoHint": "Automatyczny używa zegara Twojego języka ({{example}}).",
+    "syncAttention": "Wymaga uwagi",
+    "syncDesc": "Synchronizuj obowiązki i historię między swoimi urządzeniami.",
+    "household": "Domownicy",
+    "integrations": "Integracje",
+    "integrationsDesc": "Połącz lastGLANCE z dayGLANCE i z aplikacjami do automatyzacji.",
+    "about": "Informacje"
   }
 }

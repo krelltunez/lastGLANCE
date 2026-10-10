@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Pencil, Check, Sun, Moon, Archive, Plug, Cloud, CloudOff, RefreshCw, HelpCircle, Users, Settings, UserCircle, Clock, BadgeCheck, NotebookText, Languages } from 'lucide-react'
+import { Pencil, Check, Cloud, CloudOff, RefreshCw, HelpCircle, Settings, UserCircle, Clock, NotebookText } from 'lucide-react'
 import { Ribbon } from '@/components/Ribbon/Ribbon'
 import { BackupModal } from '@/components/BackupModal/BackupModal'
 import { WelcomeModal } from '@/components/WelcomeModal/WelcomeModal'
@@ -8,14 +8,14 @@ import { IntegrationSettingsModal } from '@/components/IntegrationSettingsModal/
 import { SyncSettingsModal } from '@/components/SyncSettingsModal/SyncSettingsModal'
 import { PassphraseModal } from '@/components/PassphraseModal/PassphraseModal'
 import { HelpModal } from '@/components/HelpModal/HelpModal'
-import { LanguagePicker } from '@/components/LanguagePicker/LanguagePicker'
 import { ShortcutsModal } from '@/components/ShortcutsModal/ShortcutsModal'
 import { ActivityLogModal } from '@/components/ActivityLogModal/ActivityLogModal'
 import { JournalModal } from '@/components/JournalModal/JournalModal'
 import { TooltipHost } from '@/components/Tooltip/Tooltip'
 import { ToastProvider, useToast } from '@/components/Toast/Toast'
-import { UsersModal } from '@/components/UsersModal/UsersModal'
 import { PaywallModal } from '@/components/PaywallModal/PaywallModal'
+import { SettingsPanel, type ThemePref } from '@/components/SettingsPanel/SettingsPanel'
+import { getTimeFormat, setTimeFormat as applyTimeFormat, type TimeFormat } from '@/utils/datetime'
 import { ReviewerBanner } from '@/components/ReviewerBanner/ReviewerBanner'
 import { useSubscription, exitReviewerMode } from '@/billing/billing'
 import { UsersContext } from '@/multiuser/UsersContext'
@@ -153,7 +153,6 @@ function AppInner() {
   // Billing/paywall — inert off the Play channel (adapter is null there, so
   // gated stays false and the hard gate below never renders).
   const billing = useSubscription()
-  const [showBillingStatus, setShowBillingStatus] = useState(false)
   const [editMode, setEditMode] = useState(false)
   const [showWelcome, setShowWelcome] = useState(() => !localStorage.getItem('lg-welcome-dismissed'))
   const [welcomeClearing, setWelcomeClearing] = useState(false)
@@ -164,21 +163,33 @@ function AppInner() {
   const [showHelp, setShowHelp] = useState(false)
   const [showShortcuts, setShowShortcuts] = useState(false)
   const [showActivityLog, setShowActivityLog] = useState(false)
-  const [showUsers, setShowUsers] = useState(false)
   // Journal. `journalDate` is the day a heatmap cell handed off, or null when
   // opened from the toolbar (which lands on the default range instead).
   const [showJournal, setShowJournal] = useState(false)
   const [journalDate, setJournalDate] = useState<string | null>(null)
-  const [showSettingsSheet, setShowSettingsSheet] = useState(false)
-  // Desktop overflow menu: theme, backup, and language — the rarely-clicked
-  // controls, folded behind one button so the icon row stays short.
-  const [showDesktopMenu, setShowDesktopMenu] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
+  const [timeFormat, setTimeFormatState] = useState<TimeFormat>(getTimeFormat)
   const [ribbonKey, setRibbonKey] = useState(0)
   const [heatmapWeeks, setHeatmapWeeks] = useState<HeatDay[][]>([])
   const [waveKey, setWaveKey] = useState(0)
-  const [isDark, setIsDark] = useState(() =>
-    document.documentElement.classList.contains('dark')
+  // 'system' follows the OS live. No stored value means a first launch, which
+  // main.tsx already painted from the OS, so it starts on 'system' too.
+  const [themePref, setThemePref] = useState<ThemePref>(() => {
+    const saved = localStorage.getItem('theme')
+    return saved === 'light' || saved === 'dark' ? saved : 'system'
+  })
+  const [systemDark, setSystemDark] = useState(() =>
+    window.matchMedia('(prefers-color-scheme: dark)').matches
   )
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-color-scheme: dark)')
+    const onChange = (e: MediaQueryListEvent) => setSystemDark(e.matches)
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [])
+  const isDark = themePref === 'dark' || (themePref === 'system' && systemDark)
+  const isDarkRef = useRef(isDark)
+  isDarkRef.current = isDark
 
   // Sync engine
   const engineRef = useRef<SyncEngine | null>(null)
@@ -224,9 +235,19 @@ function AppInner() {
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', isDark)
-    localStorage.setItem('theme', isDark ? 'dark' : 'light')
     applyStatusBarTheme(isDark)
   }, [isDark])
+
+  useEffect(() => {
+    localStorage.setItem('theme', themePref)
+  }, [themePref])
+
+  // The formatter swap is synchronous, so the re-render this state change
+  // triggers already paints every time on the new clock.
+  const changeTimeFormat = useCallback((pref: TimeFormat) => {
+    applyTimeFormat(pref)
+    setTimeFormatState(pref)
+  }, [])
 
   // Full-screen (hide the status bar) in landscape, restore it in portrait.
   useEffect(() => initFullScreenInLandscape(), [])
@@ -439,16 +460,17 @@ function AppInner() {
     return () => window.removeEventListener('lg:widget-filter-soon', onFilterSoon)
   }, [setAttentionOnly])
 
-  function toggleTheme() {
-    setIsDark(d => !d)
-  }
+  // The D shortcut flips to an explicit light/dark, leaving 'system'.
+  const toggleTheme = useCallback(() => {
+    setThemePref(isDarkRef.current ? 'light' : 'dark')
+  }, [])
 
   // Global keyboard shortcuts (D, E, I, S, A, L, ?)
   const anyModalOpenRef = useRef(false)
   anyModalOpenRef.current = (
     showWelcome || showBackup || showIntegration || showSyncSettings ||
-    showPassphrase || showHelp || showShortcuts || showActivityLog || showUsers ||
-    showJournal
+    showPassphrase || showHelp || showShortcuts || showActivityLog ||
+    showJournal || showSettings
   )
   const filterRef = useRef(filter)
   filterRef.current = filter
@@ -458,7 +480,7 @@ function AppInner() {
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (e.target as HTMLElement).isContentEditable) return
       if (anyModalOpenRef.current || e.metaKey || e.ctrlKey || e.altKey) return
       switch (e.key) {
-        case 'd': case 'D': setIsDark(d => !d); break
+        case 'd': case 'D': toggleTheme(); break
         case 'e': case 'E': setEditMode(m => !m); break
         case 'i': case 'I': setShowIntegration(true); break
         case 's': case 'S': setShowSyncSettings(true); break
@@ -481,21 +503,17 @@ function AppInner() {
     setShowJournal(true)
   }, [])
 
-  const settingsItems = [
-    { label: t('app.cloudSync'), icon: syncHalted || syncError ? <CloudOff size={15} /> : syncStatus === 'uploading' || syncStatus === 'downloading' ? <RefreshCw size={15} className="animate-spin" /> : <Cloud size={15} />, onClick: () => { setShowSyncSettings(true); setShowSettingsSheet(false) }, warn: !!(syncHalted || syncError) },
-    { label: t('app.dayglanceIntegration'), icon: <Plug size={22} />, onClick: () => { setShowIntegration(true); setShowSettingsSheet(false) } },
-    { label: t('app.users'), icon: <Users size={15} />, onClick: () => { setShowUsers(true); setShowSettingsSheet(false) } },
-    { label: t('app.journal'), icon: <NotebookText size={15} />, onClick: () => { openJournal(null); setShowSettingsSheet(false) } },
-    { label: isDark ? t('app.lightMode') : t('app.darkMode'), icon: isDark ? <Sun size={15} /> : <Moon size={15} />, onClick: () => { toggleTheme(); setShowSettingsSheet(false) } },
-    { label: t('app.backupRestore'), icon: <Archive size={15} />, onClick: () => { setShowBackup(true); setShowSettingsSheet(false) } },
-    { label: t('app.helpFeedback'), icon: <HelpCircle size={15} />, onClick: () => { setShowHelp(true); setShowSettingsSheet(false) } },
-    // Entitlement surface, every channel. On a gated Play install it shows the
-    // purchase/restore actions; on an ungated one (github sideload, web) it
-    // says "This build is fully unlocked" — the only way a sideload user can
-    // tell their build from the Play one, since the two artifacts share an
-    // applicationId, name, icon and version.
-    { label: t('app.subscription'), icon: <BadgeCheck size={15} />, onClick: () => { setShowBillingStatus(true); setShowSettingsSheet(false) } },
-  ]
+  // Every launcher in the settings panel closes it first, so modals never
+  // stack on top of it.
+  const fromSettings = (open: () => void) => () => { setShowSettings(false); open() }
+
+  const handleImported = () => { loadHeatmap(); setRibbonKey(k => k + 1) }
+
+  const syncWarn = !!(syncHalted || syncError)
+  const syncIcon = syncStatus === 'uploading' || syncStatus === 'downloading'
+    ? <RefreshCw size={15} className="animate-spin" />
+    : syncWarn ? <CloudOff size={15} /> : <Cloud size={15} />
+
 
   return (
     <UsersContext.Provider value={usersCtx}>
@@ -535,41 +553,24 @@ function AppInner() {
         {/* Controls */}
         <div className="flex flex-col items-end gap-1.5 shrink-0">
 
-          {/* ── Mobile: settings gear + Edit ── */}
+          {/* ── Mobile: journal + settings + Edit. The heatmap is hidden at
+              this width, so the journal gets its own button rather than
+              hiding inside settings. ── */}
           <div className="flex items-center gap-2 sm:hidden">
-            <div className="relative">
-              <button
-                onClick={() => setShowSettingsSheet(s => !s)}
-                className="p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors"
-                aria-label={t('app.settings')}
-              >
-                <Settings size={15} />
-              </button>
-              {showSettingsSheet && (
-                <>
-                  {/* backdrop */}
-                  <div className="fixed inset-0 z-40" onClick={() => setShowSettingsSheet(false)} />
-                  {/* sheet */}
-                  <div className="absolute right-0 top-full mt-2 z-50 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl p-3 flex flex-col gap-1 min-w-[160px]">
-                    {settingsItems.map(item => (
-                      <button
-                        key={item.label}
-                        onClick={item.onClick}
-                        className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-left w-full transition-colors hover:bg-slate-100 dark:hover:bg-slate-700 ${(item as { warn?: boolean }).warn ? 'text-amber-400' : 'text-slate-600 dark:text-slate-300'}`}
-                      >
-                        {item.icon}
-                        {item.label}
-                      </button>
-                    ))}
-                    <label className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm w-full text-slate-600 dark:text-slate-300">
-                      <Languages size={15} className="shrink-0" />
-                      <span className="sr-only">{t('app.language')}</span>
-                      <LanguagePicker className="flex-1 min-w-0 bg-transparent text-sm text-slate-600 dark:text-slate-300 focus:outline-none" />
-                    </label>
-                  </div>
-                </>
-              )}
-            </div>
+            <button
+              onClick={() => openJournal(null)}
+              className="p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors"
+              aria-label={t('app.journal')}
+            >
+              <NotebookText size={15} />
+            </button>
+            <button
+              onClick={() => setShowSettings(true)}
+              className={`p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors ${syncWarn ? 'text-amber-400' : 'text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200'}`}
+              aria-label={t('app.settings')}
+            >
+              <Settings size={15} />
+            </button>
             <button
               onClick={() => setEditMode(e => !e)}
               className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors border ${editMode ? 'text-green-400 border-green-400/40 hover:text-green-300 hover:bg-green-400/10 hover:border-green-400/60' : 'text-slate-500 dark:text-slate-500 border-slate-200 dark:border-slate-700 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
@@ -621,62 +622,29 @@ function AppInner() {
                 {editMode ? <><Check size={14} /> {t('app.done')}</> : <><Pencil size={14} /> {t('app.edit')}</>}
               </button>
             </div>
-            {/* Row 2: sync, intents, multi-user, journal, theme, archive, help.
-                Every control here is icon-only, so each carries a tooltip. */}
+            {/* Row 2: sync (doubles as the status light), journal, help,
+                settings. Every control here is icon-only, so each carries a
+                tooltip. Set-once panels (integration, users, backup, theme,
+                language, time format) live in the settings panel. */}
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setShowSyncSettings(true)}
-                className={`p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors ${syncHalted || syncError ? 'text-amber-400 dark:text-amber-400' : 'text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200'}`}
+                className={`p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors ${syncWarn ? 'text-amber-400 dark:text-amber-400' : 'text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200'}`}
                 aria-label={t('app.cloudSync')}
                 data-tooltip={t('app.cloudSync')}
               >
-                {syncStatus === 'uploading' || syncStatus === 'downloading' ? <RefreshCw size={15} className="animate-spin" /> : syncHalted || syncError ? <CloudOff size={15} /> : <Cloud size={15} />}
+                {syncIcon}
               </button>
-              <button onClick={() => setShowIntegration(true)} className="p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors" aria-label={t('app.dayglanceIntegration')} data-tooltip={t('app.dayglanceIntegration')}><Plug size={15} /></button>
-              <button onClick={() => setShowUsers(true)} className="p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors" aria-label={t('app.users')} data-tooltip={t('app.users')}><Users size={15} /></button>
               <button onClick={() => openJournal(null)} className="p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors" aria-label={t('app.journal')} data-tooltip={t('app.journalTooltip')}><NotebookText size={15} /></button>
               <button onClick={() => setShowHelp(true)} className="p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors" aria-label={t('app.helpFeedback')} data-tooltip={t('app.helpFeedback')}><HelpCircle size={15} /></button>
-              {/* Overflow: theme, backup, language — set-and-forget controls
-                  folded behind one button, same card pattern as the mobile
-                  settings sheet. Theme also stays a keyboard shortcut away. */}
-              <div className="relative">
-                <button
-                  onClick={() => setShowDesktopMenu(m => !m)}
-                  className={`p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors ${showDesktopMenu ? 'text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800' : 'text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200'}`}
-                  aria-label={t('app.settings')}
-                  aria-expanded={showDesktopMenu}
-                  data-tooltip={t('app.settings')}
-                >
-                  <Settings size={15} />
-                </button>
-                {showDesktopMenu && (
-                  <>
-                    {/* backdrop */}
-                    <div className="fixed inset-0 z-40" onClick={() => setShowDesktopMenu(false)} />
-                    <div className="absolute right-0 top-full mt-2 z-50 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl p-3 flex flex-col gap-1 min-w-[190px]">
-                      <button
-                        onClick={() => { toggleTheme(); setShowDesktopMenu(false) }}
-                        className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-left w-full transition-colors hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300"
-                      >
-                        {isDark ? <Sun size={15} /> : <Moon size={15} />}
-                        {isDark ? t('app.lightMode') : t('app.darkMode')}
-                      </button>
-                      <button
-                        onClick={() => { setShowBackup(true); setShowDesktopMenu(false) }}
-                        className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-left w-full transition-colors hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300"
-                      >
-                        <Archive size={15} />
-                        {t('app.backupRestore')}
-                      </button>
-                      <label className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm w-full text-slate-600 dark:text-slate-300">
-                        <Languages size={15} className="shrink-0" />
-                        <span className="sr-only">{t('app.language')}</span>
-                        <LanguagePicker className="flex-1 min-w-0 bg-transparent text-sm text-slate-600 dark:text-slate-300 focus:outline-none" />
-                      </label>
-                    </div>
-                  </>
-                )}
-              </div>
+              <button
+                onClick={() => setShowSettings(true)}
+                className="p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors"
+                aria-label={t('app.settings')}
+                data-tooltip={t('app.settings')}
+              >
+                <Settings size={15} />
+              </button>
             </div>
           </div>
 
@@ -714,7 +682,7 @@ function AppInner() {
         <BackupModal
           engine={engineRef.current}
           onClose={() => setShowBackup(false)}
-          onImported={() => { loadHeatmap(); setRibbonKey(k => k + 1) }}
+          onImported={handleImported}
         />
       )}
 
@@ -788,17 +756,23 @@ function AppInner() {
         />
       )}
 
-      {showUsers && (
-        <UsersModal
+      {showSettings && (
+        <SettingsPanel
+          onClose={() => { setShowSettings(false); usersCtx.reload() }}
+          themePref={themePref}
+          onThemeChange={setThemePref}
+          timeFormat={timeFormat}
+          onTimeFormatChange={changeTimeFormat}
+          syncIcon={syncIcon}
+          syncWarn={syncWarn}
+          onOpenSync={fromSettings(() => setShowSyncSettings(true))}
+          onOpenIntegration={fromSettings(() => setShowIntegration(true))}
+          onOpenShortcuts={fromSettings(() => setShowShortcuts(true))}
           engine={engineRef.current}
-          onUserMutated={runSharedUserSync}
-          onClose={() => { setShowUsers(false); usersCtx.reload() }}
+          billing={billing}
+          onUserMutated={() => { void runSharedUserSync(); usersCtx.reload() }}
+          onImported={handleImported}
         />
-      )}
-
-      {/* Entitlement status (settings surface, unlocked installs). */}
-      {showBillingStatus && (
-        <PaywallModal billing={billing} mode="status" onClose={() => setShowBillingStatus(false)} />
       )}
 
       {/* Reviewer-mode banner — shown while unlocked via the store-review
@@ -817,7 +791,7 @@ function AppInner() {
           Only ever true on the Play channel; the engine's provisional unlock
           keeps previously-entitled installs from ever flashing this. */}
       {billing.gated && !billing.isUnlocked && (
-        <PaywallModal billing={billing} mode="gate" />
+        <PaywallModal billing={billing} />
       )}
     </div>
     </UsersContext.Provider>

@@ -58,6 +58,56 @@ const SUPPORTED = ['de', 'es', 'fr', 'it', 'pl', 'pt', 'pt-br', 'uk', 'zh-cn'] a
 
 let activeLocale = 'en'
 
+/**
+ * The user's clock preference. 'auto' leaves the 12/24-hour choice to the
+ * active locale (English is 12-hour, every other shipped language 24-hour);
+ * '12' and '24' override it everywhere a time is shown. Device-local, like the
+ * theme: it is a display preference, not data, so it is not synced.
+ */
+export type TimeFormat = 'auto' | '12' | '24'
+
+const TIME_FORMAT_KEY = 'lg-time-format'
+let timeFormat: TimeFormat = 'auto'
+
+function isTimeFormat(v: unknown): v is TimeFormat {
+  return v === 'auto' || v === '12' || v === '24'
+}
+
+/** Seed the clock preference from storage. Called once at startup. */
+export function loadTimeFormat(): void {
+  try {
+    const saved = localStorage.getItem(TIME_FORMAT_KEY)
+    if (isTimeFormat(saved)) timeFormat = saved
+  } catch {
+    // Storage blocked (private mode, tests): stay on the locale's own clock.
+  }
+}
+
+export function getTimeFormat(): TimeFormat {
+  return timeFormat
+}
+
+/**
+ * Switch the clock. Synchronous for the same reason applyDateLocale is: the
+ * caller re-renders right after, and the memoised formatters must already be
+ * gone or that render paints the old clock.
+ */
+export function setTimeFormat(value: TimeFormat): void {
+  timeFormat = value
+  formatterCache.clear()
+  try {
+    localStorage.setItem(TIME_FORMAT_KEY, value)
+  } catch {
+    // Not persisted, but still applied for this session.
+  }
+}
+
+// hourCycle rather than hour12: `hour12: false` resolves to h24 in some
+// engines for some locales, which renders midnight as "24:05".
+function hourCycleFor(pref: TimeFormat): Intl.DateTimeFormatOptions['hourCycle'] {
+  return pref === '24' ? 'h23' : pref === '12' ? 'h12' : undefined
+}
+
 export function getActiveLocale(): string {
   return activeLocale
 }
@@ -140,10 +190,14 @@ function localeDefaultWeekStart(locale: string): number {
 const formatterCache = new Map<string, Intl.DateTimeFormat>()
 
 function formatter(opts: Intl.DateTimeFormatOptions): Intl.DateTimeFormat {
-  const key = JSON.stringify(opts)
+  // Only formats that show an hour take the clock preference; a date-only
+  // format must not change shape (or cache key) with it.
+  const hourCycle = opts.hour ? hourCycleFor(timeFormat) : undefined
+  const resolved = hourCycle ? { ...opts, hourCycle } : opts
+  const key = JSON.stringify(resolved)
   let f = formatterCache.get(key)
   if (!f) {
-    f = new Intl.DateTimeFormat(activeLocale, opts)
+    f = new Intl.DateTimeFormat(activeLocale, resolved)
     formatterCache.set(key, f)
   }
   return f
@@ -160,14 +214,31 @@ export function formatDate(value: DateInput): string {
   return formatter({ year: 'numeric', month: 'short', day: 'numeric' }).format(toDate(value))
 }
 
-/** "2:05 PM" in en, "14:05" everywhere else — Intl picks the clock per locale. */
+/**
+ * "2:05 PM" in en, "14:05" everywhere else — Intl picks the clock per locale
+ * unless the user chose one (setTimeFormat).
+ */
 export function formatTime(value: DateInput): string {
   return formatter({ hour: 'numeric', minute: '2-digit' }).format(toDate(value))
 }
 
-/** Whether the active locale writes times on a 24-hour clock (everything but en here). */
+/**
+ * Whether times are shown on a 24-hour clock: the user's choice, else the
+ * active locale's (everything but en here).
+ */
 export function uses24HourClock(): boolean {
   return formatter({ hour: 'numeric' }).resolvedOptions().hour12 === false
+}
+
+/**
+ * "2:05 PM" · "14:05" for a given clock choice, independent of the current
+ * one, so a picker can label each option with what it would look like.
+ */
+export function formatTimeSample(value: DateInput, pref: TimeFormat): string {
+  const hourCycle = hourCycleFor(pref)
+  return new Intl.DateTimeFormat(activeLocale, {
+    hour: 'numeric', minute: '2-digit', ...(hourCycle ? { hourCycle } : {}),
+  }).format(toDate(value))
 }
 
 /** The locale's own "AM"/"PM" label (e.g. "上午"/"下午" in zh-CN). */

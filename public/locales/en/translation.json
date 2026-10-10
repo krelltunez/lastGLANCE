@@ -5,9 +5,6 @@
     "dayglanceIntegration": "dayGLANCE Integration",
     "journal": "Journal",
     "journalTooltip": "Review everything that's been completed",
-    "users": "Users",
-    "lightMode": "Light Mode",
-    "darkMode": "Dark Mode",
     "backupRestore": "Backup & Restore",
     "helpFeedback": "Help & Feedback",
     "toggleTheme": "Toggle theme",
@@ -22,8 +19,7 @@
     "done": "Done",
     "edit": "Edit",
     "settings": "Settings",
-    "language": "Language",
-    "subscription": "Subscription"
+    "language": "Language"
   },
   "activityLog": {
     "title": "Activity Log",
@@ -530,8 +526,7 @@
     "syncNow": "Sync now",
     "syncOk": "Synced!",
     "syncFailed": "Sync failed",
-    "syncNotConfigured": "Cloud sync is not configured. Set up WebDAV under Settings → Cloud Sync first.",
-    "done": "Done"
+    "syncNotConfigured": "Cloud sync is not configured. Set up WebDAV under Settings → Cloud Sync first."
   },
   "welcome": {
     "title": "Welcome to lastGLANCE",
@@ -598,5 +593,23 @@
     "bannerActive": "Reviewer access active — the app is unlocked without a purchase.",
     "bannerExit": "Exit & view plans",
     "bestValue": "Best value"
+  },
+  "settings": {
+    "title": "Settings",
+    "close": "Close settings",
+    "appearance": "Appearance",
+    "theme": "Theme",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "themeSystem": "System",
+    "timeFormat": "Time format",
+    "timeAuto": "Automatic",
+    "timeAutoHint": "Automatic uses your language's clock ({{example}}).",
+    "syncAttention": "Needs attention",
+    "syncDesc": "Keep your chores and history in step across your devices.",
+    "household": "Household",
+    "integrations": "Integrations",
+    "integrationsDesc": "Connect lastGLANCE with dayGLANCE and with automation apps.",
+    "about": "About"
   }
 }

@@ -5,9 +5,6 @@
     "dayglanceIntegration": "dayGLANCE 集成",
     "journal": "日志",
     "journalTooltip": "查看所有已完成记录",
-    "users": "用户",
-    "lightMode": "浅色模式",
-    "darkMode": "深色模式",
     "backupRestore": "备份与恢复",
     "helpFeedback": "帮助与反馈",
     "toggleTheme": "切换主题",
@@ -22,8 +19,7 @@
     "done": "完成",
     "edit": "编辑",
     "settings": "设置",
-    "language": "语言",
-    "subscription": "订阅"
+    "language": "语言"
   },
   "activityLog": {
     "title": "活动记录",
@@ -530,8 +526,7 @@
     "syncNow": "立即同步",
     "syncOk": "已同步！",
     "syncFailed": "同步失败",
-    "syncNotConfigured": "尚未配置云同步。请先在“设置 → 云同步”中配置 WebDAV。",
-    "done": "完成"
+    "syncNotConfigured": "尚未配置云同步。请先在“设置 → 云同步”中配置 WebDAV。"
   },
   "welcome": {
     "title": "欢迎使用 lastGLANCE",
@@ -598,5 +593,23 @@
     "bannerActive": "审核员访问权限已生效，无需购买即可解锁应用。",
     "bannerExit": "退出并查看方案",
     "bestValue": "最划算"
+  },
+  "settings": {
+    "title": "设置",
+    "close": "关闭设置",
+    "appearance": "外观",
+    "theme": "主题",
+    "themeLight": "浅色",
+    "themeDark": "深色",
+    "themeSystem": "跟随系统",
+    "timeFormat": "时间格式",
+    "timeAuto": "自动",
+    "timeAutoHint": "自动将使用你所选语言的时钟格式（{{example}}）。",
+    "syncAttention": "需要处理",
+    "syncDesc": "在你的各台设备之间同步家务和历史记录。",
+    "household": "家庭",
+    "integrations": "集成",
+    "integrationsDesc": "将 lastGLANCE 与 dayGLANCE 及自动化应用连接。",
+    "about": "关于"
   }
 }

@@ -15,10 +15,52 @@ interface Props {
   onImported: () => void
 }
 
+interface PanelProps {
+  engine: SyncEngine | null
+  onImported: () => void
+  /** Called once a restore or sample-data clear has finished. */
+  onDone: () => void
+}
+
 type RemoteFile = { filename: string; lastModified: string | null }
 type State = 'idle' | 'exporting' | 'confirm' | 'sure' | 'importing' | 'remote-list' | 'remote-loading' | 'remote-confirm' | 'error'
 
+/**
+ * Backup & restore as a standalone modal: the A shortcut. The settings panel
+ * embeds BackupPanel directly.
+ */
 export function BackupModal({ engine, onClose, onImported }: Props) {
+  const { t } = useTranslation()
+  useEscapeKey(onClose)
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center app-safe-bottom bg-black/40 dark:bg-black/60 backdrop-blur-sm"
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}
+    >
+      <div className="w-full sm:max-w-sm max-h-[90svh] flex flex-col bg-white dark:bg-slate-800 rounded-t-2xl sm:rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700/50">
+        {/* Archive matches the settings section that also hosts this panel;
+            the heading follows the Journal/Help/Shortcuts pattern. */}
+        <div className="shrink-0 flex items-center gap-3 px-6 pt-6 pb-5">
+          <Archive size={18} className="text-green-400 shrink-0" />
+          <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100 flex-1">{t('backup.title')}</h2>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+          >
+            <X size={14} />
+          </button>
+        </div>
+
+        <div className="flex-1 min-h-0 overflow-y-auto px-6 pb-6">
+          <BackupPanel engine={engine} onImported={onImported} onDone={onClose} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export function BackupPanel({ engine, onImported, onDone }: PanelProps) {
   const { t } = useTranslation()
   const [state, setState] = useState<State>('idle')
   const [errorMsg, setErrorMsg] = useState('')
@@ -51,8 +93,6 @@ export function BackupModal({ engine, onClose, onImported }: Props) {
   const hasRemote = Boolean(
     syncConfig?.enabled && (syncConfig?.webdavUrl || syncConfig?.nextcloudUrl || syncConfig?.provider === 'koofr'),
   )
-
-  useEscapeKey(onClose)
 
   async function handleExport() {
     setState('exporting')
@@ -115,7 +155,7 @@ export function BackupModal({ engine, onClose, onImported }: Props) {
       await restoreFromBackup(pendingRaw)
       onImported()
       engine?.sync().catch(() => { /* surfaced via onError */ })
-      onClose()
+      onDone()
     } catch (err) {
       const empty = err instanceof Error && err.message === 'empty backup'
       setErrorMsg(empty ? t('backup.emptyBackup') : t('backup.restoreFailed'))
@@ -157,193 +197,173 @@ export function BackupModal({ engine, onClose, onImported }: Props) {
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center app-safe-bottom bg-black/40 dark:bg-black/60 backdrop-blur-sm"
-      onClick={e => { if (e.target === e.currentTarget) onClose() }}
-    >
-      <div className="w-full sm:max-w-sm max-h-[90svh] flex flex-col bg-white dark:bg-slate-800 rounded-t-2xl sm:rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700/50">
-        {/* Archive matches the toolbar button and settings-sheet row that open
-            this modal; the heading follows the Journal/Help/Shortcuts pattern. */}
-        <div className="shrink-0 flex items-center gap-3 px-6 pt-6 pb-5">
-          <Archive size={18} className="text-green-400 shrink-0" />
-          <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100 flex-1">{t('backup.title')}</h2>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-          >
-            <X size={14} />
+    <>
+      {state === 'confirm' && pending ? (
+        <div className="space-y-4">
+          <p className="text-sm text-slate-700 dark:text-slate-300"
+             dangerouslySetInnerHTML={{ __html: t('backup.replaceWarning') }} />
+          <p className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">
+            {t('backup.summary', {
+              categories: pending.categories.length,
+              chores: pending.chores.length,
+              events: pending.completionEvents.length,
+            })}
+          </p>
+          <div className="flex gap-3 pt-1">
+            <button onClick={() => setState('idle')} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
+              {t('backup.cancel')}
+            </button>
+            <button onClick={() => { setPendingRaw(pending); setState('sure') }} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-white bg-green-500 hover:bg-green-400 transition-colors">
+              {t('backup.restore')}
+            </button>
+          </div>
+        </div>
+
+      ) : state === 'sure' ? (
+        <div className="space-y-4">
+          <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">{t('backup.areYouSure')}</p>
+          <p className="text-sm text-slate-600 dark:text-slate-300">{t('backup.areYouSureBody')}</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 flex items-start gap-1.5">
+            <Download size={13} className="text-green-400 shrink-0 mt-0.5" />
+            {t('backup.snapshotNote')}
+          </p>
+          <div className="flex gap-3 pt-1">
+            <button onClick={() => setState('idle')} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
+              {t('backup.cancel')}
+            </button>
+            <button onClick={performRestore} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-white bg-red-500 hover:bg-red-400 transition-colors">
+              {t('backup.replaceEverything')}
+            </button>
+          </div>
+        </div>
+
+      ) : state === 'remote-list' ? (
+        <div className="space-y-3">
+          <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">{t('backup.remoteBackups')}</p>
+          {remoteFiles.length === 0 ? (
+            <p className="text-sm text-slate-500 dark:text-slate-400">{t('backup.noRemoteBackups')}</p>
+          ) : (
+            <div className="space-y-2 max-h-60 overflow-y-auto">
+              {remoteFiles.map(f => (
+                <button
+                  key={f.filename}
+                  onClick={() => handleSelectRemote(f)}
+                  className="w-full text-left px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-600/40 transition-colors"
+                >
+                  <p className="text-xs font-medium text-slate-700 dark:text-slate-200">{formatDate(f.lastModified)}</p>
+                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5 truncate">{f.filename}</p>
+                </button>
+              ))}
+            </div>
+          )}
+          <button onClick={() => setState('idle')} className="w-full py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
+            {t('backup.cancel')}
           </button>
         </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto px-6 pb-6">
-        {state === 'confirm' && pending ? (
-          <div className="space-y-4">
-            <p className="text-sm text-slate-700 dark:text-slate-300"
-               dangerouslySetInnerHTML={{ __html: t('backup.replaceWarning') }} />
-            <p className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">
-              {t('backup.summary', {
-                categories: pending.categories.length,
-                chores: pending.chores.length,
-                events: pending.completionEvents.length,
-              })}
-            </p>
-            <div className="flex gap-3 pt-1">
-              <button onClick={() => setState('idle')} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
-                {t('backup.cancel')}
-              </button>
-              <button onClick={() => { setPendingRaw(pending); setState('sure') }} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-white bg-green-500 hover:bg-green-400 transition-colors">
-                {t('backup.restore')}
-              </button>
-            </div>
-          </div>
+      ) : state === 'remote-loading' ? (
+        <div className="flex items-center justify-center gap-2 py-6 text-sm text-slate-500 dark:text-slate-400">
+          <Loader size={14} className="animate-spin" />
+          {t('backup.downloading')}
+        </div>
 
-        ) : state === 'sure' ? (
-          <div className="space-y-4">
-            <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">{t('backup.areYouSure')}</p>
-            <p className="text-sm text-slate-600 dark:text-slate-300">{t('backup.areYouSureBody')}</p>
-            <p className="text-xs text-slate-500 dark:text-slate-400 flex items-start gap-1.5">
-              <Download size={13} className="text-green-400 shrink-0 mt-0.5" />
-              {t('backup.snapshotNote')}
-            </p>
-            <div className="flex gap-3 pt-1">
-              <button onClick={() => setState('idle')} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
-                {t('backup.cancel')}
-              </button>
-              <button onClick={performRestore} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-white bg-red-500 hover:bg-red-400 transition-colors">
-                {t('backup.replaceEverything')}
-              </button>
-            </div>
-          </div>
-
-        ) : state === 'remote-list' ? (
-          <div className="space-y-3">
-            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">{t('backup.remoteBackups')}</p>
-            {remoteFiles.length === 0 ? (
-              <p className="text-sm text-slate-500 dark:text-slate-400">{t('backup.noRemoteBackups')}</p>
-            ) : (
-              <div className="space-y-2 max-h-60 overflow-y-auto">
-                {remoteFiles.map(f => (
-                  <button
-                    key={f.filename}
-                    onClick={() => handleSelectRemote(f)}
-                    className="w-full text-left px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-600/40 transition-colors"
-                  >
-                    <p className="text-xs font-medium text-slate-700 dark:text-slate-200">{formatDate(f.lastModified)}</p>
-                    <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5 truncate">{f.filename}</p>
-                  </button>
-                ))}
-              </div>
-            )}
-            <button onClick={() => setState('idle')} className="w-full py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
+      ) : state === 'remote-confirm' && selectedRemote ? (
+        <div className="space-y-4">
+          <p className="text-sm text-slate-700 dark:text-slate-300"
+             dangerouslySetInnerHTML={{ __html: t('backup.replaceRemoteWarning') }} />
+          <p className="text-xs text-slate-500 dark:text-slate-400">{formatDate(selectedRemote.lastModified)}</p>
+          <div className="flex gap-3 pt-1">
+            <button onClick={() => setState('idle')} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
               {t('backup.cancel')}
             </button>
+            <button onClick={() => { setPendingRaw(remotePending); setState('sure') }} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-white bg-green-500 hover:bg-green-400 transition-colors">
+              {t('backup.restore')}
+            </button>
           </div>
+        </div>
 
-        ) : state === 'remote-loading' ? (
-          <div className="flex items-center justify-center gap-2 py-6 text-sm text-slate-500 dark:text-slate-400">
-            <Loader size={14} className="animate-spin" />
-            {t('backup.downloading')}
-          </div>
+      ) : state === 'importing' ? (
+        <div className="flex items-center justify-center gap-2 py-6 text-sm text-slate-500 dark:text-slate-400">
+          <Loader size={14} className="animate-spin" />
+          {t('backup.restoring')}
+        </div>
 
-        ) : state === 'remote-confirm' && selectedRemote ? (
-          <div className="space-y-4">
-            <p className="text-sm text-slate-700 dark:text-slate-300"
-               dangerouslySetInnerHTML={{ __html: t('backup.replaceRemoteWarning') }} />
-            <p className="text-xs text-slate-500 dark:text-slate-400">{formatDate(selectedRemote.lastModified)}</p>
-            <div className="flex gap-3 pt-1">
-              <button onClick={() => setState('idle')} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
-                {t('backup.cancel')}
-              </button>
-              <button onClick={() => { setPendingRaw(remotePending); setState('sure') }} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-white bg-green-500 hover:bg-green-400 transition-colors">
-                {t('backup.restore')}
-              </button>
+      ) : state === 'error' ? (
+        <div className="space-y-4">
+          <p className="text-sm text-red-500 dark:text-red-400">{errorMsg}</p>
+          <button onClick={() => setState('idle')} className="w-full py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
+            {t('backup.ok')}
+          </button>
+        </div>
+
+      ) : (
+        <div className="space-y-3">
+          <button
+            onClick={handleExport}
+            disabled={state === 'exporting'}
+            className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-600/40 transition-colors text-left disabled:opacity-50"
+          >
+            <Download size={16} className="text-green-400 shrink-0" />
+            <div>
+              <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                {state === 'exporting' ? t('backup.exporting') : t('backup.exportTitle')}
+              </p>
+              <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{t('backup.exportDesc')}</p>
             </div>
-          </div>
+          </button>
 
-        ) : state === 'importing' ? (
-          <div className="flex items-center justify-center gap-2 py-6 text-sm text-slate-500 dark:text-slate-400">
-            <Loader size={14} className="animate-spin" />
-            {t('backup.restoring')}
-          </div>
+          <button
+            onClick={() => fileRef.current?.click()}
+            className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-600/40 transition-colors text-left"
+          >
+            <Upload size={16} className="text-green-400 shrink-0" />
+            <div>
+              <p className="text-sm font-medium text-slate-700 dark:text-slate-200">{t('backup.importTitle')}</p>
+              <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{t('backup.importDesc')}</p>
+            </div>
+          </button>
 
-        ) : state === 'error' ? (
-          <div className="space-y-4">
-            <p className="text-sm text-red-500 dark:text-red-400">{errorMsg}</p>
-            <button onClick={() => setState('idle')} className="w-full py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
-              {t('backup.ok')}
-            </button>
-          </div>
-
-        ) : (
-          <div className="space-y-3">
+          {hasRemote && (
             <button
-              onClick={handleExport}
-              disabled={state === 'exporting'}
-              className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-600/40 transition-colors text-left disabled:opacity-50"
-            >
-              <Download size={16} className="text-green-400 shrink-0" />
-              <div>
-                <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
-                  {state === 'exporting' ? t('backup.exporting') : t('backup.exportTitle')}
-                </p>
-                <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{t('backup.exportDesc')}</p>
-              </div>
-            </button>
-
-            <button
-              onClick={() => fileRef.current?.click()}
+              onClick={handleListRemote}
               className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-600/40 transition-colors text-left"
             >
-              <Upload size={16} className="text-green-400 shrink-0" />
+              <Cloud size={16} className="text-green-400 shrink-0" />
               <div>
-                <p className="text-sm font-medium text-slate-700 dark:text-slate-200">{t('backup.importTitle')}</p>
-                <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{t('backup.importDesc')}</p>
+                <p className="text-sm font-medium text-slate-700 dark:text-slate-200">{t('backup.remoteRestoreTitle')}</p>
+                <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{t('backup.remoteRestoreDesc')}</p>
               </div>
             </button>
+          )}
 
-            {hasRemote && (
-              <button
-                onClick={handleListRemote}
-                className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-600/40 transition-colors text-left"
-              >
-                <Cloud size={16} className="text-green-400 shrink-0" />
-                <div>
-                  <p className="text-sm font-medium text-slate-700 dark:text-slate-200">{t('backup.remoteRestoreTitle')}</p>
-                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{t('backup.remoteRestoreDesc')}</p>
-                </div>
-              </button>
-            )}
+          {showClearSample && (
+            <button
+              onClick={async () => {
+                setState('importing')
+                try {
+                  await clearSeedData()
+                  localStorage.setItem('lg-seed-cleared', '1')
+                  setShowClearSample(false)
+                  onImported()
+                  onDone()
+                } catch {
+                  setErrorMsg(t('backup.clearFailed'))
+                  setState('error')
+                }
+              }}
+              className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-600/40 transition-colors text-left"
+            >
+              <Trash2 size={16} className="text-slate-400 shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-slate-700 dark:text-slate-200">{t('backup.clearSampleTitle')}</p>
+                <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{t('backup.clearSampleDesc')}</p>
+              </div>
+            </button>
+          )}
 
-            {showClearSample && (
-              <button
-                onClick={async () => {
-                  setState('importing')
-                  try {
-                    await clearSeedData()
-                    localStorage.setItem('lg-seed-cleared', '1')
-                    setShowClearSample(false)
-                    onImported()
-                    onClose()
-                  } catch {
-                    setErrorMsg(t('backup.clearFailed'))
-                    setState('error')
-                  }
-                }}
-                className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-600/40 transition-colors text-left"
-              >
-                <Trash2 size={16} className="text-slate-400 shrink-0" />
-                <div>
-                  <p className="text-sm font-medium text-slate-700 dark:text-slate-200">{t('backup.clearSampleTitle')}</p>
-                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{t('backup.clearSampleDesc')}</p>
-                </div>
-              </button>
-            )}
-
-            <input ref={fileRef} type="file" accept=".json,application/json" className="hidden" onChange={handleFileChange} />
-          </div>
-        )}
+          <input ref={fileRef} type="file" accept=".json,application/json" className="hidden" onChange={handleFileChange} />
         </div>
-      </div>
-    </div>
+      )}
+    </>
   )
 }
