@@ -347,7 +347,7 @@ export function SyncSettingsModal({ engine, dbEngine, syncError, syncErrorCode, 
     >
       <div className="w-full sm:max-w-md bg-white dark:bg-slate-800 rounded-t-2xl sm:rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700/50 flex flex-col max-h-[90svh]">
         {/* Header */}
-        <div className="flex items-center gap-3 px-6 pt-6 pb-4 shrink-0">
+        <div className="flex items-center gap-3 px-6 pt-6 pb-3 shrink-0">
           <Cloud size={18} className="text-green-400 shrink-0" />
           <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100 flex-1">{t('sync.title')}</h2>
           <button
@@ -359,7 +359,7 @@ export function SyncSettingsModal({ engine, dbEngine, syncError, syncErrorCode, 
         </div>
 
         {/* Scrollable body */}
-        <div className="overflow-y-auto flex-1 px-6 pb-4 space-y-5">
+        <div className="overflow-y-auto flex-1 px-6 pt-1 pb-4 space-y-5">
 
           <p className="text-sm text-slate-400 dark:text-slate-500">{t('sync.autoSaveHint')}</p>
 
