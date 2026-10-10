@@ -18,7 +18,7 @@ import { formatTimeSample, type TimeFormat } from '@/utils/datetime'
 
 export type ThemePref = 'light' | 'dark' | 'system'
 
-type SectionId = 'appearance' | 'sync' | 'household' | 'integrations' | 'data' | 'about'
+type SectionId = 'appearance' | 'sync' | 'integrations' | 'household' | 'data' | 'about'
 
 interface Props {
   onClose: () => void
@@ -141,18 +141,18 @@ export function SettingsPanel(props: Props) {
           </Section>
 
           <Section
-            id="household" open={open} onToggle={toggle}
-            icon={<Users size={16} />} title={t('settings.household')}
-          >
-            <UsersPanel engine={props.engine} onUserMutated={props.onUserMutated} />
-          </Section>
-
-          <Section
             id="integrations" open={open} onToggle={toggle}
             icon={<Plug size={16} />} title={t('settings.integrations')}
           >
             <Description>{t('settings.integrationsDesc')}</Description>
             <LinkRow icon={<Plug size={15} />} label={t('app.dayglanceIntegration')} onClick={props.onOpenIntegration} />
+          </Section>
+
+          <Section
+            id="household" open={open} onToggle={toggle}
+            icon={<Users size={16} />} title={t('settings.household')}
+          >
+            <UsersPanel engine={props.engine} onUserMutated={props.onUserMutated} />
           </Section>
 
           <Section
