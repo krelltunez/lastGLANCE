@@ -3,11 +3,17 @@ import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import {
   X, Settings, ChevronDown, ChevronRight, Palette, Users, Plug, Archive, Info,
-  HelpCircle, BadgeCheck, Sun, Moon, Monitor,
+  Sun, Moon, Monitor,
 } from 'lucide-react'
+import type { SyncEngine } from '@glance-apps/sync'
+import type { UseBillingResult } from '@glance-apps/billing/react'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
 import { pushBackHandler } from '@/native/backButton'
 import { LanguagePicker } from '@/components/LanguagePicker/LanguagePicker'
+import { UsersPanel } from '@/components/UsersPanel/UsersPanel'
+import { BackupPanel } from '@/components/BackupModal/BackupModal'
+import { HelpContent } from '@/components/HelpModal/HelpModal'
+import { SubscriptionStatus } from '@/components/PaywallModal/SubscriptionStatus'
 import { formatTimeSample, type TimeFormat } from '@/utils/datetime'
 
 export type ThemePref = 'light' | 'dark' | 'system'
@@ -24,19 +30,22 @@ interface Props {
   syncIcon: ReactNode
   syncWarn: boolean
   onOpenSync: () => void
-  onOpenUsers: () => void
   onOpenIntegration: () => void
-  onOpenBackup: () => void
-  onOpenHelp: () => void
-  onOpenSubscription: () => void
+  onOpenShortcuts: () => void
+  engine: SyncEngine | null
+  billing: UseBillingResult
+  /** A user was added, renamed or removed, or multi-user mode changed. */
+  onUserMutated: () => void
+  /** A backup restore or sample-data clear replaced the local data. */
+  onImported: () => void
 }
 
 /**
  * The one settings surface for every screen size: a full-height sheet on
  * phones (no bottom tabs to hang a settings tab on), a centered dialog from
- * sm up. Sections expand one at a time. Small preferences live inline; the
- * heavyweight panels (sync, integration, users, backup) keep their own modals
- * and are launched from here.
+ * sm up. Sections expand one at a time. Everything lives inline except the
+ * two heavyweight panels (sync, integration), which keep their own modals and
+ * are launched from here.
  */
 export function SettingsPanel(props: Props) {
   const { t } = useTranslation()
@@ -102,7 +111,7 @@ export function SettingsPanel(props: Props) {
             <Field label={t('app.language')} htmlFor="settings-language">
               <LanguagePicker
                 id="settings-language"
-                className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:border-green-400"
+                className="w-full bg-slate-100 dark:bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
               />
             </Field>
             <Field label={t('settings.timeFormat')}>
@@ -135,8 +144,7 @@ export function SettingsPanel(props: Props) {
             id="household" open={open} onToggle={toggle}
             icon={<Users size={16} />} title={t('settings.household')}
           >
-            <Description>{t('settings.householdDesc')}</Description>
-            <LinkRow icon={<Users size={15} />} label={t('app.users')} onClick={props.onOpenUsers} />
+            <UsersPanel engine={props.engine} onUserMutated={props.onUserMutated} />
           </Section>
 
           <Section
@@ -149,10 +157,11 @@ export function SettingsPanel(props: Props) {
 
           <Section
             id="data" open={open} onToggle={toggle}
-            icon={<Archive size={16} />} title={t('settings.data')}
+            icon={<Archive size={16} />} title={t('app.backupRestore')}
           >
-            <Description>{t('settings.dataDesc')}</Description>
-            <LinkRow icon={<Archive size={15} />} label={t('app.backupRestore')} onClick={props.onOpenBackup} />
+            {/* A finished restore replaced everything behind this panel, so it
+                closes to show the result. */}
+            <BackupPanel engine={props.engine} onImported={props.onImported} onDone={onClose} />
           </Section>
 
           <Section
@@ -160,12 +169,9 @@ export function SettingsPanel(props: Props) {
             icon={<Info size={16} />} title={t('settings.about')}
             summary={`v${__APP_VERSION__}`}
           >
-            <LinkRow icon={<HelpCircle size={15} />} label={t('app.helpFeedback')} onClick={props.onOpenHelp} />
-            {/* Entitlement surface, every channel. On a gated Play install it
-                shows the purchase/restore actions; on an ungated one (github
-                sideload, web) it says "This build is fully unlocked", the only
-                way a sideload user can tell their build from the Play one. */}
-            <LinkRow icon={<BadgeCheck size={15} />} label={t('app.subscription')} onClick={props.onOpenSubscription} />
+            <SubscriptionStatus billing={props.billing} />
+            <div className="border-t border-slate-100 dark:border-slate-700/40" />
+            <HelpContent onOpenShortcuts={props.onOpenShortcuts} />
           </Section>
         </div>
       </div>

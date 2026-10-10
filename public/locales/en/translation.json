@@ -5,9 +5,6 @@
     "dayglanceIntegration": "dayGLANCE Integration",
     "journal": "Journal",
     "journalTooltip": "Review everything that's been completed",
-    "users": "Users",
-    "lightMode": "Light Mode",
-    "darkMode": "Dark Mode",
     "backupRestore": "Backup & Restore",
     "helpFeedback": "Help & Feedback",
     "toggleTheme": "Toggle theme",
@@ -22,8 +19,7 @@
     "done": "Done",
     "edit": "Edit",
     "settings": "Settings",
-    "language": "Language",
-    "subscription": "Subscription"
+    "language": "Language"
   },
   "activityLog": {
     "title": "Activity Log",
@@ -530,8 +526,7 @@
     "syncNow": "Sync now",
     "syncOk": "Synced!",
     "syncFailed": "Sync failed",
-    "syncNotConfigured": "Cloud sync is not configured. Set up WebDAV under Settings → Cloud Sync first.",
-    "done": "Done"
+    "syncNotConfigured": "Cloud sync is not configured. Set up WebDAV under Settings → Cloud Sync first."
   },
   "welcome": {
     "title": "Welcome to lastGLANCE",
@@ -613,11 +608,8 @@
     "syncAttention": "Needs attention",
     "syncDesc": "Keep your chores and history in step across your devices.",
     "household": "Household",
-    "householdDesc": "Add the people you share chores with and tag chores to them.",
     "integrations": "Integrations",
     "integrationsDesc": "Connect lastGLANCE with dayGLANCE and with automation apps.",
-    "data": "Data",
-    "dataDesc": "Save a backup file or restore from one.",
     "about": "About"
   }
 }

@@ -5,9 +5,6 @@
     "dayglanceIntegration": "Intégration dayGLANCE",
     "journal": "Historique",
     "journalTooltip": "Revoir tout ce qui a été fait",
-    "users": "Utilisateurs",
-    "lightMode": "Mode clair",
-    "darkMode": "Mode sombre",
     "backupRestore": "Sauvegarde & Restauration",
     "helpFeedback": "Aide & Retours",
     "toggleTheme": "Basculer le thème",
@@ -22,8 +19,7 @@
     "done": "Terminer",
     "edit": "Modifier",
     "settings": "Paramètres",
-    "language": "Langue",
-    "subscription": "Abonnement"
+    "language": "Langue"
   },
   "activityLog": {
     "title": "Journal d'activité",
@@ -530,8 +526,7 @@
     "syncNow": "Synchroniser",
     "syncOk": "Synchronisé !",
     "syncFailed": "Échec de la sync",
-    "syncNotConfigured": "La sync cloud n'est pas configurée. Configurez WebDAV dans Paramètres → Sync cloud.",
-    "done": "Terminer"
+    "syncNotConfigured": "La sync cloud n'est pas configurée. Configurez WebDAV dans Paramètres → Sync cloud."
   },
   "welcome": {
     "title": "Bienvenue sur lastGLANCE",
@@ -613,11 +608,8 @@
     "syncAttention": "Action requise",
     "syncDesc": "Gardez vos tâches et votre historique synchronisés sur tous vos appareils.",
     "household": "Foyer",
-    "householdDesc": "Ajoutez les personnes avec qui vous partagez les tâches et attribuez-leur des tâches.",
     "integrations": "Intégrations",
     "integrationsDesc": "Connectez lastGLANCE à dayGLANCE et aux applications d'automatisation.",
-    "data": "Données",
-    "dataDesc": "Enregistrez un fichier de sauvegarde ou restaurez à partir de celui-ci.",
     "about": "À propos"
   }
 }

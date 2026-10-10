@@ -13,7 +13,6 @@ import { ActivityLogModal } from '@/components/ActivityLogModal/ActivityLogModal
 import { JournalModal } from '@/components/JournalModal/JournalModal'
 import { TooltipHost } from '@/components/Tooltip/Tooltip'
 import { ToastProvider, useToast } from '@/components/Toast/Toast'
-import { UsersModal } from '@/components/UsersModal/UsersModal'
 import { PaywallModal } from '@/components/PaywallModal/PaywallModal'
 import { SettingsPanel, type ThemePref } from '@/components/SettingsPanel/SettingsPanel'
 import { getTimeFormat, setTimeFormat as applyTimeFormat, type TimeFormat } from '@/utils/datetime'
@@ -154,7 +153,6 @@ function AppInner() {
   // Billing/paywall — inert off the Play channel (adapter is null there, so
   // gated stays false and the hard gate below never renders).
   const billing = useSubscription()
-  const [showBillingStatus, setShowBillingStatus] = useState(false)
   const [editMode, setEditMode] = useState(false)
   const [showWelcome, setShowWelcome] = useState(() => !localStorage.getItem('lg-welcome-dismissed'))
   const [welcomeClearing, setWelcomeClearing] = useState(false)
@@ -165,7 +163,6 @@ function AppInner() {
   const [showHelp, setShowHelp] = useState(false)
   const [showShortcuts, setShowShortcuts] = useState(false)
   const [showActivityLog, setShowActivityLog] = useState(false)
-  const [showUsers, setShowUsers] = useState(false)
   // Journal. `journalDate` is the day a heatmap cell handed off, or null when
   // opened from the toolbar (which lands on the default range instead).
   const [showJournal, setShowJournal] = useState(false)
@@ -472,7 +469,7 @@ function AppInner() {
   const anyModalOpenRef = useRef(false)
   anyModalOpenRef.current = (
     showWelcome || showBackup || showIntegration || showSyncSettings ||
-    showPassphrase || showHelp || showShortcuts || showActivityLog || showUsers ||
+    showPassphrase || showHelp || showShortcuts || showActivityLog ||
     showJournal || showSettings
   )
   const filterRef = useRef(filter)
@@ -509,6 +506,8 @@ function AppInner() {
   // Every launcher in the settings panel closes it first, so modals never
   // stack on top of it.
   const fromSettings = (open: () => void) => () => { setShowSettings(false); open() }
+
+  const handleImported = () => { loadHeatmap(); setRibbonKey(k => k + 1) }
 
   const syncWarn = !!(syncHalted || syncError)
   const syncIcon = syncStatus === 'uploading' || syncStatus === 'downloading'
@@ -683,7 +682,7 @@ function AppInner() {
         <BackupModal
           engine={engineRef.current}
           onClose={() => setShowBackup(false)}
-          onImported={() => { loadHeatmap(); setRibbonKey(k => k + 1) }}
+          onImported={handleImported}
         />
       )}
 
@@ -757,17 +756,9 @@ function AppInner() {
         />
       )}
 
-      {showUsers && (
-        <UsersModal
-          engine={engineRef.current}
-          onUserMutated={runSharedUserSync}
-          onClose={() => { setShowUsers(false); usersCtx.reload() }}
-        />
-      )}
-
       {showSettings && (
         <SettingsPanel
-          onClose={() => setShowSettings(false)}
+          onClose={() => { setShowSettings(false); usersCtx.reload() }}
           themePref={themePref}
           onThemeChange={setThemePref}
           timeFormat={timeFormat}
@@ -775,17 +766,13 @@ function AppInner() {
           syncIcon={syncIcon}
           syncWarn={syncWarn}
           onOpenSync={fromSettings(() => setShowSyncSettings(true))}
-          onOpenUsers={fromSettings(() => setShowUsers(true))}
           onOpenIntegration={fromSettings(() => setShowIntegration(true))}
-          onOpenBackup={fromSettings(() => setShowBackup(true))}
-          onOpenHelp={fromSettings(() => setShowHelp(true))}
-          onOpenSubscription={fromSettings(() => setShowBillingStatus(true))}
+          onOpenShortcuts={fromSettings(() => setShowShortcuts(true))}
+          engine={engineRef.current}
+          billing={billing}
+          onUserMutated={() => { void runSharedUserSync(); usersCtx.reload() }}
+          onImported={handleImported}
         />
-      )}
-
-      {/* Entitlement status (settings surface, unlocked installs). */}
-      {showBillingStatus && (
-        <PaywallModal billing={billing} mode="status" onClose={() => setShowBillingStatus(false)} />
       )}
 
       {/* Reviewer-mode banner — shown while unlocked via the store-review
@@ -804,7 +791,7 @@ function AppInner() {
           Only ever true on the Play channel; the engine's provisional unlock
           keeps previously-entitled installs from ever flashing this. */}
       {billing.gated && !billing.isUnlocked && (
-        <PaywallModal billing={billing} mode="gate" />
+        <PaywallModal billing={billing} />
       )}
     </div>
     </UsersContext.Provider>
