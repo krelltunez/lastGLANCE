@@ -467,7 +467,9 @@
       "passphraseNeeded": "Podaj swoje hasło synchronizacji, aby kontynuować.",
       "vaultUnreachable": "Nie udało się połączyć z GLANCEvault: {{detail}}",
       "requestFailed": "Żądanie synchronizacji nie powiodło się. Spróbuj ponownie.",
-      "iCloudUnavailable": "iCloud jest niedostępny: {{error}}"
+      "iCloudUnavailable": "iCloud jest niedostępny: {{error}}",
+      "directAccessUnavailable": "Folder synchronizacji jest niedostępny: {{error}}",
+      "directAccessEncrypted": "Plik w folderze synchronizacji jest zaszyfrowany hasłem, którego to urządzenie nie ma. Wpisz je w Synchronizacji w chmurze, aby kontynuować."
     },
     "syncHalted": "Synchronizacja zatrzymana",
     "haltedDescription": "Wystąpił błąd krytyczny. Usuń jego przyczynę i naciśnij „Wyczyść”, aby spróbować ponownie.",
@@ -518,7 +520,34 @@
     "vaultSkipped_few": "Podczas ostatniej synchronizacji nie udało się odczytać {{count}} elementów.",
     "vaultSkipped_many": "Podczas ostatniej synchronizacji nie udało się odczytać {{count}} elementów.",
     "vaultSkipped_other": "Podczas ostatniej synchronizacji nie udało się odczytać {{count}} elementu.",
-    "vaultSkippedHint": "Zwykle oznacza to nieprawidłowe hasło synchronizacji w części wierszy. Takie wiersze są pomijane, a próba ich odczytu jest automatycznie ponawiana przy kolejnych synchronizacjach — nic nie zostało utracone ani nadpisane."
+    "vaultSkippedHint": "Zwykle oznacza to nieprawidłowe hasło synchronizacji w części wierszy. Takie wiersze są pomijane, a próba ich odczytu jest automatycznie ponawiana przy kolejnych synchronizacjach — nic nie zostało utracone ani nadpisane.",
+    "directAccess": {
+      "title": "Dostęp bezpośredni",
+      "switchLabel": "Synchronizuj przez folder",
+      "desc": "Synchronizuj przez folder, który inna aplikacja już utrzymuje w zgodzie między Twoimi urządzeniami (Nextcloud, Syncthing, FolderSync, Dysk Google, Dropbox). lastGLANCE czyta i zapisuje tam jeden plik; tamta aplikacja go przenosi.",
+      "androidHint": "Wybierz folder GLANCE w folderze zarządzanym przez Twoją aplikację synchronizującą. Na każdym urządzeniu musi to być ten sam folder.",
+      "iosHint": "Na iPhonie i iPadzie wybierasz sam plik synchronizacji w aplikacji Pliki: ten, który inne urządzenie już utworzyło, albo utwórz go w folderze zarządzanym przez Twoją aplikację synchronizującą.",
+      "unsupported": "Dostępne w aplikacjach na Androida i iOS.",
+      "notConnected": "Nie połączono żadnego folderu.",
+      "notConnectedFile": "Nie połączono żadnego pliku synchronizacji.",
+      "chooseFolder": "Wybierz folder",
+      "chooseFile": "Wybierz plik",
+      "createFile": "Utwórz plik",
+      "changeFolder": "Zmień folder",
+      "changeFile": "Zmień plik",
+      "disconnect": "Rozłącz",
+      "connectedTo": "Połączono z",
+      "unreachable": "Folder jest teraz nieosiągalny. Synchronizacja wznowi się, gdy wróci.",
+      "onHint": "Zmiany są zapisywane do folderu i pobierane z niego na tym urządzeniu.",
+      "offHint": "Wstrzymano na tym urządzeniu. Folder i pozostałe urządzenia pozostają nietknięte.",
+      "pickFailed": "Nie można tego użyć: {{reason}}",
+      "encrypt": "Szyfruj plik",
+      "encryptHint": "Wyłączone: plik jest zapisywany jako zwykły tekst. Zaszyfrowany plik pozostaje zaszyfrowany niezależnie od tego przełącznika.",
+      "encryptOnHint": "Włączone: to urządzenie zapisuje plik zaszyfrowany Twoim hasłem synchronizacji.",
+      "encryptPassphraseHint": "Wybierz hasło synchronizacji. Każde urządzenie korzystające z tego folderu wpisuje to samo.",
+      "encryptTurnOn": "Włącz",
+      "cancel": "Anuluj"
+    }
   },
   "users": {
     "title": "Użytkownicy",

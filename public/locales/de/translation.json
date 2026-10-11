@@ -449,7 +449,9 @@
       "passphraseNeeded": "Gib deine Sync-Passphrase ein, um fortzufahren.",
       "vaultUnreachable": "GLANCEvault ist nicht erreichbar: {{detail}}",
       "requestFailed": "Sync-Anfrage fehlgeschlagen. Bitte versuche es erneut.",
-      "iCloudUnavailable": "iCloud ist nicht verfügbar: {{error}}"
+      "iCloudUnavailable": "iCloud ist nicht verfügbar: {{error}}",
+      "directAccessUnavailable": "Der Sync-Ordner ist nicht verfügbar: {{error}}",
+      "directAccessEncrypted": "Die Datei im Sync-Ordner ist mit einer Passphrase verschlüsselt, die dieses Gerät nicht hat. Gib sie unter Cloud-Sync ein, um fortzufahren."
     },
     "syncHalted": "Sync unterbrochen",
     "haltedDescription": "Ein kritischer Fehler ist aufgetreten. Problem beheben und löschen, um erneut zu versuchen.",
@@ -498,7 +500,34 @@
     "provider": "Anbieter",
     "vaultSkipped_one": "{{count}} Eintrag konnte beim letzten Sync nicht gelesen werden.",
     "vaultSkipped_other": "{{count}} Einträge konnten beim letzten Sync nicht gelesen werden.",
-    "vaultSkippedHint": "Meist liegt das an einer falschen Sync-Passphrase bei einigen Einträgen. Sie werden übersprungen und bei späteren Syncs automatisch erneut versucht — nichts ging verloren oder wurde überschrieben."
+    "vaultSkippedHint": "Meist liegt das an einer falschen Sync-Passphrase bei einigen Einträgen. Sie werden übersprungen und bei späteren Syncs automatisch erneut versucht — nichts ging verloren oder wurde überschrieben.",
+    "directAccess": {
+      "title": "Direktzugriff",
+      "switchLabel": "Über einen Ordner synchronisieren",
+      "desc": "Synchronisiere über einen Ordner, den eine andere App bereits zwischen deinen Geräten abgleicht (Nextcloud, Syncthing, FolderSync, Google Drive, Dropbox). lastGLANCE liest und schreibt dort eine Datei; diese App überträgt sie.",
+      "androidHint": "Wähle den Ordner GLANCE innerhalb des Ordners, den deine Sync-App verwaltet. Es muss auf jedem Gerät derselbe Ordner sein.",
+      "iosHint": "Auf iPhone und iPad wählst du die Sync-Datei selbst in „Dateien“: die, die ein anderes Gerät bereits angelegt hat, oder du erstellst sie im Ordner deiner Sync-App.",
+      "unsupported": "Verfügbar in den Android- und iOS-Apps.",
+      "notConnected": "Kein Ordner verbunden.",
+      "notConnectedFile": "Keine Sync-Datei verbunden.",
+      "chooseFolder": "Ordner wählen",
+      "chooseFile": "Datei wählen",
+      "createFile": "Datei erstellen",
+      "changeFolder": "Ordner ändern",
+      "changeFile": "Datei ändern",
+      "disconnect": "Trennen",
+      "connectedTo": "Verbunden mit",
+      "unreachable": "Der Ordner ist gerade nicht erreichbar. Die Synchronisierung läuft weiter, sobald er wieder da ist.",
+      "onHint": "Änderungen werden auf diesem Gerät in den Ordner geschrieben und von dort übernommen.",
+      "offHint": "Auf diesem Gerät pausiert. Der Ordner und deine anderen Geräte bleiben unberührt.",
+      "pickFailed": "Das konnte nicht verwendet werden: {{reason}}",
+      "encrypt": "Datei verschlüsseln",
+      "encryptHint": "Aus: Die Datei wird im Klartext geschrieben. Eine verschlüsselte Datei bleibt verschlüsselt, egal wie dieser Schalter steht.",
+      "encryptOnHint": "An: Dieses Gerät schreibt die Datei verschlüsselt mit deiner Sync-Passphrase.",
+      "encryptPassphraseHint": "Wähle eine Sync-Passphrase. Jedes Gerät, das diesen Ordner nutzt, gibt dieselbe ein.",
+      "encryptTurnOn": "Einschalten",
+      "cancel": "Abbrechen"
+    }
   },
   "users": {
     "title": "Benutzer",

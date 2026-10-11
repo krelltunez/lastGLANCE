@@ -449,7 +449,9 @@
       "passphraseNeeded": "Digite a sua frase de sincronização para continuar.",
       "vaultUnreachable": "Não foi possível contatar o GLANCEvault: {{detail}}",
       "requestFailed": "O pedido de sincronização falhou. Tente novamente.",
-      "iCloudUnavailable": "iCloud não está disponível: {{error}}"
+      "iCloudUnavailable": "iCloud não está disponível: {{error}}",
+      "directAccessUnavailable": "A pasta de sincronização está indisponível: {{error}}",
+      "directAccessEncrypted": "O arquivo na pasta de sincronização está criptografado com uma frase de sincronização que este dispositivo não tem. Insira-a em Sincronização na nuvem para continuar."
     },
     "syncHalted": "Sincronização interrompida",
     "haltedDescription": "Ocorreu um erro crítico. Resolva o problema e limpe para tentar novamente.",
@@ -498,7 +500,34 @@
     "provider": "Provedor",
     "vaultSkipped_one": "Não foi possível ler {{count}} item na última sincronização.",
     "vaultSkipped_other": "Não foi possível ler {{count}} itens na última sincronização.",
-    "vaultSkippedHint": "Normalmente, a causa é uma frase de sincronização errada em alguns itens. São ignorados e tentados novamente de forma automática nas sincronizações seguintes — nada foi perdido nem substituído."
+    "vaultSkippedHint": "Normalmente, a causa é uma frase de sincronização errada em alguns itens. São ignorados e tentados novamente de forma automática nas sincronizações seguintes — nada foi perdido nem substituído.",
+    "directAccess": {
+      "title": "Acesso direto",
+      "switchLabel": "Sincronizar através de uma pasta",
+      "desc": "Sincronize através de uma pasta que outra ferramenta já mantém em dia entre os seus dispositivos (Nextcloud, Syncthing, FolderSync, Google Drive, Dropbox). O lastGLANCE lê e escreve um arquivo nela; essa ferramenta trata do transporte.",
+      "androidHint": "Escolha a pasta GLANCE dentro da pasta mantida pela sua ferramenta de sincronização. Deve ser a mesma pasta em todos os dispositivos.",
+      "iosHint": "No iPhone e no iPad, o que se escolhe em Arquivos é o próprio arquivo de sincronização: o que outro dispositivo já criou, ou crie-o na pasta mantida pela sua ferramenta de sincronização.",
+      "unsupported": "Disponível nas apps para Android e iOS.",
+      "notConnected": "Nenhuma pasta conectada.",
+      "notConnectedFile": "Nenhum arquivo de sincronização conectado.",
+      "chooseFolder": "Escolher pasta",
+      "chooseFile": "Escolher arquivo",
+      "createFile": "Criar arquivo",
+      "changeFolder": "Mudar de pasta",
+      "changeFile": "Mudar de arquivo",
+      "disconnect": "Desligar",
+      "connectedTo": "Conectado a",
+      "unreachable": "A pasta não está acessível neste momento. A sincronização retoma quando ela voltar.",
+      "onHint": "As alterações são escritas na pasta e lidas dela neste dispositivo.",
+      "offHint": "Em pausa neste dispositivo. A pasta e os seus outros dispositivos ficam intactos.",
+      "pickFailed": "Não foi possível usar isso: {{reason}}",
+      "encrypt": "Criptografar o arquivo",
+      "encryptHint": "Desativado: o arquivo é escrito em texto simples. Um arquivo criptografado permanece criptografado seja qual for a posição deste interruptor.",
+      "encryptOnHint": "Ativado: este dispositivo escreve o arquivo criptografado com a sua frase de sincronização.",
+      "encryptPassphraseHint": "Escolha uma frase de sincronização. Todos os dispositivos que usam esta pasta inserem a mesma.",
+      "encryptTurnOn": "Ativar",
+      "cancel": "Cancelar"
+    }
   },
   "users": {
     "title": "Usuários",

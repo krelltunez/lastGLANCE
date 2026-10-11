@@ -449,7 +449,9 @@
       "passphraseNeeded": "Enter your sync passphrase to continue.",
       "vaultUnreachable": "Couldn't reach GLANCEvault: {{detail}}",
       "requestFailed": "Sync request failed. Please try again.",
-      "iCloudUnavailable": "iCloud is unavailable: {{error}}"
+      "iCloudUnavailable": "iCloud is unavailable: {{error}}",
+      "directAccessUnavailable": "The sync folder is unavailable: {{error}}",
+      "directAccessEncrypted": "The file in the sync folder is encrypted with a passphrase this device doesn't have. Enter it in Cloud Sync to continue."
     },
     "syncHalted": "Sync halted",
     "haltedDescription": "A critical error occurred. Resolve the issue and clear to retry.",
@@ -498,7 +500,34 @@
     "provider": "Provider",
     "vaultSkipped_one": "{{count}} item couldn’t be read on the last sync.",
     "vaultSkipped_other": "{{count}} items couldn’t be read on the last sync.",
-    "vaultSkippedHint": "This usually means a wrong sync passphrase on some rows. They’re skipped and retried automatically on later syncs — nothing was lost or overwritten."
+    "vaultSkippedHint": "This usually means a wrong sync passphrase on some rows. They’re skipped and retried automatically on later syncs — nothing was lost or overwritten.",
+    "directAccess": {
+      "title": "Direct Access",
+      "switchLabel": "Sync through a folder",
+      "desc": "Sync through a folder that another app already keeps in step across your devices (Nextcloud, Syncthing, FolderSync, Google Drive, Dropbox). lastGLANCE reads and writes one file there; that app moves it.",
+      "androidHint": "Choose the GLANCE folder inside the folder your syncing app manages. It needs to be the same folder on every device.",
+      "iosHint": "On iPhone and iPad you choose the sync file itself in Files: pick the one another device already created, or create it in the folder your syncing app manages.",
+      "unsupported": "Available in the Android and iOS apps.",
+      "notConnected": "No folder is connected.",
+      "notConnectedFile": "No sync file is connected.",
+      "chooseFolder": "Choose folder",
+      "chooseFile": "Choose file",
+      "createFile": "Create file",
+      "changeFolder": "Change folder",
+      "changeFile": "Change file",
+      "disconnect": "Disconnect",
+      "connectedTo": "Connected to",
+      "unreachable": "The folder can't be reached right now. Syncing resumes when it's back.",
+      "onHint": "Changes are written to the folder and picked up from it on this device.",
+      "offHint": "Paused on this device. The folder and your other devices are untouched.",
+      "pickFailed": "Couldn't use that: {{reason}}",
+      "encrypt": "Encrypt the file",
+      "encryptHint": "Off: the file is written as plain text. An encrypted file stays encrypted whatever this switch says.",
+      "encryptOnHint": "On: this device writes the file encrypted with your sync passphrase.",
+      "encryptPassphraseHint": "Choose a sync passphrase. Every device that uses this folder enters the same one.",
+      "encryptTurnOn": "Turn on",
+      "cancel": "Cancel"
+    }
   },
   "users": {
     "title": "Users",

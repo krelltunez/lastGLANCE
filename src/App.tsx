@@ -28,6 +28,7 @@ import { usePendingDeepLink } from '@/hooks/usePendingDeepLink'
 import { useIntentsPoller } from '@/hooks/useIntentsPoller'
 import { useDbIntentsPoller, drainDbIntents } from '@/hooks/useDbIntentsPoller'
 import { useVaultEventStream } from '@/hooks/useVaultEventStream'
+import { useDirectAccessSync } from '@/hooks/useDirectAccessSync'
 import { useAndroidIntentBridge } from '@/hooks/useAndroidIntentBridge'
 import { useOutboxFlush } from '@/hooks/useOutboxFlush'
 import { useDayRollover } from '@/hooks/useDayRollover'
@@ -436,6 +437,20 @@ function AppInner() {
   // correctness backstop, and a no-op when the vault is disabled or the
   // transport can't stream (native shell, pre-/events server).
   useVaultEventStream({ drainSync: runDbSync, drainIntents: drainDbIntents })
+  // Direct Access (docs/direct-access.md): the snapshot file in a folder a
+  // third-party tool keeps in step. Its own poll and guard; the apply is the
+  // same applyPayload the WebDAV tier runs, so the UI refresh events come
+  // with it. An envelope this device has no key for raises the same
+  // passphrase prompt the other tiers use; the entered passphrase derives the
+  // file key from the file's own salt on the next cycle.
+  const directAccessSync = useDirectAccessSync({
+    onEncryptedUnreadable: () => showToastRef.current({
+      title: i18n.t('sync.directAccess.title'),
+      body: i18n.t('sync.errors.directAccessEncrypted'),
+    }),
+    onKeyNeeded: () => setShowPassphrase(true),
+  })
+  const runDirectAccessSync = directAccessSync.runSync
   // Android/Tasker intents transport — lets another Android app drive lastGLANCE
   // via app.lastglance.* intents. No-op off native Android.
   useAndroidIntentBridge(loadHeatmap)
@@ -715,6 +730,7 @@ function AppInner() {
           vaultSyncError={vaultSyncError}
           vaultSyncErrorCode={vaultSyncErrorCode}
           vaultSkipped={vaultSkipped}
+          directAccess={directAccessSync}
           onClose={() => { setShowSyncSettings(false); runSharedUserSync(); backToSettings() }}
         />
       )}
@@ -764,6 +780,8 @@ function AppInner() {
                 .then(() => dbEng.dbSyncCycle())
                 .catch((err) => console.warn('[lastglance] vault root key setup failed:', err))
             }
+            // The folder's envelope, if that is what asked: read it now with the passphrase.
+            void runDirectAccessSync()
           }}
           onClose={() => setShowPassphrase(false)}
         />

@@ -14,6 +14,7 @@ import { useTranslation } from 'react-i18next'
 import { isWebCryptoAvailable } from '@/utils/secureContext'
 import { formatDateTime } from '@/utils/datetime'
 import { buildSyncConfigToSave } from './buildSyncConfig'
+import { DirectAccessSection } from './DirectAccessSection'
 
 interface Props {
   engine: SyncEngine | null
@@ -30,6 +31,9 @@ interface Props {
   // quarantine). Shown as a durable amber note so a key mismatch on some rows is
   // visible after the transient toast dismisses.
   vaultSkipped: number
+  // Direct Access (docs/direct-access.md): a cycle on demand and the last
+  // folder error, from useDirectAccessSync in App.
+  directAccess: { runSync: () => Promise<void>; lastError: string | null }
   onClose: () => void
 }
 
@@ -44,7 +48,7 @@ const VAULT_TEST_FAIL_TEXT: Record<'AUTH_FAILURE' | 'FORBIDDEN' | 'NETWORK_ERROR
   NETWORK_ERROR: 'Could not reach the vault at this URL.',
 }
 
-export function SyncSettingsModal({ engine, dbEngine, syncError, syncErrorCode, vaultSyncError, vaultSyncErrorCode, vaultSkipped, onClose }: Props) {
+export function SyncSettingsModal({ engine, dbEngine, syncError, syncErrorCode, vaultSyncError, vaultSyncErrorCode, vaultSkipped, directAccess, onClose }: Props) {
   const { t } = useTranslation()
   const existingConfig = engine?.getConfig() ?? null
   const initFolder = localStorage.getItem(SYNC_FOLDER_KEY) ?? DEFAULT_SYNC_FOLDER
@@ -624,6 +628,9 @@ export function SyncSettingsModal({ engine, dbEngine, syncError, syncErrorCode, 
               </button>
             </div>
           </div>
+
+          {/* Direct Access section: a folder a third-party tool keeps in step */}
+          <DirectAccessSection runSync={directAccess.runSync} lastError={directAccess.lastError} />
 
           {/* GLANCEvault (beta) section */}
           <div className="space-y-3">
