@@ -287,7 +287,14 @@
     "viewLog": "View log →",
     "cancel": "Cancel",
     "save": "Save",
-    "setupFailed": "Setup failed"
+    "setupFailed": "Setup failed",
+    "directAccessIntents": {
+      "title": "Direct Access intents",
+      "label": "Intents through the sync folder",
+      "hint": "Other GLANCE apps on the same folder leave intents in one shared file there, and read yours. Encrypted whenever the Direct Access file is.",
+      "notConnected": "Connect a folder under Cloud Sync first. Until then this transport stays inactive.",
+      "reload": "Saved on close; the app reloads to start polling the folder."
+    }
   },
   "journal": {
     "title": "Journal",
@@ -526,7 +533,17 @@
       "encryptOnHint": "On: this device writes the file encrypted with your sync passphrase.",
       "encryptPassphraseHint": "Choose a sync passphrase. Every device that uses this folder enters the same one.",
       "encryptTurnOn": "Turn on",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "rosterHint": "The household roster is a second file in the folder: glance-users.json.",
+      "rosterChosen": "Roster file: {{name}}",
+      "rosterNotChosen": "No roster file chosen.",
+      "eventsHint": "Intents from other GLANCE apps arrive in a third file in the folder: glance-events.json.",
+      "eventsChosen": "Events file: {{name}}",
+      "eventsNotChosen": "No events file chosen.",
+      "fileChoose": "Choose file",
+      "fileCreate": "Create file",
+      "fileChange": "Change file",
+      "fileForget": "Forget file"
     }
   },
   "users": {

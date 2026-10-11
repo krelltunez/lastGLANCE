@@ -287,7 +287,14 @@
     "viewLog": "Voir le journal →",
     "cancel": "Annuler",
     "save": "Enregistrer",
-    "setupFailed": "Échec de la configuration"
+    "setupFailed": "Échec de la configuration",
+    "directAccessIntents": {
+      "title": "Intents en accès direct",
+      "label": "Intents via le dossier de synchronisation",
+      "hint": "Les autres applications GLANCE sur le même dossier y déposent leurs intents dans un fichier partagé et lisent les vôtres. Chiffré dès que le fichier d'accès direct l'est.",
+      "notConnected": "Connectez d'abord un dossier dans Synchronisation cloud. D'ici là, ce transport reste inactif.",
+      "reload": "Enregistré à la fermeture ; l'application se recharge pour commencer à interroger le dossier."
+    }
   },
   "journal": {
     "title": "Historique",
@@ -526,7 +533,17 @@
       "encryptOnHint": "Activé : cet appareil écrit le fichier chiffré avec votre phrase secrète de synchronisation.",
       "encryptPassphraseHint": "Choisissez une phrase secrète de synchronisation. Chaque appareil qui utilise ce dossier saisit la même.",
       "encryptTurnOn": "Activer",
-      "cancel": "Annuler"
+      "cancel": "Annuler",
+      "rosterHint": "La liste du foyer est un deuxième fichier du dossier : glance-users.json.",
+      "rosterChosen": "Fichier de la liste : {{name}}",
+      "rosterNotChosen": "Aucun fichier de liste choisi.",
+      "eventsHint": "Les intents des autres applications GLANCE arrivent dans un troisième fichier du dossier : glance-events.json.",
+      "eventsChosen": "Fichier des événements : {{name}}",
+      "eventsNotChosen": "Aucun fichier d'événements choisi.",
+      "fileChoose": "Choisir un fichier",
+      "fileCreate": "Créer le fichier",
+      "fileChange": "Changer de fichier",
+      "fileForget": "Oublier le fichier"
     }
   },
   "users": {

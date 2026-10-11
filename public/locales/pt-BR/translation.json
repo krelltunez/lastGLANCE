@@ -287,7 +287,14 @@
     "viewLog": "Ver registro →",
     "cancel": "Cancelar",
     "save": "Salvar",
-    "setupFailed": "Configuração falhou"
+    "setupFailed": "Configuração falhou",
+    "directAccessIntents": {
+      "title": "Intents de acesso direto",
+      "label": "Intents através da pasta de sincronização",
+      "hint": "Outras apps GLANCE na mesma pasta deixam aí os seus intents num arquivo comum e leem os seus. Encriptado sempre que o arquivo de acesso direto o for.",
+      "notConnected": "Ligue primeiro uma pasta em Sincronização na nuvem. Até lá, este transporte permanece inativo.",
+      "reload": "Guardado ao fechar; a app reinicia para começar a consultar a pasta."
+    }
   },
   "journal": {
     "title": "Diário",
@@ -526,7 +533,17 @@
       "encryptOnHint": "Ativado: este dispositivo escreve o arquivo criptografado com a sua frase de sincronização.",
       "encryptPassphraseHint": "Escolha uma frase de sincronização. Todos os dispositivos que usam esta pasta inserem a mesma.",
       "encryptTurnOn": "Ativar",
-      "cancel": "Cancelar"
+      "cancel": "Cancelar",
+      "rosterHint": "A lista do agregado é um segundo arquivo na pasta: glance-users.json.",
+      "rosterChosen": "Arquivo da lista: {{name}}",
+      "rosterNotChosen": "Nenhum arquivo da lista escolhido.",
+      "eventsHint": "Os intents de outras apps GLANCE chegam num terceiro arquivo na pasta: glance-events.json.",
+      "eventsChosen": "Arquivo de eventos: {{name}}",
+      "eventsNotChosen": "Nenhum arquivo de eventos escolhido.",
+      "fileChoose": "Escolher arquivo",
+      "fileCreate": "Criar arquivo",
+      "fileChange": "Mudar de arquivo",
+      "fileForget": "Esquecer arquivo"
     }
   },
   "users": {

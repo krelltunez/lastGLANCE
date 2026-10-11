@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { X, Plus, Pencil, Trash2, Check, RefreshCw } from 'lucide-react'
 import { getUsers, createUser, updateUser, deleteUser } from '@/db/queries'
 import { getMultiUserEnabled, setMultiUserEnabled, getMeUserSyncId, setMeUserSyncId, getUsersPath, setUsersPath as saveUsersPath } from '@/multiuser/settings'
-import { syncSharedUsers } from '@/multiuser/sharedUsers'
+import { syncSharedUsers, markRosterEdited } from '@/multiuser/sharedUsers'
 import { getSyncWebdavConfig } from '@/sync/engine'
 import type { SyncEngine } from '@glance-apps/sync'
 import type { User } from '@/types'
@@ -50,6 +50,7 @@ export function UsersPanel({ engine, onUserMutated }: Props) {
     }
     try {
       const id = await createUser(name)
+      markRosterEdited()
       setAddingName('')
       setIsAdding(false)
       setError('')
@@ -74,6 +75,7 @@ export function UsersPanel({ engine, onUserMutated }: Props) {
     }
     try {
       await updateUser(editingId!, { name })
+      markRosterEdited()
       setEditingId(null)
       setEditingName('')
       setError('')
@@ -90,6 +92,7 @@ export function UsersPanel({ engine, onUserMutated }: Props) {
       setMeId(null)
     }
     await deleteUser(user.id)
+    markRosterEdited()
     await loadUsers()
     onUserMutated?.()
   }

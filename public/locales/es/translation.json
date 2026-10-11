@@ -287,7 +287,14 @@
     "viewLog": "Ver registro →",
     "cancel": "Cancelar",
     "save": "Guardar",
-    "setupFailed": "Error en la configuración"
+    "setupFailed": "Error en la configuración",
+    "directAccessIntents": {
+      "title": "Intents de Acceso directo",
+      "label": "Intents a través de la carpeta de sincronización",
+      "hint": "Otras aplicaciones GLANCE en la misma carpeta dejan allí sus intents en un archivo compartido y leen los tuyos. Cifrado siempre que lo esté el archivo de Acceso directo.",
+      "notConnected": "Conecta primero una carpeta en Sincronización en la nube. Hasta entonces este transporte permanece inactivo.",
+      "reload": "Se guarda al cerrar; la aplicación se recarga para empezar a consultar la carpeta."
+    }
   },
   "journal": {
     "title": "Diario",
@@ -526,7 +533,17 @@
       "encryptOnHint": "Activado: este dispositivo escribe el archivo cifrado con tu frase de contraseña de sincronización.",
       "encryptPassphraseHint": "Elige una frase de contraseña de sincronización. Todos los dispositivos que usen esta carpeta introducen la misma.",
       "encryptTurnOn": "Activar",
-      "cancel": "Cancelar"
+      "cancel": "Cancelar",
+      "rosterHint": "La lista del hogar es un segundo archivo en la carpeta: glance-users.json.",
+      "rosterChosen": "Archivo de la lista: {{name}}",
+      "rosterNotChosen": "No se ha elegido ningún archivo de lista.",
+      "eventsHint": "Los intents de otras aplicaciones GLANCE llegan en un tercer archivo de la carpeta: glance-events.json.",
+      "eventsChosen": "Archivo de eventos: {{name}}",
+      "eventsNotChosen": "No se ha elegido ningún archivo de eventos.",
+      "fileChoose": "Elegir archivo",
+      "fileCreate": "Crear archivo",
+      "fileChange": "Cambiar archivo",
+      "fileForget": "Olvidar archivo"
     }
   },
   "users": {

@@ -38,12 +38,24 @@ in the order that document gives, so the same folder carries all three apps:
    so there is no first-run prompt; an encrypted file this device cannot
    read is never written over; a device without the key tries its cached key
    once, then raises the passphrase prompt the other tiers use.
-3. **The roster and the intents transport.** The roster is Phase 5's
-   `GLANCE/users/glance-users.json`, the same file WebDAV uses; the intents
-   transport is Phase 7's single event-set file `GLANCE/events/glance-events.json`,
-   a union keyed by `event_id` with a sender ledger and a cursor per transport.
-   Both are app-independent by construction: this app adds its own switch,
-   its own cursor key and its own sender ledger.
+3. **The roster and the intents transport (done).** The roster is Phase 5's
+   `GLANCE/users/glance-users.json`, the same file WebDAV uses, through the
+   transport's roster slot (`syncSharedUsersViaDirectAccess` in
+   `src/multiuser/sharedUsers.ts`): merged last-writer-wins by `updatedAt` and
+   applied locally on every run, but written only when the file would change,
+   at once for an edit made in the Users panel (`lastglance-users-local-edit-at`)
+   and for a member that arrived by another road only after the file has sat
+   unchanged without it. The intents transport is Phase 7's single event-set
+   file `GLANCE/events/glance-events.json` (`src/intents/eventSet.ts`): a
+   union keyed by `event_id` that drops expired envelopes, a sender ledger
+   that re-adds this device's own events to a copy that lost them, a cursor
+   per transport, and drops written only under the relay rule. The deliverer
+   (`directAccessDeliverer`) seals envelopes with the WebDAV intents root key
+   whenever the Direct Access encrypt switch is on and holds while that key is
+   not ready; the poll (`hooks/useDirectAccessIntents.ts`) hands each foreign
+   envelope to the same `processNotifyEnvelope` the other transports use. Its
+   own opt-in in the Integration dialog; on iOS the roster and the event set
+   are bookmarked files of their own, offered in the Cloud Sync dialog.
 
 ## The plugin contract
 
@@ -68,7 +80,11 @@ bridge shape on both platforms; `src/sync/directAccess.test.ts` the transport's
 state machine over a fake bridge; `src/sync/directAccessCycle.test.ts` two
 devices over one folder through the real package cycle and the real merge
 (seed, apply, an edit made here written at once, a relayed change deferred
-and staggered, the envelope rules, a device without the key held).
+and staggered, the envelope rules, a device without the key held);
+`src/intents/eventSet.test.ts` the event set (the union, the ledger, receive,
+the cycle, two devices on one file through a lost append and retention);
+`src/multiuser/sharedUsers.directAccess.test.ts` the roster's write rules;
+`src/intents/directAccessDeliverer.test.ts` the deliverer's hold and seal.
 
 ## Storage keys
 
@@ -79,4 +95,8 @@ and staggered, the envelope rules, a device without the key held).
 | `lastglance-direct-access-last-synced` | stamped on every read of a real snapshot; the seed guard's "has synced before" |
 | `lastglance-direct-access-last-synced:writers` | the `writtenBy` ids seen in the file header; ranks this device's relay wait |
 | `lastglance-local-edit-at` | when this device itself last changed its data |
+| `lastglance-users-local-edit-at` | when the roster was last edited in the Users panel on this device |
+| `lg_direct_access_intents_enabled` | `'true'` when the intents opt-in is on |
+| `lg_direct_access_intents_cursor` | the last event id this device looked at in the event set |
+| `lg_direct_access_intents_ledger` | `{ [event_id]: envelope }` this device emitted, within retention |
 | `lastglance_direct_access` (shell preferences) | the Android tree URI / the iOS bookmarks |

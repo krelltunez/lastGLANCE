@@ -7,6 +7,8 @@ import { setupEncryptionKey, CRYPTO_CONFIG } from '@/sync/engine'
 import { isIOS } from '@/native/platform'
 import { formatDateTime } from '@/utils/datetime'
 import { decideEncryptToggle } from './directAccessToggle'
+import { getMultiUserEnabled } from '@/multiuser/settings'
+import { getDirectAccessIntentsEnabledFlag } from '@/intents/directAccessIntentsConfig'
 
 // The Direct Access section of the Cloud Sync dialog (docs/direct-access.md):
 // connect a folder (Android) or the sync file (iOS), the per-device on/off
@@ -37,6 +39,32 @@ function Switch({ on, onClick, label }: { on: boolean; onClick: () => void; labe
     >
       <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${on ? 'translate-x-4' : ''}`} />
     </button>
+  )
+}
+
+function FileRow({ hint, chosen, configured, busy, pick, create, forget, t }: {
+  hint: string; chosen: string; configured: boolean; busy: boolean
+  pick: () => Promise<void>; create: () => Promise<void>; forget: () => Promise<void>
+  t: (key: string) => string
+}) {
+  return (
+    <div className="space-y-2 pt-1">
+      <p className="text-xs text-slate-400 dark:text-slate-500">{hint}</p>
+      <p className="text-sm text-slate-700 dark:text-slate-300">{chosen}</p>
+      <div className="flex items-center gap-3 flex-wrap">
+        {configured ? (
+          <>
+            <button type="button" onClick={pick} disabled={busy} className={button}>{t('sync.directAccess.fileChange')}</button>
+            <button type="button" onClick={forget} disabled={busy} className={button}>{t('sync.directAccess.fileForget')}</button>
+          </>
+        ) : (
+          <>
+            <button type="button" onClick={pick} disabled={busy} className={button}>{t('sync.directAccess.fileChoose')}</button>
+            <button type="button" onClick={create} disabled={busy} className={button}>{t('sync.directAccess.fileCreate')}</button>
+          </>
+        )}
+      </div>
+    </div>
   )
 }
 
@@ -196,6 +224,34 @@ export function DirectAccessSection({ transport = directAccessTransport, runSync
             </div>
             <Switch on={status.encrypt} onClick={toggleEncrypt} label={t('sync.directAccess.encrypt')} />
           </div>
+          {/* On iPhone and iPad the roster and the event set are bookmarked
+              files of their own, since Files hands over no folder: each is
+              picked (one another device created) or created (a first device). */}
+          {ios && getMultiUserEnabled() && (
+            <FileRow
+              hint={t('sync.directAccess.rosterHint')}
+              chosen={status.roster?.configured ? t('sync.directAccess.rosterChosen', { name: status.roster.name ?? '' }) : t('sync.directAccess.rosterNotChosen')}
+              configured={!!status.roster?.configured}
+              busy={busy}
+              pick={run(() => transport.pickUsersFile())}
+              create={run(() => transport.createUsersFile())}
+              forget={run(() => transport.forgetUsersFile())}
+              t={t}
+            />
+          )}
+          {ios && getDirectAccessIntentsEnabledFlag() && (
+            <FileRow
+              hint={t('sync.directAccess.eventsHint')}
+              chosen={status.events?.configured ? t('sync.directAccess.eventsChosen', { name: status.events.name ?? '' }) : t('sync.directAccess.eventsNotChosen')}
+              configured={!!status.events?.configured}
+              busy={busy}
+              pick={run(() => transport.pickEventsFile())}
+              create={run(() => transport.createEventsFile())}
+              forget={run(() => transport.forgetEventsFile())}
+              t={t}
+            />
+          )}
+
           {askPassphrase && (
             <form className="space-y-2" onSubmit={(e) => { e.preventDefault(); void submitPassphrase() }}>
               <p className="text-xs text-slate-400 dark:text-slate-500">{t('sync.directAccess.encryptPassphraseHint')}</p>

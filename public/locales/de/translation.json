@@ -287,7 +287,14 @@
     "viewLog": "Protokoll anzeigen →",
     "cancel": "Abbrechen",
     "save": "Speichern",
-    "setupFailed": "Einrichtung fehlgeschlagen"
+    "setupFailed": "Einrichtung fehlgeschlagen",
+    "directAccessIntents": {
+      "title": "Direktzugriff-Intents",
+      "label": "Intents über den Sync-Ordner",
+      "hint": "Andere GLANCE-Apps am selben Ordner legen Intents dort in einer gemeinsamen Datei ab und lesen deine. Verschlüsselt, wann immer die Direktzugriff-Datei es ist.",
+      "notConnected": "Verbinde zuerst unter Cloud-Sync einen Ordner. Bis dahin bleibt dieser Transport inaktiv.",
+      "reload": "Wird beim Schließen gespeichert; die App lädt neu und beginnt, den Ordner abzufragen."
+    }
   },
   "journal": {
     "title": "Journal",
@@ -526,7 +533,17 @@
       "encryptOnHint": "An: Dieses Gerät schreibt die Datei verschlüsselt mit deiner Sync-Passphrase.",
       "encryptPassphraseHint": "Wähle eine Sync-Passphrase. Jedes Gerät, das diesen Ordner nutzt, gibt dieselbe ein.",
       "encryptTurnOn": "Einschalten",
-      "cancel": "Abbrechen"
+      "cancel": "Abbrechen",
+      "rosterHint": "Die Haushaltsliste ist eine zweite Datei im Ordner: glance-users.json.",
+      "rosterChosen": "Listendatei: {{name}}",
+      "rosterNotChosen": "Keine Listendatei gewählt.",
+      "eventsHint": "Intents anderer GLANCE-Apps kommen in einer dritten Datei im Ordner an: glance-events.json.",
+      "eventsChosen": "Ereignisdatei: {{name}}",
+      "eventsNotChosen": "Keine Ereignisdatei gewählt.",
+      "fileChoose": "Datei wählen",
+      "fileCreate": "Datei erstellen",
+      "fileChange": "Datei ändern",
+      "fileForget": "Datei vergessen"
     }
   },
   "users": {

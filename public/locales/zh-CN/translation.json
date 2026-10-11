@@ -287,7 +287,14 @@
     "viewLog": "查看活动记录 →",
     "cancel": "取消",
     "save": "保存",
-    "setupFailed": "设置失败"
+    "setupFailed": "设置失败",
+    "directAccessIntents": {
+      "title": "直接访问意图",
+      "label": "通过同步文件夹传递意图",
+      "hint": "使用同一文件夹的其他 GLANCE 应用会把意图写入其中一个共享文件，并读取您的意图。只要直接访问文件已加密，此文件也会加密。",
+      "notConnected": "请先在“云同步”中连接文件夹。在此之前，此传输方式保持停用。",
+      "reload": "关闭时保存；应用将重新加载并开始轮询该文件夹。"
+    }
   },
   "journal": {
     "title": "日志",
@@ -526,7 +533,17 @@
       "encryptOnHint": "开启：此设备使用您的同步口令加密写入文件。",
       "encryptPassphraseHint": "请选择一个同步口令。使用此文件夹的每台设备都要输入同一个口令。",
       "encryptTurnOn": "开启",
-      "cancel": "取消"
+      "cancel": "取消",
+      "rosterHint": "家庭成员名单是文件夹中的第二个文件：glance-users.json。",
+      "rosterChosen": "名单文件：{{name}}",
+      "rosterNotChosen": "尚未选择名单文件。",
+      "eventsHint": "来自其他 GLANCE 应用的意图会到达文件夹中的第三个文件：glance-events.json。",
+      "eventsChosen": "事件文件：{{name}}",
+      "eventsNotChosen": "尚未选择事件文件。",
+      "fileChoose": "选择文件",
+      "fileCreate": "创建文件",
+      "fileChange": "更换文件",
+      "fileForget": "忘记文件"
     }
   },
   "users": {
