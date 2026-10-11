@@ -28,6 +28,8 @@ import { usePendingDeepLink } from '@/hooks/usePendingDeepLink'
 import { useIntentsPoller } from '@/hooks/useIntentsPoller'
 import { useDbIntentsPoller, drainDbIntents } from '@/hooks/useDbIntentsPoller'
 import { useVaultEventStream } from '@/hooks/useVaultEventStream'
+import { useDirectAccessSync } from '@/hooks/useDirectAccessSync'
+import { useDirectAccessIntents } from '@/hooks/useDirectAccessIntents'
 import { useAndroidIntentBridge } from '@/hooks/useAndroidIntentBridge'
 import { useOutboxFlush } from '@/hooks/useOutboxFlush'
 import { useDayRollover } from '@/hooks/useDayRollover'
@@ -42,7 +44,7 @@ import { isVaultEnabled } from '@/sync/vaultConfig'
 import { applyStatusBarTheme, initFullScreenInLandscape } from '@/native/statusBar'
 import { hasDbRootKey, initDbRootKey, getSyncPassphrase } from '@glance-apps/sync'
 import type { SyncEngine, SyncStatus, DbSyncEngine, SyncErrorCode } from '@glance-apps/sync'
-import { syncSharedUsers } from '@/multiuser/sharedUsers'
+import { syncSharedUsers, syncSharedUsersViaDirectAccess, type SyncSharedUsersResult } from '@/multiuser/sharedUsers'
 import { getUsersPath, getMultiUserEnabled } from '@/multiuser/settings'
 import dayjs from 'dayjs'
 import i18n from 'i18next'
@@ -354,11 +356,11 @@ function AppInner() {
     sharedUserSyncRunning.current = true
     try {
       await deduplicateUsers()
-      const syncConfig = getSyncWebdavConfig(engineRef.current)
-      if (!syncConfig) return
-      const localUsers = await getDBUsers()
-      const result = await syncSharedUsers(syncConfig, getUsersPath(), localUsers)
-      if (result) {
+      // The roster travels over every connected road: the WebDAV file, and
+      // the same file in the Direct Access folder (docs/direct-access.md).
+      // Each merge is applied locally before the next road reads the users.
+      const apply = async (result: SyncSharedUsersResult | null, localUsers: Awaited<ReturnType<typeof getDBUsers>>) => {
+        if (!result) return false
         const { createUser, updateUser } = await import('@/db/queries')
         for (const ru of result.merged) {
           const existing = localUsers.find(u => u.sync_id === ru.id)
@@ -368,8 +370,19 @@ function AppInner() {
             await updateUser(existing.id, { name: ru.name })
           }
         }
-        reloadUsers()
+        return true
       }
+      let applied = false
+      const syncConfig = getSyncWebdavConfig(engineRef.current)
+      if (syncConfig) {
+        const localUsers = await getDBUsers()
+        applied = (await apply(await syncSharedUsers(syncConfig, getUsersPath(), localUsers), localUsers)) || applied
+      }
+      {
+        const localUsers = await getDBUsers()
+        applied = (await apply(await syncSharedUsersViaDirectAccess(getUsersPath(), localUsers), localUsers)) || applied
+      }
+      if (applied) reloadUsers()
     } catch { /* non-fatal */ }
     finally { sharedUserSyncRunning.current = false }
   }, [reloadUsers])
@@ -397,13 +410,14 @@ function AppInner() {
         ensureSyncFolder(eng).then(() => eng.sync()).catch(() => {/* errors surfaced via onError */})
       }
       runDbSync()
+      runSharedUserSync().catch(() => {/* non-fatal */})
     }, 5 * 60 * 1000)
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibility)
       clearInterval(interval)
     }
-  }, [runDbSync])
+  }, [runDbSync, runSharedUserSync])
 
   const loadHeatmap = useCallback(async () => {
     const counts = await getAllCompletionCounts()
@@ -429,6 +443,9 @@ function AppInner() {
   // GLANCEvault DB intents transport — gated by isDbIntentsEnabled(); a no-op
   // unless the per-user opt-in is on. WebDAV intents above remain the default.
   useDbIntentsPoller(loadHeatmap)
+  // Direct Access intents transport (docs/direct-access.md, step 3): the
+  // event-set file in the folder. A no-op unless its opt-in is on.
+  useDirectAccessIntents(loadHeatmap)
   // GLANCEvault SSE push: nudges from the vault trigger the SAME drains the
   // polls run (runDbSync for the sync tier, the intents poller's drain for the
   // intents tier), so remote changes land in seconds instead of at the next
@@ -436,6 +453,20 @@ function AppInner() {
   // correctness backstop, and a no-op when the vault is disabled or the
   // transport can't stream (native shell, pre-/events server).
   useVaultEventStream({ drainSync: runDbSync, drainIntents: drainDbIntents })
+  // Direct Access (docs/direct-access.md): the snapshot file in a folder a
+  // third-party tool keeps in step. Its own poll and guard; the apply is the
+  // same applyPayload the WebDAV tier runs, so the UI refresh events come
+  // with it. An envelope this device has no key for raises the same
+  // passphrase prompt the other tiers use; the entered passphrase derives the
+  // file key from the file's own salt on the next cycle.
+  const directAccessSync = useDirectAccessSync({
+    onEncryptedUnreadable: () => showToastRef.current({
+      title: i18n.t('sync.directAccess.title'),
+      body: i18n.t('sync.errors.directAccessEncrypted'),
+    }),
+    onKeyNeeded: () => setShowPassphrase(true),
+  })
+  const runDirectAccessSync = directAccessSync.runSync
   // Android/Tasker intents transport — lets another Android app drive lastGLANCE
   // via app.lastglance.* intents. No-op off native Android.
   useAndroidIntentBridge(loadHeatmap)
@@ -715,6 +746,7 @@ function AppInner() {
           vaultSyncError={vaultSyncError}
           vaultSyncErrorCode={vaultSyncErrorCode}
           vaultSkipped={vaultSkipped}
+          directAccess={directAccessSync}
           onClose={() => { setShowSyncSettings(false); runSharedUserSync(); backToSettings() }}
         />
       )}
@@ -764,6 +796,8 @@ function AppInner() {
                 .then(() => dbEng.dbSyncCycle())
                 .catch((err) => console.warn('[lastglance] vault root key setup failed:', err))
             }
+            // The folder's envelope, if that is what asked: read it now with the passphrase.
+            void runDirectAccessSync()
           }}
           onClose={() => setShowPassphrase(false)}
         />

@@ -287,7 +287,14 @@
     "viewLog": "Ver registo →",
     "cancel": "Cancelar",
     "save": "Guardar",
-    "setupFailed": "Configuração falhada"
+    "setupFailed": "Configuração falhada",
+    "directAccessIntents": {
+      "title": "Intents de acesso direto",
+      "label": "Intents através da pasta de sincronização",
+      "hint": "Outras apps GLANCE na mesma pasta deixam aí os seus intents num ficheiro comum e leem os seus. Encriptado sempre que o ficheiro de acesso direto o for.",
+      "notConnected": "Ligue primeiro uma pasta em Sincronização na nuvem. Até lá, este transporte permanece inativo.",
+      "reload": "Guardado ao fechar; a app reinicia para começar a consultar a pasta."
+    }
   },
   "journal": {
     "title": "Diário",
@@ -449,7 +456,9 @@
       "passphraseNeeded": "Introduza a sua frase-passe de sincronização para continuar.",
       "vaultUnreachable": "Não foi possível contactar o GLANCEvault: {{detail}}",
       "requestFailed": "O pedido de sincronização falhou. Tente novamente.",
-      "iCloudUnavailable": "iCloud não está disponível: {{error}}"
+      "iCloudUnavailable": "iCloud não está disponível: {{error}}",
+      "directAccessUnavailable": "A pasta de sincronização está indisponível: {{error}}",
+      "directAccessEncrypted": "O ficheiro na pasta de sincronização está encriptado com uma frase-passe que este dispositivo não tem. Insira-a em Sincronização na nuvem para continuar."
     },
     "syncHalted": "Sincronização interrompida",
     "haltedDescription": "Ocorreu um erro crítico. Resolva o problema e limpe para tentar novamente.",
@@ -498,7 +507,44 @@
     "provider": "Fornecedor",
     "vaultSkipped_one": "Não foi possível ler {{count}} item na última sincronização.",
     "vaultSkipped_other": "Não foi possível ler {{count}} itens na última sincronização.",
-    "vaultSkippedHint": "Normalmente, a causa é uma frase-passe de sincronização errada em alguns itens. São ignorados e tentados novamente de forma automática nas sincronizações seguintes — nada foi perdido nem substituído."
+    "vaultSkippedHint": "Normalmente, a causa é uma frase-passe de sincronização errada em alguns itens. São ignorados e tentados novamente de forma automática nas sincronizações seguintes — nada foi perdido nem substituído.",
+    "directAccess": {
+      "title": "Acesso direto",
+      "switchLabel": "Sincronizar através de uma pasta",
+      "desc": "Sincronize através de uma pasta que outra ferramenta já mantém em dia entre os seus dispositivos (Nextcloud, Syncthing, FolderSync, Google Drive, Dropbox). O lastGLANCE lê e escreve um ficheiro nela; essa ferramenta trata do transporte.",
+      "androidHint": "Escolha a pasta GLANCE dentro da pasta mantida pela sua ferramenta de sincronização. Deve ser a mesma pasta em todos os dispositivos.",
+      "iosHint": "No iPhone e no iPad, o que se escolhe em Ficheiros é o próprio ficheiro de sincronização: o que outro dispositivo já criou, ou crie-o na pasta mantida pela sua ferramenta de sincronização.",
+      "unsupported": "Disponível nas apps para Android e iOS.",
+      "notConnected": "Nenhuma pasta conectada.",
+      "notConnectedFile": "Nenhum ficheiro de sincronização conectado.",
+      "chooseFolder": "Escolher pasta",
+      "chooseFile": "Escolher ficheiro",
+      "createFile": "Criar ficheiro",
+      "changeFolder": "Mudar de pasta",
+      "changeFile": "Mudar de ficheiro",
+      "disconnect": "Desligar",
+      "connectedTo": "Conectado a",
+      "unreachable": "A pasta não está acessível neste momento. A sincronização retoma quando ela voltar.",
+      "onHint": "As alterações são escritas na pasta e lidas dela neste dispositivo.",
+      "offHint": "Em pausa neste dispositivo. A pasta e os seus outros dispositivos ficam intactos.",
+      "pickFailed": "Não foi possível usar isso: {{reason}}",
+      "encrypt": "Encriptar o ficheiro",
+      "encryptHint": "Desativado: o ficheiro é escrito em texto simples. Um ficheiro encriptado permanece encriptado seja qual for a posição deste interruptor.",
+      "encryptOnHint": "Ativado: este dispositivo escreve o ficheiro encriptado com a sua frase-passe de sincronização.",
+      "encryptPassphraseHint": "Escolha uma frase-passe de sincronização. Todos os dispositivos que usam esta pasta inserem a mesma.",
+      "encryptTurnOn": "Ativar",
+      "cancel": "Cancelar",
+      "rosterHint": "A lista do agregado é um segundo ficheiro na pasta: glance-users.json.",
+      "rosterChosen": "Ficheiro da lista: {{name}}",
+      "rosterNotChosen": "Nenhum ficheiro da lista escolhido.",
+      "eventsHint": "Os intents de outras apps GLANCE chegam num terceiro ficheiro na pasta: glance-events.json.",
+      "eventsChosen": "Ficheiro de eventos: {{name}}",
+      "eventsNotChosen": "Nenhum ficheiro de eventos escolhido.",
+      "fileChoose": "Escolher ficheiro",
+      "fileCreate": "Criar ficheiro",
+      "fileChange": "Mudar de ficheiro",
+      "fileForget": "Esquecer ficheiro"
+    }
   },
   "users": {
     "title": "Utilizadores",

@@ -287,7 +287,14 @@
     "viewLog": "查看活动记录 →",
     "cancel": "取消",
     "save": "保存",
-    "setupFailed": "设置失败"
+    "setupFailed": "设置失败",
+    "directAccessIntents": {
+      "title": "直接访问意图",
+      "label": "通过同步文件夹传递意图",
+      "hint": "使用同一文件夹的其他 GLANCE 应用会把意图写入其中一个共享文件，并读取您的意图。只要直接访问文件已加密，此文件也会加密。",
+      "notConnected": "请先在“云同步”中连接文件夹。在此之前，此传输方式保持停用。",
+      "reload": "关闭时保存；应用将重新加载并开始轮询该文件夹。"
+    }
   },
   "journal": {
     "title": "日志",
@@ -449,7 +456,9 @@
       "passphraseNeeded": "输入同步加密口令以继续。",
       "vaultUnreachable": "无法连接 GLANCEvault：{{detail}}",
       "requestFailed": "同步请求失败，请重试。",
-      "iCloudUnavailable": "iCloud 不可用：{{error}}"
+      "iCloudUnavailable": "iCloud 不可用：{{error}}",
+      "directAccessUnavailable": "同步文件夹不可用：{{error}}",
+      "directAccessEncrypted": "同步文件夹中的文件使用此设备没有的口令加密。请在“云同步”中输入口令后继续。"
     },
     "syncHalted": "同步已停止",
     "haltedDescription": "发生严重错误。解决问题后清除错误状态以重试。",
@@ -498,7 +507,44 @@
     "provider": "服务提供方",
     "vaultSkipped_one": "上次同步时有 {{count}} 项无法读取。",
     "vaultSkipped_other": "上次同步时有 {{count}} 项无法读取。",
-    "vaultSkippedHint": "这通常是因为部分条目的同步加密口令不正确。这些条目会被跳过，并在之后的同步中自动重试，不会丢失或覆盖任何数据。"
+    "vaultSkippedHint": "这通常是因为部分条目的同步加密口令不正确。这些条目会被跳过，并在之后的同步中自动重试，不会丢失或覆盖任何数据。",
+    "directAccess": {
+      "title": "直接访问",
+      "switchLabel": "通过文件夹同步",
+      "desc": "通过另一款应用已在您的设备间保持同步的文件夹进行同步（Nextcloud、Syncthing、FolderSync、Google 云端硬盘、Dropbox）。lastGLANCE 在其中读写一个文件，由那款应用负责传输。",
+      "androidHint": "请选择同步应用所管理文件夹中的 GLANCE 文件夹。每台设备都必须选择同一个文件夹。",
+      "iosHint": "在 iPhone 和 iPad 上，您在“文件”中选择同步文件本身：选择另一台设备已创建的文件，或在同步应用所管理的文件夹中创建它。",
+      "unsupported": "在 Android 和 iOS 应用中可用。",
+      "notConnected": "尚未连接文件夹。",
+      "notConnectedFile": "尚未连接同步文件。",
+      "chooseFolder": "选择文件夹",
+      "chooseFile": "选择文件",
+      "createFile": "创建文件",
+      "changeFolder": "更换文件夹",
+      "changeFile": "更换文件",
+      "disconnect": "断开连接",
+      "connectedTo": "已连接到",
+      "unreachable": "目前无法访问该文件夹。待其恢复后同步将自动继续。",
+      "onHint": "此设备会将更改写入该文件夹，并从中读取更改。",
+      "offHint": "已在此设备上暂停。文件夹和您的其他设备不受影响。",
+      "pickFailed": "无法使用该项：{{reason}}",
+      "encrypt": "加密文件",
+      "encryptHint": "关闭：文件以明文写入。已加密的文件无论此开关如何都保持加密。",
+      "encryptOnHint": "开启：此设备使用您的同步口令加密写入文件。",
+      "encryptPassphraseHint": "请选择一个同步口令。使用此文件夹的每台设备都要输入同一个口令。",
+      "encryptTurnOn": "开启",
+      "cancel": "取消",
+      "rosterHint": "家庭成员名单是文件夹中的第二个文件：glance-users.json。",
+      "rosterChosen": "名单文件：{{name}}",
+      "rosterNotChosen": "尚未选择名单文件。",
+      "eventsHint": "来自其他 GLANCE 应用的意图会到达文件夹中的第三个文件：glance-events.json。",
+      "eventsChosen": "事件文件：{{name}}",
+      "eventsNotChosen": "尚未选择事件文件。",
+      "fileChoose": "选择文件",
+      "fileCreate": "创建文件",
+      "fileChange": "更换文件",
+      "fileForget": "忘记文件"
+    }
   },
   "users": {
     "title": "用户",

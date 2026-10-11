@@ -126,6 +126,7 @@ const RULES = [
   ['Encriptar', 'Criptografar'],
   ['encriptar', 'criptografar'],
   ['encriptada', 'criptografada'],
+  ['encriptado', 'criptografado'],
   ['encriptados', 'criptografados'],
 
   // ── connection: ligação (kept out of the marker lists — it is a phone

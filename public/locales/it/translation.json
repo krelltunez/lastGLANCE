@@ -287,7 +287,14 @@
     "viewLog": "Vedi registro →",
     "cancel": "Annulla",
     "save": "Salva",
-    "setupFailed": "Configurazione fallita"
+    "setupFailed": "Configurazione fallita",
+    "directAccessIntents": {
+      "title": "Intent ad accesso diretto",
+      "label": "Intent tramite la cartella di sincronizzazione",
+      "hint": "Le altre app GLANCE sulla stessa cartella vi lasciano i propri intent in un file condiviso e leggono i tuoi. Cifrato ogni volta che lo è il file ad accesso diretto.",
+      "notConnected": "Collega prima una cartella in Sincronizzazione cloud. Fino ad allora questo trasporto resta inattivo.",
+      "reload": "Salvato alla chiusura; l'app si ricarica per iniziare a controllare la cartella."
+    }
   },
   "journal": {
     "title": "Diario",
@@ -449,7 +456,9 @@
       "passphraseNeeded": "Inserisci la tua passphrase di sincronizzazione per continuare.",
       "vaultUnreachable": "Impossibile raggiungere GLANCEvault: {{detail}}",
       "requestFailed": "Richiesta di sincronizzazione non riuscita. Riprova.",
-      "iCloudUnavailable": "iCloud non è disponibile: {{error}}"
+      "iCloudUnavailable": "iCloud non è disponibile: {{error}}",
+      "directAccessUnavailable": "La cartella di sincronizzazione non è disponibile: {{error}}",
+      "directAccessEncrypted": "Il file nella cartella di sincronizzazione è cifrato con una passphrase che questo dispositivo non ha. Inseriscila in Sincronizzazione cloud per continuare."
     },
     "syncHalted": "Sincronizzazione interrotta",
     "haltedDescription": "Si è verificato un errore critico. Risolvi il problema e cancella per riprovare.",
@@ -498,7 +507,44 @@
     "provider": "Provider",
     "vaultSkipped_one": "Impossibile leggere {{count}} elemento durante l'ultima sincronizzazione.",
     "vaultSkipped_other": "Impossibile leggere {{count}} elementi durante l'ultima sincronizzazione.",
-    "vaultSkippedHint": "Di solito è dovuto a una passphrase di sincronizzazione errata su alcuni elementi. Vengono saltati e ritentati automaticamente nelle sincronizzazioni successive: nulla è andato perso o è stato sovrascritto."
+    "vaultSkippedHint": "Di solito è dovuto a una passphrase di sincronizzazione errata su alcuni elementi. Vengono saltati e ritentati automaticamente nelle sincronizzazioni successive: nulla è andato perso o è stato sovrascritto.",
+    "directAccess": {
+      "title": "Accesso diretto",
+      "switchLabel": "Sincronizza tramite una cartella",
+      "desc": "Sincronizza tramite una cartella che un'altra app tiene già allineata tra i tuoi dispositivi (Nextcloud, Syncthing, FolderSync, Google Drive, Dropbox). lastGLANCE vi legge e scrive un file; quell'app lo trasporta.",
+      "androidHint": "Scegli la cartella GLANCE all'interno della cartella gestita dalla tua app di sincronizzazione. Deve essere la stessa cartella su ogni dispositivo.",
+      "iosHint": "Su iPhone e iPad scegli il file di sincronizzazione stesso in File: quello che un altro dispositivo ha già creato, oppure crealo nella cartella gestita dalla tua app di sincronizzazione.",
+      "unsupported": "Disponibile nelle app Android e iOS.",
+      "notConnected": "Nessuna cartella collegata.",
+      "notConnectedFile": "Nessun file di sincronizzazione collegato.",
+      "chooseFolder": "Scegli cartella",
+      "chooseFile": "Scegli file",
+      "createFile": "Crea file",
+      "changeFolder": "Cambia cartella",
+      "changeFile": "Cambia file",
+      "disconnect": "Scollega",
+      "connectedTo": "Collegato a",
+      "unreachable": "La cartella al momento non è raggiungibile. La sincronizzazione riprende quando torna disponibile.",
+      "onHint": "Le modifiche vengono scritte nella cartella e lette da essa su questo dispositivo.",
+      "offHint": "In pausa su questo dispositivo. La cartella e gli altri dispositivi non vengono toccati.",
+      "pickFailed": "Impossibile usarlo: {{reason}}",
+      "encrypt": "Cifra il file",
+      "encryptHint": "Spento: il file viene scritto in chiaro. Un file cifrato resta cifrato qualunque sia la posizione di questo interruttore.",
+      "encryptOnHint": "Acceso: questo dispositivo scrive il file cifrato con la tua passphrase di sincronizzazione.",
+      "encryptPassphraseHint": "Scegli una passphrase di sincronizzazione. Ogni dispositivo che usa questa cartella inserisce la stessa.",
+      "encryptTurnOn": "Attiva",
+      "cancel": "Annulla",
+      "rosterHint": "L'elenco della famiglia è un secondo file nella cartella: glance-users.json.",
+      "rosterChosen": "File dell'elenco: {{name}}",
+      "rosterNotChosen": "Nessun file dell'elenco scelto.",
+      "eventsHint": "Gli intent delle altre app GLANCE arrivano in un terzo file nella cartella: glance-events.json.",
+      "eventsChosen": "File degli eventi: {{name}}",
+      "eventsNotChosen": "Nessun file degli eventi scelto.",
+      "fileChoose": "Scegli file",
+      "fileCreate": "Crea file",
+      "fileChange": "Cambia file",
+      "fileForget": "Dimentica file"
+    }
   },
   "users": {
     "title": "Utenti",

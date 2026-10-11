@@ -287,7 +287,14 @@
     "viewLog": "Ver registro →",
     "cancel": "Cancelar",
     "save": "Guardar",
-    "setupFailed": "Error en la configuración"
+    "setupFailed": "Error en la configuración",
+    "directAccessIntents": {
+      "title": "Intents de Acceso directo",
+      "label": "Intents a través de la carpeta de sincronización",
+      "hint": "Otras aplicaciones GLANCE en la misma carpeta dejan allí sus intents en un archivo compartido y leen los tuyos. Cifrado siempre que lo esté el archivo de Acceso directo.",
+      "notConnected": "Conecta primero una carpeta en Sincronización en la nube. Hasta entonces este transporte permanece inactivo.",
+      "reload": "Se guarda al cerrar; la aplicación se recarga para empezar a consultar la carpeta."
+    }
   },
   "journal": {
     "title": "Diario",
@@ -449,7 +456,9 @@
       "passphraseNeeded": "Introduce tu contraseña de sincronización para continuar.",
       "vaultUnreachable": "No se pudo conectar con GLANCEvault: {{detail}}",
       "requestFailed": "La solicitud de sincronización falló. Inténtalo de nuevo.",
-      "iCloudUnavailable": "iCloud no está disponible: {{error}}"
+      "iCloudUnavailable": "iCloud no está disponible: {{error}}",
+      "directAccessUnavailable": "La carpeta de sincronización no está disponible: {{error}}",
+      "directAccessEncrypted": "El archivo de la carpeta de sincronización está cifrado con una frase de contraseña que este dispositivo no tiene. Introdúcela en Sincronización en la nube para continuar."
     },
     "syncHalted": "Sincronización detenida",
     "haltedDescription": "Ocurrió un error crítico. Resuelve el problema y borra para reintentar.",
@@ -498,7 +507,44 @@
     "provider": "Proveedor",
     "vaultSkipped_one": "No se pudo leer {{count}} elemento en la última sincronización.",
     "vaultSkipped_other": "No se pudieron leer {{count}} elementos en la última sincronización.",
-    "vaultSkippedHint": "Normalmente se debe a una contraseña de sincronización incorrecta en algunos elementos. Se omiten y se reintentan automáticamente en las siguientes sincronizaciones: no se ha perdido ni sobrescrito nada."
+    "vaultSkippedHint": "Normalmente se debe a una contraseña de sincronización incorrecta en algunos elementos. Se omiten y se reintentan automáticamente en las siguientes sincronizaciones: no se ha perdido ni sobrescrito nada.",
+    "directAccess": {
+      "title": "Acceso directo",
+      "switchLabel": "Sincronizar a través de una carpeta",
+      "desc": "Sincroniza a través de una carpeta que otra aplicación ya mantiene al día entre tus dispositivos (Nextcloud, Syncthing, FolderSync, Google Drive, Dropbox). lastGLANCE lee y escribe un archivo allí; esa aplicación lo mueve.",
+      "androidHint": "Elige la carpeta GLANCE dentro de la carpeta que gestiona tu aplicación de sincronización. Debe ser la misma carpeta en todos los dispositivos.",
+      "iosHint": "En iPhone y iPad eliges el propio archivo de sincronización en Archivos: el que otro dispositivo ya creó, o créalo en la carpeta que gestiona tu aplicación de sincronización.",
+      "unsupported": "Disponible en las aplicaciones de Android e iOS.",
+      "notConnected": "No hay ninguna carpeta conectada.",
+      "notConnectedFile": "No hay ningún archivo de sincronización conectado.",
+      "chooseFolder": "Elegir carpeta",
+      "chooseFile": "Elegir archivo",
+      "createFile": "Crear archivo",
+      "changeFolder": "Cambiar carpeta",
+      "changeFile": "Cambiar archivo",
+      "disconnect": "Desconectar",
+      "connectedTo": "Conectado a",
+      "unreachable": "Ahora mismo no se puede acceder a la carpeta. La sincronización se reanudará cuando vuelva.",
+      "onHint": "Los cambios se escriben en la carpeta y se recogen de ella en este dispositivo.",
+      "offHint": "En pausa en este dispositivo. La carpeta y tus otros dispositivos no se tocan.",
+      "pickFailed": "No se pudo usar eso: {{reason}}",
+      "encrypt": "Cifrar el archivo",
+      "encryptHint": "Desactivado: el archivo se escribe como texto sin cifrar. Un archivo cifrado sigue cifrado diga lo que diga este interruptor.",
+      "encryptOnHint": "Activado: este dispositivo escribe el archivo cifrado con tu frase de contraseña de sincronización.",
+      "encryptPassphraseHint": "Elige una frase de contraseña de sincronización. Todos los dispositivos que usen esta carpeta introducen la misma.",
+      "encryptTurnOn": "Activar",
+      "cancel": "Cancelar",
+      "rosterHint": "La lista del hogar es un segundo archivo en la carpeta: glance-users.json.",
+      "rosterChosen": "Archivo de la lista: {{name}}",
+      "rosterNotChosen": "No se ha elegido ningún archivo de lista.",
+      "eventsHint": "Los intents de otras aplicaciones GLANCE llegan en un tercer archivo de la carpeta: glance-events.json.",
+      "eventsChosen": "Archivo de eventos: {{name}}",
+      "eventsNotChosen": "No se ha elegido ningún archivo de eventos.",
+      "fileChoose": "Elegir archivo",
+      "fileCreate": "Crear archivo",
+      "fileChange": "Cambiar archivo",
+      "fileForget": "Olvidar archivo"
+    }
   },
   "users": {
     "title": "Usuarios",

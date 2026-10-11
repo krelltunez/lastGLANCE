@@ -30,6 +30,9 @@ import { getIntentsConfig, isIntentsConfigured, type IntentsConfig } from './con
 import { loadVaultIntentsRootKey } from './vaultIntentsKeyStore'
 import { loadIntentsRootKey } from './intentsKeyStore'
 import { buildAuthHeader, ensureFolder, putFile } from './webdav'
+import { directAccessTransport, directAccessEncryptsWrites, type DirectAccessTransport } from '@/sync/directAccess'
+import { isDirectAccessIntentsEnabled } from './directAccessIntentsConfig'
+import { publishOwnEvent, type EventSetTransport, type RawEnvelope } from './eventSet'
 
 // Maps the raw outbox intent onto the codec's CREATE envelope args. Passing
 // eventId + emittedAt preserves the intent's stable identity across (re)builds,
@@ -191,4 +194,53 @@ export const webdavDeliverer: Deliverer = createWebdavDeliverer({
   isConfigured: isIntentsConfigured,
   loadRootKey: loadIntentsRootKey,
   put: realWebdavPut,
+})
+
+// ── Direct Access deliverer: the event-set file (docs/direct-access.md) ──────
+// Encrypted iff the Direct Access "encrypt the file" switch is on, with the
+// WebDAV intents root key (the folder's events are sealed the way WebDAV
+// files are); held (INTENTS_KEY_NOT_READY) while that key is not ready, never
+// sent plaintext. Held too while the opt-in is off or no folder is connected
+// or reachable: both may change. Delivered once the file has been read back
+// with the event in it; the device's ledger keeps the event until retention
+// so a copy of the file that loses it gets it back.
+
+export interface DirectAccessDelivererDeps {
+  transport: DirectAccessTransport | (EventSetTransport & { isAvailable: () => boolean })
+  isEnabled: () => boolean
+  encrypts: () => boolean
+  loadRootKey: () => Promise<CryptoKey | null>
+  publish: (transport: EventSetTransport, envelope: RawEnvelope, io?: Parameters<typeof publishOwnEvent>[2]) => Promise<boolean>
+  eventsPath?: () => string | null | undefined
+}
+
+export function createDirectAccessDeliverer(deps: DirectAccessDelivererDeps): Deliverer {
+  return async (intent: OutboxIntent): Promise<DeliveryResult> => {
+    if (!deps.isEnabled()) return 'transient-fail'
+    if (!deps.transport.isAvailable()) return 'transient-fail'
+
+    let envelope: IntentEnvelope
+    if (deps.encrypts()) {
+      const rootKey = await deps.loadRootKey()
+      if (!rootKey) return { status: 'transient-fail', reason: INTENTS_KEY_NOT_READY }
+      envelope = await buildEncryptedEnvelope(createEnvelopeArgs(intent), (salt) => deriveEnvelopeKey(rootKey, salt))
+    } else {
+      envelope = buildEnvelope(createEnvelopeArgs(intent))
+    }
+
+    try {
+      const ok = await deps.publish(deps.transport, envelope as unknown as RawEnvelope, { eventsPath: deps.eventsPath?.() })
+      return ok ? 'delivered' : 'transient-fail'
+    } catch {
+      return 'transient-fail'
+    }
+  }
+}
+
+export const directAccessDeliverer: Deliverer = createDirectAccessDeliverer({
+  transport: directAccessTransport,
+  isEnabled: () => isDirectAccessIntentsEnabled(directAccessTransport),
+  encrypts: () => directAccessEncryptsWrites(),
+  loadRootKey: loadIntentsRootKey,
+  publish: publishOwnEvent,
 })
