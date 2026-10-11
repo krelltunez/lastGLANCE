@@ -130,6 +130,8 @@ dependencies {
     // classpath transitively via androidx.glance (which is coroutine-based), but
     // the reader must not depend on a transitive staying around.
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1"
+    // DirectAccessPlugin: the SAF tree the user picks, walked with DocumentFile.
+    implementation "androidx.documentfile:documentfile:1.0.1"
     testImplementation "junit:junit:$junitVersion"
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
