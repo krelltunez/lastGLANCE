@@ -108,7 +108,7 @@ export function HelpContent({ onOpenShortcuts }: { onOpenShortcuts: () => void }
         <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
           {t('help.legal')}
         </p>
-        <ExternalLinkRow href="https://www.glance-apps.com/privacy" label={t('help.privacyPolicy')} />
+        <ExternalLinkRow href="https://www.glance-apps.com/lastglance/privacy" label={t('help.privacyPolicy')} />
         <ExternalLinkRow href="https://www.glance-apps.com/eula" label={t('help.termsOfUse')} />
       </div>
 

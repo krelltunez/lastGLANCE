@@ -215,7 +215,7 @@ export function PaywallModal({ billing }: Props) {
             Labels reuse the localized help.* strings. */}
         <div className="flex items-center justify-center gap-3 mt-5 text-[11px] text-slate-400 dark:text-slate-500">
           <a
-            href="https://www.glance-apps.com/privacy"
+            href="https://www.glance-apps.com/lastglance/privacy"
             target="_blank"
             rel="noopener noreferrer"
             className="underline underline-offset-2 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
