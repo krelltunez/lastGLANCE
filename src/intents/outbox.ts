@@ -23,10 +23,10 @@
 //     structural: there is no code path here that can write an envelope.
 
 // ── Transport identity ───────────────────────────────────────────────────────
-// lastGLANCE has three intents transports: the WebDAV file path, the
-// GLANCEvault DB path and the Direct Access event-set file. There is no iCloud
-// intents path in this app, so it is deliberately omitted from the transport set.
-export type TransportName = 'webdav' | 'vault' | 'directAccess'
+// lastGLANCE has four intents transports: the WebDAV file path, the
+// GLANCEvault DB path, the Direct Access event-set file, and iCloud (event files
+// in dayGLANCE's container, intents/icloudIntents.ts; iOS only).
+export type TransportName = 'webdav' | 'vault' | 'directAccess' | 'icloud'
 
 // A target is delivered, still owed (pending), or abandoned (given-up). The
 // last state is the only non-delivery exit; an entry is removed once no target

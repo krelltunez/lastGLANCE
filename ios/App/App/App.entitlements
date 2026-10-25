@@ -7,6 +7,26 @@
 	     the data and pushes a denormalized snapshot here for the extensions to
 	     render from. Must also be registered on the App ID in the Apple Developer
 	     portal, and declared identically in GlanceWidgets/GlanceWidgets.entitlements. -->
+	<!-- Zero-config iCloud sync (ICloudPlugin.swift, docs/icloud-sync.md).
+	     iCloud.com.lastglance holds this app's chore and People files;
+	     iCloud.com.dayglance is dayGLANCE's container, whose GLANCE/events/
+	     carries the intents both apps exchange. Both must be assigned to the
+	     com.lastglance.app App ID in the Apple Developer portal (iCloud with
+	     iCloud Documents), and the provisioning profile regenerated. -->
+	<key>com.apple.developer.icloud-container-identifiers</key>
+	<array>
+		<string>iCloud.com.lastglance</string>
+		<string>iCloud.com.dayglance</string>
+	</array>
+	<key>com.apple.developer.ubiquity-container-identifiers</key>
+	<array>
+		<string>iCloud.com.lastglance</string>
+		<string>iCloud.com.dayglance</string>
+	</array>
+	<key>com.apple.developer.icloud-services</key>
+	<array>
+		<string>CloudDocuments</string>
+	</array>
 	<key>com.apple.security.application-groups</key>
 	<array>
 		<string>group.com.lastglance</string>

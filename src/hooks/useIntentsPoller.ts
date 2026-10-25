@@ -22,21 +22,7 @@ import { buildAuthHeader, listFiles, getFile } from '@/intents/webdav'
 import { loadIntentsRootKey } from '@/intents/intentsKeyStore'
 import { processNotifyEnvelope } from '@/intents/processNotifyEnvelope'
 import { peopleNotifyDeps } from '@/people/notifyDeps'
-
-// How far back to look behind the stored cursor when filtering events.
-// Covers the window where a device may upload an event with an earlier
-// timestamp than one already processed (out-of-order WebDAV delivery).
-// isAlreadyLogged guards against re-writing events within the window.
-const CURSOR_LOOKBACK_MS = 60 * 60 * 1000
-
-function cursorLookback(cursor: string, windowMs: number): string {
-  const iso = cursor.replace(
-    /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/,
-    '$1-$2-$3T$4:$5:$6Z',
-  )
-  const adjusted = new Date(new Date(iso).getTime() - windowMs)
-  return adjusted.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
-}
+import { CURSOR_LOOKBACK_MS, cursorLookback } from '@/intents/pollCursor'
 
 export function useIntentsPoller(onNewCompletion?: () => void): void {
   const onNewCompletionRef = useRef<(() => void) | undefined>(onNewCompletion)

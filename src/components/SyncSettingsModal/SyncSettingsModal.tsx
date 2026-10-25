@@ -16,6 +16,7 @@ import { isWebCryptoAvailable } from '@/utils/secureContext'
 import { formatDateTime } from '@/utils/datetime'
 import { buildSyncConfigToSave } from './buildSyncConfig'
 import { DirectAccessSection } from './DirectAccessSection'
+import { ICloudSection } from './ICloudSection'
 
 interface Props {
   engine: SyncEngine | null
@@ -34,7 +35,9 @@ interface Props {
   vaultSkipped: number
   // Direct Access (docs/direct-access.md): a cycle on demand and the last
   // folder error, from useDirectAccessSync in App.
-  directAccess: { runSync: () => Promise<void>; lastError: string | null }
+  directAccess: { runSync: () => Promise<unknown>; lastError: string | null }
+  /** iOS: zero-config iCloud sync's switch and status. */
+  icloud?: { runSync: () => Promise<string | null>; lastError: string | null }
   onClose: () => void
 }
 
@@ -49,7 +52,7 @@ const VAULT_TEST_FAIL_TEXT: Record<'AUTH_FAILURE' | 'FORBIDDEN' | 'NETWORK_ERROR
   NETWORK_ERROR: 'Could not reach the vault at this URL.',
 }
 
-export function SyncSettingsModal({ engine, dbEngine, syncError, syncErrorCode, vaultSyncError, vaultSyncErrorCode, vaultSkipped, directAccess, onClose }: Props) {
+export function SyncSettingsModal({ engine, dbEngine, syncError, syncErrorCode, vaultSyncError, vaultSyncErrorCode, vaultSkipped, directAccess, icloud, onClose }: Props) {
   const { t } = useTranslation()
   const existingConfig = engine?.getConfig() ?? null
   const initFolder = getSyncFolder()
@@ -632,6 +635,9 @@ export function SyncSettingsModal({ engine, dbEngine, syncError, syncErrorCode, 
               </button>
             </div>
           </div>
+
+          {/* iCloud (iOS): on by default, its per-device switch */}
+          {icloud && <ICloudSection runSync={icloud.runSync} lastError={icloud.lastError} />}
 
           {/* Direct Access section: a folder a third-party tool keeps in step */}
           <DirectAccessSection runSync={directAccess.runSync} lastError={directAccess.lastError} />

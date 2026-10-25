@@ -11,6 +11,8 @@ import {
 } from '@/intents/config'
 import { getDbIntentsConfig, saveDbIntentsConfig } from '@/intents/dbConfig'
 import { getDirectAccessIntentsEnabledFlag, setDirectAccessIntentsEnabled } from '@/intents/directAccessIntentsConfig'
+import { getICloudIntentsEnabledFlag, setICloudIntentsEnabled } from '@/intents/icloudIntents'
+import { icloudBridge } from '@/native/icloud'
 import { directAccessTransport, directAccessEncryptsWrites } from '@/sync/directAccess'
 import { ensureDirectAccessIntentsKey, resolveDirectAccessIntentsKey } from '@/intents/directAccessIntentsKey'
 import { DirectAccessFileRow } from '@/components/SyncSettingsModal/DirectAccessFileRow'
@@ -88,6 +90,11 @@ export function IntegrationSettingsModal({ onClose, onSaved }: Props) {
   const initialDaIntentsEnabled = useRef(getDirectAccessIntentsEnabledFlag())
   const daSupported = directAccessTransport.isSupported()
   const daConnected = directAccessTransport.isConnected()
+  // iCloud intents (intents/icloudIntents.ts), iOS only: dayGLANCE's events
+  // folder in its iCloud container. Its own opt-in, off by default; the poll
+  // reads it every tick, so no reload.
+  const [icloudIntentsEnabled, setIcloudIntentsEnabledState] = useState(() => getICloudIntentsEnabledFlag())
+  const icloudSupported = !!icloudBridge()
   const vaultConn = getVaultConfig()
   const vaultConfigured = !!(vaultConn?.vaultUrl && vaultConn?.vaultToken && vaultConn?.accountId)
 
@@ -223,6 +230,7 @@ export function IntegrationSettingsModal({ onClose, onSaved }: Props) {
       }
       const daIntentsChanged = daIntentsEnabled !== initialDaIntentsEnabled.current
       setDirectAccessIntentsEnabled(daIntentsEnabled)
+      setICloudIntentsEnabled(icloudIntentsEnabled)
 
       onSaved()
       onClose()
@@ -548,6 +556,31 @@ export function IntegrationSettingsModal({ onClose, onSaved }: Props) {
                   </div>
                 )
               )}
+            </div>
+          )}
+
+          {/* iCloud intents: dayGLANCE's events folder in its iCloud container. */}
+          {icloudSupported && (
+            <div className="space-y-3">
+              <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                {t('integration.icloudIntents.title')}
+              </h3>
+              <div className="flex items-center justify-between gap-3 py-1">
+                <div className="min-w-0">
+                  <p className="text-sm text-slate-700 dark:text-slate-300">{t('integration.icloudIntents.label')}</p>
+                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{t('integration.icloudIntents.hint')}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIcloudIntentsEnabledState(v => !v)}
+                  className={`relative shrink-0 w-10 h-6 rounded-full transition-colors ${icloudIntentsEnabled ? 'bg-green-400' : 'bg-slate-300 dark:bg-slate-600'}`}
+                  aria-checked={icloudIntentsEnabled}
+                  aria-label={t('integration.icloudIntents.label')}
+                  role="switch"
+                >
+                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${icloudIntentsEnabled ? 'translate-x-4' : ''}`} />
+                </button>
+              </div>
             </div>
           )}
 

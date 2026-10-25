@@ -302,6 +302,11 @@
       "notConnected": "Connectez d'abord un dossier dans Synchronisation cloud. D'ici là, ce transport reste inactif.",
       "reload": "Enregistré à la fermeture ; l'application se recharge pour commencer à interroger le dossier.",
       "passphraseRequired": "Les intents en accès direct sont chiffrés avec votre phrase secrète de synchronisation. Saisissez-la pour les activer."
+    },
+    "icloudIntents": {
+      "title": "Intents iCloud",
+      "label": "Intents par iCloud",
+      "hint": "Échangez des intents avec dayGLANCE sur cet iPhone ou iPad par iCloud, sans rien d'autre à configurer. Les intents iCloud doivent aussi être activés dans dayGLANCE."
     }
   },
   "journal": {
@@ -931,6 +936,22 @@
         "inbound": "Des nouvelles de {{names}}",
         "mutual": "Échange avec {{names}}"
       }
+    }
+  },
+  "icloud": {
+    "title": "iCloud",
+    "switchLabel": "Synchroniser avec iCloud",
+    "onHint": "Vos tâches et vos Proches restent à jour sur chaque iPhone et iPad connecté à votre identifiant Apple. Rien à configurer.",
+    "offHint": "Désactivé sur cet appareil. La copie dans iCloud et vos autres appareils ne sont pas modifiés.",
+    "firstRun": {
+      "title": "Restaurer depuis iCloud ?",
+      "bodyChores": "iCloud contient des données lastGLANCE de vos autres appareils. Tâches dans iCloud : {{count}}.",
+      "bodyPeople": "iCloud contient des données lastGLANCE de vos autres appareils. Proches dans iCloud : {{count}}.",
+      "lastModified": "Dernière modification : {{when}}",
+      "restore": "Restaurer depuis iCloud",
+      "restoreHint": "Récupérez vos tâches et vos Proches sur cet appareil et gardez-les synchronisés.",
+      "startFresh": "Repartir de zéro sur cet appareil",
+      "startFreshHint": "Désactive la synchronisation iCloud ici. La copie dans iCloud est conservée, et vous pourrez la réactiver dans Sync cloud."
     }
   }
 }

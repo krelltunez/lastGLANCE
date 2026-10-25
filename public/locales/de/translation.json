@@ -302,6 +302,11 @@
       "notConnected": "Verbinde zuerst unter Cloud-Sync einen Ordner. Bis dahin bleibt dieser Transport inaktiv.",
       "reload": "Wird beim Schließen gespeichert; die App lädt neu und beginnt, den Ordner abzufragen.",
       "passphraseRequired": "Direktzugriff-Intents werden mit deiner Sync-Passphrase verschlüsselt. Gib sie ein, um sie zu aktivieren."
+    },
+    "icloudIntents": {
+      "title": "iCloud-Intents",
+      "label": "Intents über iCloud",
+      "hint": "Tausche auf diesem iPhone oder iPad Intents mit dayGLANCE über iCloud aus, ohne weitere Einrichtung. In dayGLANCE müssen die iCloud-Intents ebenfalls eingeschaltet sein."
     }
   },
   "journal": {
@@ -931,6 +936,22 @@
         "inbound": "Von {{names}} gehört",
         "mutual": "Kontakt mit {{names}}"
       }
+    }
+  },
+  "icloud": {
+    "title": "iCloud",
+    "switchLabel": "Mit iCloud synchronisieren",
+    "onHint": "Deine Aufgaben und Menschen bleiben auf jedem iPhone und iPad mit deiner Apple-ID abgeglichen. Keine Einrichtung nötig.",
+    "offHint": "Auf diesem Gerät aus. Die Kopie in iCloud und deine anderen Geräte bleiben unberührt.",
+    "firstRun": {
+      "title": "Aus iCloud wiederherstellen?",
+      "bodyChores": "In iCloud liegen lastGLANCE-Daten von deinen anderen Geräten. Aufgaben in iCloud: {{count}}.",
+      "bodyPeople": "In iCloud liegen lastGLANCE-Daten von deinen anderen Geräten. Menschen in iCloud: {{count}}.",
+      "lastModified": "Zuletzt geändert {{when}}",
+      "restore": "Aus iCloud wiederherstellen",
+      "restoreHint": "Hole deine Aufgaben und Menschen auf dieses Gerät und halte sie synchron.",
+      "startFresh": "Auf diesem Gerät neu beginnen",
+      "startFreshHint": "Schaltet die iCloud-Synchronisierung hier aus. Die Kopie in iCloud bleibt, und du kannst sie später unter Cloud-Sync einschalten."
     }
   }
 }

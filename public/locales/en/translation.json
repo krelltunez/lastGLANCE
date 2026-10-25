@@ -302,6 +302,11 @@
       "notConnected": "Connect a folder under Cloud Sync first. Until then this transport stays inactive.",
       "reload": "Saved on close; the app reloads to start polling the folder.",
       "passphraseRequired": "Direct Access intents are encrypted with your sync passphrase. Enter it to enable them."
+    },
+    "icloudIntents": {
+      "title": "iCloud intents",
+      "label": "Intents through iCloud",
+      "hint": "Exchange intents with dayGLANCE on this iPhone or iPad through iCloud, with nothing else to set up. dayGLANCE needs its iCloud intents turned on too."
     }
   },
   "journal": {
@@ -931,6 +936,22 @@
         "inbound": "{{names}} reached out",
         "mutual": "Caught up with {{names}}"
       }
+    }
+  },
+  "icloud": {
+    "title": "iCloud",
+    "switchLabel": "Sync with iCloud",
+    "onHint": "Your chores and People stay in step on every iPhone and iPad signed in to your Apple ID. Nothing to set up.",
+    "offHint": "Off on this device. The copy in iCloud and your other devices are untouched.",
+    "firstRun": {
+      "title": "Restore from iCloud?",
+      "bodyChores": "iCloud holds lastGLANCE data from your other devices. Chores in iCloud: {{count}}.",
+      "bodyPeople": "iCloud holds lastGLANCE data from your other devices. People in iCloud: {{count}}.",
+      "lastModified": "Last changed {{when}}",
+      "restore": "Restore from iCloud",
+      "restoreHint": "Bring your chores and People onto this device and keep them in sync.",
+      "startFresh": "Start fresh on this device",
+      "startFreshHint": "Turn iCloud sync off here. The copy in iCloud stays, and you can turn it on later in Cloud Sync."
     }
   }
 }

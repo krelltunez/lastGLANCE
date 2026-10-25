@@ -302,6 +302,11 @@
       "notConnected": "Ligue primeiro uma pasta em Sincronização na nuvem. Até lá, este transporte permanece inativo.",
       "reload": "Guardado ao fechar; a app reinicia para começar a consultar a pasta.",
       "passphraseRequired": "Os intents de acesso direto são encriptados com a sua frase-passe de sincronização. Insira-a para os ativar."
+    },
+    "icloudIntents": {
+      "title": "Intents do iCloud",
+      "label": "Intents através do iCloud",
+      "hint": "Troque intents com o dayGLANCE neste iPhone ou iPad através do iCloud, sem mais nada para configurar. No dayGLANCE, os intents do iCloud também devem estar ativados."
     }
   },
   "journal": {
@@ -931,6 +936,22 @@
         "inbound": "Notícias de {{names}}",
         "mutual": "Contacto com {{names}}"
       }
+    }
+  },
+  "icloud": {
+    "title": "iCloud",
+    "switchLabel": "Sincronizar com o iCloud",
+    "onHint": "As suas tarefas e Pessoas mantêm-se atualizadas em todos os iPhone e iPad com o seu ID Apple. Nada para configurar.",
+    "offHint": "Desativado neste dispositivo. A cópia no iCloud e os seus outros dispositivos não são alterados.",
+    "firstRun": {
+      "title": "Restaurar a partir do iCloud?",
+      "bodyChores": "O iCloud tem dados do lastGLANCE dos seus outros dispositivos. Tarefas no iCloud: {{count}}.",
+      "bodyPeople": "O iCloud tem dados do lastGLANCE dos seus outros dispositivos. Pessoas no iCloud: {{count}}.",
+      "lastModified": "Última alteração: {{when}}",
+      "restore": "Restaurar a partir do iCloud",
+      "restoreHint": "Traga as suas tarefas e Pessoas para este dispositivo e mantenha-as sincronizadas.",
+      "startFresh": "Começar do zero neste dispositivo",
+      "startFreshHint": "Desativa aqui a sincronização com o iCloud. A cópia no iCloud mantém-se e pode ativá-la mais tarde em Sincronização na nuvem."
     }
   }
 }
