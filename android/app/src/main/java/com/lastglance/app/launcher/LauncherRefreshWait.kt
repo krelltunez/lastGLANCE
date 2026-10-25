@@ -68,5 +68,36 @@ object LauncherRefreshWait {
         }
     }
 
+    // A live page that stops answering in the background is closed, as a swipe
+    // from Recents would, and the refresh goes to the headless path, which works
+    // (docs/launcher-integration.md, "Freshness"): a backgrounded WebView can stop
+    // running timers and network replies for hours while still running a script
+    // handed to it directly. LauncherPageRetire does it; these are its rules.
+
+    /** How long the app must have been in the background: a page stalls about a minute after it is left, and every save has long landed. */
+    const val RETIRE_MIN_BACKGROUND_MS = 120_000L
+
+    /** Only an app in the background (stopped since [stoppedAt], 0 while on screen) for at least [RETIRE_MIN_BACKGROUND_MS]. */
+    fun mayRetire(stoppedAt: Long, now: Long): Boolean = stoppedAt > 0 && now - stoppedAt >= RETIRE_MIN_BACKGROUND_MS
+
+    /** The page's answer to the retire check, as evaluateJavascript returns it: only `ok` lets it close. */
+    fun pageReady(checkResult: String?): Boolean = checkResult == "\"ok\""
+
+    /** On the unanswered entry: the page was closed, and the refresh follows headlessly. */
+    fun retiredPatch(entry: JSONObject): JSONObject =
+        JSONObject().put("reason", entry.optString("reason") + "; the app closed the unresponsive page, and a headless refresh follows").put("pageClosed", true)
+
+    /** On the unanswered entry: the page was left open, and why. */
+    fun keptPatch(entry: JSONObject, why: String): JSONObject =
+        JSONObject().put("reason", entry.optString("reason") + "; the page was left open: $why")
+
+    /** The headless run that follows a closed page, as the receiver logs one for a dead process. */
+    fun headlessEntry(clientId: String, now: Long): JSONObject = JSONObject()
+        .put("clientId", "$clientId-headless")
+        .put("requestedAt", now)
+        .put("liveness", "dead")
+        .put("outcome", "scheduled")
+        .put("reason", "the app's page had stopped answering, so the app closed it: headless run scheduled")
+
     private fun seconds(ms: Long): Long = (ms.coerceAtLeast(0) + 500) / 1000
 }
