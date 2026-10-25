@@ -90,6 +90,14 @@ export function useAndroidIntentBridge(onChanged?: () => void, launcherHooks?: L
       }
     }
 
+    // Asked by the native side before it closes this page after it stopped
+    // answering the launcher in the background (launcher/LauncherPageRetire.kt).
+    // Called as a script handed to the page directly, so it answers synchronously.
+    // Every write the app makes lands within moments, and the native side only
+    // asks after two minutes in the background, so reaching here is the answer.
+    const retireCheck = (): string => 'ok'
+    ;(window as unknown as { __lgRetireCheck?: () => string }).__lgRetireCheck = retireCheck
+
     addPendingIntentListener(() => { void drain() }).then(h => {
       if (cancelled) h?.remove()
       else listener = h
@@ -108,6 +116,8 @@ export function useAndroidIntentBridge(onChanged?: () => void, launcherHooks?: L
       cancelled = true
       document.removeEventListener('visibilitychange', onVisibility)
       listener?.remove()
+      const w = window as unknown as { __lgRetireCheck?: () => string }
+      if (w.__lgRetireCheck === retireCheck) delete w.__lgRetireCheck
     }
   }, [])
 }

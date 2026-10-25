@@ -4,6 +4,10 @@ import android.content.Intent;
 import android.content.res.Configuration;
 import android.net.Uri;
 import android.os.Bundle;
+import android.webkit.ValueCallback;
+import android.webkit.WebView;
+
+import java.lang.ref.WeakReference;
 
 import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.PluginHandle;
@@ -19,6 +23,18 @@ public class MainActivity extends BridgeActivity {
     // The app language last seen, so a configuration change that is not a
     // language change (rotation, dark mode) does not rebuild every widget.
     private String lastLocaleTag;
+
+    // When this activity last stopped (went to the background), ms; 0 while it is
+    // started. LauncherPageRetire closes a page that stopped answering the launcher
+    // only after a while in the background.
+    public static volatile long stoppedAt = 0L;
+    private static volatile WeakReference<MainActivity> live;
+
+    /** The live activity, for LauncherPageRetire; null when there is none. */
+    public static MainActivity liveInstance() {
+        WeakReference<MainActivity> ref = live;
+        return ref == null ? null : ref.get();
+    }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -38,6 +54,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(ContactsPlugin.class);
         registerPlugin(com.lastglance.app.directaccess.DirectAccessPlugin.class);
         super.onCreate(savedInstanceState);
+        live = new WeakReference<>(this);
         lastLocaleTag = getResources().getConfiguration().getLocales().get(0).toLanguageTag();
         // Cold start via a widget tap, a share, or a Tasker Activity intent: the
         // web app drains the slots on mount, so just store them here (no wake
@@ -45,6 +62,42 @@ public class MainActivity extends BridgeActivity {
         // the system is rebuilding an activity it killed and is replaying the
         // intent that rooted the task, not delivering a new one.
         captureLaunchIntent(getIntent(), savedInstanceState != null, false);
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        stoppedAt = 0L;
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        stoppedAt = System.currentTimeMillis();
+    }
+
+    @Override
+    public void onDestroy() {
+        if (liveInstance() == this) live = null;
+        super.onDestroy();
+    }
+
+    /**
+     * Asks the page whether closing it now loses nothing, as a script handed to it
+     * directly: that still runs in a page that stopped running its timers. Main
+     * thread. [onResult] gets evaluateJavascript's JSON value ("ok" quoted when it
+     * may close), or null without a WebView.
+     */
+    public void checkRetireReady(ValueCallback<String> onResult) {
+        WebView webView = getBridge() != null ? getBridge().getWebView() : null;
+        if (webView == null) {
+            onResult.onReceiveValue(null);
+            return;
+        }
+        webView.evaluateJavascript(
+            "(function(){ try { return window.__lgRetireCheck ? window.__lgRetireCheck() : 'ok'; } catch (e) { return 'error'; } })();",
+            onResult
+        );
     }
 
     // configChanges includes locale, so a language change lands here instead of

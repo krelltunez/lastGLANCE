@@ -72,4 +72,32 @@ class LauncherRefreshWaitTest {
         assertEquals(listOf("r1", "r2"), LauncherRefreshWait.refreshIds(drained, "R"))
         assertEquals(emptyList<String>(), LauncherRefreshWait.refreshIds("not json", "R"))
     }
+
+    @Test
+    fun `a page is closed only after two minutes in the background`() {
+        assertFalse(LauncherRefreshWait.mayRetire(stoppedAt = 0, now = 10_000_000))
+        assertFalse(LauncherRefreshWait.mayRetire(stoppedAt = 9_900_000, now = 10_000_000))
+        assertTrue(LauncherRefreshWait.mayRetire(stoppedAt = 10_000_000 - 120_000, now = 10_000_000))
+    }
+
+    @Test
+    fun `only an ok from the page lets it close`() {
+        assertTrue(LauncherRefreshWait.pageReady("\"ok\""))
+        assertFalse(LauncherRefreshWait.pageReady("\"error\""))
+        assertFalse(LauncherRefreshWait.pageReady("null"))
+        assertFalse(LauncherRefreshWait.pageReady(null))
+    }
+
+    @Test
+    fun `a closed page is noted on the unanswered entry and a headless run follows`() {
+        val unanswered = JSONObject("""{"clientId":"c1","outcome":"unanswered","reason":"the app was woken 0 s after the request"}""")
+        assertEquals("the app was woken 0 s after the request; the app closed the unresponsive page, and a headless refresh follows",
+            LauncherRefreshWait.retiredPatch(unanswered).getString("reason"))
+        assertEquals("the app was woken 0 s after the request; the page was left open: it did not close",
+            LauncherRefreshWait.keptPatch(unanswered, "it did not close").getString("reason"))
+        val next = LauncherRefreshWait.headlessEntry("c1", 5_000)
+        assertEquals("c1-headless", next.getString("clientId"))
+        assertEquals("scheduled", next.getString("outcome"))
+        assertEquals("dead", next.getString("liveness"))
+    }
 }
