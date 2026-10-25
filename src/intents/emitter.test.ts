@@ -9,6 +9,7 @@ import { createVaultDeliverer } from './deliverers'
 import { getIntentsConfig, saveIntentsConfig, DEFAULT_CONFIG } from './config'
 import { getDbIntentsConfig, saveDbIntentsConfig } from './dbConfig'
 import { setVaultConfig } from '@/sync/vaultConfig'
+import { setICloudIntentsEnabled } from './icloudIntents'
 import type { ChoreWithLastCompletion } from '@/types'
 
 beforeAll(() => {
@@ -116,6 +117,11 @@ describe('emit -> outbox wiring', () => {
 
     setVaultConfig({ enabled: true, vaultUrl: 'https://v', vaultToken: 't', accountId: 'a' })
     saveDbIntentsConfig({ ...getDbIntentsConfig(), enabled: true })
+    expect(enabledIntentTargets()).toEqual(['webdav', 'vault'])
+
+    // The iCloud opt-in adds nothing where there is no iCloud (Android, the web,
+    // this test): an intent is never queued for a transport that cannot exist.
+    setICloudIntentsEnabled(true)
     expect(enabledIntentTargets()).toEqual(['webdav', 'vault'])
 
     // sanity: getIntentsConfig round-trips

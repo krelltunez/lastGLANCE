@@ -347,6 +347,11 @@ export function isPristineSeed(row: { sync_id?: string; updated_at?: string }): 
   return !!row.sync_id && SEED_SYNC_IDS.has(row.sync_id) && row.updated_at === SEED_TIMESTAMP
 }
 
+/** isPristineSeed for a sync-payload row (`id`, `updatedAt`). */
+export function isPristineSeedRow(row: { id?: unknown; updatedAt?: unknown } | null | undefined): boolean {
+  return !!row && typeof row.id === 'string' && SEED_SYNC_IDS.has(row.id) && row.updatedAt === SEED_TIMESTAMP
+}
+
 const SEED_CATEGORIES: Omit<Category, 'id' | 'parent_sync_id' | 'updated_at' | 'assigned_user_sync_ids'>[] = [
   { name: 'Home',     sort_order: 0, icon: 'Home',       sync_id: '00000000-0000-0000-0000-000000000001' },
   { name: 'Health',   sort_order: 1, icon: 'HeartPulse', sync_id: '00000000-0000-0000-0000-000000000002' },

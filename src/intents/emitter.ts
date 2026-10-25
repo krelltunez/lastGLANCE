@@ -4,6 +4,7 @@ import type { ChoreWithLastCompletion } from '@/types'
 import { getIntentsConfig, isIntentsConfigured, addActivityEntry } from './config'
 import { isDbIntentsEnabled } from './dbConfig'
 import { isDirectAccessIntentsEnabled } from './directAccessIntentsConfig'
+import { isICloudIntentsEnabled } from './icloudIntents'
 import { outbox, type OutboxIntent, type TransportName } from './outbox'
 import { flushIntents } from './flushIntents'
 
@@ -43,12 +44,13 @@ export function buildCreateIntentFor(fields: CreateFields): OutboxIntent {
 // The transports that should receive an intent right now: only the enabled ones.
 // 'webdav' when the WebDAV intents config is enabled+complete; 'vault' when the
 // GLANCEvault DB intents transport is enabled; 'directAccess' when its opt-in
-// is on and a folder is connected. (No iCloud transport exists.)
+// is on and a folder is connected; 'icloud' when its opt-in is on (iOS).
 export function enabledIntentTargets(): TransportName[] {
   const targets: TransportName[] = []
   if (isIntentsConfigured(getIntentsConfig())) targets.push('webdav')
   if (isDbIntentsEnabled()) targets.push('vault')
   if (isDirectAccessIntentsEnabled()) targets.push('directAccess')
+  if (isICloudIntentsEnabled()) targets.push('icloud')
   return targets
 }
 

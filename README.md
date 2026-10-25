@@ -136,7 +136,7 @@ The Android app ships the full web app in a WebView with native enhancements tha
 
 ### Everywhere
 
-- **Cloud sync**: keep data in step across devices through WebDAV or Nextcloud, GLANCEvault, or a folder a sync tool already keeps in step (Direct Access); end-to-end encryption available
+- **Cloud sync**: keep data in step across devices through iCloud (iPhone and iPad, zero-config), WebDAV or Nextcloud, GLANCEvault, or a folder a sync tool already keeps in step (Direct Access); end-to-end encryption available
 - **Auto-backups**: periodic remote snapshots (hourly/daily/weekly) in a `backups/` subfolder alongside the sync file
 - **GLANCE integrations**: send chores and People catch-ups to dayGLANCE, and logged contacts to your lifeGLANCE timeline
 - **Languages**: English, French, German, Spanish, Italian, Portuguese (Portugal and Brazil), Polish, Ukrainian and Chinese
@@ -252,6 +252,7 @@ All data is stored locally in IndexedDB (via Dexie). Cloud sync is optional and 
 - Nextcloud (uses the native WebDAV endpoint)
 - Koofr (self-hosted app recommended; Koofr blocks browser requests from Vercel-hosted origins)
 - [GLANCEvault](https://github.com/glance-apps/glance-vault), a sync server you host, always end-to-end encrypted
+- iCloud (iPhone and iPad): on by default, nothing to set up. Every device signed in to your Apple ID stays in step, and each has its own off switch. A fresh install that finds your data in iCloud asks before restoring it. See [docs/icloud-sync.md](docs/icloud-sync.md)
 - Direct Access: a folder that Syncthing, Nextcloud, Google Drive, Dropbox, OneDrive or FolderSync already keeps in step across your devices (Android: pick the folder; iPhone and iPad: pick the file). See [docs/direct-access.md](docs/direct-access.md)
 
 **File layout on the server** (default folder `GLANCE/lastglance`, configurable in sync settings):
@@ -265,15 +266,15 @@ GLANCE/lastglance/
     lastglance-backup-weekly-...json
 ```
 
-People syncs on every road chores do, as its own file or vault app so older versions never see it: `lastglance-people.json` next to the chore file on WebDAV and in a Direct Access folder (on iPhone and iPad you choose or create that file too), and the `lastglance-people` app on GLANCEvault. **Settings > People** can keep People off a vault you share.
+People syncs on every road chores do, as its own file or vault app so older versions never see it: `lastglance-people.json` next to the chore file on WebDAV, in iCloud and in a Direct Access folder (on iPhone and iPad you choose or create that file too), and the `lastglance-people` app on GLANCEvault. **Settings > People** can keep People off a vault you share.
 
-**Encryption:** end-to-end AES-256-GCM encryption is optional for WebDAV and Direct Access, and always on for GLANCEvault. When enabled, the sync files and all backup files are encrypted before upload; People uses the same key as chores. The passphrase never leaves the device, and there is no recovery mechanism, so store it somewhere safe.
+**Encryption:** end-to-end AES-256-GCM encryption is optional for WebDAV and Direct Access, and always on for GLANCEvault. iCloud files are protected by Apple's iCloud encryption instead. When enabled, the sync files and all backup files are encrypted before upload; People uses the same key as chores. The passphrase never leaves the device, and there is no recovery mechanism, so store it somewhere safe.
 
 ---
 
 ## Integrations
 
-Integrations travel over the GLANCE intents protocol, through your own WebDAV server, GLANCEvault or Direct Access folder. Configure them in **Settings > Integrations**.
+Integrations travel over the GLANCE intents protocol, through your own WebDAV server, GLANCEvault or Direct Access folder, or on iPhone and iPad through iCloud (dayGLANCE's iCloud events folder; opt-in under **Settings > Integrations**). Configure them in **Settings > Integrations**.
 
 ### dayGLANCE
 
@@ -308,7 +309,7 @@ Other apps can drive lastGLANCE through `app.lastglance.*` intents: create, comp
 
 ## Privacy
 
-lastGLANCE has no backend, no analytics, and no accounts. All data is stored locally on your device. Cloud sync is optional, goes only to a server or folder you control, and can be end-to-end encrypted so the server never sees plaintext. Phone contacts are read only when you turn them on, and never leave your phone except as people you imported, through your own sync. See the [privacy policy](https://www.glance-apps.com/lastglance/privacy).
+lastGLANCE has no backend, no analytics, and no accounts. All data is stored locally on your device. Cloud sync goes only to your own iCloud account (on iPhone and iPad, on by default, with an off switch on each device), or to a server or folder you control, where it can be end-to-end encrypted so the server never sees plaintext. Phone contacts are read only when you turn them on, and never leave your phone except as people you imported, through your own sync. See the [privacy policy](https://www.glance-apps.com/lastglance/privacy).
 
 ---
 

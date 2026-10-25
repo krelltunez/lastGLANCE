@@ -310,6 +310,11 @@
       "notConnected": "Najpierw połącz folder w Synchronizacji w chmurze. Do tego czasu ten transport pozostaje nieaktywny.",
       "reload": "Zapisywane przy zamknięciu; aplikacja uruchomi się ponownie, aby zacząć odpytywać folder.",
       "passphraseRequired": "Intencje przez dostęp bezpośredni są szyfrowane Twoim hasłem synchronizacji. Wpisz je, aby je włączyć."
+    },
+    "icloudIntents": {
+      "title": "Intencje iCloud",
+      "label": "Intencje przez iCloud",
+      "hint": "Wymieniaj intencje z dayGLANCE na tym iPhonie lub iPadzie przez iCloud, bez dodatkowej konfiguracji. W dayGLANCE też muszą być włączone intencje iCloud."
     }
   },
   "journal": {
@@ -979,6 +984,22 @@
         "inbound": "Kontakt od: {{names}}",
         "mutual": "Kontakt: {{names}}"
       }
+    }
+  },
+  "icloud": {
+    "title": "iCloud",
+    "switchLabel": "Synchronizuj z iCloud",
+    "onHint": "Twoje obowiązki i Ludzie są aktualne na każdym iPhonie i iPadzie zalogowanym na Twój Apple ID. Nic nie trzeba konfigurować.",
+    "offHint": "Wyłączone na tym urządzeniu. Kopia w iCloud i inne urządzenia pozostają bez zmian.",
+    "firstRun": {
+      "title": "Przywrócić z iCloud?",
+      "bodyChores": "W iCloud są dane lastGLANCE z Twoich innych urządzeń. Obowiązki w iCloud: {{count}}.",
+      "bodyPeople": "W iCloud są dane lastGLANCE z Twoich innych urządzeń. Ludzie w iCloud: {{count}}.",
+      "lastModified": "Ostatnia zmiana: {{when}}",
+      "restore": "Przywróć z iCloud",
+      "restoreHint": "Przenieś obowiązki i Ludzi na to urządzenie i synchronizuj je.",
+      "startFresh": "Zacznij od nowa na tym urządzeniu",
+      "startFreshHint": "Wyłącza tutaj synchronizację z iCloud. Kopia w iCloud zostaje, a synchronizację możesz włączyć później w Synchronizacji w chmurze."
     }
   }
 }

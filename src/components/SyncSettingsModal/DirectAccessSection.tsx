@@ -18,7 +18,7 @@ import { DirectAccessFileRow } from './DirectAccessFileRow'
 interface Props {
   transport?: DirectAccessTransport
   /** Runs a cycle now; from useDirectAccessSync. */
-  runSync: () => Promise<void>
+  runSync: () => Promise<unknown>
   /** The last folder error the cycle reported, or null. */
   lastError: string | null
 }

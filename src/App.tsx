@@ -38,7 +38,11 @@ import { useIntentsPoller } from '@/hooks/useIntentsPoller'
 import { useDbIntentsPoller, drainDbIntents } from '@/hooks/useDbIntentsPoller'
 import { useVaultEventStream } from '@/hooks/useVaultEventStream'
 import { useDirectAccessSync } from '@/hooks/useDirectAccessSync'
+import { useSnapshotFileSync } from '@/hooks/useSnapshotFileSync'
+import { icloudTransport, choresHaveRealData } from '@/sync/icloud'
+import { ICloudFirstRunModal } from '@/components/ICloudFirstRunModal/ICloudFirstRunModal'
 import { useDirectAccessIntents } from '@/hooks/useDirectAccessIntents'
+import { useICloudIntents } from '@/hooks/useICloudIntents'
 import { useAndroidIntentBridge } from '@/hooks/useAndroidIntentBridge'
 import { runCappedRefreshCycle, type RefreshTier } from '@/intents/launcherRefreshCycle'
 import { useOutboxFlush } from '@/hooks/useOutboxFlush'
@@ -543,6 +547,9 @@ function AppInner() {
   // Direct Access intents transport (docs/direct-access.md, step 3): the
   // event-set file in the folder. A no-op unless its opt-in is on.
   useDirectAccessIntents(loadHeatmap, { onKeyNeeded: () => setShowPassphrase(true) })
+  // iCloud intents (intents/icloudIntents.ts): dayGLANCE's events folder in its
+  // iCloud container. iOS only, and inert unless its opt-in is on.
+  useICloudIntents(loadHeatmap)
   // GLANCEvault SSE push: nudges from the vault trigger the SAME drains the
   // polls run (runDbSync for the sync tier, the intents poller's drain for the
   // intents tier), so remote changes land in seconds instead of at the next
@@ -570,6 +577,15 @@ function AppInner() {
     onKeyNeeded: () => setShowPassphrase(true),
   })
   const runDirectAccessSync = directAccessSync.runSync
+  // iCloud (docs/icloud-sync.md), iOS only: lastGLANCE's own container, on by
+  // default with nothing to set up. The same two cycles over a plaintext
+  // transport; the first launch that finds iCloud data and none of this
+  // device's own asks before restoring, and "data" leaves the sample chores out.
+  const icloudSync = useSnapshotFileSync({
+    transport: icloudTransport,
+    cycleDeps: { hasData: choresHaveRealData },
+    onKeyNeeded: () => setShowPassphrase(true),
+  })
   // The launcher heartbeat's syncedAt: the latest completed cycle across the
   // roads that are on (file, vault); null without one.
   useEffect(() => {
@@ -906,6 +922,9 @@ function AppInner() {
         </main>
       )}
 
+      {/* Above the welcome sheet (z-[60]), which a fresh install shows at the same time. */}
+      <ICloudFirstRunModal info={icloudSync.firstRun} onRestore={icloudSync.acceptFirstRun} onStartFresh={icloudSync.declineFirstRun} />
+
       {showWelcome && (
         <WelcomeModal
           clearing={welcomeClearing}
@@ -954,6 +973,7 @@ function AppInner() {
           vaultSyncErrorCode={vaultSyncErrorCode}
           vaultSkipped={vaultSkipped}
           directAccess={directAccessSync}
+          icloud={icloudTransport.isSupported() ? icloudSync : undefined}
           onClose={() => { setShowSyncSettings(false); runSharedUserSync(); backToSettings() }}
         />
       )}
