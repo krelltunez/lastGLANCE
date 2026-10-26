@@ -13,6 +13,10 @@ export interface VaultConfig {
   vaultUrl: string    // e.g. https://vault.glance-apps.com
   vaultToken: string  // device bearer token
   accountId: string   // household account id
+  // Set only on a GLANCEvault Pro connection (the hosted vault). The engines
+  // read a Pro connection exactly like a self-hosted one; only the settings
+  // form shows it differently.
+  pro?: boolean
 }
 
 // Reads the saved vault config, or null when none has been stored.
@@ -26,6 +30,7 @@ export function getVaultConfig(): VaultConfig | null {
       vaultUrl: parsed.vaultUrl ?? '',
       vaultToken: parsed.vaultToken ?? '',
       accountId: parsed.accountId ?? '',
+      ...(parsed.pro ? { pro: true } : {}),
     }
   } catch {
     return null
@@ -42,6 +47,15 @@ export function setVaultConfig(config: VaultConfig | null): void {
 export function isVaultEnabled(): boolean {
   const c = getVaultConfig()
   return !!(c && c.enabled && c.vaultUrl && c.vaultToken && c.accountId)
+}
+
+// GLANCEvault Pro: the hosted vault. The person pastes one account key and the
+// app enrolls this device with it (src/sync/vaultPro.ts), so the URL is fixed.
+export const PRO_VAULT_URL = 'https://sync.glancevault.com'
+
+// True when the stored config is a complete GLANCEvault Pro connection.
+export function isProConnection(c: VaultConfig | null | undefined): boolean {
+  return !!(c && c.pro && c.vaultUrl && c.vaultToken && c.accountId)
 }
 
 // The sync 1.10 credential halt persists under the engine's storage prefix and
