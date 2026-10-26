@@ -124,6 +124,7 @@ public final class SharedDataStore {
     // the cap. Written synchronously (commit) so the entry is on disk before the
     // receiver returns and the wake broadcast goes out.
     public static void appendPendingLauncherIntent(Context context, String entryJson) {
+        synchronized (LAUNCHER_QUEUE_LOCK) {
         try {
             JSONArray arr = new JSONArray(prefs(context).getString(KEY_PENDING_LAUNCHER_INTENTS, "[]"));
             arr.put(new JSONObject(entryJson));
@@ -132,13 +133,33 @@ public final class SharedDataStore {
         } catch (Exception e) {
             // A malformed entry is the receiver's bug, not a write to keep.
         }
+        }
     }
 
-    // Return the queued launcher writes as a JSON array string and clear the queue.
-    public static String readAndClearPendingLauncherIntents(Context context) {
-        String raw = prefs(context).getString(KEY_PENDING_LAUNCHER_INTENTS, "[]");
-        prefs(context).edit().remove(KEY_PENDING_LAUNCHER_INTENTS).apply();
-        return raw;
+    // The receiver appends on the main thread while the page takes and acks on a bridge thread.
+    private static final Object LAUNCHER_QUEUE_LOCK = new Object();
+
+    // Every queued launcher entry as a JSON array string, oldest first. The writes
+    // STAY queued until the page acknowledges each one as handled
+    // (ackPendingLauncherIntents); a REFRESH is taken off at once
+    // (launcher/LauncherWriteQueue.kt says why).
+    public static String takePendingLauncherIntents(Context context) {
+        synchronized (LAUNCHER_QUEUE_LOCK) {
+            String raw = prefs(context).getString(KEY_PENDING_LAUNCHER_INTENTS, "[]");
+            com.lastglance.app.launcher.LauncherWriteQueue.Taken taken =
+                com.lastglance.app.launcher.LauncherWriteQueue.take(raw, com.lastglance.app.launcher.LauncherIntentReceiver.ACTION_REFRESH);
+            prefs(context).edit().putString(KEY_PENDING_LAUNCHER_INTENTS, taken.getKept()).commit();
+            return taken.getDelivered();
+        }
+    }
+
+    // Removes the launcher writes the page has handled, by clientId (a JSON array of strings).
+    public static void ackPendingLauncherIntents(Context context, String idsJson) {
+        synchronized (LAUNCHER_QUEUE_LOCK) {
+            String raw = prefs(context).getString(KEY_PENDING_LAUNCHER_INTENTS, "[]");
+            prefs(context).edit().putString(KEY_PENDING_LAUNCHER_INTENTS,
+                com.lastglance.app.launcher.LauncherWriteQueue.ack(raw, idsJson)).commit();
+        }
     }
 
     // The launcher heartbeat (src/native/launcherHeartbeat.ts): {checkedAt, syncedAt},

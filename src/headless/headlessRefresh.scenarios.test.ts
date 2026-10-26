@@ -32,6 +32,9 @@ interface Shell {
   done: string[]
   abort: { value: boolean }
   offline: { value: boolean }
+  // The launcher queue, taken as the shell takes it (LauncherWriteQueue).
+  queue: { value: Record<string, unknown>[] }
+  acked: string[]
 }
 
 function fakeShell(): Shell {
@@ -43,6 +46,8 @@ function fakeShell(): Shell {
   const done: string[] = []
   const abort = { value: false }
   const offline = { value: false }
+  const queue = { value: [] as Record<string, unknown>[] }
+  const acked: string[] = []
   let etagSeq = 0
 
   const reply = (id: string, result: unknown) =>
@@ -71,6 +76,16 @@ function fakeShell(): Shell {
     },
     updateLauncherSnapshot: (json: string) => { snapshots.push(json) },
     touchLauncherHeartbeat: (json: string) => { heartbeats.push(json) },
+    takeLauncherIntents: () => {
+      const all = JSON.stringify(queue.value)
+      queue.value = queue.value.filter(e => e.action !== 'com.lastglance.app.launcher.REFRESH')
+      return all
+    },
+    ackLauncherIntents: (json: string) => {
+      const ids = JSON.parse(json) as string[]
+      acked.push(...ids)
+      queue.value = queue.value.filter(e => !ids.includes(e.clientId as string))
+    },
     headlessShouldAbort: () => abort.value,
     headlessDone: (json: string) => { done.push(json) },
   }
@@ -81,7 +96,7 @@ function fakeShell(): Shell {
       return target[prop as string]
     },
   })
-  return { bridge, looked, secure, files, requests, snapshots, heartbeats, done, abort, offline }
+  return { bridge, looked, secure, files, requests, snapshots, heartbeats, done, abort, offline, queue, acked }
 }
 
 let shell: Shell
@@ -166,6 +181,46 @@ describe('headless refresh, end to end', () => {
     expect(chore).toMatchObject({ name: 'Water the tomatoes', lastDoneAt: NOW })
     expect(shell.heartbeats.length).toBeGreaterThan(0)
     // Nothing beyond the allowlist was even looked up.
+    expect([...shell.looked].filter(m => !(HEADLESS_BRIDGE_METHODS as readonly string[]).includes(m))).toEqual([])
+  }, 20_000)
+
+  // A launcher write that reached the app while it was closed: applied after
+  // the pull, acknowledged, pushed by a second pass, and in the snapshot.
+  // MUTATION: drop the writes step and every expectation below on the new chore fails.
+  it("applies the launcher's queued writes after the pull, acknowledges each, pushes them, and puts them in the snapshot", async () => {
+    const booted = await boot('rf-4')
+    shim = booted.shim
+    close = () => booted.db.close()
+    const { getSyncFolder } = await import('@/sync/syncFolder')
+    const fileUrl = `${DAV}/${getSyncFolder()}/lastglance-sync.json`
+    shell.files.set(fileUrl, { body: JSON.stringify({ appId: 'lastglance', lastModified: NOW, data: remotePayload() }), etag: '"e0"' })
+    const L = 'com.lastglance.app.launcher.'
+    shell.queue.value = [
+      { action: `${L}REFRESH`, clientId: 'rf-0', payload: {} },
+      { action: `${L}CREATE`, clientId: 'w-new', payload: { title: 'Change the furnace filter' } },
+      // The pulled chore: only completable once the pull has landed it.
+      { action: `${L}COMPLETE`, clientId: 'w-done', payload: { chore_id: 'c0ffee00-0000-4000-8000-000000000002', completed_at: '2026-10-22T13:00:00.000Z' } },
+    ]
+
+    const { headlessBridge, HEADLESS_BRIDGE_METHODS } = await import('./headlessMode')
+    const { runHeadlessRefresh } = await import('./headlessRefresh')
+    const result = await runHeadlessRefresh('rf-4', { bridge: headlessBridge()! })
+    expect(result, JSON.stringify(result)).toMatchObject({ outcome: 'ran' })
+
+    // Landed in IndexedDB…
+    expect((await booted.db.chores.toArray()).map(c => c.name)).toContain('Change the furnace filter')
+    const events = await booted.db.completionEvents.toArray()
+    expect(events.map(e => e.completed_at)).toContain('2026-10-22T13:00:00.000Z')
+    // …acknowledged, queue empty…
+    expect(shell.acked).toEqual(['w-new', 'w-done'])
+    expect(shell.queue.value).toEqual([])
+    // …pushed by the second pass: the WebDAV file now carries both…
+    const pushed = JSON.parse(shell.files.get(fileUrl)!.body)
+    expect(pushed.data.chores.map((c: { name: string }) => c.name)).toContain('Change the furnace filter')
+    expect(pushed.data.completionEvents.map((e: { completedAt: string }) => e.completedAt)).toContain('2026-10-22T13:00:00.000Z')
+    // …and the snapshot shows the ids the launcher retires its outbox on.
+    const snapshot = JSON.parse(shell.snapshots[shell.snapshots.length - 1])
+    expect(snapshot.handledWrites.map((h: { clientId: string }) => h.clientId)).toEqual(expect.arrayContaining(['w-new', 'w-done']))
     expect([...shell.looked].filter(m => !(HEADLESS_BRIDGE_METHODS as readonly string[]).includes(m))).toEqual([])
   }, 20_000)
 

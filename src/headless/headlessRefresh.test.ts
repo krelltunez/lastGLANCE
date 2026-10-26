@@ -16,6 +16,8 @@ function fakeBridge(over: Partial<HeadlessBridge> = {}) {
     httpRequestAsync: () => {},
     updateLauncherSnapshot: () => {},
     touchLauncherHeartbeat: () => {},
+    takeLauncherIntents: () => '[]',
+    ackLauncherIntents: () => {},
     headlessShouldAbort: () => false,
     headlessDone: (json) => { done.push(json) },
     ...over,
@@ -39,8 +41,8 @@ describe('headlessRequest', () => {
 
   it('the allowlist is what HeadlessBridge.kt implements', () => {
     expect([...HEADLESS_BRIDGE_METHODS].sort()).toEqual([
-      'headlessDone', 'headlessShouldAbort', 'httpRequestAsync', 'secureDelete', 'secureGet', 'secureSet',
-      'touchLauncherHeartbeat', 'updateLauncherSnapshot',
+      'ackLauncherIntents', 'headlessDone', 'headlessShouldAbort', 'httpRequestAsync', 'secureDelete', 'secureGet', 'secureSet',
+      'takeLauncherIntents', 'touchLauncherHeartbeat', 'updateLauncherSnapshot',
     ])
   })
 })
@@ -58,10 +60,43 @@ describe('runHeadlessRefresh', () => {
         { name: 'vault', run: async () => { order.push('vault') } },
       ),
       pushSnapshot: async () => { order.push('snapshot') },
+      applyWrites: async () => { order.push('writes'); return 0 },
     })
-    expect(order).toEqual(['file', 'vault', 'snapshot'])
+    // No write changed anything: the roads run once.
+    expect(order).toEqual(['file', 'vault', 'writes', 'snapshot'])
     expect(result).toEqual({ clientId: 'rf-1', outcome: 'ran', durationMs: 50 })
     expect(JSON.parse(done[0])).toEqual(result)
+  })
+
+  // MUTATION: skip the second pass and the order loses its second file and vault.
+  it('launcher writes are applied after the roads, which run again to push them before the snapshot', async () => {
+    const order: string[] = []
+    const { bridge } = fakeBridge()
+    const result = await runHeadlessRefresh('rf-w', {
+      bridge,
+      buildRoads: roads(
+        { name: 'file', run: async () => { order.push('file') } },
+        { name: 'vault', run: async () => { order.push('vault') } },
+      ),
+      pushSnapshot: async () => { order.push('snapshot') },
+      applyWrites: async () => { order.push('writes'); return 2 },
+    })
+    expect(order).toEqual(['file', 'vault', 'writes', 'file', 'vault', 'snapshot'])
+    expect(result.outcome).toBe('ran')
+  })
+
+  it('a failure applying the writes is no writes: the run goes on to the snapshot', async () => {
+    const pushSnapshot = vi.fn(async () => {})
+    const run = vi.fn(async () => {})
+    const { bridge } = fakeBridge()
+    const result = await runHeadlessRefresh('rf-x', {
+      bridge, pushSnapshot,
+      buildRoads: roads({ name: 'file', run }),
+      applyWrites: async () => { throw new Error('queue unreadable') },
+    })
+    expect(run).toHaveBeenCalledOnce()
+    expect(pushSnapshot).toHaveBeenCalledOnce()
+    expect(result.outcome).toBe('ran')
   })
 
   it('a road that reports an error and does not clear it fails the run, named', async () => {

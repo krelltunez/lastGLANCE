@@ -18,7 +18,8 @@ import java.util.concurrent.TimeUnit
  * ALLOWLIST of what a run may reach, and nothing more. There is no Capacitor
  * bridge in the headless WebView (it needs an Activity), so this stands in for
  * the four plugins the run's sync roads use: the secure store (credentials and
- * sync keys), HTTP (WebDAV and the vault), and the launcher push. Keep this
+ * sync keys), HTTP (WebDAV and the vault), and the launcher push, plus the
+ * launcher's write queue, which the run applies. Keep this
  * list equal to HEADLESS_BRIDGE_METHODS in src/headless/headlessMode.ts.
  *
  * Every call marks the run as started: a page that never calls is not running
@@ -105,6 +106,22 @@ class HeadlessBridge(
         run.markStarted()
         SharedDataStore.mergeLauncherHeartbeat(context, json)
         context.contentResolver.notifyChange(LauncherProvider.CONTENT_URI, null)
+    }
+
+    // ── The launcher's write queue (src/headless/headlessRefresh.ts applies it) ──
+
+    /** The queued entries; writes stay queued until [ackLauncherIntents] (LauncherWriteQueue). */
+    @JavascriptInterface
+    fun takeLauncherIntents(): String {
+        run.markStarted()
+        return SharedDataStore.takePendingLauncherIntents(context)
+    }
+
+    /** The writes the run has handled, by clientId: off the queue. */
+    @JavascriptInterface
+    fun ackLauncherIntents(idsJson: String) {
+        run.markStarted()
+        SharedDataStore.ackPendingLauncherIntents(context, idsJson)
     }
 
     // ── The run's protocol with the worker ───────────────────────────────────

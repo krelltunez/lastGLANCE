@@ -52,9 +52,39 @@ class LauncherIntentReceiver : BroadcastReceiver() {
         SharedDataStore.appendPendingLauncherIntent(context, entry.toString())
 
         // Wake a running app so the WebView drains at once (IntentsBridgePlugin
-        // turns this into its pendingIntent event); a dead app drains on next
-        // launch. Package-scoped, like the automation wake.
+        // turns this into its pendingIntent event). Package-scoped, like the
+        // automation wake.
         context.sendBroadcast(Intent(IntentReceiver.INTENT_RECEIVED).setPackage(context.packageName))
+        // With no renderer, a headless run applies it (src/headless/headlessRefresh.ts)
+        // rather than leaving it until the app is opened.
+        if (!LauncherBridgePlugin.rendererAlive) runHeadlessForWrite(context, clientId)
+    }
+
+    /**
+     * Schedules a headless run for a write that reached a dead app, logged like a
+     * REFRESH under `<clientId>-write` so the launcher's diagnostics show it. Not
+     * when a run is already queued, scheduled or running (it applies the queue
+     * too), nor inside the ten-minute floor: the launcher re-sends a write it has
+     * not seen land, so a later send schedules the run once the floor allows.
+     */
+    private fun runHeadlessForWrite(context: Context, clientId: String) {
+        val now = System.currentTimeMillis()
+        val last = SharedDataStore.lastLauncherRefresh(context)
+        val inFlight = LauncherRefreshWorker.running ||
+            (last != null && last.optString("outcome") in IN_FLIGHT && !last.has("finishedAt") && now - last.optLong("requestedAt") < INFLIGHT_MS)
+        if (!HeadlessRefreshPolicy.runForWrite(inFlight, SharedDataStore.launcherHeadlessLastRunAt(context), now)) return
+        val runId = "$clientId-write"
+        // Logged before the run is scheduled: the worker patches this entry.
+        SharedDataStore.appendLauncherRefresh(context, JSONObject().put("clientId", runId).put("requestedAt", now).put("liveness", "dead")
+            .put("outcome", "scheduled").put("reason", "a launcher write reached the app while it was closed: headless run scheduled"))
+        try {
+            LauncherRefreshWorker.schedule(context, runId)
+        } catch (e: Exception) {
+            Log.w(TAG, "Could not schedule a headless run for a write", e)
+            SharedDataStore.updateLauncherRefresh(context, runId, JSONObject().put("outcome", "deferred")
+                .put("reason", "a launcher write reached the app while it was closed, and no headless run could be scheduled: ${e.message}"))
+        }
+        context.contentResolver.notifyChange(LauncherProvider.CONTENT_URI, null)
     }
 
     /**

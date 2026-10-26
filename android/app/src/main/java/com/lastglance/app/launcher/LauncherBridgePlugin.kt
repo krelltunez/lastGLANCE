@@ -78,17 +78,25 @@ class LauncherBridgePlugin : Plugin() {
     }
 
     /**
-     * The launcher's queued writes, oldest first; the queue is cleared. A REFRESH
-     * taken here is stamped as picked up, so one that then goes unanswered says
-     * the page had it (LauncherRefreshTrace).
+     * The launcher's queued entries, oldest first. The writes stay queued until
+     * [ackIntents] says each is handled, so a page that dies first leaves them for
+     * the next (LauncherWriteQueue). A REFRESH taken here is stamped as picked up,
+     * so one that then goes unanswered says the page had it (LauncherRefreshTrace).
      */
     @PluginMethod
     fun drainPendingIntents(call: PluginCall) {
-        val drained = SharedDataStore.readAndClearPendingLauncherIntents(context)
+        val drained = SharedDataStore.takePendingLauncherIntents(context)
         LauncherRefreshTrace.markPickedUp(context, drained)
         val ret = JSObject()
         ret.put("intents", drained)
         call.resolve(ret)
+    }
+
+    /** The launcher writes the page has handled, by clientId (`ids`, a JSON array): off the queue. */
+    @PluginMethod
+    fun ackIntents(call: PluginCall) {
+        SharedDataStore.ackPendingLauncherIntents(context, call.getString("ids") ?: "[]")
+        call.resolve()
     }
 
     companion object {
