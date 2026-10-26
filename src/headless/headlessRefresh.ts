@@ -2,21 +2,27 @@
 // Android shell runs in an Activity-less WebView, on the launcher's REFRESH,
 // while the app's process is dead. One cycle of every sync road the app's own
 // REFRESH runs (App.tsx runLauncherSyncCycle: chores and People, file and
-// vault), then the launcher snapshot and heartbeat are re-pushed and the
-// outcome is reported to the worker.
+// vault), then the launcher's queued writes are applied and, when any changed
+// something, the roads run again to push them; then the launcher snapshot and
+// heartbeat are re-pushed and the outcome is reported to the worker.
 //
 // An ALLOWLIST, not App with features switched off. It loads only the sync
 // keys, the four engines and the snapshot builder, all of which read and write
 // the app's own IndexedDB and localStorage (the WebView shares the app's
-// origin). Nothing else initialises: no UI, reminders, widgets, intents, Direct
-// Access or SSE. The native side holds the same line: HeadlessBridge.kt exposes
-// only HEADLESS_BRIDGE_METHODS.
+// origin), and the launcher's write queue, applied with the app's own handlers
+// (src/intents/launcherQueue.ts). Nothing else initialises: no UI, reminders,
+// widgets, automation intents, Direct Access or SSE (a launcher completion
+// applied here sends no NOTIFY broadcast: that is a Capacitor plugin, and it was
+// always best-effort). The native side holds the same line: HeadlessBridge.kt
+// exposes only HEADLESS_BRIDGE_METHODS.
 //
 // The reverse lock: if the user opens the app mid-run, the shell destroys this
 // WebView before the live one loads (LauncherRefreshWorker.abortForLiveInstance),
 // and the run also asks `headlessShouldAbort` at each phase boundary. Signal
-// abort, not wait: the app's own start runs a cycle anyway, and a run makes no
-// local edits, so stopping loses nothing.
+// abort, not wait: the app's own start runs a cycle anyway. A run's only local
+// edits are launcher writes, each taken off the native queue only once its
+// handler has landed it: one the abort cut short is still queued for the app,
+// and one landed but not yet pushed is pushed by the app's own first cycle.
 
 import { hasDbRootKey, initDbRootKey } from '@glance-apps/sync'
 import { createEngine, initSessionKey, CRYPTO_CONFIG, DB_CRYPTO_CONFIG } from '@/sync/engine'
@@ -25,6 +31,9 @@ import { isVaultEnabled } from '@/sync/vaultConfig'
 import { createPeopleFileEngine } from '@/people/sync/fileEngine'
 import { createPeopleDbEngine } from '@/people/sync/dbEngine'
 import { configureLauncherHeartbeat, latestSyncedAt, pushLauncherSnapshotNow } from '@/hooks/useLauncherSnapshot'
+import { ackLauncherIntents, drainLauncherIntents } from '@/native/launcherBridge'
+import { drainLauncherQueue } from '@/intents/launcherQueue'
+import { buildIntentContext } from '@/intents/intentContext'
 import { HEADLESS_OUTCOMES, type HeadlessBridge, type HeadlessOutcome } from './headlessMode'
 
 // One sync road: its name in the outcome's reason, and one cycle.
@@ -47,6 +56,8 @@ export interface HeadlessDeps {
   bridge: HeadlessBridge
   buildRoads?: (report: ReportError) => Promise<HeadlessRoads>
   pushSnapshot?: () => Promise<void>
+  // Applies the launcher's queued writes; resolves with how many changed something.
+  applyWrites?: () => Promise<number>
   now?: () => number
 }
 
@@ -90,10 +101,21 @@ export async function buildSyncRoads(report: ReportError): Promise<HeadlessRoads
   }
 }
 
-// One run: roads, snapshot, outcome. Reports through `headlessDone` and
+// The launcher's queued writes, through the app's handlers and ledger. A
+// REFRESH in the queue is this run, so only writes are handled.
+export async function applyLauncherWrites(): Promise<number> {
+  const results = await drainLauncherQueue({
+    entries: await drainLauncherIntents(),
+    ctx: () => buildIntentContext(undefined, 'GLANCElauncher'),
+    ack: ackLauncherIntents,
+  })
+  return results.filter(r => r.result.success && !r.result.deduped).length
+}
+
+// One run: roads, launcher writes (then the roads again to push them), snapshot, outcome. Reports through `headlessDone` and
 // resolves with the same record; never throws.
 export async function runHeadlessRefresh(clientId: string, deps: HeadlessDeps): Promise<HeadlessResult> {
-  const { bridge, buildRoads = buildSyncRoads, pushSnapshot = pushLauncherSnapshotNow, now = Date.now } = deps
+  const { bridge, buildRoads = buildSyncRoads, pushSnapshot = pushLauncherSnapshotNow, applyWrites = applyLauncherWrites, now = Date.now } = deps
   const started = now()
   const errors = new Map<string, string | null>()
   const report: ReportError = (road, message) => { errors.set(road, message || null) }
@@ -109,8 +131,17 @@ export async function runHeadlessRefresh(clientId: string, deps: HeadlessDeps): 
     if (shouldAbort()) return done(HEADLESS_OUTCOMES.ABORTED, 'app opened')
     const { roads, syncedAt } = await buildRoads(report)
     if (shouldAbort()) return done(HEADLESS_OUTCOMES.ABORTED, 'app opened')
-    await Promise.all(roads.map(road => road.run().catch((e: unknown) => report(road.name, messageOf(e)))))
+    const runRoads = () => Promise.all(roads.map(road => road.run().catch((e: unknown) => report(road.name, messageOf(e)))))
+    await runRoads()
     if (shouldAbort()) return done(HEADLESS_OUTCOMES.ABORTED, 'app opened')
+    // After the pull, as the app's drain sees it. A write that failed to apply
+    // stays out of the ledger, and the launcher re-sends it.
+    const applied = await applyWrites().catch(() => 0)
+    if (applied > 0) {
+      if (shouldAbort()) return done(HEADLESS_OUTCOMES.ABORTED, 'app opened')
+      await runRoads()
+      if (shouldAbort()) return done(HEADLESS_OUTCOMES.ABORTED, 'app opened')
+    }
     // Pushed whatever the roads did: one that failed may sit beside one that
     // applied, and the heartbeat's checkedAt records the look either way.
     configureLauncherHeartbeat(syncedAt)

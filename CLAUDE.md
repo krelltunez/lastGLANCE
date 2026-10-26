@@ -58,3 +58,9 @@ WebView with no Activity and no Capacitor bridge; main.tsx runs
   localStorage with the app. Do not move either side off it.
 - **Signal-abort.** `MainActivity.onCreate` destroys a run in flight before the
   bridge loads; the root checks `headlessShouldAbort` between phases.
+- **Launcher writes are applied, then pushed.** After its roads the run applies
+  the launcher's queued writes with the app's own handlers and ledger
+  (`src/intents/launcherQueue.ts`), each acknowledged to the native queue only
+  once handled, and runs the roads again when any changed something. The
+  receiver schedules a run when a write reaches a dead app, outside the floor
+  and with no run in flight (`HeadlessRefreshPolicy.runForWrite`).

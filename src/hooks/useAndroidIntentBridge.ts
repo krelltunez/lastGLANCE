@@ -9,8 +9,9 @@ import {
   nativeReportIntentResult,
   addPendingIntentListener,
 } from '@/native/intentsBridge'
-import { drainLauncherIntents } from '@/native/launcherBridge'
-import { handleLauncherIntent, type LauncherRefreshHooks } from '@/intents/launcherWrites'
+import { ackLauncherIntents, drainLauncherIntents } from '@/native/launcherBridge'
+import type { LauncherRefreshHooks } from '@/intents/launcherWrites'
+import { drainLauncherQueue } from '@/intents/launcherQueue'
 
 // The Android/Tasker intents transport bridge (see
 // docs/tasker-intents-architecture.md §3.2), ported to Capacitor. Mounted once
@@ -25,9 +26,10 @@ import { handleLauncherIntent, type LauncherRefreshHooks } from '@/intents/launc
 //
 // The GLANCElauncher's writes (docs/launcher-integration.md) share the wake
 // signal and the drain but not the slot or the toggle: its receiver queues them
-// natively behind the launcher permission, and each drain empties that queue
-// first, through handleLauncherIntent, which dedupes on the write's client id.
-// No RESULT is reported for them; the launcher reads the next snapshot.
+// natively behind the launcher permission, and each drain handles that queue
+// first (src/intents/launcherQueue.ts): writes before refreshes, each taken off
+// the native queue only once handled, and deduped on its client id. No RESULT
+// is reported for them; the launcher reads the next snapshot.
 //
 // No-op off Android. `onChanged` refreshes derived UI (the heatmap) after a
 // mutating action.
@@ -48,14 +50,13 @@ export function useAndroidIntentBridge(onChanged?: () => void, launcherHooks?: L
     let rerun = false
 
     const drainLauncher = async (): Promise<void> => {
-      for (const write of await drainLauncherIntents()) {
-        if (cancelled) return
-        try {
-          await handleLauncherIntent(write, buildIntentContext(() => onChangedRef.current?.(), 'GLANCElauncher'), {}, hooksRef.current ?? {})
-        } catch {
-          // A failed write is not recorded, so the launcher re-sends it.
-        }
-      }
+      await drainLauncherQueue({
+        entries: await drainLauncherIntents(),
+        ctx: () => buildIntentContext(() => onChangedRef.current?.(), 'GLANCElauncher'),
+        ack: ackLauncherIntents,
+        hooks: hooksRef.current ?? {},
+        cancelled: () => cancelled,
+      })
     }
 
     const drainOnce = async (): Promise<void> => {

@@ -158,8 +158,25 @@ optional `project` for CREATE; `chore_id` and optional `completed_at`, or
 `note`, `occurred_at` for LOG_INTERACTION), and `clientId`, an id the launcher
 generates per write (a UUID). The receiver queues the write in its own slot
 (several deep, unlike the automation transport's single slot) and sends the
-same package-scoped wake broadcast, so a running app drains at once and a dead
-app on next launch.
+same package-scoped wake broadcast, so a running app drains at once.
+
+A write leaves the queue only once it is handled (`src/intents/launcherQueue.ts`):
+`drainPendingIntents` hands the page every entry but keeps the writes
+(`LauncherWriteQueue`), and each is acknowledged (`ackIntents`) when its handler
+returns, which is when its database write has landed. A page that stalls in the
+background, or is closed or killed first, leaves its writes for the next, which
+dedupes on the id. Writes are handled before refreshes, so none waits behind a
+sync cycle; a REFRESH is still taken off on read.
+
+A write that reaches the app while it is closed does not wait for it to open:
+the receiver schedules a headless run (logged as `<clientId>-write`, unless a
+run is already queued or running, or one ran in the last ten minutes; the
+launcher re-sends a write until it sees it land, so a later send starts it).
+The run applies the queue after its roads, with the app's own handlers and
+ledger, acknowledges each write, and runs the roads again to push what changed
+(`src/headless/headlessRefresh.ts`). A completion applied there sends no NOTIFY
+broadcast: that is a Capacitor plugin, absent from a headless run, and it was
+always best-effort.
 
 The web layer (`src/intents/launcherWrites.ts`, drained first by
 `useAndroidIntentBridge`) handles each write through the automation handlers

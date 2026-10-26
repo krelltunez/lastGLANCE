@@ -37,6 +37,14 @@ object HeadlessRefreshPolicy {
         object Run : Decision()
     }
 
+    /**
+     * Whether a launcher write that reached a dead app starts a headless run to apply it:
+     * not while one is queued or running (it applies the queue too), nor inside the floor
+     * (the launcher re-sends a write it has not seen land, and a later send starts the run).
+     */
+    fun runForWrite(runInFlight: Boolean, lastRunAt: Long, now: Long): Boolean =
+        !runInFlight && decide(rendererAlive = false, lastRunAt = lastRunAt, now = now) is Decision.Run
+
     fun decide(rendererAlive: Boolean, lastRunAt: Long, now: Long): Decision {
         if (rendererAlive) return Decision.HandToLive
         val since = now - lastRunAt

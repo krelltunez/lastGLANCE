@@ -10,9 +10,12 @@ import { headlessBridge } from '@/headless/headlessMode'
 export interface LauncherBridgePlugin {
   // Persist the launcher snapshot JSON and notify the provider's observers.
   updateSnapshot(options: { json: string }): Promise<void>
-  // Return and clear the queued launcher writes, a JSON array string of
-  // `{ action, payload, clientId, receivedAt }` entries in arrival order.
+  // Return the queued launcher entries, a JSON array string of
+  // `{ action, payload, clientId, receivedAt }` in arrival order. The writes
+  // stay queued until acknowledged (ackIntents); a REFRESH is taken off.
   drainPendingIntents(): Promise<{ intents: string }>
+  // Take the handled writes (`ids`, a JSON array of client ids) off the queue.
+  ackIntents(options: { ids: string }): Promise<void>
   // Merge the heartbeat ({ checkedAt, syncedAt }) and notify the provider's observers.
   touchHeartbeat(options: { json: string }): Promise<void>
   // Record a REFRESH's outcome ({ clientId, outcome, reason?, durationMs }) in the native log.
@@ -44,14 +47,17 @@ export async function pushLauncherSnapshot(json: string): Promise<void> {
   }
 }
 
-// Reads and clears the launcher write queue. Entries without a string action
-// or clientId are dropped (the receiver never stores such a thing, so one here
-// is corruption, not a write). Empty off Android or on any error.
+// Reads the launcher queue: its writes stay queued until ackLauncherIntents
+// (src/intents/launcherQueue.ts). Entries without a string action or clientId
+// are dropped (the receiver never stores such a thing, so one here is
+// corruption, not a write). Empty off Android or on any error. A headless run
+// reads it through the shell's HeadlessBridge.
 export async function drainLauncherIntents(): Promise<LauncherIntent[]> {
-  if (!isAndroid()) return []
+  const headless = headlessBridge()
+  if (!headless && !isAndroid()) return []
   try {
-    const res = await LauncherBridge.drainPendingIntents()
-    const parsed = JSON.parse(res?.intents || '[]') as unknown
+    const raw = headless ? headless.takeLauncherIntents() : (await LauncherBridge.drainPendingIntents())?.intents
+    const parsed = JSON.parse(raw || '[]') as unknown
     if (!Array.isArray(parsed)) return []
     const out: LauncherIntent[] = []
     for (const entry of parsed) {
@@ -64,6 +70,19 @@ export async function drainLauncherIntents(): Promise<LauncherIntent[]> {
     return out
   } catch {
     return []
+  }
+}
+
+// Takes handled launcher writes off the native queue. Best-effort: one that
+// stays is delivered again, and the ledger dedupes it.
+export async function ackLauncherIntents(ids: string[]): Promise<void> {
+  if (!ids.length) return
+  const headless = headlessBridge()
+  try {
+    if (headless) headless.ackLauncherIntents(JSON.stringify(ids))
+    else if (isAndroid()) await LauncherBridge.ackIntents({ ids: JSON.stringify(ids) })
+  } catch {
+    // An older shell without the method cleared the queue on read.
   }
 }
 

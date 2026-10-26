@@ -39,6 +39,8 @@ export const HEADLESS_BRIDGE_METHODS = Object.freeze([
   'httpRequestAsync',
   // The launcher's read model and freshness.
   'updateLauncherSnapshot', 'touchLauncherHeartbeat',
+  // The launcher's write queue: taken, then acknowledged once each write is handled.
+  'takeLauncherIntents', 'ackLauncherIntents',
   // The run's own protocol with the worker.
   'headlessShouldAbort', 'headlessDone',
 ] as const)
@@ -52,6 +54,8 @@ export interface HeadlessBridge {
   httpRequestAsync(callId: string, method: string, url: string, headersJson: string, body: string | null): void
   updateLauncherSnapshot(json: string): void
   touchLauncherHeartbeat(json: string): void
+  takeLauncherIntents(): string
+  ackLauncherIntents(idsJson: string): void
   headlessShouldAbort(): boolean
   headlessDone(json: string): void
 }
