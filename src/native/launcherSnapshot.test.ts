@@ -14,7 +14,7 @@ function chore(id: number, name: string, category_id: number, extra: Partial<Cho
   return {
     id, name, category_id, sort_order: id, target_cadence_days: 7, notify_when_overdue: false,
     auto_schedule_to_dayglance: false, preferred_schedule_behavior: null, seasonal_start: null, seasonal_end: null,
-    details: null, created_at: '2026-10-01T00:00:00.000Z', updated_at: '2026-10-02T00:00:00.000Z',
+    details: null, pinned: false, created_at: '2026-10-01T00:00:00.000Z', updated_at: '2026-10-02T00:00:00.000Z',
     sync_id: `chore-${id}`, category_sync_id: `cat-${category_id}`, assigned_user_sync_ids: [],
     last_completed_at: '2026-10-15T12:00:00.000Z', elapsed_days: 4.1, ...extra,
   }

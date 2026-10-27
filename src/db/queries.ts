@@ -210,7 +210,7 @@ export async function getChoresForCategory(categoryId: number): Promise<ChoreWit
 }
 
 export async function createChore(
-  data: Omit<Chore, 'id' | 'sort_order' | 'created_at' | 'updated_at' | 'sync_id' | 'category_sync_id'>
+  data: Omit<Chore, 'id' | 'sort_order' | 'created_at' | 'updated_at' | 'sync_id' | 'category_sync_id' | 'pinned'> & { pinned?: boolean }
 ): Promise<number> {
   const now = dayjs().toISOString()
   const count = await db.chores.where('category_id').equals(data.category_id).count()
@@ -218,6 +218,7 @@ export async function createChore(
   const category_sync_id = cat?.sync_id ?? null
   const sync_id = crypto.randomUUID()
   const id = await db.chores.add({
+    pinned: false,
     ...data,
     sort_order: count,
     created_at: now,
@@ -542,7 +543,7 @@ interface NormalizedChore {
   sync_id: string; name: string; category_sync_id: string | null; sort_order: number
   target_cadence_days: number | null; notify_when_overdue: boolean; auto_schedule_to_dayglance: boolean
   preferred_schedule_behavior: Chore['preferred_schedule_behavior']
-  seasonal_start: string | null; seasonal_end: string | null; details: string | null; icon?: string
+  seasonal_start: string | null; seasonal_end: string | null; details: string | null; pinned: boolean; icon?: string
   assigned_user_sync_ids: string[]; created_at: string
 }
 interface NormalizedEvent { sync_id: string; chore_sync_id: string; completed_at: string; updated_at: string; note: string | null; source: 'manual' | 'dayglance'; completed_by_user_sync_id: string | null }
@@ -627,6 +628,7 @@ function normalizeBackup(raw: unknown, now: string): NormalizedBackup {
     seasonal_start: typeof (c.seasonal_start ?? c.seasonalStart) === 'string' ? (c.seasonal_start ?? c.seasonalStart) as string : null,
     seasonal_end: typeof (c.seasonal_end ?? c.seasonalEnd) === 'string' ? (c.seasonal_end ?? c.seasonalEnd) as string : null,
     details: typeof c.details === 'string' ? c.details : null,
+    pinned: c.pinned === true,
     icon: typeof c.icon === 'string' ? c.icon : undefined,
     assigned_user_sync_ids: asArr(c.assigned_user_sync_ids ?? c.assignedUserSyncIds),
     created_at: asStr(c.created_at ?? c.createdAt, now),
@@ -761,7 +763,7 @@ export async function restoreFromBackup(raw: unknown): Promise<{ categories: num
           sort_order: ch.sort_order, target_cadence_days: ch.target_cadence_days,
           notify_when_overdue: ch.notify_when_overdue, auto_schedule_to_dayglance: ch.auto_schedule_to_dayglance,
           preferred_schedule_behavior: ch.preferred_schedule_behavior,
-          seasonal_start: ch.seasonal_start, seasonal_end: ch.seasonal_end, details: ch.details, icon: ch.icon,
+          seasonal_start: ch.seasonal_start, seasonal_end: ch.seasonal_end, details: ch.details, pinned: ch.pinned, icon: ch.icon,
           assigned_user_sync_ids: ch.assigned_user_sync_ids, created_at: ch.created_at, updated_at: now,
         } as Chore
       })

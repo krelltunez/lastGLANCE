@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Check, Pencil, Trash2, GripVertical, Bell, Leaf, FileText } from 'lucide-react'
+import { Check, Pencil, Trash2, GripVertical, Bell, Leaf, FileText, Pin } from 'lucide-react'
 import type { ChoreWithLastCompletion } from '@/types'
 import { getFillRatio, getCadenceColor, formatElapsed, formatNextDue } from '@/utils/cadence'
 import { logCompletion } from '@/db/queries'
@@ -12,6 +12,9 @@ import { Trans, useTranslation } from 'react-i18next'
 
 interface Props {
   chore: ChoreWithLastCompletion
+  // Set when the row is drawn in Pinned rather than its own category: names
+  // the category it lives in, in place of the pin marker.
+  categoryName?: string
   editMode: boolean
   onTap: (chore: ChoreWithLastCompletion) => void
   onEdit: () => void
@@ -24,7 +27,7 @@ interface Props {
 type LogState = 'idle' | 'saving' | 'done'
 type SendState = 'idle' | 'saving' | 'done' | 'error'
 
-export function ChoreRow({ chore, editMode, onTap, onEdit, onDelete, onRefresh, onDragHandlePointerDown, isDragging }: Props) {
+export function ChoreRow({ chore, categoryName, editMode, onTap, onEdit, onDelete, onRefresh, onDragHandlePointerDown, isDragging }: Props) {
   const { t } = useTranslation()
   const { users, multiUserEnabled } = useUsersContext()
   const [logState, setLogState] = useState<LogState>('idle')
@@ -147,6 +150,11 @@ export function ChoreRow({ chore, editMode, onTap, onEdit, onDelete, onRefresh, 
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-slate-800 dark:text-slate-100 group-hover:text-slate-900 dark:group-hover:text-white transition-colors leading-snug flex items-center gap-1.5 flex-wrap">
             <span className="truncate min-w-0">{chore.name}</span>
+            {chore.pinned && categoryName === undefined && (
+              <span className="shrink-0 inline-flex" data-tooltip={t('choreRow.pinned')}>
+                <Pin size={10} className="text-slate-400 dark:text-slate-500 opacity-50" />
+              </span>
+            )}
             {chore.notify_when_overdue && <Bell size={10} className="shrink-0 text-slate-400 dark:text-slate-500 opacity-50" />}
             {/* Details live behind a tap on the row, so the marker is what says
                 there is anything to find; hovering reads it without the trip. */}
@@ -165,6 +173,9 @@ export function ChoreRow({ chore, editMode, onTap, onEdit, onDelete, onRefresh, 
             })}
           </p>
           <p className="text-xs text-slate-400 dark:text-slate-500 tabular-nums mt-0.5">
+            {categoryName !== undefined && (
+              <span className="text-slate-500 dark:text-slate-400">{categoryName} · </span>
+            )}
             {nextDue ? (
               <Trans i18nKey="nextDue.combined" values={{ elapsed: elapsedText, due: nextDue }} components={{ 1: <span className="italic" /> }} />
             ) : (

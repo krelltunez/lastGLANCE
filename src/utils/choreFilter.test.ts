@@ -21,6 +21,7 @@ function chore(p: Partial<ChoreWithLastCompletion> = {}): ChoreWithLastCompletio
     seasonal_start: null,
     seasonal_end: null,
     details: null,
+    pinned: false,
     created_at: '2024-01-01T00:00:00.000Z',
     updated_at: '2024-01-01T00:00:00.000Z',
     sync_id: `chore-sync-${n}`,

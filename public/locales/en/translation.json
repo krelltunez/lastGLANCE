@@ -144,7 +144,9 @@
     "cancel": "Cancel",
     "saving": "Saving…",
     "save": "Save",
-    "add": "Add"
+    "add": "Add",
+    "pinLabel": "Pinned",
+    "pinHint": "Also shown in Pinned, most overdue first."
   },
   "choreRow": {
     "everyNDays": "every {{n}}d",
@@ -159,7 +161,8 @@
     "quickLogAriaLabel": "Quick-log {{name}}",
     "sendAriaLabel": "Send {{name}} to dayGLANCE",
     "choreLabel": "{{name}} — {{elapsed}}",
-    "seasonalRange": "Seasonal: {{start}} – {{end}}"
+    "seasonalRange": "Seasonal: {{start}} – {{end}}",
+    "pinned": "Pinned"
   },
   "dateTimePicker": {
     "setDate": "Set date…",
@@ -381,7 +384,9 @@
     "daysLater_one": "{{count}} day later",
     "daysLater_other": "{{count}} days later",
     "delete": "Delete",
-    "viaDayglance": "via dayGLANCE"
+    "viaDayglance": "via dayGLANCE",
+    "pin": "Pin",
+    "unpin": "Unpin"
   },
   "notifications": {
     "itsBeenDays_one": "It's been {{count}} day",
@@ -421,7 +426,8 @@
     "showFabsAriaLabel": "Show action buttons",
     "nothingNeedsAttention": "Nothing needs attention right now.",
     "nothingAssignedToYou": "Nothing here is assigned to you.",
-    "showAllChores": "Show all chores"
+    "showAllChores": "Show all chores",
+    "pinned": "Pinned"
   },
   "search": {
     "placeholder": "Search chores…",

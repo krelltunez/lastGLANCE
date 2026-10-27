@@ -270,6 +270,49 @@ describe('chore details across the sync boundary (#271)', () => {
   })
 })
 
+describe('chore pinned flag across the sync boundary', () => {
+  const PCAT_ID = 'f3f3f3f3-f3f3-f3f3-f3f3-f3f3f3f3f3f3'
+  const PCHORE_ID = 'f4f4f4f4-f4f4-f4f4-f4f4-f4f4f4f4f4f4'
+
+  const remoteCategory: SyncCategory = {
+    id: PCAT_ID, name: 'Kitchen', sortOrder: 9, icon: 'Utensils',
+    parentId: null, assignedUserSyncIds: [], updatedAt: '2026-10-01T00:00:00.000Z',
+  }
+  const remoteChore: SyncChore = {
+    id: PCHORE_ID, name: 'Descale kettle', categorySyncId: PCAT_ID, sortOrder: 0,
+    targetCadenceDays: 30, notifyWhenOverdue: false, autoScheduleToDayglance: false,
+    preferredScheduleBehavior: null, seasonalStart: null, seasonalEnd: null,
+    details: null, pinned: true, icon: 'Coffee', assignedUserSyncIds: [],
+    createdAt: '2026-10-02T00:00:00.000Z', updatedAt: '2026-10-02T00:00:00.000Z',
+  }
+  const localPinned = async () => (await db.chores.where('sync_id').equals(PCHORE_ID).first())!.pinned
+
+  it('reads a local row written before the field as pinned: false', async () => {
+    const e = await getLocalEntity(CHORE_ID) as Record<string, unknown>
+    expect(e.pinned).toBe(false)
+  })
+
+  it('applies pinned on insert, round-trips it, and unpins on a later update', async () => {
+    await applyRemoteEntity(PCAT_ID, remoteCategory)
+    await applyRemoteEntity(PCHORE_ID, remoteChore)
+    expect(await localPinned()).toBe(true)
+    expect((await getLocalEntity(PCHORE_ID) as Record<string, unknown>).pinned).toBe(true)
+
+    await applyRemoteEntity(PCHORE_ID, { ...remoteChore, pinned: false, updatedAt: '2026-10-03T00:00:00.000Z' })
+    expect(await localPinned()).toBe(false)
+  })
+
+  it('keeps the local pin when an older client sends the chore without the key', async () => {
+    await applyRemoteEntity(PCHORE_ID, { ...remoteChore, pinned: true, updatedAt: '2026-10-04T00:00:00.000Z' })
+    const legacy = { ...remoteChore, name: 'Descale the kettle', updatedAt: '2026-10-05T00:00:00.000Z' } as Partial<SyncChore>
+    delete legacy.pinned
+    await applyRemoteEntity(PCHORE_ID, legacy as SyncChore)
+    const row = (await db.chores.where('sync_id').equals(PCHORE_ID).first())!
+    expect(row.name).toBe('Descale the kettle')
+    expect(row.pinned).toBe(true)
+  })
+})
+
 describe('applyRemoteEntity completion before its chore', () => {
   // Regression guard for "received some completions, not all": a completion whose
   // chore is not present yet (the chore was edited after the completion, so its

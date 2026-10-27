@@ -71,6 +71,7 @@ export const buildPayload = async (): Promise<SyncPayload> => {
       seasonalStart: c.seasonal_start ?? null,
       seasonalEnd: c.seasonal_end ?? null,
       details: c.details ?? null,
+      pinned: c.pinned ?? false,
       icon: c.icon,
       assignedUserSyncIds: c.assigned_user_sync_ids ?? [],
       createdAt: c.created_at,
@@ -175,6 +176,7 @@ function validateSyncPayload(data: SyncPayload): void {
     if (!isoRe.test(c.updatedAt)) throw new Error('invalid chore updatedAt')
     if (c.seasonalStart != null && !mmddRe.test(c.seasonalStart)) throw new Error('invalid chore seasonalStart')
     if (c.seasonalEnd != null && !mmddRe.test(c.seasonalEnd)) throw new Error('invalid chore seasonalEnd')
+    if (c.pinned != null && typeof c.pinned !== 'boolean') throw new Error('invalid chore pinned')
   }
   for (const e of (data.completionEvents ?? [])) {
     if (!uuidRe.test(e.id)) throw new Error('invalid completionEvent id')
@@ -333,6 +335,7 @@ export const applyPayload = async (rawData: unknown, { allowEmpty }: { allowEmpt
           seasonal_start: chore.seasonalStart ?? null,
           seasonal_end: chore.seasonalEnd ?? null,
           details: chore.details ?? null,
+          pinned: chore.pinned ?? existing.pinned ?? false,
           icon: chore.icon,
           assigned_user_sync_ids: chore.assignedUserSyncIds ?? [],
           updated_at: chore.updatedAt,
@@ -350,6 +353,7 @@ export const applyPayload = async (rawData: unknown, { allowEmpty }: { allowEmpt
           seasonal_start: chore.seasonalStart ?? null,
           seasonal_end: chore.seasonalEnd ?? null,
           details: chore.details ?? null,
+          pinned: chore.pinned ?? false,
           icon: chore.icon,
           assigned_user_sync_ids: chore.assignedUserSyncIds ?? [],
           created_at: chore.createdAt, updated_at: chore.updatedAt,

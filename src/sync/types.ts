@@ -16,6 +16,9 @@ export interface SyncChore {
   seasonalStart: string | null | undefined
   seasonalEnd: string | null | undefined
   details: string | null | undefined
+  // Optional: payloads from builds before pinning lack it. Readers treat a
+  // missing value as "unknown" and keep the local flag rather than unpinning.
+  pinned?: boolean
   icon: string | undefined
   assignedUserSyncIds: string[]
   createdAt: string

@@ -144,7 +144,9 @@
     "cancel": "Abbrechen",
     "saving": "Wird gespeichert…",
     "save": "Speichern",
-    "add": "Hinzufügen"
+    "add": "Hinzufügen",
+    "pinLabel": "Angeheftet",
+    "pinHint": "Erscheint zusätzlich unter Angeheftet, die überfälligsten zuerst."
   },
   "choreRow": {
     "everyNDays": "alle {{n}}T",
@@ -159,7 +161,8 @@
     "quickLogAriaLabel": "{{name}} schnell eintragen",
     "sendAriaLabel": "{{name}} an dayGLANCE senden",
     "choreLabel": "{{name}} — {{elapsed}}",
-    "seasonalRange": "Saisonal: {{start}} – {{end}}"
+    "seasonalRange": "Saisonal: {{start}} – {{end}}",
+    "pinned": "Angeheftet"
   },
   "dateTimePicker": {
     "setDate": "Datum wählen…",
@@ -381,7 +384,9 @@
     "daysLater_one": "{{count}} Tag später",
     "daysLater_other": "{{count}} Tage später",
     "delete": "Löschen",
-    "viaDayglance": "via dayGLANCE"
+    "viaDayglance": "via dayGLANCE",
+    "pin": "Anheften",
+    "unpin": "Lösen"
   },
   "notifications": {
     "itsBeenDays_one": "Es ist {{count}} Tag her",
@@ -421,7 +426,8 @@
     "showFabsAriaLabel": "Aktionsschaltflächen anzeigen",
     "nothingNeedsAttention": "Im Moment ist nichts dringend.",
     "nothingAssignedToYou": "Dir ist hier nichts zugewiesen.",
-    "showAllChores": "Alle Aufgaben anzeigen"
+    "showAllChores": "Alle Aufgaben anzeigen",
+    "pinned": "Angeheftet"
   },
   "search": {
     "placeholder": "Aufgaben suchen…",

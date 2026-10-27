@@ -144,7 +144,9 @@
     "cancel": "Annuler",
     "saving": "Enregistrement…",
     "save": "Enregistrer",
-    "add": "Ajouter"
+    "add": "Ajouter",
+    "pinLabel": "Épinglée",
+    "pinHint": "Apparaît aussi dans Épinglées, les plus en retard en premier."
   },
   "choreRow": {
     "everyNDays": "tous les {{n}}j",
@@ -159,7 +161,8 @@
     "quickLogAriaLabel": "Enregistrer {{name}} rapidement",
     "sendAriaLabel": "Envoyer {{name}} à dayGLANCE",
     "choreLabel": "{{name}} — {{elapsed}}",
-    "seasonalRange": "Saisonnier : {{start}} – {{end}}"
+    "seasonalRange": "Saisonnier : {{start}} – {{end}}",
+    "pinned": "Épinglée"
   },
   "dateTimePicker": {
     "setDate": "Choisir une date…",
@@ -381,7 +384,9 @@
     "daysLater_one": "{{count}} jour plus tard",
     "daysLater_other": "{{count}} jours plus tard",
     "delete": "Supprimer",
-    "viaDayglance": "via dayGLANCE"
+    "viaDayglance": "via dayGLANCE",
+    "pin": "Épingler",
+    "unpin": "Désépingler"
   },
   "notifications": {
     "itsBeenDays_one": "Cela fait {{count}} jour",
@@ -421,7 +426,8 @@
     "showFabsAriaLabel": "Afficher les boutons d'action",
     "nothingNeedsAttention": "Rien ne nécessite d'attention pour le moment.",
     "nothingAssignedToYou": "Rien ne vous est attribué ici.",
-    "showAllChores": "Afficher toutes les tâches"
+    "showAllChores": "Afficher toutes les tâches",
+    "pinned": "Épinglées"
   },
   "search": {
     "placeholder": "Rechercher des tâches…",

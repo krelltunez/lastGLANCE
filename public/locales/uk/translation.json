@@ -146,7 +146,9 @@
     "cancel": "Скасувати",
     "saving": "Збереження…",
     "save": "Зберегти",
-    "add": "Додати"
+    "add": "Додати",
+    "pinLabel": "Закріплено",
+    "pinHint": "Також показується в розділі «Закріплені», найбільш протерміновані першими."
   },
   "choreRow": {
     "everyNDays": "кожні {{n}} дн.",
@@ -161,7 +163,8 @@
     "quickLogAriaLabel": "Швидко відмітити {{name}}",
     "sendAriaLabel": "Надіслати {{name}} в dayGLANCE",
     "choreLabel": "{{name}} — {{elapsed}}",
-    "seasonalRange": "Сезонна: {{start}} – {{end}}"
+    "seasonalRange": "Сезонна: {{start}} – {{end}}",
+    "pinned": "Закріплено"
   },
   "dateTimePicker": {
     "setDate": "Вибрати дату…",
@@ -395,7 +398,9 @@
     "daysLater_many": "через {{count}} днів",
     "daysLater_other": "через {{count}} дня",
     "delete": "Видалити",
-    "viaDayglance": "через dayGLANCE"
+    "viaDayglance": "через dayGLANCE",
+    "pin": "Закріпити",
+    "unpin": "Відкріпити"
   },
   "notifications": {
     "itsBeenDays_one": "Минув {{count}} день",
@@ -441,7 +446,8 @@
     "showFabsAriaLabel": "Показати кнопки дій",
     "nothingNeedsAttention": "Зараз ніщо не потребує уваги.",
     "nothingAssignedToYou": "Тут немає нічого, призначеного вам.",
-    "showAllChores": "Показати всі справи"
+    "showAllChores": "Показати всі справи",
+    "pinned": "Закріплені"
   },
   "search": {
     "placeholder": "Шукати справи…",
