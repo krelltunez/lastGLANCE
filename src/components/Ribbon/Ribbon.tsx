@@ -13,6 +13,7 @@ import { useUsersContext } from '@/multiuser/UsersContext'
 import { peekPendingOpenChore, clearPendingOpenChore } from '@/native/pendingOpenChore'
 import { filterCategoryData } from '@/utils/choreFilter'
 import { collectPinned } from '@/utils/pinned'
+import { ICON_REGISTRY } from '@/icons/registry'
 import type { Category, ChoreWithLastCompletion } from '@/types'
 import type { CategoryWithChores } from '@/hooks/useChores'
 import { useTranslation } from 'react-i18next'
@@ -65,6 +66,13 @@ function packMasonry(
 }
 
 const ADD_CAT_ID = -1
+
+// A category's own icon on its narrow-layout tab, sized like the Pinned tab's
+// pin and coloured with the tab text. Categories without one stay text-only.
+function CategoryTabIcon({ name }: { name?: string }) {
+  const Icon = name ? ICON_REGISTRY[name] : undefined
+  return Icon ? <Icon size={11} className="shrink-0" /> : null
+}
 
 export function Ribbon({ editMode, onLogged }: Props) {
   const { t } = useTranslation()
@@ -603,6 +611,7 @@ export function Ribbon({ editMode, onLogged }: Props) {
                     <GripVertical size={11} />
                   </span>
                 )}
+                <CategoryTabIcon name={d.category.icon} />
                 {d.category.name}
               </button>
             ))}
