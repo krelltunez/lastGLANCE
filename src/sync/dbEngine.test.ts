@@ -313,6 +313,56 @@ describe('chore pinned flag across the sync boundary', () => {
   })
 })
 
+describe('pins dropped by a build that predates pinning', () => {
+  // The reported case: device A pins a chore; device B, still on a build
+  // without the field, pulls the chore and stores its other fields and its
+  // updatedAt but not the pin. After B upgrades, its copy ties the vault's on
+  // updatedAt, and the engine keeps local on a tie (remote must be strictly
+  // newer). The engine compares ts(getEntityLastModified(...)), new Date(v)
+  // .getTime(), so these assert on exactly that.
+  const LCAT_ID = 'f5f5f5f5-f5f5-f5f5-f5f5-f5f5f5f5f5f5'
+  const LCHORE_ID = 'f6f6f6f6-f6f6-f6f6-f6f6-f6f6f6f6f6f6'
+  const AT = '2026-10-27T23:10:00.000Z'
+  const ts = (v: string | number | undefined) => new Date(v as string).getTime()
+
+  const vaultChore: SyncChore = {
+    id: LCHORE_ID, name: 'Algae discs', categorySyncId: LCAT_ID, sortOrder: 0,
+    targetCadenceDays: 7, notifyWhenOverdue: false, autoScheduleToDayglance: false,
+    preferredScheduleBehavior: null, seasonalStart: null, seasonalEnd: null,
+    details: null, pinned: true, icon: 'Fish', assignedUserSyncIds: [],
+    createdAt: '2026-10-01T00:00:00.000Z', updatedAt: AT,
+  }
+
+  it('lets the pinned vault copy win the tie against a copy that lost the pin', async () => {
+    await applyRemoteEntity(LCAT_ID, {
+      id: LCAT_ID, name: 'Fish Tanks', sortOrder: 10, icon: 'Fish',
+      parentId: null, assignedUserSyncIds: [], updatedAt: AT,
+    } as SyncCategory)
+    await applyRemoteEntity(LCHORE_ID, vaultChore)
+    // What the old build left behind: same updatedAt, no pin (the v15
+    // migration then fills false).
+    const row = (await db.chores.where('sync_id').equals(LCHORE_ID).first())!
+    await db.chores.update(row.id, { pinned: false })
+
+    const local = await getLocalEntity(LCHORE_ID)
+    expect(ts(getEntityLastModified(vaultChore))).toBeGreaterThan(ts(getEntityLastModified(local)))
+
+    // Which the engine then applies, restoring the pin.
+    await applyRemoteEntity(LCHORE_ID, vaultChore)
+    expect((await db.chores.where('sync_id').equals(LCHORE_ID).first())!.pinned).toBe(true)
+  })
+
+  it('still lets a real unpin, which stamps a new updatedAt, beat an older pinned copy', async () => {
+    const unpinned = { ...vaultChore, pinned: false, updatedAt: '2026-10-27T23:10:05.000Z' }
+    expect(ts(getEntityLastModified(unpinned))).toBeGreaterThan(ts(getEntityLastModified(vaultChore)))
+  })
+
+  it('leaves unpinned chores and other entities on plain updatedAt', () => {
+    expect(getEntityLastModified({ ...vaultChore, pinned: false })).toBe(AT)
+    expect(getEntityLastModified({ id: LCAT_ID, name: 'x', sortOrder: 0, parentId: null, updatedAt: AT })).toBe(AT)
+  })
+})
+
 describe('applyRemoteEntity completion before its chore', () => {
   // Regression guard for "received some completions, not all": a completion whose
   // chore is not present yet (the chore was edited after the completion, so its
@@ -444,7 +494,7 @@ describe('resolveCategoryParents repairs already-flat categories', () => {
 describe('createDbEngine stale pull-cursor recovery', () => {
   const HWM_KEY = 'lastglance-db-sync-hwm'
   const RECOVERY_FLAG = 'lastglance-db-sync-hwm-recovery-gen'
-  const CURRENT_GEN = 2
+  const CURRENT_GEN = 3
 
   beforeAll(() => {
     setVaultConfig({
@@ -479,9 +529,10 @@ describe('createDbEngine stale pull-cursor recovery', () => {
   })
 
   it('re-runs when the device is behind the current generation', () => {
-    // A device that already ran an earlier generation's recovery.
+    // A device that already ran an earlier generation's recovery (gen 2, the
+    // one before the pinned-chore re-pull).
     localStorage.setItem(HWM_KEY, '77')
-    localStorage.setItem(RECOVERY_FLAG, '1')
+    localStorage.setItem(RECOVERY_FLAG, '2')
 
     const engine = createDbEngine()
     expect(engine!.getHighWaterMark()).toBe(0)
