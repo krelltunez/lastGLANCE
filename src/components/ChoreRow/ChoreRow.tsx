@@ -44,6 +44,11 @@ export function ChoreRow({ chore, categoryName, editMode, onTap, onEdit, onDelet
   const nextDue = formatNextDue(t, chore.target_cadence_days, chore.elapsed_days, chore.last_completed_at)
 
   const ChoreIcon = chore.icon ? ICON_REGISTRY[chore.icon] : null
+  // In Pinned the subtitle also carries the category name, so it wraps on some
+  // tiles and not others. There every tile is the same three rows tall: the
+  // name on one line and the subtitle reserved and capped at two, filling its
+  // grid cell so a row of tiles lines up.
+  const uniform = categoryName !== undefined
 
   async function handleSendToDayGlance(e: React.MouseEvent) {
     e.stopPropagation()
@@ -121,7 +126,7 @@ export function ChoreRow({ chore, categoryName, editMode, onTap, onEdit, onDelet
   return (
     <div
       onClick={() => onTap(chore)}
-      className="relative overflow-hidden rounded-xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/40 cursor-pointer group transition-colors hover:border-slate-300 dark:hover:border-slate-600/60"
+      className={`${uniform ? 'h-full ' : ''}relative overflow-hidden rounded-xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/40 cursor-pointer group transition-colors hover:border-slate-300 dark:hover:border-slate-600/60`}
       role="button"
       aria-label={t('choreRow.choreLabel', { name: chore.name, elapsed: elapsedText })}
     >
@@ -138,7 +143,7 @@ export function ChoreRow({ chore, categoryName, editMode, onTap, onEdit, onDelet
       />
 
       {/* Content */}
-      <div className="relative flex items-center gap-3 pl-5 pr-4 py-3.5">
+      <div className={`${uniform ? 'h-full ' : ''}relative flex items-center gap-3 pl-5 pr-4 py-3.5`}>
         {ChoreIcon && (
           <ChoreIcon
             size={22}
@@ -148,7 +153,7 @@ export function ChoreRow({ chore, categoryName, editMode, onTap, onEdit, onDelet
         )}
 
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-slate-800 dark:text-slate-100 group-hover:text-slate-900 dark:group-hover:text-white transition-colors leading-snug flex items-center gap-1.5 flex-wrap">
+          <p className={`text-sm font-medium text-slate-800 dark:text-slate-100 group-hover:text-slate-900 dark:group-hover:text-white transition-colors leading-snug flex items-center gap-1.5 ${uniform ? 'flex-nowrap' : 'flex-wrap'}`}>
             <span className="truncate min-w-0">{chore.name}</span>
             {chore.pinned && categoryName === undefined && (
               <span className="shrink-0 inline-flex" data-tooltip={t('choreRow.pinned')}>
@@ -172,7 +177,7 @@ export function ChoreRow({ chore, categoryName, editMode, onTap, onEdit, onDelet
               ) : null
             })}
           </p>
-          <p className="text-xs text-slate-400 dark:text-slate-500 tabular-nums mt-0.5">
+          <p className={`text-xs text-slate-400 dark:text-slate-500 tabular-nums mt-0.5${uniform ? ' line-clamp-2 min-h-8' : ''}`}>
             {categoryName !== undefined && (
               <span className="text-slate-500 dark:text-slate-400">{categoryName} · </span>
             )}
