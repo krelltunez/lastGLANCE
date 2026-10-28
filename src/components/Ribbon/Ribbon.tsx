@@ -157,6 +157,16 @@ export function Ribbon({ editMode, onLogged }: Props) {
     return () => window.removeEventListener('lg:chore-logged', handleToastLog)
   }, [refresh, onLogged])
 
+  // Re-read when a sync applies changes from another device. Without this the
+  // list only caught up on the next mount, return to the app or midnight. On
+  // a phone the sync that runs on resume lands after the resume's own re-read,
+  // so edits from elsewhere (a pin, a rename, a new chore) waited for the
+  // following visit, while the widgets, which do listen, already showed them.
+  useEffect(() => {
+    window.addEventListener('lg:sync-applied', refresh)
+    return () => window.removeEventListener('lg:sync-applied', refresh)
+  }, [refresh])
+
   // Open LogModal when a toast's Details button is tapped
   useEffect(() => {
     function handleOpenChore(e: Event) {
