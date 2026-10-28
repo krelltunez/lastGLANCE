@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Pencil, Check, Cloud, CloudOff, RefreshCw, HelpCircle, Settings, UserCircle, Clock, NotebookText, Settings2, UserPlus } from 'lucide-react'
+import { Pencil, Check, Cloud, CloudOff, RefreshCw, HelpCircle, Settings, UserCircle, Clock, NotebookText, Settings2, UserPlus, Pin } from 'lucide-react'
 import { Ribbon } from '@/components/Ribbon/Ribbon'
+import { SHOW_PINNED_EVENT, type PinnedState } from '@/components/Ribbon/pinnedNav'
 import { BackupModal } from '@/components/BackupModal/BackupModal'
 import { WelcomeModal } from '@/components/WelcomeModal/WelcomeModal'
 import { clearSeedData, getUsers as getDBUsers, deduplicateUsers } from '@/db/queries'
@@ -189,6 +190,8 @@ function AppInner() {
   // gated stays false and the hard gate below never renders).
   const billing = useSubscription()
   const [editMode, setEditMode] = useState(false)
+  // Reported by the Ribbon for the phone header's Pinned button.
+  const [pinnedState, setPinnedState] = useState<PinnedState>({ available: false, showing: false })
   // Chores | People.
   // A notification tap that launched the app opens the mode it is about,
   // whatever mode was last used.
@@ -776,12 +779,11 @@ function AppInner() {
         {/* Controls */}
         <div className="flex flex-col items-end gap-1.5 shrink-0">
 
-          {/* ── Mobile: journal + settings + Edit. The heatmap is hidden at
-              this width, so the journal gets its own button rather than
-              hiding inside settings. ── */}
-          {/* In People mode the four buttons form a 2x2 block: Journal and
-              Settings above, Circles and Add person below. */}
-          <div className={`${choresMode ? 'flex items-center' : 'grid grid-cols-2'} gap-2 sm:hidden`}>
+          {/* ── Mobile: a 2x2 block. Journal and Settings above; below, Pinned
+              and Edit for Chores, Circles and Add person for People. The
+              heatmap is hidden at this width, so the journal gets its own
+              button rather than hiding inside settings. ── */}
+          <div className="grid grid-cols-2 gap-2 sm:hidden">
             <button
               onClick={() => openJournal(null)}
               className="p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors"
@@ -800,6 +802,17 @@ function AppInner() {
                 controls ran into the logo: below 375px in English, and on
                 every phone in languages with a long word for it ("Bearbeiten",
                 "Редагувати"). */}
+            {/* Back to the Pinned tab. Disabled when there is none (nothing
+                pinned, or edit mode); green while it is the tab on screen. */}
+            {choresMode && <button
+              onClick={() => window.dispatchEvent(new Event(SHOW_PINNED_EVENT))}
+              disabled={!pinnedState.available}
+              className={`p-2 rounded-lg transition-colors border disabled:opacity-40 disabled:pointer-events-none ${pinnedState.showing ? 'text-green-400 border-green-400/40 hover:text-green-300 hover:bg-green-400/10 hover:border-green-400/60' : 'text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+              aria-label={t('ribbon.pinned')}
+              aria-pressed={pinnedState.showing}
+            >
+              <Pin size={15} />
+            </button>}
             {choresMode && <button
               onClick={() => setEditMode(e => !e)}
               className={`p-2 rounded-lg transition-colors border ${editMode ? 'text-green-400 border-green-400/40 hover:text-green-300 hover:bg-green-400/10 hover:border-green-400/60' : 'text-slate-500 dark:text-slate-500 border-slate-200 dark:border-slate-700 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
@@ -914,7 +927,7 @@ function AppInner() {
           launches and shortcuts that target chores still find their listeners;
           those same events bring the chores view back (see CHORE_EVENTS). */}
       <main className={choresMode ? 'flex-1 flex flex-col overflow-hidden' : 'hidden'}>
-        <Ribbon key={ribbonKey} editMode={editMode} onLogged={loadHeatmap} />
+        <Ribbon key={ribbonKey} editMode={editMode} onLogged={loadHeatmap} onPinnedState={setPinnedState} />
       </main>
       {!choresMode && (
         <main className="flex-1 flex flex-col overflow-hidden">

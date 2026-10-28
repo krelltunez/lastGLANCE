@@ -14,6 +14,7 @@ import { peekPendingOpenChore, clearPendingOpenChore } from '@/native/pendingOpe
 import { filterCategoryData } from '@/utils/choreFilter'
 import { collectPinned } from '@/utils/pinned'
 import { ICON_REGISTRY } from '@/icons/registry'
+import { SHOW_PINNED_EVENT, type PinnedState } from './pinnedNav'
 import type { Category, ChoreWithLastCompletion } from '@/types'
 import type { CategoryWithChores } from '@/hooks/useChores'
 import { useTranslation } from 'react-i18next'
@@ -21,6 +22,7 @@ import { useTranslation } from 'react-i18next'
 interface Props {
   editMode: boolean
   onLogged?: () => void
+  onPinnedState?: (state: PinnedState) => void
 }
 
 const SNAP_MS = 280
@@ -74,7 +76,7 @@ function CategoryTabIcon({ name }: { name?: string }) {
   return Icon ? <Icon size={11} className="shrink-0" /> : null
 }
 
-export function Ribbon({ editMode, onLogged }: Props) {
+export function Ribbon({ editMode, onLogged, onPinnedState }: Props) {
   const { t } = useTranslation()
   const { data, loading, refresh } = useChores()
   // elapsed_days is computed inside the query, not in render, so a stale day
@@ -504,6 +506,21 @@ export function Ribbon({ editMode, onLogged }: Props) {
     if (prev === null || prev === pinnedOffset) return
     setActiveCategoryIndex(i => Math.max(0, i + pinnedOffset - prev))
   }, [pinnedOffset, pagesReady])
+
+  // The phone header's Pinned button: jump back to the Pinned tab, when there
+  // is one.
+  const pinnedOffsetRef = useRef(0)
+  pinnedOffsetRef.current = pinnedOffset
+  useEffect(() => {
+    function onShowPinned() { if (pinnedOffsetRef.current > 0) setActiveCategoryIndex(0) }
+    window.addEventListener(SHOW_PINNED_EVENT, onShowPinned)
+    return () => window.removeEventListener(SHOW_PINNED_EVENT, onShowPinned)
+  }, [])
+
+  const pinnedShowing = pinnedOffset > 0 && activeCategoryIndex === 0
+  useEffect(() => {
+    onPinnedState?.({ available: pinnedOffset > 0, showing: pinnedShowing })
+  }, [onPinnedState, pinnedOffset, pinnedShowing])
 
   // Keep the active page index in range when the visible set shrinks.
   useEffect(() => {
