@@ -19,6 +19,25 @@ extension WidgetSnapshot {
             .map { $0 }
     }
 
+    // Pinned chores in the app's Pinned order: most overdue first by ratio,
+    // chores without a ratio (no cadence, or never done) last, ties by name.
+    // Mirrors collectPinned in src/utils/pinned.ts and pickPinnedList in the
+    // Kotlin. Powers the Pinned widget.
+    func pinnedList(limit: Int) -> [SnapshotChore] {
+        chores
+            .filter { $0.pinned }
+            .sorted { a, b in
+                switch (a.ratio, b.ratio) {
+                case let (ra?, rb?) where ra != rb: return ra > rb
+                case (.some, nil): return true
+                case (nil, .some): return false
+                default: return a.name.localizedCaseInsensitiveCompare(b.name) == .orderedAscending
+                }
+            }
+            .prefix(limit)
+            .map { $0 }
+    }
+
     // The chore with the highest elapsed/target ratio (most overdue, or closest
     // to due). Nil when nothing has a cadence + a completion yet.
     var mostOverdue: SnapshotChore? {

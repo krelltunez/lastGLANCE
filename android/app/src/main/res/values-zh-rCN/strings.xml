@@ -4,6 +4,10 @@
     <string name="single_chore_widget_description">显示最需要关注的事项，并可一键标记完成。</string>
     <string name="soon_list_widget_description">显示近期需要关注的事项，并可一键标记完成。</string>
     <string name="soon_list_widget_title">近期</string>
+    <string name="pinned_widget_description">你置顶的事项，逾期最久的排在最前，并可一键标记完成。</string>
+    <string name="pinned_widget_title">已置顶</string>
+    <string name="widget_label_pinned">lastGLANCE 已置顶</string>
+    <string name="widget_no_pinned">在应用中置顶事项后，会显示在这里。</string>
     <string name="widget_done">完成</string>
     <string name="widget_all_caught_up">都处理好了</string>
     <string name="widget_config_auto">逾期最久（自动）</string>

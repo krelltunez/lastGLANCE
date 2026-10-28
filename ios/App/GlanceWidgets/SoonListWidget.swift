@@ -38,9 +38,11 @@ struct DoneButton: View {
 
 // One chore as a list row: recency bar, tinted icon, name over elapsed text,
 // Done. Same anatomy as ChoreListRow in the Kotlin widget (bar 5x26 r2, icon
-// 18, name 14 medium, elapsed 11).
+// 18, name 14 medium, elapsed 11). The Pinned widget passes a subtitle that
+// puts the category ahead of the elapsed text.
 struct ChoreRowView: View {
     let chore: SnapshotChore
+    var subtitle: String? = nil
 
     var body: some View {
         HStack(spacing: 8) {
@@ -61,9 +63,10 @@ struct ChoreRowView: View {
                             .font(.system(size: 14, weight: .medium))
                             .foregroundStyle(.primary)
                             .lineLimit(1)
-                        Text(chore.elapsedLabel)
+                        Text(subtitle ?? chore.elapsedLabel)
                             .font(.system(size: 11))
                             .foregroundStyle(.secondary)
+                            .lineLimit(1)
                     }
                     Spacer(minLength: 8)
                 }

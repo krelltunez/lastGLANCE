@@ -4,6 +4,10 @@
     <string name="single_chore_widget_description">La tâche la plus urgente, avec Fait en un geste.</string>
     <string name="soon_list_widget_description">Les tâches qui demanderont bientôt de l\'attention, avec Fait en un geste.</string>
     <string name="soon_list_widget_title">Bientôt</string>
+    <string name="pinned_widget_description">Vos tâches épinglées, les plus en retard en premier, avec Fait en un geste.</string>
+    <string name="pinned_widget_title">Épinglées</string>
+    <string name="widget_label_pinned">lastGLANCE Épinglées</string>
+    <string name="widget_no_pinned">Épinglez des tâches dans l\'app pour les voir ici.</string>
     <string name="widget_done">Fait</string>
     <string name="widget_all_caught_up">Tout est à jour</string>
     <string name="widget_config_auto">La plus en retard (automatique)</string>

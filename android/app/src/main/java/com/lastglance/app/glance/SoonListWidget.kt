@@ -78,72 +78,76 @@ class SoonListWidget : GlanceAppWidget() {
                 )
             } else {
                 LazyColumn {
-                    items(rows) { chore -> ChoreListRow(context, chore) }
+                    items(rows) { chore -> ChoreListRow(context, chore, chore.elapsed) }
                 }
             }
         }
     }
+}
 
-    @Composable
-    private fun ChoreListRow(context: Context, chore: ChoreData) {
-        Row(
+// One chore as a list row: recency bar, tinted icon, name over `subtitle`, and
+// one-tap Done. Shared by the Soon and Pinned list widgets (Pinned prefixes the
+// category to the elapsed text).
+@Composable
+internal fun ChoreListRow(context: Context, chore: ChoreData, subtitle: String) {
+    Row(
+        modifier = GlanceModifier
+            .fillMaxWidth()
+            .padding(vertical = 5.dp)
+            .clickable(actionStartActivity(openChoreIntent(context, chore.syncId))),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Spacer(
             modifier = GlanceModifier
-                .fillMaxWidth()
-                .padding(vertical = 5.dp)
-                .clickable(actionStartActivity(openChoreIntent(context, chore.syncId))),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Spacer(
-                modifier = GlanceModifier
-                    .width(5.dp)
-                    .height(26.dp)
-                    .cornerRadius(2.dp)
-                    .background(ColorProvider(Color(chore.colorInt))),
+                .width(5.dp)
+                .height(26.dp)
+                .cornerRadius(2.dp)
+                .background(ColorProvider(Color(chore.colorInt))),
+        )
+        Spacer(modifier = GlanceModifier.width(8.dp))
+        if (chore.iconResId != 0) {
+            Image(
+                provider = ImageProvider(chore.iconResId),
+                contentDescription = null,
+                colorFilter = ColorFilter.tint(ColorProvider(Color(chore.colorInt))),
+                modifier = GlanceModifier.size(18.dp),
             )
             Spacer(modifier = GlanceModifier.width(8.dp))
-            if (chore.iconResId != 0) {
-                Image(
-                    provider = ImageProvider(chore.iconResId),
-                    contentDescription = null,
-                    colorFilter = ColorFilter.tint(ColorProvider(Color(chore.colorInt))),
-                    modifier = GlanceModifier.size(18.dp),
-                )
-                Spacer(modifier = GlanceModifier.width(8.dp))
-            }
-            Column(modifier = GlanceModifier.defaultWeight()) {
-                Text(
-                    chore.name,
-                    maxLines = 1,
-                    style = TextStyle(
-                        color = GlanceTheme.colors.onSurface,
-                        fontWeight = FontWeight.Medium,
-                        fontSize = 14.sp,
-                    ),
-                )
-                Text(
-                    chore.elapsed,
-                    style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 11.sp),
-                )
-            }
-            Spacer(modifier = GlanceModifier.width(8.dp))
+        }
+        Column(modifier = GlanceModifier.defaultWeight()) {
             Text(
-                context.getString(R.string.widget_done),
+                chore.name,
+                maxLines = 1,
                 style = TextStyle(
-                    color = ColorProvider(Color.White),
+                    color = GlanceTheme.colors.onSurface,
                     fontWeight = FontWeight.Medium,
-                    fontSize = 12.sp,
+                    fontSize = 14.sp,
                 ),
-                modifier = GlanceModifier
-                    .background(ColorProvider(Color(0xFF22C55E)))
-                    .cornerRadius(8.dp)
-                    .padding(horizontal = 10.dp, vertical = 5.dp)
-                    .clickable(
-                        actionRunCallback<CompleteChoreCallback>(
-                            actionParametersOf(SYNC_ID_KEY to chore.syncId),
-                        ),
-                    ),
+            )
+            Text(
+                subtitle,
+                maxLines = 1,
+                style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 11.sp),
             )
         }
+        Spacer(modifier = GlanceModifier.width(8.dp))
+        Text(
+            context.getString(R.string.widget_done),
+            style = TextStyle(
+                color = ColorProvider(Color.White),
+                fontWeight = FontWeight.Medium,
+                fontSize = 12.sp,
+            ),
+            modifier = GlanceModifier
+                .background(ColorProvider(Color(0xFF22C55E)))
+                .cornerRadius(8.dp)
+                .padding(horizontal = 10.dp, vertical = 5.dp)
+                .clickable(
+                    actionRunCallback<CompleteChoreCallback>(
+                        actionParametersOf(SYNC_ID_KEY to chore.syncId),
+                    ),
+                ),
+        )
     }
 }
 

@@ -4,6 +4,10 @@
     <string name="single_chore_widget_description">La tarea que más atención necesita, con Hecho en un toque.</string>
     <string name="soon_list_widget_description">Tareas que pronto necesitan atención, con Hecho en un toque.</string>
     <string name="soon_list_widget_title">Pronto</string>
+    <string name="pinned_widget_description">Tus tareas fijadas, las más atrasadas primero, con Hecho en un toque.</string>
+    <string name="pinned_widget_title">Fijadas</string>
+    <string name="widget_label_pinned">lastGLANCE Fijadas</string>
+    <string name="widget_no_pinned">Fija tareas en la app para verlas aquí.</string>
     <string name="widget_done">Hecho</string>
     <string name="widget_all_caught_up">Todo al día</string>
     <string name="widget_config_auto">La más atrasada (automático)</string>

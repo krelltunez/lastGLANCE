@@ -25,10 +25,12 @@ struct SnapshotChore: Decodable {
     let ratio: Double?
     let color: String?
     let state: ChoreState
+    // Pinned and in season. Absent in snapshots from before pinning: false.
+    let pinned: Bool
 
     private enum CodingKeys: String, CodingKey {
         case syncId, name, icon, categoryName, lastCompletedAt
-        case elapsedDays, targetCadenceDays, ratio, color, state
+        case elapsedDays, targetCadenceDays, ratio, color, state, pinned
     }
 
     init(from decoder: Decoder) throws {
@@ -46,6 +48,7 @@ struct SnapshotChore: Decodable {
         ratio = try? c.decode(Double.self, forKey: .ratio)
         color = try? c.decode(String.self, forKey: .color)
         state = (try? c.decode(ChoreState.self, forKey: .state)) ?? .none
+        pinned = (try? c.decode(Bool.self, forKey: .pinned)) ?? false
     }
 }
 
