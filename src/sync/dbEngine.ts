@@ -92,10 +92,22 @@ export function isInsertOnly(entity: unknown): boolean {
 // Timestamp the engine compares for entity-grain last-writer-wins (and against
 // tombstone deletedAt stamps): updatedAt everywhere, with completion events
 // falling back to completedAt for shapes written before note edits synced.
+//
+// A pinned chore reads 1ms later than its updatedAt. A build that predates
+// pinning applied pulled chores with their updatedAt but without the flag, so
+// after it upgrades its copy ties the vault's pinned one, and the engine keeps
+// local on a tie: the pin was lost for good. A real pin or unpin always stamps a
+// new updatedAt (far more than 1ms apart), so the nudge only ever decides that
+// tie, and in the pin's favour. The vault's copies still carry the pins; the
+// recovery generation 3 re-pull below brings them back.
 export function getEntityLastModified(entity: unknown): string | number | undefined {
   if (!entity || typeof entity !== 'object') return undefined
   const e = entity as Record<string, unknown>
   if (entityKind(e) === 'completionEvent') return (e.updatedAt ?? e.completedAt) as string | undefined
+  if (entityKind(e) === 'chore' && e.pinned === true) {
+    const t = Date.parse(e.updatedAt as string)
+    if (!Number.isNaN(t)) return t + 1
+  }
   return e.updatedAt as string | undefined
 }
 
@@ -480,6 +492,9 @@ export interface DbEngineCallbacks {
 //   gen 1 (v1.8.6): split-cursor poisoning from @glance-apps/sync ≤ 1.3.x.
 //   gen 2 (v1.8.7): re-pull so completions dropped on a not-yet-present chore by
 //                   the old applyCompletionEvent are re-listed and now parked.
+//   gen 3:          re-pull so pins a pre-pinning build dropped on apply come
+//                   back (see getEntityLastModified's tie-break for pinned
+//                   chores, without which the re-pulled copy would lose the tie).
 //
 // A generation rewind forces a full re-PULL only. It deliberately no longer
 // re-snapshot-pushes local data (the seed gate below is a one-shot flag, not an
@@ -488,7 +503,7 @@ export interface DbEngineCallbacks {
 // generation ever needs a forced re-push (e.g. after server-side data loss), it
 // must ALSO remove SNAPSHOT_SEEDED_FLAG — rewinding the cursor alone will not
 // re-seed.
-const RECOVERY_GENERATION = 2
+const RECOVERY_GENERATION = 3
 const HWM_RECOVERY_FLAG = `${APP_ID}-db-sync-hwm-recovery-gen`
 
 // One-shot gate for the first-sync full-snapshot seed (see the seeding wrapper

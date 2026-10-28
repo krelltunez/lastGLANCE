@@ -103,6 +103,36 @@ function dedupeById<T extends Record<string, unknown>>(arr: T[], idField: string
   return Array.from(seen.values())
 }
 
+// Repairs pins lost to a build that predates the field. A build without
+// `pinned` applies a remote chore's other fields and its updatedAt but drops the
+// flag, so after it upgrades its copy matches the pinned one's timestamp while
+// reading unpinned. mergeArrayById keeps local on a tie and sees no change, so
+// the pin would never come back. A real pin or unpin always stamps a new
+// updatedAt, so a tie that differs only in `pinned` can only be that loss:
+// pinned on either side wins, and whichever side lacked it is marked changed so
+// the repair is applied locally and uploaded.
+type ChoreRow = Record<string, unknown>
+export function reconcilePinTies(local: ChoreRow[], remote: ChoreRow[]): {
+  local: ChoreRow[]; remote: ChoreRow[]; localChanged: boolean; remoteChanged: boolean
+} {
+  const remoteById = new Map(remote.map(c => [c.id as string, c]))
+  const fixedRemote = new Map<string, ChoreRow>()
+  let localChanged = false
+  let remoteChanged = false
+  const nextLocal = local.map(l => {
+    const r = remoteById.get(l.id as string)
+    if (!r || l.updatedAt !== r.updatedAt) return l
+    const lp = l.pinned === true
+    const rp = r.pinned === true
+    if (lp === rp) return l
+    if (!rp) { fixedRemote.set(r.id as string, { ...r, pinned: true }); remoteChanged = true; return l }
+    localChanged = true
+    return { ...l, pinned: true }
+  })
+  const nextRemote = fixedRemote.size ? remote.map(r => fixedRemote.get(r.id as string) ?? r) : remote
+  return { local: nextLocal, remote: nextRemote, localChanged, remoteChanged }
+}
+
 // mergePayloads: synchronous merge of local and remote payloads
 export const mergePayloads = (
   local: unknown,
@@ -122,8 +152,12 @@ export const mergePayloads = (
   type R = Record<string, unknown>
   const lCats   = dedupeById(l.categories       as unknown as R[] ?? [], 'id')
   const rCats   = dedupeById(r.categories       as unknown as R[] ?? [], 'id')
-  const lChores = dedupeById(l.chores           as unknown as R[] ?? [], 'id')
-  const rChores = dedupeById(r.chores           as unknown as R[] ?? [], 'id')
+  const pins = reconcilePinTies(
+    dedupeById(l.chores as unknown as R[] ?? [], 'id'),
+    dedupeById(r.chores as unknown as R[] ?? [], 'id'),
+  )
+  const lChores = pins.local
+  const rChores = pins.remote
   // Events merge on updatedAt (note edits bump it); payloads from clients
   // predating the field carry only completedAt, so normalize before merging —
   // mergeArrayById reads exactly the configured timestampField.
@@ -154,8 +188,8 @@ export const mergePayloads = (
       settings: mergedSettings,
       tombstones,
     } as unknown as SyncPayload,
-    localChanged: catMerge.localChanged || choreMerge.localChanged || evtMerge.localChanged || userMerge.localChanged || settingsLocalChanged,
-    remoteChanged: catMerge.remoteChanged || choreMerge.remoteChanged || evtMerge.remoteChanged || userMerge.remoteChanged || settingsRemoteChanged,
+    localChanged: catMerge.localChanged || choreMerge.localChanged || pins.localChanged || evtMerge.localChanged || userMerge.localChanged || settingsLocalChanged,
+    remoteChanged: catMerge.remoteChanged || choreMerge.remoteChanged || pins.remoteChanged || evtMerge.remoteChanged || userMerge.remoteChanged || settingsRemoteChanged,
   }
 }
 
