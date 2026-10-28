@@ -840,7 +840,7 @@ function AppInner() {
 
           {/* ── Desktop: two-row layout ── */}
           <div className="hidden sm:flex flex-col items-end gap-1.5">
-            {/* Row 1: filter (if multi-user) + soon + pinned + edit */}
+            {/* Row 1: filter (if multi-user) + soon + edit */}
             <div className="flex items-center gap-2">
               {choresMode && multiUserEnabled && meId && !editMode && (
                 <button
@@ -872,29 +872,6 @@ function AppInner() {
                     {t('app.soon')}
                   </button>
               )}
-              {/* Back to the Pinned tab, as on phones. Only while the tabbed
-                  layout is on screen (below 1060px; above it Pinned is a row
-                  at the top of the page), hidden in edit mode like the
-                  filters, disabled with nothing pinned. Icon-only below 768px:
-                  with its label the row ran into the logo at 640px (German,
-                  with the Mine filter showing). */}
-              {choresMode && !editMode && (
-                <button
-                  onClick={() => window.dispatchEvent(new Event(SHOW_PINNED_EVENT))}
-                  disabled={!pinnedState.available}
-                  className={`min-[1060px]:hidden flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors border disabled:opacity-40 disabled:pointer-events-none ${
-                    pinnedState.showing
-                      ? 'text-green-400 border-green-400/40 hover:text-green-300 hover:bg-green-400/10 hover:border-green-400/60'
-                      : 'text-slate-500 dark:text-slate-500 border-slate-200 dark:border-slate-700 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
-                  }`}
-                  aria-pressed={pinnedState.showing}
-                  aria-label={t('ribbon.pinned')}
-                  data-tooltip={t('ribbon.pinned')}
-                >
-                  <Pin size={14} />
-                  <span className="hidden md:inline">{t('ribbon.pinned')}</span>
-                </button>
-              )}
               {choresMode && <button
                 onClick={() => setEditMode(e => !e)}
                 className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors border ${editMode ? 'text-green-400 border-green-400/40 hover:text-green-300 hover:bg-green-400/10 hover:border-green-400/60' : 'text-slate-500 dark:text-slate-500 border-slate-200 dark:border-slate-700 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
@@ -917,11 +894,33 @@ function AppInner() {
                 </button>
               </>}
             </div>
-            {/* Row 2: sync (doubles as the status light), journal, help,
-                settings. Every control here is icon-only, so each carries a
-                tooltip. Set-once panels (integration, users, backup, theme,
-                language, time format) live in the settings panel. */}
+            {/* Row 2: pinned (chores, tabbed layout only), sync (doubles as
+                the status light), journal, help, settings. Every control here
+                is icon-only, so each carries a tooltip. Set-once panels
+                (integration, users, backup, theme, language, time format)
+                live in the settings panel. */}
             <div className="flex items-center gap-2">
+              {/* Back to the Pinned tab, as on phones. Only while the tabbed
+                  layout is on screen (below 1060px; above it Pinned is a row
+                  at the top of the page). Disabled when there is no Pinned
+                  tab (nothing pinned, or edit mode); green while it is the
+                  tab on screen. */}
+              {choresMode && (
+                <button
+                  onClick={() => window.dispatchEvent(new Event(SHOW_PINNED_EVENT))}
+                  disabled={!pinnedState.available}
+                  className={`min-[1060px]:hidden p-2 rounded-lg border transition-colors disabled:opacity-40 disabled:pointer-events-none ${
+                    pinnedState.showing
+                      ? 'text-green-400 border-green-400/40 hover:text-green-300 hover:bg-green-400/10 hover:border-green-400/60'
+                      : 'text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  }`}
+                  aria-pressed={pinnedState.showing}
+                  aria-label={t('ribbon.pinned')}
+                  data-tooltip={t('ribbon.pinned')}
+                >
+                  <Pin size={15} />
+                </button>
+              )}
               <button
                 onClick={() => setShowSyncSettings(true)}
                 className={`p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors ${syncWarn ? 'text-amber-400 dark:text-amber-400' : 'text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200'}`}
