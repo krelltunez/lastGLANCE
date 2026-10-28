@@ -45,9 +45,9 @@ export function ChoreRow({ chore, categoryName, editMode, onTap, onEdit, onDelet
 
   const ChoreIcon = chore.icon ? ICON_REGISTRY[chore.icon] : null
   // In Pinned the subtitle also carries the category name, so it wraps on some
-  // tiles and not others. There every tile is the same three rows tall: the
-  // name on one line and the subtitle reserved and capped at two, filling its
-  // grid cell so a row of tiles lines up.
+  // tiles and not others. There the name stays on one line, the subtitle is
+  // capped at two, and the tile fills its grid cell; the grid makes every row
+  // as tall as its tallest tile, so all tiles match (see PinnedSection).
   const uniform = categoryName !== undefined
 
   async function handleSendToDayGlance(e: React.MouseEvent) {
@@ -177,7 +177,7 @@ export function ChoreRow({ chore, categoryName, editMode, onTap, onEdit, onDelet
               ) : null
             })}
           </p>
-          <p className={`text-xs text-slate-400 dark:text-slate-500 tabular-nums mt-0.5${uniform ? ' line-clamp-2 min-h-8' : ''}`}>
+          <p className={`text-xs text-slate-400 dark:text-slate-500 tabular-nums mt-0.5${uniform ? ' line-clamp-2' : ''}`}>
             {categoryName !== undefined && (
               <span className="text-slate-500 dark:text-slate-400">{categoryName} · </span>
             )}
