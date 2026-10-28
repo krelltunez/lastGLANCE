@@ -144,7 +144,9 @@
     "cancel": "取消",
     "saving": "正在保存…",
     "save": "保存",
-    "add": "添加"
+    "add": "添加",
+    "pinLabel": "置顶",
+    "pinHint": "同时显示在“已置顶”中，逾期最久的排在最前。"
   },
   "choreRow": {
     "everyNDays": "每 {{n}} 天",
@@ -159,7 +161,8 @@
     "quickLogAriaLabel": "快速记录 {{name}}",
     "sendAriaLabel": "将 {{name}} 发送到 dayGLANCE",
     "choreLabel": "{{name}} — {{elapsed}}",
-    "seasonalRange": "日期范围：{{start}} – {{end}}"
+    "seasonalRange": "日期范围：{{start}} – {{end}}",
+    "pinned": "已置顶"
   },
   "dateTimePicker": {
     "setDate": "设置日期…",
@@ -381,7 +384,9 @@
     "daysLater_one": "{{count}} 天后",
     "daysLater_other": "{{count}} 天后",
     "delete": "删除",
-    "viaDayglance": "通过 dayGLANCE"
+    "viaDayglance": "通过 dayGLANCE",
+    "pin": "置顶",
+    "unpin": "取消置顶"
   },
   "notifications": {
     "itsBeenDays_one": "已过去 {{count}} 天",
@@ -421,7 +426,8 @@
     "showFabsAriaLabel": "显示操作按钮",
     "nothingNeedsAttention": "当前没有需要关注的事项。",
     "nothingAssignedToYou": "此处没有分配给你的事项。",
-    "showAllChores": "显示所有事项"
+    "showAllChores": "显示所有事项",
+    "pinned": "已置顶"
   },
   "search": {
     "placeholder": "搜索事项…",

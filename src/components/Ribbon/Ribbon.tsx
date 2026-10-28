@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback } from 'react'
-import { Plus, GripVertical, Search, UserCircle, Clock, ChevronDown, ChevronUp } from 'lucide-react'
+import { Plus, GripVertical, Search, UserCircle, Clock, ChevronDown, ChevronUp, Pin } from 'lucide-react'
 import { useChores } from '@/hooks/useChores'
 import { useDayRollover } from '@/hooks/useDayRollover'
 import { ensureInboxCategory, reorderCategories } from '@/db/queries'
 import { CategorySection } from '@/components/CategorySection/CategorySection'
+import { PinnedSection } from '@/components/PinnedSection/PinnedSection'
 import { LogModal } from '@/components/LogModal/LogModal'
 import { CategoryFormModal } from '@/components/CategoryFormModal/CategoryFormModal'
 import { ChoreFormModal } from '@/components/ChoreFormModal/ChoreFormModal'
@@ -11,6 +12,8 @@ import { SearchModal } from '@/components/SearchModal/SearchModal'
 import { useUsersContext } from '@/multiuser/UsersContext'
 import { peekPendingOpenChore, clearPendingOpenChore } from '@/native/pendingOpenChore'
 import { filterCategoryData } from '@/utils/choreFilter'
+import { collectPinned } from '@/utils/pinned'
+import { ICON_REGISTRY } from '@/icons/registry'
 import type { Category, ChoreWithLastCompletion } from '@/types'
 import type { CategoryWithChores } from '@/hooks/useChores'
 import { useTranslation } from 'react-i18next'
@@ -63,6 +66,13 @@ function packMasonry(
 }
 
 const ADD_CAT_ID = -1
+
+// A category's own icon on its narrow-layout tab, sized like the Pinned tab's
+// pin and coloured with the tab text. Categories without one stay text-only.
+function CategoryTabIcon({ name }: { name?: string }) {
+  const Icon = name ? ICON_REGISTRY[name] : undefined
+  return Icon ? <Icon size={11} className="shrink-0" /> : null
+}
 
 export function Ribbon({ editMode, onLogged }: Props) {
   const { t } = useTranslation()
@@ -126,10 +136,19 @@ export function Ribbon({ editMode, onLogged }: Props) {
   // view drives tabs, masonry packing, swipe bounds, keyboard nav and content,
   // so they stay in sync even when categories are hidden by the filter.
   const viewData = editMode ? localData : displayData
-  const viewDataRef = useRef<CategoryWithChores[]>(viewData)
-  viewDataRef.current = viewData
   const viewDataLengthRef = useRef(0)
   viewDataLengthRef.current = viewData.length
+
+  // Pinned chores, drawn from the same filtered view so Soon / Mine apply to
+  // them too. Hidden in edit mode, which is for arranging categories.
+  const pinned = useMemo(() => editMode ? [] : collectPinned(displayData), [editMode, displayData])
+  // The narrow layout pages through Pinned (when there is anything pinned)
+  // and then each category; activeCategoryIndex indexes these pages, so a
+  // category's page is its viewData index + pinnedOffset.
+  const pinnedOffset = pinned.length > 0 ? 1 : 0
+  const pageCount = viewData.length + pinnedOffset
+  const pageCountRef = useRef(0)
+  pageCountRef.current = pageCount
 
   // Refresh when a completion is logged from a toast notification
   useEffect(() => {
@@ -240,7 +259,7 @@ export function Ribbon({ editMode, onLogged }: Props) {
         setActiveCategoryIndex(i => Math.max(0, i - 1))
       } else if (e.key === 'ArrowRight' && window.innerWidth < 1060) {
         e.preventDefault()
-        setActiveCategoryIndex(i => Math.min(viewDataRef.current.length - 1, i + 1))
+        setActiveCategoryIndex(i => Math.min(pageCountRef.current - 1, i + 1))
       } else if (e.key === 'n' || e.key === 'N') {
         e.preventDefault()
         openNewChoreRef.current()
@@ -435,7 +454,7 @@ export function Ribbon({ editMode, onLogged }: Props) {
       isDragging.current = true
     }
     const atStart = activeCategoryIndex === 0 && dx > 0
-    const atEnd = activeCategoryIndex === viewData.length - 1 && dx < 0
+    const atEnd = activeCategoryIndex === pageCount - 1 && dx < 0
     const newOffset = (atStart || atEnd) ? dx * 0.2 : dx
     liveOffset.current = newOffset
     setOffset(newOffset)
@@ -459,7 +478,7 @@ export function Ribbon({ editMode, onLogged }: Props) {
     const cur = liveOffset.current
     const threshold = W * 0.28
 
-    if (cur < -threshold && activeCategoryIndex < viewData.length - 1) {
+    if (cur < -threshold && activeCategoryIndex < pageCount - 1) {
       snap(-W, () => setActiveCategoryIndex(i => i + 1))
     } else if (cur > threshold && activeCategoryIndex > 0) {
       snap(W, () => setActiveCategoryIndex(i => i - 1))
@@ -474,10 +493,22 @@ export function Ribbon({ editMode, onLogged }: Props) {
     snap(0)
   }
 
-  // Keep the active category index in range when the visible set shrinks.
+  // When the Pinned page appears or goes away (first pin, last unpin, a
+  // filter, edit mode), shift the index so the same category stays on screen.
+  // Not on the first load: the app should open on Pinned, which is index 0.
+  const prevPinnedOffsetRef = useRef<number | null>(null)
+  const pagesReady = localData.length > 0
+  useLayoutEffect(() => {
+    const prev = prevPinnedOffsetRef.current
+    prevPinnedOffsetRef.current = pagesReady ? pinnedOffset : null
+    if (prev === null || prev === pinnedOffset) return
+    setActiveCategoryIndex(i => Math.max(0, i + pinnedOffset - prev))
+  }, [pinnedOffset, pagesReady])
+
+  // Keep the active page index in range when the visible set shrinks.
   useEffect(() => {
-    setActiveCategoryIndex(i => Math.min(i, Math.max(0, viewData.length - 1)))
-  }, [viewData.length])
+    setActiveCategoryIndex(i => Math.min(i, Math.max(0, pageCount - 1)))
+  }, [pageCount])
 
   function openChore(chore: ChoreWithLastCompletion) { setSelectedChore(chore) }
   function closeChore() { setSelectedChore(null) }
@@ -505,9 +536,17 @@ export function Ribbon({ editMode, onLogged }: Props) {
     setAttentionOnly(false)
     if (filter === 'mine') setFilter('all')
   }
-  const prevData = activeCategoryIndex > 0 ? viewData[activeCategoryIndex - 1] : null
-  const currData = viewData[activeCategoryIndex]
-  const nextData = activeCategoryIndex < viewData.length - 1 ? viewData[activeCategoryIndex + 1] : null
+  // One narrow-layout page: Pinned first when there is anything pinned, then
+  // each category. Out-of-range indexes (no page before the first or after
+  // the last) render nothing.
+  function renderPage(index: number) {
+    if (index < 0 || index >= pageCount) return null
+    if (pinnedOffset && index === 0) {
+      return <div className="p-4"><PinnedSection pinned={pinned} variant="page" onChoreTab={openChore} onRefresh={refresh} onLogged={onLogged} /></div>
+    }
+    const d = viewData[index - pinnedOffset]
+    return <div className="p-4"><CategorySection key={d.category.id} data={d} allCategories={allCategories} editMode={editMode} onChoreTab={openChore} onRefresh={refresh} onLogged={onLogged} wrapChores /></div>
+  }
 
   const allCategories = localData.flatMap(d => [d.category, ...d.subcategories.map(s => s.category)])
 
@@ -532,14 +571,29 @@ export function Ribbon({ editMode, onLogged }: Props) {
       <div className="flex flex-col flex-1 overflow-hidden min-[1060px]:hidden">
         {!showEmpty && !noMatches && (
           <div ref={tabsRef} className="flex overflow-x-auto scrollbar-none border-b border-slate-200 dark:border-slate-700/60 bg-slate-100 dark:bg-slate-900 shrink-0">
+            {pinnedOffset > 0 && (
+              <button
+                key="pinned"
+                onClick={() => setActiveCategoryIndex(0)}
+                className={`
+                  shrink-0 flex items-center gap-1 px-3 py-2.5 text-xs font-semibold transition-colors whitespace-nowrap
+                  ${activeCategoryIndex === 0
+                    ? 'text-green-400 border-b-2 border-green-400'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}
+                `}
+              >
+                <Pin size={11} className="shrink-0" />
+                {t('ribbon.pinned')}
+              </button>
+            )}
             {viewData.map((d, i) => (
               <button
                 key={d.category.id}
                 data-cat-tab-id={d.category.id}
-                onClick={() => setActiveCategoryIndex(i)}
+                onClick={() => setActiveCategoryIndex(i + pinnedOffset)}
                 className={`
                   shrink-0 flex items-center gap-1 px-3 py-2.5 text-xs font-semibold transition-colors whitespace-nowrap
-                  ${i === activeCategoryIndex
+                  ${i + pinnedOffset === activeCategoryIndex
                     ? 'text-green-400 border-b-2 border-green-400'
                     : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}
                   ${draggingCatId === d.category.id ? 'opacity-40' : ''}
@@ -557,6 +611,7 @@ export function Ribbon({ editMode, onLogged }: Props) {
                     <GripVertical size={11} />
                   </span>
                 )}
+                <CategoryTabIcon name={d.category.icon} />
                 {d.category.name}
               </button>
             ))}
@@ -600,13 +655,13 @@ export function Ribbon({ editMode, onLogged }: Props) {
               }}
             >
               <div className="overflow-y-auto" style={{ width: '33.333%' }}>
-                {prevData && <div className="p-4"><CategorySection key={prevData.category.id} data={prevData} allCategories={allCategories} editMode={editMode} onChoreTab={openChore} onRefresh={refresh} onLogged={onLogged} wrapChores /></div>}
+                {renderPage(activeCategoryIndex - 1)}
               </div>
               <div className="overflow-y-auto" style={{ width: '33.333%' }}>
-                {currData && <div className="p-4"><CategorySection key={currData.category.id} data={currData} allCategories={allCategories} editMode={editMode} onChoreTab={openChore} onRefresh={refresh} onLogged={onLogged} wrapChores /></div>}
+                {renderPage(activeCategoryIndex)}
               </div>
               <div className="overflow-y-auto" style={{ width: '33.333%' }}>
-                {nextData && <div className="p-4"><CategorySection key={nextData.category.id} data={nextData} allCategories={allCategories} editMode={editMode} onChoreTab={openChore} onRefresh={refresh} onLogged={onLogged} wrapChores /></div>}
+                {renderPage(activeCategoryIndex + 1)}
               </div>
             </div>
           </div>
@@ -622,6 +677,11 @@ export function Ribbon({ editMode, onLogged }: Props) {
           <NoMatchesState message={noMatchesMessage} onClear={clearFilters} />
         ) : (
           <div className="p-6">
+            {pinned.length > 0 && (
+              <div className="mb-5 bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-5">
+                <PinnedSection pinned={pinned} variant="row" onChoreTab={openChore} onRefresh={refresh} onLogged={onLogged} />
+              </div>
+            )}
             <div
               ref={desktopGridRef}
               style={{ position: 'relative', height: containerHeight }}
@@ -771,6 +831,7 @@ export function Ribbon({ editMode, onLogged }: Props) {
           chore={selectedChore}
           onClose={closeChore}
           onLogged={() => { closeChore(); afterLog() }}
+          onChanged={refresh}
         />
       )}
 

@@ -144,7 +144,9 @@
     "cancel": "Cancelar",
     "saving": "A guardar…",
     "save": "Guardar",
-    "add": "Adicionar"
+    "add": "Adicionar",
+    "pinLabel": "Afixada",
+    "pinHint": "Também aparece em Afixadas, primeiro as mais atrasadas."
   },
   "choreRow": {
     "everyNDays": "a cada {{n}}d",
@@ -159,7 +161,8 @@
     "quickLogAriaLabel": "Registar {{name}} rapidamente",
     "sendAriaLabel": "Enviar {{name}} para dayGLANCE",
     "choreLabel": "{{name}} — {{elapsed}}",
-    "seasonalRange": "Sazonal: {{start}} – {{end}}"
+    "seasonalRange": "Sazonal: {{start}} – {{end}}",
+    "pinned": "Afixada"
   },
   "dateTimePicker": {
     "setDate": "Escolher data…",
@@ -381,7 +384,9 @@
     "daysLater_one": "{{count}} dia depois",
     "daysLater_other": "{{count}} dias depois",
     "delete": "Eliminar",
-    "viaDayglance": "via dayGLANCE"
+    "viaDayglance": "via dayGLANCE",
+    "pin": "Afixar",
+    "unpin": "Desafixar"
   },
   "notifications": {
     "itsBeenDays_one": "Passou {{count}} dia",
@@ -421,7 +426,8 @@
     "showFabsAriaLabel": "Mostrar botões de ação",
     "nothingNeedsAttention": "Nada precisa de atenção agora.",
     "nothingAssignedToYou": "Nada aqui está atribuído a si.",
-    "showAllChores": "Mostrar todas as tarefas"
+    "showAllChores": "Mostrar todas as tarefas",
+    "pinned": "Afixadas"
   },
   "search": {
     "placeholder": "Pesquisar tarefas…",

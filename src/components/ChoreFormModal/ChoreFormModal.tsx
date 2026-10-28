@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { X, Smile, Bell, ArrowUpRight, Leaf, Users } from 'lucide-react'
+import { X, Smile, Bell, ArrowUpRight, Leaf, Users, Pin } from 'lucide-react'
 import type { Chore, Category } from '@/types'
 import { createChore, updateChore, CHORE_DETAILS_MAX_LENGTH } from '@/db/queries'
 import { useUsersContext } from '@/multiuser/UsersContext'
@@ -64,6 +64,7 @@ export function ChoreFormModal({ category, allCategories, chore, initialName, on
   const [icon, setIcon] = useState<string | undefined>(chore ? chore.icon : category.icon)
   const [notify, setNotify] = useState(chore?.notify_when_overdue ?? false)
   const [autoSchedule, setAutoSchedule] = useState(chore?.auto_schedule_to_dayglance ?? false)
+  const [pinned, setPinned] = useState(chore?.pinned ?? false)
   const [selectedCategoryId, setSelectedCategoryId] = useState<number>(chore?.category_id ?? category.id)
   const [notifyBlocked, setNotifyBlocked] = useState(false)
   const [showIconPicker, setShowIconPicker] = useState(false)
@@ -112,7 +113,7 @@ export function ChoreFormModal({ category, allCategories, chore, initialName, on
     setSaving(true)
     try {
       if (isEdit && chore) {
-        await updateChore(chore.id, { name: trimmed, target_cadence_days: cadenceDays, notify_when_overdue: notify, auto_schedule_to_dayglance: autoSchedule, icon, category_id: selectedCategoryId, seasonal_start, seasonal_end, details: trimmedDetails, assigned_user_sync_ids: assignedIds })
+        await updateChore(chore.id, { name: trimmed, target_cadence_days: cadenceDays, notify_when_overdue: notify, auto_schedule_to_dayglance: autoSchedule, icon, category_id: selectedCategoryId, seasonal_start, seasonal_end, details: trimmedDetails, pinned, assigned_user_sync_ids: assignedIds })
       } else {
         await createChore({
           name: trimmed,
@@ -124,6 +125,7 @@ export function ChoreFormModal({ category, allCategories, chore, initialName, on
           seasonal_start,
           seasonal_end,
           details: trimmedDetails,
+          pinned,
           icon,
           assigned_user_sync_ids: assignedIds,
         })
@@ -233,6 +235,26 @@ export function ChoreFormModal({ category, allCategories, chore, initialName, on
               <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
                 {t('choreForm.cadenceHint')}
               </p>
+            </div>
+
+            <div className="flex items-center justify-between py-1">
+              <div className="flex flex-col gap-0.5">
+                <div className="flex items-center gap-2">
+                  <Pin size={13} className={pinned ? 'text-green-400' : 'text-slate-400 dark:text-slate-500'} />
+                  <span className="text-sm text-slate-600 dark:text-slate-300">{t('choreForm.pinLabel')}</span>
+                </div>
+                <span className="text-xs text-slate-400 dark:text-slate-500 pl-5">{t('choreForm.pinHint')}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPinned(v => !v)}
+                className={`relative w-10 h-6 rounded-full transition-colors shrink-0 ml-3 ${pinned ? 'bg-green-400' : 'bg-slate-300 dark:bg-slate-600'}`}
+                aria-checked={pinned}
+                aria-label={t('choreForm.pinLabel')}
+                role="switch"
+              >
+                <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${pinned ? 'translate-x-4' : ''}`} />
+              </button>
             </div>
 
             {cadence.trim() && (

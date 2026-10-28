@@ -144,7 +144,9 @@
     "cancel": "Annulla",
     "saving": "Salvataggio…",
     "save": "Salva",
-    "add": "Aggiungi"
+    "add": "Aggiungi",
+    "pinLabel": "Fissata",
+    "pinHint": "Compare anche in Fissate, prima le più in ritardo."
   },
   "choreRow": {
     "everyNDays": "ogni {{n}}g",
@@ -159,7 +161,8 @@
     "quickLogAriaLabel": "Registra {{name}} rapidamente",
     "sendAriaLabel": "Invia {{name}} a dayGLANCE",
     "choreLabel": "{{name}} — {{elapsed}}",
-    "seasonalRange": "Stagionale: {{start}} – {{end}}"
+    "seasonalRange": "Stagionale: {{start}} – {{end}}",
+    "pinned": "Fissata"
   },
   "dateTimePicker": {
     "setDate": "Scegli una data…",
@@ -381,7 +384,9 @@
     "daysLater_one": "{{count}} giorno dopo",
     "daysLater_other": "{{count}} giorni dopo",
     "delete": "Elimina",
-    "viaDayglance": "via dayGLANCE"
+    "viaDayglance": "via dayGLANCE",
+    "pin": "Fissa",
+    "unpin": "Non fissare"
   },
   "notifications": {
     "itsBeenDays_one": "È passato {{count}} giorno",
@@ -421,7 +426,8 @@
     "showFabsAriaLabel": "Mostra i pulsanti azione",
     "nothingNeedsAttention": "Al momento non c'è nulla di urgente.",
     "nothingAssignedToYou": "Qui non c'è nulla assegnato a te.",
-    "showAllChores": "Mostra tutte le attività"
+    "showAllChores": "Mostra tutte le attività",
+    "pinned": "Fissate"
   },
   "search": {
     "placeholder": "Cerca attività…",

@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
-import { X } from 'lucide-react'
+import { X, Pin } from 'lucide-react'
 import dayjs from 'dayjs'
 import type { ChoreWithLastCompletion, CompletionEvent } from '@/types'
-import { logCompletion, getCompletionHistory, deleteCompletion, updateCompletionNote } from '@/db/queries'
+import { logCompletion, getCompletionHistory, deleteCompletion, updateCompletionNote, updateChore } from '@/db/queries'
 import { CompletionRow } from '@/components/CompletionRow/CompletionRow'
 import { formatDate, formatMonthShort, weekdayAtOffset } from '@/utils/datetime'
 import { completionsLabel } from '@/utils/completionsLabel'
@@ -19,11 +19,13 @@ interface Props {
   chore: ChoreWithLastCompletion
   onClose: () => void
   onLogged: () => void
+  // A change that keeps the modal open (pinning) and needs the lists re-read.
+  onChanged?: () => void
 }
 
 type SendState = 'idle' | 'saving' | 'done' | 'error'
 
-export function LogModal({ chore, onClose, onLogged }: Props) {
+export function LogModal({ chore, onClose, onLogged, onChanged }: Props) {
   const { t } = useTranslation()
   const { users, multiUserEnabled } = useUsersContext()
   const { isConfigured } = useIntents()
@@ -33,6 +35,7 @@ export function LogModal({ chore, onClose, onLogged }: Props) {
   const [saving, setSaving] = useState(false)
   const [sendState, setSendState] = useState<SendState>('idle')
   const [completions, setCompletions] = useState<CompletionEvent[]>([])
+  const [pinned, setPinned] = useState(chore.pinned)
   const heatmapRef = useRef<HTMLDivElement>(null)
   useEscapeKey(onClose)
 
@@ -71,6 +74,17 @@ export function LogModal({ chore, onClose, onLogged }: Props) {
     setCompletions(updated)
   }
 
+  async function togglePinned() {
+    const next = !pinned
+    setPinned(next)
+    try {
+      await updateChore(chore.id, { pinned: next })
+      onChanged?.()
+    } catch {
+      setPinned(!next)
+    }
+  }
+
   async function handleSendToDayGlance() {
     if (sendState !== 'idle') return
     setSendState('saving')
@@ -107,9 +121,20 @@ export function LogModal({ chore, onClose, onLogged }: Props) {
               <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100">{chore.name}</h2>
               <p className="text-sm text-slate-400 dark:text-slate-400 mt-0.5">{t('logModal.lastDone', { elapsed: elapsedText })}</p>
             </div>
-            <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors shrink-0 mt-0.5">
-              <X size={18} />
-            </button>
+            <div className="flex items-center gap-3 shrink-0 mt-0.5">
+              <button
+                onClick={togglePinned}
+                className={`transition-colors ${pinned ? 'text-green-400 hover:text-green-300' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}
+                aria-label={pinned ? t('logModal.unpin') : t('logModal.pin')}
+                aria-pressed={pinned}
+                data-tooltip={pinned ? t('logModal.unpin') : t('logModal.pin')}
+              >
+                <Pin size={17} fill={pinned ? 'currentColor' : 'none'} />
+              </button>
+              <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+                <X size={18} />
+              </button>
+            </div>
           </div>
 
           {chore.details && (

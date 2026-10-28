@@ -146,7 +146,9 @@
     "cancel": "Anuluj",
     "saving": "Zapisywanie…",
     "save": "Zapisz",
-    "add": "Dodaj"
+    "add": "Dodaj",
+    "pinLabel": "Przypięty",
+    "pinHint": "Widoczny też w sekcji Przypięte, najbardziej zaległe najpierw."
   },
   "choreRow": {
     "everyNDays": "co {{n}} dn.",
@@ -161,7 +163,8 @@
     "quickLogAriaLabel": "Szybko odnotuj {{name}}",
     "sendAriaLabel": "Wyślij {{name}} do dayGLANCE",
     "choreLabel": "{{name}} — {{elapsed}}",
-    "seasonalRange": "Sezonowy: {{start}} – {{end}}"
+    "seasonalRange": "Sezonowy: {{start}} – {{end}}",
+    "pinned": "Przypięty"
   },
   "dateTimePicker": {
     "setDate": "Ustaw datę…",
@@ -395,7 +398,9 @@
     "daysLater_many": "{{count}} dni później",
     "daysLater_other": "{{count}} dnia później",
     "delete": "Usuń",
-    "viaDayglance": "przez dayGLANCE"
+    "viaDayglance": "przez dayGLANCE",
+    "pin": "Przypnij",
+    "unpin": "Odepnij"
   },
   "notifications": {
     "itsBeenDays_one": "Minął {{count}} dzień",
@@ -441,7 +446,8 @@
     "showFabsAriaLabel": "Pokaż przyciski akcji",
     "nothingNeedsAttention": "Nic nie wymaga teraz uwagi.",
     "nothingAssignedToYou": "Nic tutaj nie jest przypisane do Ciebie.",
-    "showAllChores": "Pokaż wszystkie obowiązki"
+    "showAllChores": "Pokaż wszystkie obowiązki",
+    "pinned": "Przypięte"
   },
   "search": {
     "placeholder": "Szukaj obowiązków…",

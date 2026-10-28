@@ -29,6 +29,7 @@ export interface Chore {
   seasonal_start: string | null  // "MM-DD", e.g. "04-01"
   seasonal_end: string | null    // "MM-DD", e.g. "10-31"
   details: string | null         // free-text notes for the chore itself
+  pinned: boolean                // shown in the Pinned row/tab as well as its own category
   created_at: string
   updated_at: string
   icon?: string
