@@ -564,8 +564,9 @@ describe('first-sync snapshot seeding gate', () => {
       vaultToken: 'test-token',
       accountId: 'acct-test',
     })
-    // Keep the recovery path out of these tests' way.
-    localStorage.setItem(RECOVERY_FLAG, '2')
+    // Keep the recovery path out of these tests' way (the current generation;
+    // the last test below sets it behind on purpose).
+    localStorage.setItem(RECOVERY_FLAG, '3')
   })
 
   afterAll(() => {
@@ -605,6 +606,26 @@ describe('first-sync snapshot seeding gate', () => {
     localStorage.removeItem(DIRTY_KEY)
 
     const engine = createDbEngine()!
+    await engine.dbSyncCycle()
+
+    expect(localStorage.getItem(SEEDED_FLAG)).toBe('1')
+    expect(engine.getDirtySet()).toEqual([])
+  })
+
+  it('a recovery rewind does not make a synced pre-flag device seed (and overwrite the vault)', async () => {
+    // The shim reads "cursor past 0" as proof of a first sync. A device behind
+    // the recovery generation gets its cursor rewound to 0 at engine creation;
+    // read after that, the shim would take it for a fresh install and mark the
+    // whole dataset dirty, and the push (an unconditional upsert) would
+    // overwrite newer vault copies with its own.
+    localStorage.setItem(HWM_KEY, '42')
+    localStorage.setItem(RECOVERY_FLAG, '2')
+    localStorage.removeItem(SEEDED_FLAG)
+    localStorage.removeItem(DIRTY_KEY)
+
+    const engine = createDbEngine()!
+    // The recovery still happened: the next pull re-lists everything.
+    expect(engine.getHighWaterMark()).toBe(0)
     await engine.dbSyncCycle()
 
     expect(localStorage.getItem(SEEDED_FLAG)).toBe('1')

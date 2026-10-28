@@ -511,6 +511,18 @@ const HWM_RECOVERY_FLAG = `${APP_ID}-db-sync-hwm-recovery-gen`
 // initial marking; the engine's persisted dirty set owns delivery from there.
 const SNAPSHOT_SEEDED_FLAG = `${APP_ID}-db-sync-snapshot-seeded`
 
+// The seeding wrapper's migration shim, run at engine creation so it sees the
+// cursor before recoverStalePullCursor can rewind it.
+function latchSeededIfAlreadySynced(engine: DbSyncEngine): void {
+  if (typeof localStorage === 'undefined') return
+  if (localStorage.getItem(SNAPSHOT_SEEDED_FLAG) === '1') return
+  try {
+    if (engine.getHighWaterMark() > 0) localStorage.setItem(SNAPSHOT_SEEDED_FLAG, '1')
+  } catch (err) {
+    console.warn('[lastglance] vault seed-flag latch failed:', err)
+  }
+}
+
 function recoverStalePullCursor(engine: DbSyncEngine): void {
   if (typeof localStorage === 'undefined') return
   // NaN (absent / legacy timestamp value) is treated as behind, so it runs.
@@ -588,11 +600,20 @@ export function createDbEngine(callbacks: DbEngineCallbacks = {}): DbSyncEngine 
     onRowsSkipped: callbacks.onRowsSkipped,
   })
 
+  // Latch the seed flag for a device that has already synced BEFORE any cursor
+  // rewind. The seeding wrapper's migration shim reads "cursor past 0" as proof
+  // the first sync happened; run after a recovery rewind, a device without the
+  // flag would read 0, take itself for a fresh install and mark everything
+  // dirty. That full push is an unconditional upsert, so its copies would
+  // overwrite newer ones in the vault (a recovery re-pull that was meant to
+  // restore data would instead clobber it).
+  latchSeededIfAlreadySynced(engine)
+
   // Recover devices whose pull cursor was poisoned by the ≤1.3.x push/pull bug
-  // before deciding whether this is a first-ever sync below. The cursor rewind
-  // no longer re-triggers the snapshot seed (the seed gate is a one-shot flag,
-  // not an HWM check) — under SSE a rewind-triggered re-seed would not be
-  // harmless; see the seeding wrapper below.
+  // (and later generations, see RECOVERY_GENERATION). With the seed flag
+  // latched above, the rewind never re-triggers the snapshot seed: under SSE a
+  // rewind-triggered re-seed would not be harmless; see the seeding wrapper
+  // below.
   recoverStalePullCursor(engine)
 
   // Repair categories that were stored flat by an earlier build, immediately on
