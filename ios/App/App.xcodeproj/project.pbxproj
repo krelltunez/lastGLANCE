@@ -44,6 +44,7 @@
 		EA0000000000000000000103 /* ContactsPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA0000000000000000000102 /* ContactsPlugin.swift */; };
 		EA0000000000000000000105 /* PeopleWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA0000000000000000000104 /* PeopleWidgets.swift */; };
 		EA0000000000000000000107 /* ICloudPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA0000000000000000000106 /* ICloudPlugin.swift */; };
+		EA0000000000000000000109 /* PinnedWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA0000000000000000000108 /* PinnedWidget.swift */; };
 		EB00000000000000000000B7 /* ShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = EB00000000000000000000F9 /* ShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		EB00000000000000000000C1 /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB00000000000000000000E1 /* ShareViewController.swift */; };
 		EB00000000000000000000C2 /* SharedDataStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA00000000000000000000F2 /* SharedDataStore.swift */; };
@@ -126,6 +127,7 @@
 		EA0000000000000000000102 /* ContactsPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactsPlugin.swift; sourceTree = "<group>"; };
 		EA0000000000000000000104 /* PeopleWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeopleWidgets.swift; sourceTree = "<group>"; };
 		EA0000000000000000000106 /* ICloudPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ICloudPlugin.swift; sourceTree = "<group>"; };
+		EA0000000000000000000108 /* PinnedWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinnedWidget.swift; sourceTree = "<group>"; };
 		EB00000000000000000000E1 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
 		EB00000000000000000000F7 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		EB00000000000000000000F8 /* ShareExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ShareExtension.entitlements; sourceTree = "<group>"; };
@@ -245,6 +247,7 @@
 				EA00000000000000000000E7 /* AddChoreWidget.swift */,
 				EA00000000000000000000E8 /* AccessoryWidgets.swift */,
 				EA0000000000000000000104 /* PeopleWidgets.swift */,
+				EA0000000000000000000108 /* PinnedWidget.swift */,
 				EA00000000000000000000FA /* LucidePath.swift */,
 				EA00000000000000000000FB /* LucideIcons.generated.swift */,
 				EA00000000000000000000F7 /* Info.plist */,
@@ -454,6 +457,7 @@
 				EA00000000000000000000C7 /* AddChoreWidget.swift in Sources */,
 				EA00000000000000000000C8 /* AccessoryWidgets.swift in Sources */,
 				EA0000000000000000000105 /* PeopleWidgets.swift in Sources */,
+				EA0000000000000000000109 /* PinnedWidget.swift in Sources */,
 				EA00000000000000000000CB /* AddChoreControl.swift in Sources */,
 				EA00000000000000000000B8 /* LucidePath.swift in Sources */,
 				EA00000000000000000000B9 /* LucideIcons.generated.swift in Sources */,

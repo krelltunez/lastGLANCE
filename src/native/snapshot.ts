@@ -2,6 +2,7 @@ import { getCategories, getChoresForCategory, getAllCompletionCounts } from '@/d
 import { getFillRatio, getCadenceColor, needsAttention } from '@/utils/cadence'
 import { getMeUserSyncId, getMultiUserEnabled } from '@/multiuser/settings'
 import { ownedByMe } from '@/utils/choreFilter'
+import { isInSeasonalWindow } from '@/utils/seasonal'
 import { pushWidgetSnapshot } from './widgetBridge'
 import { buildPeopleSnapshot, type PeopleSnapshot } from './peopleSnapshot'
 import { getAllPersonDates, getPeople } from '@/people/queries'
@@ -37,6 +38,10 @@ export interface SnapshotChore {
   ratio: number | null
   color: string | null
   state: ChoreState
+  // Shown in the Pinned widgets: pinned and in season, as in the app's Pinned
+  // row. Absent from snapshots written before pinning; widgets read that as
+  // false. The widgets order pins themselves, the same way collectPinned does.
+  pinned: boolean
 }
 
 export interface WidgetSnapshot {
@@ -106,6 +111,7 @@ export async function buildSnapshot(): Promise<WidgetSnapshot> {
         ratio: ratio != null ? Math.round(ratio * 100) / 100 : null,
         color: ratio != null ? getCadenceColor(ratio) : null,
         state,
+        pinned: !!ch.pinned && isInSeasonalWindow(ch),
       })
     }
   }

@@ -87,6 +87,7 @@ internal data class ChoreData(
     val elapsed: String,
     val colorInt: Int,
     val iconResId: Int, // ic_lucide_* drawable, or 0 when the chore has no icon
+    val categoryName: String?, // the chore's own category (a subcategory's name, not its parent's)
 )
 
 internal object ChoreSnapshot {
@@ -139,6 +140,7 @@ internal object ChoreSnapshot {
             elapsed = elapsedLabel(context, ch),
             colorInt = parseColor(color),
             iconResId = resolveIcon(context, ch.optString("icon", null)),
+            categoryName = if (ch.isNull("categoryName")) null else ch.optString("categoryName").ifEmpty { null },
         )
     }
 
@@ -157,6 +159,32 @@ internal object ChoreSnapshot {
                 rows.add(ratio to toChoreData(context, ch))
             }
             rows.sortByDescending { it.first }
+            rows.take(limit).map { it.second }
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    // Pinned chores (pinned and in season), in the app's Pinned order: most
+    // overdue first by ratio, chores without a ratio (no cadence, or never done)
+    // last, ties by name. Mirrors collectPinned in src/utils/pinned.ts and
+    // pinnedList in the iOS ChoreSnapshot.swift. Powers the Pinned widget.
+    // Snapshots from before pinning carry no "pinned" key: nothing qualifies.
+    fun pickPinnedList(context: Context, limit: Int): List<ChoreData> {
+        val raw = SharedDataStore.readSnapshot(context) ?: return emptyList()
+        return try {
+            val chores = JSONObject(raw).optJSONArray("chores") ?: return emptyList()
+            val rows = ArrayList<Pair<Double?, ChoreData>>()
+            for (i in 0 until chores.length()) {
+                val ch = chores.getJSONObject(i)
+                if (!ch.optBoolean("pinned", false)) continue
+                val ratio = if (ch.isNull("ratio")) null else ch.optDouble("ratio")
+                rows.add(ratio to toChoreData(context, ch))
+            }
+            rows.sortWith(
+                compareBy<Pair<Double?, ChoreData>>({ it.first == null }, { -(it.first ?: 0.0) })
+                    .thenBy(String.CASE_INSENSITIVE_ORDER) { it.second.name },
+            )
             rows.take(limit).map { it.second }
         } catch (e: Exception) {
             emptyList()
@@ -293,9 +321,10 @@ class CompleteChoreCallback : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
         val syncId = parameters[SYNC_ID_KEY] ?: return
         CompletionStore.complete(context, syncId)
-        // Refresh every widget kind so the tile and the list both reflect it.
+        // Refresh every chore widget so the tile and the lists all reflect it.
         SingleChoreWidget().updateAll(context)
         SoonListWidget().updateAll(context)
+        PinnedWidget().updateAll(context)
     }
 }
 

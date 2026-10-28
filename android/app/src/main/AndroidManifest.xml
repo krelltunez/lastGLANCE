@@ -134,6 +134,18 @@
         </receiver>
 
         <receiver
+            android:name=".glance.PinnedWidgetReceiver"
+            android:label="@string/widget_label_pinned"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/pinned_widget_info" />
+        </receiver>
+
+        <receiver
             android:name=".glance.ReachOutWidgetReceiver"
             android:label="@string/widget_label_reach_out"
             android:exported="false">

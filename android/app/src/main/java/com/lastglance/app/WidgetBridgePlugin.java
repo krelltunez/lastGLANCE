@@ -14,6 +14,7 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 import com.lastglance.app.glance.AddChoreWidgetReceiver;
 import com.lastglance.app.glance.ComingUpWidgetReceiver;
 import com.lastglance.app.glance.HeatmapWidgetReceiver;
+import com.lastglance.app.glance.PinnedWidgetReceiver;
 import com.lastglance.app.glance.ReachOutWidgetReceiver;
 import com.lastglance.app.glance.SingleChoreWidgetReceiver;
 import com.lastglance.app.glance.SoonListWidgetReceiver;
@@ -36,6 +37,7 @@ public class WidgetBridgePlugin extends Plugin {
         refreshGlanceWidget(context, HeatmapWidgetReceiver.class);
         refreshGlanceWidget(context, SingleChoreWidgetReceiver.class);
         refreshGlanceWidget(context, SoonListWidgetReceiver.class);
+        refreshGlanceWidget(context, PinnedWidgetReceiver.class);
         refreshGlanceWidget(context, ReachOutWidgetReceiver.class);
         refreshGlanceWidget(context, ComingUpWidgetReceiver.class);
         // The Add-chore widget is a static action surface — no snapshot refresh
@@ -91,6 +93,7 @@ public class WidgetBridgePlugin extends Plugin {
         refreshGlanceWidget(context, HeatmapWidgetReceiver.class);
         refreshGlanceWidget(context, SingleChoreWidgetReceiver.class);
         refreshGlanceWidget(context, SoonListWidgetReceiver.class);
+        refreshGlanceWidget(context, PinnedWidgetReceiver.class);
         refreshGlanceWidget(context, ReachOutWidgetReceiver.class);
         refreshGlanceWidget(context, ComingUpWidgetReceiver.class);
         refreshGlanceWidget(context, AddChoreWidgetReceiver.class);

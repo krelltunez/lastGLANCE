@@ -82,7 +82,7 @@ The Android app ships the full web app in a WebView with native enhancements tha
 
 | Feature | Details |
 |---|---|
-| 🏠 **Home screen widgets** | A completion heatmap, a "soon" list, the single most-overdue chore, and a quick-add button, each with one-tap done. For People, a Reach out widget (tap to quick-log) and a Coming up widget for the next dates |
+| 🏠 **Home screen widgets** | A completion heatmap, a "soon" list, your pinned chores, the single most-overdue chore, and a quick-add button, each with one-tap done. For People, a Reach out widget (tap to quick-log) and a Coming up widget for the next dates |
 | ⚡ **Quick Settings tiles** | An "Add chore" tile and a "Soon" tile that shows a live overdue and soon count right in the notification shade |
 | 🔔 **Background reminders** | Overdue chores, birthdays and dates, and a daily catch-up digest fire reliably even when the app is closed |
 | 📇 **Phone contacts** | Optional and read-only: import people with their birthdays, link a person to a contact, and call, text or email them in one tap |

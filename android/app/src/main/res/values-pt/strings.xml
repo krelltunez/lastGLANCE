@@ -4,6 +4,10 @@
     <string name="single_chore_widget_description">A tarefa que mais precisa de atenção, com Feito num toque.</string>
     <string name="soon_list_widget_description">Tarefas que em breve precisam de atenção, com Feito num toque.</string>
     <string name="soon_list_widget_title">Em breve</string>
+    <string name="pinned_widget_description">As suas tarefas afixadas, primeiro as mais atrasadas, com Feito num toque.</string>
+    <string name="pinned_widget_title">Afixadas</string>
+    <string name="widget_label_pinned">lastGLANCE Afixadas</string>
+    <string name="widget_no_pinned">Afixe tarefas na aplicação para as ver aqui.</string>
     <string name="widget_done">Feito</string>
     <string name="widget_all_caught_up">Tudo em dia</string>
     <string name="widget_config_auto">A mais atrasada (automático)</string>

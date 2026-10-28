@@ -2,14 +2,16 @@ import SwiftUI
 import WidgetKit
 
 // Entry point for the WidgetKit extension: the widget surfaces the Android
-// glance/ package ships (heatmap, soon/overdue list, the configurable
-// single-chore tile, and the People Reach out and Coming up lists) plus the
-// Lock Screen ones, all rendering from the one App-Group snapshot.
+// glance/ package ships (heatmap, soon/overdue list, pinned list, the
+// configurable single-chore tile, and the People Reach out and Coming up
+// lists) plus the Lock Screen ones, all rendering from the one App-Group
+// snapshot.
 @main
 struct GlanceWidgetsBundle: WidgetBundle {
     var body: some Widget {
         HeatmapWidget()
         SoonListWidget()
+        PinnedWidget()
         SingleChoreWidget()
         AddChoreWidget()
         AccessoryStatusWidget()
