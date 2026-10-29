@@ -505,6 +505,7 @@
     "password": "Mot de passe",
     "passwordPlaceholder": "••••••••",
     "passwordHint": "Stocké dans le localStorage du navigateur — sécurisez votre appareil.",
+    "cleartextWarning": "Cette connexion n'est pas chiffrée. Votre mot de passe et vos données circulent en clair : n'utilisez http que sur un réseau de confiance.",
     "testConnection": "Tester la connexion",
     "connected": "Connecté",
     "testFailed": "Échec",

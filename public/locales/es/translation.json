@@ -505,6 +505,7 @@
     "password": "Contraseña",
     "passwordPlaceholder": "••••••••",
     "passwordHint": "Almacenada en el localStorage del navegador — protege tu dispositivo.",
+    "cleartextWarning": "Esta conexión no está cifrada. Tu contraseña y tus datos viajan en texto plano, así que usa http solo en una red de confianza.",
     "testConnection": "Probar conexión",
     "connected": "Conectado",
     "testFailed": "Fallido",
