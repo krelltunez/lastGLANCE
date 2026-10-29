@@ -15,6 +15,7 @@ import type { Category, ChoreWithLastCompletion } from '@/types'
 import type { PersonCircle, PersonDate, PersonWithLastInteraction } from '@/people/types'
 import { visibleToMe } from '@/people/home'
 import { ownedByMe } from '@/utils/choreFilter'
+import { isInSeasonalWindow } from '@/utils/seasonal'
 import type { HandledWrite } from '@/intents/launcherWrites'
 
 export const LAUNCHER_SNAPSHOT_VERSION = 1
@@ -30,6 +31,10 @@ export interface LauncherChore {
   icon: string | null
   updatedAt: string
   clientId: string | null
+  // Shown in the launcher's Pinned list: pinned and in season, as in the app's
+  // Pinned row and the Pinned widgets. The launcher orders pins itself, the
+  // same way collectPinned does. An older launcher ignores the field.
+  pinned: boolean
 }
 
 export interface LauncherPersonDate {
@@ -114,6 +119,7 @@ export function buildLauncherSnapshot(input: LauncherSnapshotInput): LauncherSna
       icon: ch.icon ?? null,
       updatedAt: ch.updated_at,
       clientId: createdBy.get(ch.sync_id) ?? null,
+      pinned: !!ch.pinned && isInSeasonalWindow(ch, now),
     })
   }
 

@@ -22,7 +22,7 @@ widget snapshot and its hook are untouched. Shape:
 ```
 { version: 1, updatedAt, timezone, today,
   chores: [{ id, name, category, categoryId, targetCadenceDays, lastDoneAt, elapsedDays,
-             icon, updatedAt, clientId }],
+             icon, updatedAt, clientId, pinned }],
   people: [{ id, name, nickname, circle, circleId, targetCadenceDays, lastInteractionAt,
              lastChannel, unreturned, snoozedUntil,
              dates: [{ id, kind, label, month, day, year }], updatedAt }],
