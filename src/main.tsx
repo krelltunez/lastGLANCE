@@ -27,6 +27,30 @@ if (Capacitor.isNativePlatform()) {
   document.documentElement.classList.add('native')
 }
 
+// The PWA service worker is for the browser only. In the native shells the
+// bundle ships inside the app, and a worker there serves the precache of the
+// version that installed it: after a store update the first launch showed the
+// old bundle until the app was swiped away. Native removes any worker an
+// earlier build registered, with its caches.
+const registerServiceWorker = () => {
+  if (!('serviceWorker' in navigator)) return
+  if (Capacitor.isNativePlatform()) {
+    navigator.serviceWorker.getRegistrations()
+      .then(regs => Promise.all(regs.map(r => r.unregister())))
+      .catch(() => {})
+    if ('caches' in window) {
+      caches.keys()
+        .then(keys => Promise.all(keys.filter(k => k.startsWith('workbox-')).map(k => caches.delete(k))))
+        .catch(() => {})
+    }
+    return
+  }
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => {})
+  })
+}
+registerServiceWorker()
+
 // Cap the viewport scale on iPhone before anything can take focus, so WebKit
 // cannot zoom the page in on a sub-16px field it can never zoom back out of
 // (see utils/viewportZoom.ts). No-op on every other platform.
