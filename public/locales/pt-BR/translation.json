@@ -505,6 +505,7 @@
     "password": "Senha",
     "passwordPlaceholder": "••••••••",
     "passwordHint": "Armazenada no localStorage do navegador — proteja o seu dispositivo.",
+    "cleartextWarning": "Esta conexão não está criptografada. A sua senha e os seus dados circulam em texto simples, por isso use http apenas numa rede de confiança.",
     "testConnection": "Testar conexão",
     "connected": "Conectado",
     "testFailed": "Falhou",

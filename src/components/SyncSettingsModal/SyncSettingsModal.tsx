@@ -14,6 +14,7 @@ import { cloudSyncProviders } from '@/utils/cloudSyncProviders'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
 import { useTranslation } from 'react-i18next'
 import { isWebCryptoAvailable } from '@/utils/secureContext'
+import { isCleartextRemoteUrl } from '@/utils/insecureUrl'
 import { formatDateTime } from '@/utils/datetime'
 import { buildSyncConfigToSave } from './buildSyncConfig'
 import { DirectAccessSection } from './DirectAccessSection'
@@ -503,6 +504,12 @@ export function SyncSettingsModal({ engine, dbEngine, syncError, syncErrorCode, 
                 {field.type === 'password' && (
                   <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">{t('sync.passwordHint')}</p>
                 )}
+                {field.type === 'url' && isCleartextRemoteUrl(formData[field.key] ?? '') && (
+                  <p className="flex items-start gap-1 text-xs text-amber-600 dark:text-amber-400 mt-1">
+                    <AlertTriangle size={12} className="mt-0.5 shrink-0" />
+                    {t('sync.cleartextWarning')}
+                  </p>
+                )}
               </div>
             ))}
 
@@ -802,6 +809,12 @@ export function SyncSettingsModal({ engine, dbEngine, syncError, syncErrorCode, 
                     autoComplete="off"
                     className="w-full bg-slate-100 dark:bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
                   />
+                  {isCleartextRemoteUrl(vaultUrl) && (
+                    <p className="flex items-start gap-1 text-xs text-amber-600 dark:text-amber-400 mt-1">
+                      <AlertTriangle size={12} className="mt-0.5 shrink-0" />
+                      {t('sync.cleartextWarning')}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">

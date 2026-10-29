@@ -505,6 +505,7 @@
     "password": "Password",
     "passwordPlaceholder": "••••••••",
     "passwordHint": "Stored in browser localStorage — keep your device secure.",
+    "cleartextWarning": "This connection isn't encrypted. Your password and data travel in plain text, so only use http on a network you trust.",
     "testConnection": "Test connection",
     "connected": "Connected",
     "testFailed": "Failed",

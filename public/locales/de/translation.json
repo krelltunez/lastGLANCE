@@ -505,6 +505,7 @@
     "password": "Passwort",
     "passwordPlaceholder": "••••••••",
     "passwordHint": "Im Browser-localStorage gespeichert — Gerät absichern.",
+    "cleartextWarning": "Diese Verbindung ist nicht verschlüsselt. Passwort und Daten werden im Klartext übertragen. Nutze http nur in einem vertrauenswürdigen Netzwerk.",
     "testConnection": "Verbindung testen",
     "connected": "Verbunden",
     "testFailed": "Fehlgeschlagen",

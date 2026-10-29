@@ -505,6 +505,7 @@
     "password": "密码",
     "passwordPlaceholder": "••••••••",
     "passwordHint": "存储在浏览器 localStorage 中，请确保设备安全。",
+    "cleartextWarning": "此连接未加密。您的密码和数据以明文传输，请仅在可信网络中使用 http。",
     "testConnection": "测试连接",
     "connected": "已连接",
     "testFailed": "失败",

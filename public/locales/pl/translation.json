@@ -525,6 +525,7 @@
     "password": "Hasło",
     "passwordPlaceholder": "••••••••",
     "passwordHint": "Przechowywane w localStorage przeglądarki — dbaj o bezpieczeństwo urządzenia.",
+    "cleartextWarning": "To połączenie nie jest szyfrowane. Hasło i dane są przesyłane otwartym tekstem, więc używaj http tylko w zaufanej sieci.",
     "testConnection": "Testuj połączenie",
     "connected": "Połączono",
     "testFailed": "Niepowodzenie",
