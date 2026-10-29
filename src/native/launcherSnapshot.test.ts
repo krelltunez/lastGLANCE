@@ -54,8 +54,8 @@ describe('buildLauncherSnapshot', () => {
     expect(snap.today).toBe('2026-10-19')
     expect(snap.timezone).toBe('America/Denver')
     expect(snap.chores).toEqual([
-      { id: 'chore-1', name: 'Vacuum', category: 'Kitchen', categoryId: 'cat-1', targetCadenceDays: 7, lastDoneAt: '2026-10-15T12:00:00.000Z', elapsedDays: 4.1, icon: null, updatedAt: '2026-10-02T00:00:00.000Z', clientId: null },
-      { id: 'chore-2', name: 'Mow', category: 'Garden', categoryId: 'cat-2', targetCadenceDays: null, lastDoneAt: null, elapsedDays: null, icon: 'scissors', updatedAt: '2026-10-02T00:00:00.000Z', clientId: null },
+      { id: 'chore-1', name: 'Vacuum', category: 'Kitchen', categoryId: 'cat-1', targetCadenceDays: 7, lastDoneAt: '2026-10-15T12:00:00.000Z', elapsedDays: 4.1, icon: null, updatedAt: '2026-10-02T00:00:00.000Z', clientId: null, pinned: false },
+      { id: 'chore-2', name: 'Mow', category: 'Garden', categoryId: 'cat-2', targetCadenceDays: null, lastDoneAt: null, elapsedDays: null, icon: 'scissors', updatedAt: '2026-10-02T00:00:00.000Z', clientId: null, pinned: false },
     ])
   })
 
@@ -66,6 +66,18 @@ describe('buildLauncherSnapshot', () => {
     expect(snap.people[0].dates).toEqual([{ id: 'd1', kind: 'birthday', label: null, month: 11, day: 2, year: 1986 }])
     expect(snap.people[1]).toMatchObject({ unreturned: false, lastInteractionAt: null, snoozedUntil: '2026-10-25T00:00:00.000Z' })
     expect(snap.people[1].dates).toEqual([{ id: 'd2', kind: 'custom', label: 'Moved', month: 3, day: 1, year: null }])
+  })
+
+  it('marks pinned chores, leaving an out-of-season pin unmarked as the app Pinned row does', () => {
+    const snap = buildLauncherSnapshot(input({
+      chores: [
+        chore(1, 'Vacuum', 1, { pinned: true }),
+        chore(2, 'Mow', 2, { pinned: true, seasonal_start: '04-01', seasonal_end: '09-30' }),
+        chore(3, 'Rake', 2, { pinned: true, seasonal_start: '10-01', seasonal_end: '11-30' }),
+        chore(4, 'Dust', 1),
+      ],
+    }))
+    expect(Object.fromEntries(snap.chores.map(c => [c.name, c.pinned]))).toEqual({ Vacuum: true, Mow: false, Rake: true, Dust: false })
   })
 
   it('leaves out archived people and, with multi-user on, chores and people that are not mine', () => {
