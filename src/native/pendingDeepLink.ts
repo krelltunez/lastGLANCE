@@ -8,7 +8,7 @@ import { OPEN_PERSON_PENDING_EVENT, setPendingOpenPerson, type PendingPeopleOpen
 // matter); a "soon" tap switches on the attention filter; the action targets open
 // search / the new-chore form (Ribbon owns both and handles cold-start retry);
 // "chores" only switches the mode (App listens for it with the other chore
-// events). People widget taps (person:, log:, people) go through the People
+// events); "pinned" does that with Soon off, on the Pinned tab (pinnedNav.ts). People widget taps (person:, log:, people) go through the People
 // pending request, like a People notification tap.
 export async function routeWidgetDeepLink(): Promise<void> {
   const link = await consumeDeepLink()
@@ -24,6 +24,8 @@ export async function routeWidgetDeepLink(): Promise<void> {
       window.dispatchEvent(new Event('lg:new-chore'))
     } else if (link === 'chores') {
       window.dispatchEvent(new Event('lg:open-chores'))
+    } else if (link === 'pinned') {
+      window.dispatchEvent(new Event('lg:open-pinned'))
     } else {
       const people = peopleRequest(link)
       if (people) {

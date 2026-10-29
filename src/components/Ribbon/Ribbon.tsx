@@ -14,7 +14,7 @@ import { peekPendingOpenChore, clearPendingOpenChore } from '@/native/pendingOpe
 import { filterCategoryData } from '@/utils/choreFilter'
 import { collectPinned } from '@/utils/pinned'
 import { ICON_REGISTRY } from '@/icons/registry'
-import { SHOW_PINNED_EVENT, type PinnedState } from './pinnedNav'
+import { OPEN_PINNED_EVENT, SHOW_PINNED_EVENT, settlePinnedRequest, type PinnedState } from './pinnedNav'
 import type { Category, ChoreWithLastCompletion } from '@/types'
 import type { CategoryWithChores } from '@/hooks/useChores'
 import { useTranslation } from 'react-i18next'
@@ -526,6 +526,23 @@ export function Ribbon({ editMode, onLogged, onPinnedState }: Props) {
     window.addEventListener(SHOW_PINNED_EVENT, onShowPinned)
     return () => window.removeEventListener(SHOW_PINNED_EVENT, onShowPinned)
   }, [])
+
+  // The launcher's Pinned list (OPEN_PINNED_EVENT): held until Soon is off and
+  // the pages are drawn, then the Pinned tab. Declared after the offset shift
+  // above, so when turning Soon off brings Pinned back, the jump lands last.
+  const [pinnedRequested, setPinnedRequested] = useState(false)
+  useEffect(() => {
+    function onOpenPinned() { setPinnedRequested(true) }
+    window.addEventListener(OPEN_PINNED_EVENT, onOpenPinned)
+    return () => window.removeEventListener(OPEN_PINNED_EVENT, onOpenPinned)
+  }, [])
+  useLayoutEffect(() => {
+    if (!pinnedRequested) return
+    const next = settlePinnedRequest({ attentionOnly, pagesReady, pinnedOffset })
+    if (next === 'wait') return
+    setPinnedRequested(false)
+    if (next === 'jump') setActiveCategoryIndex(0)
+  }, [pinnedRequested, attentionOnly, pagesReady, pinnedOffset])
 
   const pinnedShowing = pinnedOffset > 0 && activeCategoryIndex === 0
   useEffect(() => {

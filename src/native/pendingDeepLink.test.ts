@@ -23,6 +23,7 @@ const events = (): string[] => {
   const seen: string[] = []
   window.addEventListener('lg:open-chores', () => seen.push('lg:open-chores'))
   window.addEventListener('lg:widget-filter-soon', () => seen.push('lg:widget-filter-soon'))
+  window.addEventListener('lg:open-pinned', () => seen.push('lg:open-pinned'))
   return seen
 }
 
@@ -36,6 +37,13 @@ describe('routeWidgetDeepLink', () => {
     bridge.consumeDeepLink.mockResolvedValueOnce('chores')
     await routeWidgetDeepLink()
     expect(seen).toEqual(['lg:open-chores'])
+  })
+
+  it('"pinned" fires the Pinned request, not the Soon filter', async () => {
+    const seen = events()
+    bridge.consumeDeepLink.mockResolvedValueOnce('pinned')
+    await routeWidgetDeepLink()
+    expect(seen).toEqual(['lg:open-pinned'])
   })
 
   it('"filter:soon" still fires its own event', async () => {

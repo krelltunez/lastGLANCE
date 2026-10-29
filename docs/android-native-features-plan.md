@@ -185,6 +185,7 @@ URI scheme, two verb classes:
 | `lastglance://chore/<syncId>` | navigate | open app, focus chore (reuse `lg:open-chore` event, `useNotifications.ts:72`) |
 | `lastglance://filter/soon` | navigate | open app with attention filter on (`setAttentionOnly`, `App.tsx:124`) |
 | `lastglance://chores` | navigate | open app in Chores mode, nothing more (the counterpart of `lastglance://people`; a launcher's Chores card) |
+| `lastglance://pinned` | navigate | Chores mode with Soon off, on the Pinned tab on a phone (GLANCElauncher's Pinned list); Android only |
 | `lastglance://complete/<syncId>` | act | log completion (idempotent, see Phase 2) |
 
 Native components can't call JS directly, so "act" intents land in a **pending
