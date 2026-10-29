@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Pencil, Check, Cloud, CloudOff, RefreshCw, HelpCircle, Settings, UserCircle, Clock, NotebookText, Settings2, UserPlus, Pin } from 'lucide-react'
 import { Ribbon } from '@/components/Ribbon/Ribbon'
-import { SHOW_PINNED_EVENT, type PinnedState } from '@/components/Ribbon/pinnedNav'
+import { OPEN_PINNED_EVENT, SHOW_PINNED_EVENT, type PinnedState } from '@/components/Ribbon/pinnedNav'
 import { BackupModal } from '@/components/BackupModal/BackupModal'
 import { WelcomeModal } from '@/components/WelcomeModal/WelcomeModal'
 import { clearSeedData, getUsers as getDBUsers, deduplicateUsers } from '@/db/queries'
@@ -80,7 +80,7 @@ type AppMode = 'chores' | 'people'
 const MODE_KEY = 'lg-mode'
 // Events that open something in the chores view (notification taps, widgets,
 // launcher shortcuts, shares). In People mode they switch back to chores.
-const CHORE_EVENTS = ['lg:open-chore', 'lg:open-chore-pending', 'lg:open-search', 'lg:new-chore', 'lg:widget-filter-soon', 'lg:open-chores']
+const CHORE_EVENTS = ['lg:open-chore', 'lg:open-chore-pending', 'lg:open-search', 'lg:new-chore', 'lg:widget-filter-soon', 'lg:open-chores', OPEN_PINNED_EVENT]
 
 function buildHeaderHeatmap(counts: Map<string, number>): HeatDay[][] {
   const today = dayjs()
@@ -650,8 +650,15 @@ function AppInner() {
   // attention filter once the app is foregrounded.
   useEffect(() => {
     function onFilterSoon() { setAttentionOnly(true) }
+    // The launcher's Pinned list shows every pin, so Soon goes off (the Ribbon
+    // then moves to the Pinned tab).
+    function onOpenPinned() { setAttentionOnly(false) }
     window.addEventListener('lg:widget-filter-soon', onFilterSoon)
-    return () => window.removeEventListener('lg:widget-filter-soon', onFilterSoon)
+    window.addEventListener(OPEN_PINNED_EVENT, onOpenPinned)
+    return () => {
+      window.removeEventListener('lg:widget-filter-soon', onFilterSoon)
+      window.removeEventListener(OPEN_PINNED_EVENT, onOpenPinned)
+    }
   }, [setAttentionOnly])
 
   // The D shortcut flips to an explicit light/dark, leaving 'system'.

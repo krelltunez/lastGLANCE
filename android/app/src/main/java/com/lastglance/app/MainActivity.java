@@ -241,6 +241,9 @@ public class MainActivity extends BridgeActivity {
             // more (a launcher's Chores card). Without it a plain launch lands
             // on whichever mode was last open.
             return "chores";
+        } else if ("pinned".equals(host)) {
+            // GLANCElauncher's Pinned list: Chores, Soon off, the Pinned tab.
+            return "pinned";
         } else if ("action".equals(host)) {
             String action = data.getLastPathSegment();
             if ("search".equals(action)) return "action:search";
