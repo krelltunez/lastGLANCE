@@ -109,6 +109,8 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      // Registered from main.tsx, web only (see registerServiceWorker there).
+      injectRegister: false,
       manifest: false,
       includeAssets: [
         'favicon.ico',
