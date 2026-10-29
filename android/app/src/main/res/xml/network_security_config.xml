@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Cleartext http is permitted app-wide so self-hosted sync works against a
+  plain-http WebDAV / Nextcloud / GLANCEvault server on the user's own network
+  (a NAS at http://192.168.x.x:5005, a Tailscale 100.x address, a .local name).
+  Android 9+ blocks cleartext by default and a domain-config cannot express IP
+  ranges, so LAN-only scoping is not possible here.
+  The vault SSE reader keeps its own LAN-only rule for its Bearer token
+  (VaultSseClient.isSecureOrLanUrl).
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

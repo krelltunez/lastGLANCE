@@ -155,8 +155,8 @@ class VaultSseClient(
         // Belt-and-braces (the settings form is the primary gate): never send the
         // Bearer token over cleartext http on the public internet. https is always
         // fine; http is allowed only for loopback/LAN hosts. A refusal is TERMINAL —
-        // reconnecting can't fix a bad scheme. (Android's manifest also blocks
-        // cleartext to non-local hosts; this fails EARLY and with a clear reason.)
+        // reconnecting can't fix a bad scheme. (The network security config permits
+        // cleartext app-wide for self-hosted LAN sync, so this is the only gate.)
         if (!isSecureOrLanUrl(target)) {
             throw SseTerminalException("insecure", "vault SSE refused: insecure http URL")
         }
