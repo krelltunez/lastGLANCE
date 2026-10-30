@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { X, Check, Loader, KeyRound } from 'lucide-react'
 import type { UseBillingResult } from '@glance-apps/billing/react'
-import { PRODUCT_IDS, STORE_NAME } from '@/billing/billing'
+import { GATE_DISMISSIBLE, PRODUCT_IDS, STORE_NAME } from '@/billing/billing'
 import { leaveApp } from '@/native/backButton'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
 import { useTranslation } from 'react-i18next'
@@ -11,7 +11,7 @@ interface Props {
   billing: UseBillingResult
 }
 
-// The hard paywall on a locked Play install — fullscreen, not dismissible
+// The hard paywall on a locked store install (Play or App Store) — fullscreen, not dismissible
 // (store review passes it via the reviewer code, rule 9). The entitlement
 // status for unlocked installs is SubscriptionStatus, in the settings panel.
 export function PaywallModal({ billing }: Props) {
@@ -39,8 +39,8 @@ export function PaywallModal({ billing }: Props) {
   const lifetimePrice = billing.prices.lifetime
 
   // Trial-forward copy, all driven by the store's own offer (no hardcoded
-  // lengths — rule 8): trialDays/trialEligible come from the Play offer on the
-  // annual base plan. Trial copy requires BOTH eligibility and a known length:
+  // lengths — rule 8): trialDays/trialEligible come from the store's own offer
+  // (Play: the annual base plan's free phase; App Store: the introductory offer). Trial copy requires BOTH eligibility and a known length:
   // the adapter's pre-fetch state is optimistically eligible with days unknown,
   // so gating on days too keeps trial language from flashing at users whose
   // trial is already spent (the store omits the free phase for them, so a
@@ -82,14 +82,17 @@ export function PaywallModal({ billing }: Props) {
              target; negative margins keep the glyph aligned with the wordmark
              and the card's padding edge. leaveApp is also what the gate
              registers for Back (useEscapeKey above), so X and back are
-             identical by construction. */}
-          <button
-            onClick={leaveApp}
-            aria-label="Close"
-            className="p-3 -mt-2 -mr-3 rounded-xl text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-400"
-          >
-            <X size={22} strokeWidth={2} aria-hidden="true" />
-          </button>
+             identical by construction. Not rendered on iOS, where leaving
+             is not something an app may do (GATE_DISMISSIBLE). */}
+          {GATE_DISMISSIBLE && (
+            <button
+              onClick={leaveApp}
+              aria-label="Close"
+              className="p-3 -mt-2 -mr-3 rounded-xl text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-400"
+            >
+              <X size={22} strokeWidth={2} aria-hidden="true" />
+            </button>
+          )}
         </div>
 
         <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">{t('paywall.pitch')}</p>
