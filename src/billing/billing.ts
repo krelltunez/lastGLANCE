@@ -67,6 +67,13 @@ export const MANAGE_SUBSCRIPTION_URL = PLATFORM === 'ios'
   ? appleManageSubscriptionUrl()
   : playManageSubscriptionUrl('com.lastglance.app', PRODUCT_IDS.yearly)
 
+// Whether the hard gate shows its close control. Play requires a dismiss
+// affordance on the gate (and rejected this app once for an unclear one), and
+// on Android it backgrounds the app. iOS has no sanctioned way for an app to
+// close itself (CapacitorApp.minimizeApp is unimplemented there), so the
+// control could only be a dead button: it is not rendered at all.
+export const GATE_DISMISSIBLE = PLATFORM !== 'ios'
+
 // Store name for paywall copy ("Payment via …", "your … subscription
 // settings"). Bare brand name (no article) so it reads right in the possessive.
 // Every store-specific paywall string takes it through {{store}}.

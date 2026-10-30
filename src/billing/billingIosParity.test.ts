@@ -69,6 +69,14 @@ vi.mock('@capacitor/core', () => ({
   registerPlugin: () => new Proxy({}, { get: (_t, p) => (p === 'then' ? undefined : vi.fn(async () => ({}))) }),
 }))
 vi.mock('@glance-apps/billing/capacitor', () => ({ createCapacitorAdapter }))
+// For rendering the real PaywallModal in this node environment: the portal
+// target is the document, and the strings are their own keys.
+vi.mock('react-dom', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('react-dom')>()),
+  createPortal: (node: unknown) => node,
+}))
+vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }))
+vi.mock('@/native/backButton', () => ({ leaveApp: vi.fn() }))
 
 async function load(p: string, channel?: string) {
   platform = p
@@ -119,5 +127,48 @@ describe('billing gate by platform and channel', () => {
     const android = await load('android', 'play')
     expect(android.MANAGE_SUBSCRIPTION_URL).toContain('play.google.com/store/account/subscriptions')
     expect(android.STORE_NAME).toBe('Google Play')
+  })
+})
+
+describe('paywall close control by platform', () => {
+  // Rendered from the real component, so removing the platform condition in
+  // PaywallModal fails here, not just a change to the constant.
+  async function renderPaywall(p: string, channel?: string) {
+    const { GATE_DISMISSIBLE } = await load(p, channel)
+    // createPortal is stubbed above; its target argument still reads document.body.
+    vi.stubGlobal('document', { body: null })
+    const [{ createElement }, { renderToStaticMarkup }, { PaywallModal }] = await Promise.all([
+      import('react'),
+      import('react-dom/server'),
+      import('@/components/PaywallModal/PaywallModal'),
+    ])
+    const billing = {
+      prices: { yearly: null, lifetime: null },
+      trialEligible: true,
+      trialDays: null,
+      isLoading: false,
+      billingEvent: null,
+    } as unknown as Parameters<typeof PaywallModal>[0]['billing']
+    return { GATE_DISMISSIBLE, html: renderToStaticMarkup(createElement(PaywallModal, { billing })) }
+  }
+
+  afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals() })
+
+  it('renders no close control on iOS, where an app cannot close itself', async () => {
+    const { GATE_DISMISSIBLE, html } = await renderPaywall('ios')
+    expect(GATE_DISMISSIBLE).toBe(false)
+    expect(html).not.toContain('aria-label="Close"')
+  })
+
+  it('keeps the close control on Android, where Play requires one', async () => {
+    const { GATE_DISMISSIBLE, html } = await renderPaywall('android', 'play')
+    expect(GATE_DISMISSIBLE).toBe(true)
+    expect(html.match(/aria-label="Close"/g)?.length).toBe(1)
+  })
+
+  it('keeps Reviewer access on both platforms, since App Review needs it past the gate', async () => {
+    for (const [p, channel] of [['ios'], ['android', 'play']]) {
+      expect((await renderPaywall(p, channel)).html).toContain('paywall.reviewerAccess')
+    }
   })
 })
