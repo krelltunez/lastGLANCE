@@ -44,9 +44,6 @@
 		EA0000000000000000000103 /* ContactsPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA0000000000000000000102 /* ContactsPlugin.swift */; };
 		EA0000000000000000000105 /* PeopleWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA0000000000000000000104 /* PeopleWidgets.swift */; };
 		EA0000000000000000000107 /* ICloudPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA0000000000000000000106 /* ICloudPlugin.swift */; };
-		ED0000000000000000000002 /* BillingBridgePlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED0000000000000000000001 /* BillingBridgePlugin.swift */; };
-		ED0000000000000000000004 /* RevenueCatBilling.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED0000000000000000000003 /* RevenueCatBilling.swift */; };
-		ED0000000000000000000007 /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = ED0000000000000000000006 /* RevenueCat */; };
 		EA0000000000000000000109 /* PinnedWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA0000000000000000000108 /* PinnedWidget.swift */; };
 		EB00000000000000000000B7 /* ShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = EB00000000000000000000F9 /* ShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		EB00000000000000000000C1 /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB00000000000000000000E1 /* ShareViewController.swift */; };
@@ -55,6 +52,9 @@
 		EC0000000000000000000002 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = EC0000000000000000000001 /* PrivacyInfo.xcprivacy */; };
 		EC0000000000000000000012 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = EC0000000000000000000011 /* PrivacyInfo.xcprivacy */; };
 		EC0000000000000000000022 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = EC0000000000000000000021 /* PrivacyInfo.xcprivacy */; };
+		ED0000000000000000000002 /* BillingBridgePlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED0000000000000000000001 /* BillingBridgePlugin.swift */; };
+		ED0000000000000000000004 /* RevenueCatBilling.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED0000000000000000000003 /* RevenueCatBilling.swift */; };
+		ED0000000000000000000007 /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = ED0000000000000000000006 /* RevenueCat */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -130,8 +130,6 @@
 		EA0000000000000000000102 /* ContactsPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactsPlugin.swift; sourceTree = "<group>"; };
 		EA0000000000000000000104 /* PeopleWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeopleWidgets.swift; sourceTree = "<group>"; };
 		EA0000000000000000000106 /* ICloudPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ICloudPlugin.swift; sourceTree = "<group>"; };
-		ED0000000000000000000001 /* BillingBridgePlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BillingBridgePlugin.swift; sourceTree = "<group>"; };
-		ED0000000000000000000003 /* RevenueCatBilling.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RevenueCatBilling.swift; sourceTree = "<group>"; };
 		EA0000000000000000000108 /* PinnedWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinnedWidget.swift; sourceTree = "<group>"; };
 		EB00000000000000000000E1 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
 		EB00000000000000000000F7 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -142,6 +140,8 @@
 		EC0000000000000000000011 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		EC0000000000000000000021 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		EC0000000000000000000031 /* release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = release.xcconfig; path = ../release.xcconfig; sourceTree = SOURCE_ROOT; };
+		ED0000000000000000000001 /* BillingBridgePlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BillingBridgePlugin.swift; sourceTree = "<group>"; };
+		ED0000000000000000000003 /* RevenueCatBilling.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RevenueCatBilling.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
