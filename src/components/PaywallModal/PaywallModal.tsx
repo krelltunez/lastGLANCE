@@ -11,7 +11,7 @@ interface Props {
   billing: UseBillingResult
 }
 
-// The hard paywall on a locked Play install — fullscreen, not dismissible
+// The hard paywall on a locked store install (Play or App Store) — fullscreen, not dismissible
 // (store review passes it via the reviewer code, rule 9). The entitlement
 // status for unlocked installs is SubscriptionStatus, in the settings panel.
 export function PaywallModal({ billing }: Props) {
@@ -39,8 +39,8 @@ export function PaywallModal({ billing }: Props) {
   const lifetimePrice = billing.prices.lifetime
 
   // Trial-forward copy, all driven by the store's own offer (no hardcoded
-  // lengths — rule 8): trialDays/trialEligible come from the Play offer on the
-  // annual base plan. Trial copy requires BOTH eligibility and a known length:
+  // lengths — rule 8): trialDays/trialEligible come from the store's own offer
+  // (Play: the annual base plan's free phase; App Store: the introductory offer). Trial copy requires BOTH eligibility and a known length:
   // the adapter's pre-fetch state is optimistically eligible with days unknown,
   // so gating on days too keeps trial language from flashing at users whose
   // trial is already spent (the store omits the free phase for them, so a

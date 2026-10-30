@@ -54,8 +54,22 @@ public class BillingBridgePlugin: CAPPlugin, CAPBridgedPlugin {
         // Debug builds (Xcode Debug configuration) always read as Pro: no paywall
         // during local development. Release and TestFlight builds do not define
         // DEBUG (SWIFT_ACTIVE_COMPILATION_CONDITIONS), so this is compiled out.
+        //
+        // To see the real reading (and the paywall) in a Debug build, launch
+        // with `-GlanceBillingRealStatus YES` (Xcode: Edit Scheme > Run >
+        // Arguments Passed On Launch). A `-key value` launch argument lands in
+        // UserDefaults' argument domain for that launch only, so removing or
+        // unticking it restores the default.
         #if DEBUG
-        call.resolve(["active": true, "productId": NSNull()])
+        if UserDefaults.standard.bool(forKey: "GlanceBillingRealStatus") {
+            let status = billing.status()
+            call.resolve([
+                "active": status.active,
+                "productId": status.productId.map { $0 as Any } ?? NSNull(),
+            ])
+        } else {
+            call.resolve(["active": true, "productId": NSNull()])
+        }
         #else
         let status = billing.status()
         call.resolve([
