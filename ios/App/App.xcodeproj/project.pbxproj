@@ -52,6 +52,9 @@
 		EC0000000000000000000002 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = EC0000000000000000000001 /* PrivacyInfo.xcprivacy */; };
 		EC0000000000000000000012 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = EC0000000000000000000011 /* PrivacyInfo.xcprivacy */; };
 		EC0000000000000000000022 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = EC0000000000000000000021 /* PrivacyInfo.xcprivacy */; };
+		ED0000000000000000000002 /* BillingBridgePlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED0000000000000000000001 /* BillingBridgePlugin.swift */; };
+		ED0000000000000000000004 /* RevenueCatBilling.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED0000000000000000000003 /* RevenueCatBilling.swift */; };
+		ED0000000000000000000007 /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = ED0000000000000000000006 /* RevenueCat */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -137,6 +140,8 @@
 		EC0000000000000000000011 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		EC0000000000000000000021 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		EC0000000000000000000031 /* release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = release.xcconfig; path = ../release.xcconfig; sourceTree = SOURCE_ROOT; };
+		ED0000000000000000000001 /* BillingBridgePlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BillingBridgePlugin.swift; sourceTree = "<group>"; };
+		ED0000000000000000000003 /* RevenueCatBilling.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RevenueCatBilling.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -145,6 +150,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				4D22ABE92AF431CB00220026 /* CapApp-SPM in Frameworks */,
+				ED0000000000000000000007 /* RevenueCat in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -227,6 +233,8 @@
 				EA0000000000000000000100 /* DirectAccessPlugin.swift */,
 				EA0000000000000000000102 /* ContactsPlugin.swift */,
 				EA0000000000000000000106 /* ICloudPlugin.swift */,
+				ED0000000000000000000001 /* BillingBridgePlugin.swift */,
+				ED0000000000000000000003 /* RevenueCatBilling.swift */,
 			);
 			path = plugins;
 			sourceTree = "<group>";
@@ -290,6 +298,7 @@
 			name = App;
 			packageProductDependencies = (
 				4D22ABE82AF431CB00220026 /* CapApp-SPM */,
+				ED0000000000000000000006 /* RevenueCat */,
 			);
 			productName = App;
 			productReference = 504EC3041FED79650016851F /* App.app */;
@@ -373,6 +382,7 @@
 			mainGroup = 504EC2FB1FED79650016851F;
 			packageReferences = (
 				D4C12C0A2AAA248700AAC8A2 /* XCLocalSwiftPackageReference "CapApp-SPM" */,
+				ED0000000000000000000005 /* XCLocalSwiftPackageReference "Packages/RevenueCatBinary" */,
 			);
 			productRefGroup = 504EC3051FED79650016851F /* Products */;
 			projectDirPath = "";
@@ -437,6 +447,8 @@
 				EA0000000000000000000101 /* DirectAccessPlugin.swift in Sources */,
 				EA0000000000000000000103 /* ContactsPlugin.swift in Sources */,
 				EA0000000000000000000107 /* ICloudPlugin.swift in Sources */,
+				ED0000000000000000000002 /* BillingBridgePlugin.swift in Sources */,
+				ED0000000000000000000004 /* RevenueCatBilling.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -812,6 +824,10 @@
 			isa = XCLocalSwiftPackageReference;
 			relativePath = "CapApp-SPM";
 		};
+		ED0000000000000000000005 /* XCLocalSwiftPackageReference "Packages/RevenueCatBinary" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/RevenueCatBinary;
+		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -819,6 +835,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = D4C12C0A2AAA248700AAC8A2 /* XCLocalSwiftPackageReference "CapApp-SPM" */;
 			productName = "CapApp-SPM";
+		};
+		ED0000000000000000000006 /* RevenueCat */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = ED0000000000000000000005 /* XCLocalSwiftPackageReference "Packages/RevenueCatBinary" */;
+			productName = RevenueCat;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
