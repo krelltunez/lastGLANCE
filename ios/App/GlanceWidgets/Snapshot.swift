@@ -4,11 +4,35 @@ import Foundation
 // app is the only writer; this side is read-only and must never assume more than
 // the contract guarantees.
 //
+// This file is a member of BOTH the App and GlanceWidgetsExtension targets.
+// The widgets render from it, and the app target's Shortcuts intents
+// (ChoreShortcuts.swift) read the same snapshot to list and answer about
+// chores. It stays pure Foundation for that reason: no SwiftUI, and no
+// String(localized:) outside SnapshotLoad.problem, whose strings only ever
+// render in a widget.
+//
 // Decoding is deliberately lenient: every field falls back to a default rather
 // than throwing. A widget that renders an empty heatmap because one chore had an
 // unexpected field is a bad trade against a widget that renders nothing at all,
 // and the two processes are versioned independently (the WebView updates with the
 // app bundle, but a placed widget can be asked to render at any moment).
+
+// The completion timestamps in the snapshot are minted by dayjs/Date on the JS
+// side and by the completion paths on both platforms, always in this exact
+// form. en_US_POSIX pins the format against locale settings.
+//
+// It lives here rather than in ChoreSnapshot.swift (where it began) because
+// both of its users have to compile in the app target as well as the widget
+// one: CompletionStore, which stamps a queued completion, and the Shortcuts
+// intents, which read a chore's last completion back. ChoreSnapshot.swift is
+// widget-only.
+let isoMillisFormatter: DateFormatter = {
+    let f = DateFormatter()
+    f.locale = Locale(identifier: "en_US_POSIX")
+    f.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
+    f.timeZone = TimeZone(identifier: "UTC")
+    return f
+}()
 
 enum ChoreState: String, Decodable {
     case fresh, soon, overdue, none

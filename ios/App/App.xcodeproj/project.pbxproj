@@ -55,6 +55,11 @@
 		ED0000000000000000000002 /* BillingBridgePlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED0000000000000000000001 /* BillingBridgePlugin.swift */; };
 		ED0000000000000000000004 /* RevenueCatBilling.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED0000000000000000000003 /* RevenueCatBilling.swift */; };
 		ED0000000000000000000007 /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = ED0000000000000000000006 /* RevenueCat */; };
+		EE0000000000000000000002 /* ChoreShortcuts.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000001 /* ChoreShortcuts.swift */; };
+		EE0000000000000000000004 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000003 /* Localizable.xcstrings */; };
+		EE0000000000000000000006 /* AppShortcuts.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000005 /* AppShortcuts.xcstrings */; };
+		EE0000000000000000000007 /* Snapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA00000000000000000000F6 /* Snapshot.swift */; };
+		EE0000000000000000000008 /* CompletionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA00000000000000000000E3 /* CompletionStore.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -142,6 +147,9 @@
 		EC0000000000000000000031 /* release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = release.xcconfig; path = ../release.xcconfig; sourceTree = SOURCE_ROOT; };
 		ED0000000000000000000001 /* BillingBridgePlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BillingBridgePlugin.swift; sourceTree = "<group>"; };
 		ED0000000000000000000003 /* RevenueCatBilling.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RevenueCatBilling.swift; sourceTree = "<group>"; };
+		EE0000000000000000000001 /* ChoreShortcuts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChoreShortcuts.swift; sourceTree = "<group>"; };
+		EE0000000000000000000003 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		EE0000000000000000000005 /* AppShortcuts.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = AppShortcuts.xcstrings; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -203,11 +211,14 @@
 				7A4E51052E3A9A0100C4F2D1 /* BridgeViewController.swift */,
 				7A4E51012E3A9A0100C4F2D1 /* VaultSseClient.swift */,
 				7A4E51032E3A9A0100C4F2D1 /* VaultSsePlugin.swift */,
+				EE0000000000000000000001 /* ChoreShortcuts.swift */,
 				EA00000000000000000000A1 /* Shared */,
 				EA00000000000000000000A2 /* plugins */,
 				504EC30B1FED79650016851F /* Main.storyboard */,
 				504EC30E1FED79650016851F /* Assets.xcassets */,
 				504EC3101FED79650016851F /* LaunchScreen.storyboard */,
+				EE0000000000000000000003 /* Localizable.xcstrings */,
+				EE0000000000000000000005 /* AppShortcuts.xcstrings */,
 				504EC3131FED79650016851F /* Info.plist */,
 				EA00000000000000000000F1 /* App.entitlements */,
 				2FAD9762203C412B000D30F8 /* config.xml */,
@@ -408,6 +419,8 @@
 				50379B232058CBB4000EE86E /* capacitor.config.json in Resources */,
 				504EC30D1FED79650016851F /* Main.storyboard in Resources */,
 				2FAD9763203C412B000D30F8 /* config.xml in Resources */,
+				EE0000000000000000000004 /* Localizable.xcstrings in Resources */,
+				EE0000000000000000000006 /* AppShortcuts.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -475,6 +488,9 @@
 				EA0000000000000000000107 /* ICloudPlugin.swift in Sources */,
 				ED0000000000000000000002 /* BillingBridgePlugin.swift in Sources */,
 				ED0000000000000000000004 /* RevenueCatBilling.swift in Sources */,
+				EE0000000000000000000002 /* ChoreShortcuts.swift in Sources */,
+				EE0000000000000000000007 /* Snapshot.swift in Sources */,
+				EE0000000000000000000008 /* CompletionStore.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -674,6 +690,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.lastglance;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -695,6 +712,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.lastglance;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "";
+				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
