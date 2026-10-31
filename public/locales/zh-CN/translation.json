@@ -604,7 +604,7 @@
     "syncNow": "立即同步",
     "syncOk": "已同步！",
     "syncFailed": "同步失败",
-    "syncNotConfigured": "尚未配置云同步。请先在“设置 → 云同步”中配置 WebDAV 或直接访问。"
+    "syncNotConfigured": "尚未配置云同步。请先在“设置 → 云同步”中配置 GLANCEvault、WebDAV 或直接访问。"
   },
   "welcome": {
     "title": "欢迎使用 lastGLANCE",

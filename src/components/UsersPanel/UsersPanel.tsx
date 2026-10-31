@@ -6,6 +6,8 @@ import { syncSharedUsers, syncSharedUsersViaDirectAccess, markRosterEdited, type
 import { directAccessTransport } from '@/sync/directAccess'
 import { DirectAccessFileRow } from '@/components/SyncSettingsModal/DirectAccessFileRow'
 import { getSyncWebdavConfig } from '@/sync/engine'
+import { isVaultEnabled } from '@/sync/vaultConfig'
+import { syncDbNow } from '@/sync/dirtyTracker'
 import type { SyncEngine } from '@glance-apps/sync'
 import type { User } from '@/types'
 import { useTranslation } from 'react-i18next'
@@ -113,12 +115,15 @@ export function UsersPanel({ engine, onUserMutated }: Props) {
   async function handleSyncNow() {
     setSyncing(true)
     setSyncStatus('idle')
+    setError('')
     try {
-      // The roster travels over every connected road: the WebDAV file, and
-      // the same file in the Direct Access folder (docs/direct-access.md).
+      // The roster travels over every connected road: the WebDAV file, the
+      // same file in the Direct Access folder (docs/direct-access.md), and
+      // GLANCEvault, where household members sync as user rows.
       const syncConfig = getSyncWebdavConfig(engine)
       const directAccess = directAccessTransport.isConnected()
-      if (!syncConfig && !directAccess) {
+      const vault = isVaultEnabled()
+      if (!syncConfig && !directAccess && !vault) {
         setError(t('users.syncNotConfigured'))
         setSyncStatus('error')
         setTimeout(() => setSyncStatus('idle'), 4000)
@@ -138,7 +143,9 @@ export function UsersPanel({ engine, onUserMutated }: Props) {
       }
       if (syncConfig) await apply(await syncSharedUsers(syncConfig, usersPath, await getUsers()))
       if (directAccess) await apply(await syncSharedUsersViaDirectAccess(usersPath, await getUsers()))
+      const vaultResult = vault ? await syncDbNow() : 'off'
       await loadUsers()
+      if (vaultResult === 'failed') throw new Error('vault sync failed')
       setSyncStatus('ok')
       setTimeout(() => setSyncStatus('idle'), 3000)
     } catch {
