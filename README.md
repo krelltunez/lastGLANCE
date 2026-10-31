@@ -162,6 +162,8 @@ The Android app ships the full web app in a WebView with native enhancements tha
 
 ## Quick Start
 
+Use the hosted version at [lastglance.app](https://lastglance.app), or self-host with Docker.
+
 ### Self-host with Docker
 
 ```bash
@@ -321,7 +323,7 @@ Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for how to run
 
 ## License
 
-The source code is [MIT-licensed](LICENSE): free to build, self-host, modify, and distribute. Free builds (including the sideload APK) are on the [releases page](../../releases).
+The source code is [MIT-licensed](LICENSE): free to build, self-host, modify, and distribute. The web app is free to use, [hosted](https://lastglance.app) or self-hosted, and free builds (including the sideload APK) are on the [releases page](../../releases).
 
 The paid Google Play / App Store builds are a convenience distribution that funds development: you're paying for the packaged, signed, auto-updating binary, not the code.
 
