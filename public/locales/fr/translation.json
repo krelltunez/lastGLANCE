@@ -604,7 +604,7 @@
     "syncNow": "Synchroniser",
     "syncOk": "Synchronisé !",
     "syncFailed": "Échec de la sync",
-    "syncNotConfigured": "La sync cloud n'est pas configurée. Configurez WebDAV ou l'accès direct dans Paramètres → Sync cloud."
+    "syncNotConfigured": "La sync cloud n'est pas configurée. Configurez GLANCEvault, WebDAV ou l'accès direct dans Paramètres → Sync cloud."
   },
   "welcome": {
     "title": "Bienvenue sur lastGLANCE",

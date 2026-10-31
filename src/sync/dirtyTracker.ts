@@ -48,6 +48,24 @@ export function registerDbEngine(engine: DbSyncEngine | null): void {
   dbEngine = engine
 }
 
+// Run one vault sync cycle now, for an explicit "Sync now" (the household
+// roster rides it as user rows). 'off' when no engine is registered. The cycle
+// reports failure through onError rather than throwing, so success is judged as
+// the vault settings' own Sync now judges it: the last-synced stamp advanced.
+export async function syncDbNow(): Promise<'ok' | 'failed' | 'off'> {
+  const engine = dbEngine
+  if (!engine) return 'off'
+  cancelScheduledPush()
+  const before = engine.getLastSynced()
+  try {
+    await engine.dbSyncCycle()
+  } catch {
+    return 'failed'
+  }
+  const after = engine.getLastSynced()
+  return after && after !== before ? 'ok' : 'failed'
+}
+
 // Mark an entity changed so the DB transport pushes it, and schedule a debounced
 // sync. Safe to call from inside the app's own write path: it is synchronous and
 // idempotent, and does nothing when the vault transport is off.
