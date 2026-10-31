@@ -11,6 +11,7 @@ import { resolve } from 'node:path'
 const root = resolve(__dirname, '../..')
 const read = (p: string) => readFileSync(resolve(root, p), 'utf8')
 const swift = read('ios/App/App/plugins/BillingBridgePlugin.swift')
+const core = read('ios/App/App/plugins/RevenueCatBilling.swift')
 const ts = read('src/billing/billing.ts')
 
 // The methods createCapacitorAdapter calls (CapacitorBillingPlugin in
@@ -46,6 +47,12 @@ describe('iOS BillingBridge plugin parity', () => {
 
   it('emits terminal outcomes on the event the adapter subscribes to', () => {
     expect(swift).toContain('notifyListeners("billingEvent"')
+  })
+
+  it('never reports a trial for a product with no introductory offer', () => {
+    // Eligibility defaults to true until the store answers, so the store's
+    // "no intro offer" answer must write false, like an explicit ineligible.
+    expect(core).toMatch(/case \.ineligible, \.noIntroOfferExists:\s*\n(\s*\/\/.*\n)*\s*UserDefaults\.standard\.set\(false/)
   })
 
   it('keeps the real-status override out of Release builds', () => {
