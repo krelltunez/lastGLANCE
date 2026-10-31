@@ -15,11 +15,19 @@ regeneration can be diffed against what customers actually saw rather than
 against nothing.
 
 ```
-apple/iphone-6.9/   5 frames   1320 x 2868   iPhone 6.9" slot
-apple/ipad-13/      2 frames   2064 x 2752   iPad 13" slot
-play/phone/         5 frames   1320 x 2640   Play phone slot (exactly Play's 2:1 cap)
-play/tablet/        2 frames   2064 x 2752   Play tablet slot
+apple/iphone-dynamic-island-medium/  5 frames  1206 x 2622  "iPhone with Dynamic Island
+                                                             (medium display)"
+apple/ipad-13/                       2 frames  2064 x 2752  iPad 13" slot
+play/phone/                          5 frames  1320 x 2640  Play phone (exactly Play's 2:1 cap)
+play/tablet/                         2 frames  2064 x 2752  Play tablet slot
 ```
+
+**Apple retired the 6.9-inch tab (2026-10).** The iPhone galleries are now
+"iPhone with Dynamic Island (medium display)", which takes 1179 x 2556 or
+1206 x 2622, and "iPhone Duo". The frames here are the larger of the two
+accepted sizes. The kit renders at 1320 x 2868, which no longer fits any slot,
+so **a regenerated iPhone frame has to be rescaled before upload** — see below.
+Play's slots are unchanged.
 
 Order is the upload order: dashboard, completion history, People, cadence,
 overdue nudge. People sits third deliberately, so a customer scrolling the
@@ -64,6 +72,23 @@ ratio. For this app those were:
 Both phone widths round to exactly the framer's screen width (950 and 1080), so
 no frame needs edge extension. Check that arithmetic before rendering a new
 size, not after.
+
+**Then rescale the iPhone frames**, because the kit's framer emits 1320 x 2868
+and Apple no longer has a slot that size:
+
+```python
+from PIL import Image
+Image.open(frame).resize((1206, 2622), Image.LANCZOS).save(frame, optimize=True)
+```
+
+Rescaled rather than re-rendered on purpose. The framer's layout constants
+(`device_top`, `body_w`, the margins, the type sizes) are absolute pixels tuned
+for a 1320-wide canvas, so re-tuning them for 1206 is the same arithmetic as
+scaling the finished frame by 1206/1320, with the layout risk added back. The
+aspect ratios differ by 0.065%, which is under two pixels across the height.
+
+The other accepted size, 1179 x 2556, is 0.220% off instead; switching to it is
+the same one-liner.
 
 ## Demo data
 
