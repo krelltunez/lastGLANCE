@@ -287,6 +287,7 @@
 				504EC3001FED79650016851F /* Sources */,
 				504EC3011FED79650016851F /* Frameworks */,
 				504EC3021FED79650016851F /* Resources */,
+				ED0000000000000000000008 /* Refuse an inspectable Release build */,
 				EA0000000000000000000015 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
@@ -429,6 +430,31 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		ED0000000000000000000008 /* Refuse an inspectable Release build */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/../../scripts/ios-release-config-guard.sh",
+				"$(SRCROOT)/App/capacitor.config.json",
+			);
+			name = "Refuse an inspectable Release build";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "/bin/sh \"${SRCROOT}/../../scripts/ios-release-config-guard.sh\" \"${SRCROOT}/App/capacitor.config.json\"\n";
+			showEnvVarsInLog = 0;
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		504EC3001FED79650016851F /* Sources */ = {

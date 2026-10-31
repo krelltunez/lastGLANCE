@@ -250,7 +250,12 @@ final class RevenueCatBilling {
             switch status {
             case .eligible:
                 UserDefaults.standard.set(true, forKey: Self.trialEligibleKey(yearly))
-            case .ineligible:
+            case .ineligible, .noIntroOfferExists:
+                // No intro offer on the product means no trial to claim. The
+                // paywall's trial copy also waits for a store-reported length,
+                // but eligibility must not stay true on its own: once the annual
+                // drops its intro offer (founder pricing ending), this is what
+                // keeps any surface that reads eligibility from promising one.
                 UserDefaults.standard.set(false, forKey: Self.trialEligibleKey(yearly))
             default:
                 break // unknown — don't write, keep the default-true fallback in trialEligible()
