@@ -22,7 +22,8 @@
     "sync:ios-version": "node scripts/sync-ios-version.mjs",
     "format:xcstrings": "node scripts/format-xcstrings.mjs",
     "cap:android": "npm run cap:sync && cap open android",
-    "cap:ios": "npm run build:ios && cap open ios"
+    "cap:ios": "npm run build:ios && cap open ios",
+    "demo-backup": "node scripts/gen-demo-backup.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.0",
