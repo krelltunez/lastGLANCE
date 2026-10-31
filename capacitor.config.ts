@@ -22,8 +22,11 @@ const config: CapacitorConfig = {
     // Capacitor's iOS default (inspectable in Debug builds only) is right, so
     // the key is set ONLY when CAP_WEBVIEW_DEBUG=1 was exported at `cap sync`
     // time — an explicit false here would also kill Xcode-Run inspection.
-    // A TestFlight build synced with the flag is Safari-inspectable and must
-    // never be the build submitted for App Store review.
+    // The synced value persists until the next sync, so a Release build
+    // (every Archive) made from a config synced with the flag would ship an
+    // inspectable WebView. The App target's "Refuse an inspectable Release
+    // build" phase (scripts/ios-release-config-guard.sh) fails that build, so
+    // such an archive cannot be produced, for TestFlight or the App Store.
     ...(process.env.CAP_WEBVIEW_DEBUG === '1' ? { webContentsDebuggingEnabled: true } : {}),
   },
   plugins: {
