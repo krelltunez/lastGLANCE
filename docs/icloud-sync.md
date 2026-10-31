@@ -81,9 +81,16 @@ The household roster does not travel over iCloud.
 
 ## Apple Developer portal
 
-Both containers must be assigned to the `com.lastglance.app` App ID (iCloud,
-with iCloud Documents), and the provisioning profiles regenerated. The
-entitlements are in `ios/App/App/App.entitlements`.
+Both containers must be assigned to the `com.lastglance` App ID (iCloud, with
+iCloud Documents), and the provisioning profiles regenerated. The entitlements
+are in `ios/App/App/App.entitlements`.
+
+That is the **iOS bundle ID**, not the Android application ID
+`com.lastglance.app`, which this page named until 2026-10 and which is not an
+App ID on App Store Connect at all. The two have never matched, and the same
+trap is called out in `docs/ios-native-features-plan.md` for the App Group. A
+container assigned to the wrong App ID fails the way everything else on this
+page fails: silently, with every read looking like a fresh install.
 
 ## Tests
 

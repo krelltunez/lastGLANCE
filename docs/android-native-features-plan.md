@@ -7,9 +7,11 @@ This plan was informed by a teardown of how the sibling app **dayGLANCE**
 solved timely closed-app notifications (its process is referenced throughout).
 Where lastGLANCE differs from dayGLANCE, it is called out explicitly.
 
-> **▶ STATUS (last updated 2026-08-09)**
-> **Android: feature-complete against this plan. iOS: Phase 0 written but never
-> compiled — see the companion `docs/ios-native-features-plan.md`.**
+> **▶ STATUS (last updated 2026-10-31)**
+> **Android: feature-complete against this plan. iOS: also feature-complete,
+> and ahead of Android in a few places — see the companion
+> `docs/ios-native-features-plan.md`, whose status block is the current one for
+> both platforms' divergences.**
 >
 > - **Phases 0–3 are all built and in the tree.** Snapshot bridge, exact-alarm
 >   overdue notifications, action widgets with optimistic tap-to-complete, dynamic
@@ -29,7 +31,9 @@ Where lastGLANCE differs from dayGLANCE, it is called out explicitly.
 >   OEM-killer re-arm backstop deferred until on-device testing proves alarms get
 >   cleared; background CRDT sync out of scope. Cheap known gaps not yet closed: a
 >   `TIMEZONE_CHANGED` receiver and a midnight snapshot re-render for "Xd ago"
->   freshness while closed.
+>   freshness while closed. iOS closed the second one in `SnapshotProvider.swift`
+>   by asking WidgetKit for exactly one refresh at the next local midnight; the
+>   Glance equivalent would be the same idea on a different scheduler.
 
 ---
 

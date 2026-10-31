@@ -294,9 +294,11 @@ People can use it too, both off by default:
 
 Per person, **"Add contacts to lifeGLANCE"** adds each contact you log with them to your [lifeGLANCE](https://github.com/krelltunez/lifeGLANCE) timeline as a milestone.
 
-### Tasker and automation (Android)
+### Automation
 
-Other apps can drive lastGLANCE through `app.lastglance.*` intents: create, complete or open a chore, query counts, and log a contact with a person (`LOG_INTERACTION`). See [docs/tasker-integration.md](docs/tasker-integration.md).
+**Android.** Other apps can drive lastGLANCE through `app.lastglance.*` intents: create, complete or open a chore, query counts, and log a contact with a person (`LOG_INTERACTION`). See [docs/tasker-integration.md](docs/tasker-integration.md).
+
+**iPhone and iPad.** The same verbs are App Shortcuts, so they work in Siri, Spotlight and the Shortcuts app with nothing to set up: mark a chore done, ask when you last did one, add a chore, or open what's due. Marking done and asking both run without opening the app. Requires iOS 17.
 
 ---
 
