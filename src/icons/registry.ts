@@ -1,24 +1,40 @@
 import * as LucideIcons from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
-// All exported icon components, deduplicated by reference
-const _seen = new Set<unknown>()
-export const ICON_REGISTRY: Record<string, LucideIcon> = Object.fromEntries(
-  Object.entries(LucideIcons).filter(([name, val]) => {
-    if (
-      name.endsWith('Icon') ||
-      name === 'createLucideIcon' ||
-      val === null ||
-      typeof val !== 'object' ||
-      !('$$typeof' in (val as object))
-    ) return false
-    if (_seen.has(val)) return false
-    _seen.add(val)
-    return true
-  })
-) as Record<string, LucideIcon>
+// Resolution and display are two jobs, and this file used to serve both from
+// one deduplicated map. That is what broke: lucide exports every icon under
+// several names (4042 export names for 1767 components, and every single
+// component has at least two), so deduplicating by component reference threw
+// away whichever alias `Object.entries` happened to yield second. That was the
+// plain spelling for 763 of them, which meant `Mail`, `Map` and `PawPrint`
+// simply did not resolve, and which alias won depended on enumeration order in
+// the installed package.
+//
+// So: ICON_REGISTRY resolves EVERY name, and ICON_NAMES below is the deduped
+// list for anything that enumerates icons.
 
-export const ICON_NAMES = Object.keys(ICON_REGISTRY).sort()
+function isIconComponent(name: string, val: unknown): boolean {
+  return (
+    !name.endsWith('Icon') &&
+    name !== 'createLucideIcon' &&
+    val !== null &&
+    typeof val === 'object' &&
+    '$$typeof' in (val as object)
+  )
+}
+
+// RESOLUTION: every name lucide exports an icon under, aliases included, all
+// pointing at the same component. Keyed lookup only — every call site in the
+// app is `ICON_REGISTRY[storedName]`, nothing enumerates this, so carrying
+// aliases cannot put a duplicate on screen.
+//
+// Deliberately additive: no name that resolved before resolves differently now,
+// which is what makes this safe for icon names already stored in user data
+// without a migration. A chore saved with `LucideMail` and one saved with
+// `Mail` both render, and always will.
+export const ICON_REGISTRY: Record<string, LucideIcon> = Object.fromEntries(
+  Object.entries(LucideIcons).filter(([name, val]) => isIconComponent(name, val))
+) as Record<string, LucideIcon>
 
 // ── Categories ────────────────────────────────────────────────────────────────
 
@@ -519,17 +535,75 @@ export const ALL_GROUPS: IconGroup[] = [
   },
 ]
 
-// Filter each group to icons that exist in the installed package
+// DISPLAY: one name per component, for anything that LISTS icons rather than
+// looking one up. Defined after ALL_GROUPS because the first tie-break is
+// "whatever the taxonomy above calls it", so a tooltip agrees with the category
+// the icon was filed under.
+const AUTHORED_NAMES = new Set(ALL_GROUPS.flatMap(group => group.icons))
+
+// Which of two aliases for the same component to show. Deterministic, because
+// 243 components have more than one plain alias (MoreVertical / EllipsisVertical
+// and friends) and picking by enumeration order is the habit that caused all of
+// this.
+function betterDisplayName(a: string, b: string): string {
+  const rank = (n: string): [number, number, string] => [
+    AUTHORED_NAMES.has(n) ? 0 : 1,      // a name the taxonomy actually uses
+    n.startsWith('Lucide') ? 1 : 0,     // then the plain spelling over Lucide*
+    n,                                  // then shortest, then alphabetical
+  ]
+  const [ra, rb] = [rank(a), rank(b)]
+  if (ra[0] !== rb[0]) return ra[0] < rb[0] ? a : b
+  if (ra[1] !== rb[1]) return ra[1] < rb[1] ? a : b
+  if (a.length !== b.length) return a.length < b.length ? a : b
+  return a < b ? a : b
+}
+
+const displayName = new Map<LucideIcon, string>()
+for (const [name, component] of Object.entries(ICON_REGISTRY)) {
+  const current = displayName.get(component)
+  displayName.set(component, current === undefined ? name : betterDisplayName(name, current))
+}
+
+export const ICON_NAMES = [...displayName.values()].sort()
+
+// Each group, canonicalised to display names and deduplicated BY COMPONENT.
+//
+// Both halves matter. The filter is what used to cost the taxonomy half its
+// entries: a curated name fell out of its category whenever lucide preferred
+// the other spelling, and with aliases resolving it now drops only the 11 names
+// lucide has actually removed.
+//
+// The dedup is new, and is the price of the first half. The authored list names
+// two aliases of one component in the same group 33 times over — `Home` and
+// `House`, and most of the chart family (`BarChart` is
+// `ChartNoAxesColumnIncreasing`). While one of each pair was being filtered out
+// that was invisible; with both resolving, the same icon would be drawn twice
+// side by side. So one entry per component per group, under its display name.
+//
+// A component may still appear in TWO DIFFERENT groups, and deliberately so:
+// the taxonomy cross-files on purpose (text and accessibility share several),
+// and collapsing that would lose intent rather than remove a glitch.
 export const ICON_GROUPS: IconGroup[] = ALL_GROUPS
-  .map(group => ({
-    id: group.id,
-    icons: group.icons.filter(name => name in ICON_REGISTRY),
-  }))
+  .map(group => {
+    const seen = new Set<LucideIcon>()
+    const icons: string[] = []
+    for (const name of group.icons) {
+      const component = ICON_REGISTRY[name]
+      if (!component || seen.has(component)) continue
+      seen.add(component)
+      icons.push(displayName.get(component) ?? name)
+    }
+    return { id: group.id, icons }
+  })
   .filter(group => group.icons.length > 0)
 
-// Catch-all: icons not assigned to any named group
-const assignedNames = new Set(ALL_GROUPS.flatMap(g => g.icons))
-const ungrouped = ICON_NAMES.filter(name => !assignedNames.has(name))
+// Catch-all: icons in no named group. Keyed by COMPONENT, not by name — now
+// that aliases resolve, a component filed under one spelling must not come back
+// here under another and appear twice in the picker.
+const assignedComponents = new Set(
+  ALL_GROUPS.flatMap(group => group.icons).map(name => ICON_REGISTRY[name]).filter(Boolean)
+)
+const ungrouped = ICON_NAMES.filter(name => !assignedComponents.has(ICON_REGISTRY[name]))
 if (ungrouped.length > 0) {
   ICON_GROUPS.push({ id: 'other', icons: ungrouped })
 }
