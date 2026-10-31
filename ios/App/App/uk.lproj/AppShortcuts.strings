@@ -1,0 +1,15 @@
+/* App Shortcut phrases. The legacy .strings form, not a String
+   Catalog: appshortcutstringsprocessor rejects AppShortcuts.xcstrings
+   whenever the APP TARGET deploys below iOS 17, and this one stays at
+   15.0 so iPhones that cannot run the widgets can still run the app.
+   Keys are the English phrase with ${applicationName} where the Swift
+   interpolates \(.applicationName). */
+
+"Add a chore in ${applicationName}" = "Додати справу в ${applicationName}";
+"Check a chore in ${applicationName}" = "Перевірити справу в ${applicationName}";
+"Log a chore in ${applicationName}" = "Записати справу в ${applicationName}";
+"Mark a chore done in ${applicationName}" = "Позначити справу виконаною в ${applicationName}";
+"New chore in ${applicationName}" = "Нова справа в ${applicationName}";
+"Show chores due soon in ${applicationName}" = "Показати справи з близьким терміном у ${applicationName}";
+"What is due soon in ${applicationName}" = "Що скоро потрібно зробити в ${applicationName}";
+"When did I last do a chore in ${applicationName}" = "Коли востаннє виконано справу в ${applicationName}";

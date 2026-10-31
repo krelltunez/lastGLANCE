@@ -16,7 +16,6 @@ const IOS = join(__dirname, '../ios/App')
 const CATALOGS = [
   // Kept in step with scripts/format-xcstrings.mjs, which formats the same set.
   'App/Localizable.xcstrings',
-  'App/AppShortcuts.xcstrings',
   'GlanceWidgets/Localizable.xcstrings',
   'ShareExtension/Localizable.xcstrings',
 ]

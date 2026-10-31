@@ -57,9 +57,9 @@
 		ED0000000000000000000007 /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = ED0000000000000000000006 /* RevenueCat */; };
 		EE0000000000000000000002 /* ChoreShortcuts.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000001 /* ChoreShortcuts.swift */; };
 		EE0000000000000000000004 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000003 /* Localizable.xcstrings */; };
-		EE0000000000000000000006 /* AppShortcuts.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000005 /* AppShortcuts.xcstrings */; };
 		EE0000000000000000000007 /* Snapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA00000000000000000000F6 /* Snapshot.swift */; };
 		EE0000000000000000000008 /* CompletionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA00000000000000000000E3 /* CompletionStore.swift */; };
+		EE0000000000000000000021 /* AppShortcuts.strings in Resources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000020 /* AppShortcuts.strings */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -149,7 +149,16 @@
 		ED0000000000000000000003 /* RevenueCatBilling.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RevenueCatBilling.swift; sourceTree = "<group>"; };
 		EE0000000000000000000001 /* ChoreShortcuts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChoreShortcuts.swift; sourceTree = "<group>"; };
 		EE0000000000000000000003 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
-		EE0000000000000000000005 /* AppShortcuts.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = AppShortcuts.xcstrings; sourceTree = "<group>"; };
+		EE0000000000000000000010 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/AppShortcuts.strings; sourceTree = "<group>"; };
+		EE0000000000000000000011 /* de */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = de; path = de.lproj/AppShortcuts.strings; sourceTree = "<group>"; };
+		EE0000000000000000000012 /* es */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = es; path = es.lproj/AppShortcuts.strings; sourceTree = "<group>"; };
+		EE0000000000000000000013 /* fr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = fr; path = fr.lproj/AppShortcuts.strings; sourceTree = "<group>"; };
+		EE0000000000000000000014 /* it */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = it; path = it.lproj/AppShortcuts.strings; sourceTree = "<group>"; };
+		EE0000000000000000000015 /* pl */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = pl; path = pl.lproj/AppShortcuts.strings; sourceTree = "<group>"; };
+		EE0000000000000000000016 /* pt-BR */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "pt-BR"; path = "pt-BR.lproj/AppShortcuts.strings"; sourceTree = "<group>"; };
+		EE0000000000000000000017 /* pt-PT */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "pt-PT"; path = "pt-PT.lproj/AppShortcuts.strings"; sourceTree = "<group>"; };
+		EE0000000000000000000018 /* uk */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = uk; path = uk.lproj/AppShortcuts.strings; sourceTree = "<group>"; };
+		EE0000000000000000000019 /* zh-CN */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-CN"; path = "zh-CN.lproj/AppShortcuts.strings"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -218,7 +227,7 @@
 				504EC30E1FED79650016851F /* Assets.xcassets */,
 				504EC3101FED79650016851F /* LaunchScreen.storyboard */,
 				EE0000000000000000000003 /* Localizable.xcstrings */,
-				EE0000000000000000000005 /* AppShortcuts.xcstrings */,
+				EE0000000000000000000020 /* AppShortcuts.strings */,
 				504EC3131FED79650016851F /* Info.plist */,
 				EA00000000000000000000F1 /* App.entitlements */,
 				2FAD9762203C412B000D30F8 /* config.xml */,
@@ -420,7 +429,7 @@
 				504EC30D1FED79650016851F /* Main.storyboard in Resources */,
 				2FAD9763203C412B000D30F8 /* config.xml in Resources */,
 				EE0000000000000000000004 /* Localizable.xcstrings in Resources */,
-				EE0000000000000000000006 /* AppShortcuts.xcstrings in Resources */,
+				EE0000000000000000000021 /* AppShortcuts.strings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -557,6 +566,23 @@
 				504EC3111FED79650016851F /* Base */,
 			);
 			name = LaunchScreen.storyboard;
+			sourceTree = "<group>";
+		};
+		EE0000000000000000000020 /* AppShortcuts.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				EE0000000000000000000010 /* en */,
+				EE0000000000000000000011 /* de */,
+				EE0000000000000000000012 /* es */,
+				EE0000000000000000000013 /* fr */,
+				EE0000000000000000000014 /* it */,
+				EE0000000000000000000015 /* pl */,
+				EE0000000000000000000016 /* pt-BR */,
+				EE0000000000000000000017 /* pt-PT */,
+				EE0000000000000000000018 /* uk */,
+				EE0000000000000000000019 /* zh-CN */,
+			);
+			name = AppShortcuts.strings;
 			sourceTree = "<group>";
 		};
 /* End PBXVariantGroup section */

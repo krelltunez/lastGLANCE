@@ -171,6 +171,10 @@ interface Catalog {
 
 const catalog = (rel: string): Catalog => JSON.parse(readFileSync(join(IOS, rel), 'utf8'))
 
+// The nine the app ships beyond English, as the project spells them (zh-CN,
+// matching knownRegions and the other catalogs, not Info.plist's zh-Hans).
+const LANGS = ['de', 'es', 'fr', 'it', 'pl', 'pt-BR', 'pt-PT', 'uk', 'zh-CN']
+
 describe('iOS App Shortcuts: strings', () => {
   // The app target had no catalog at all until the Shortcuts arrived, so
   // turning on SWIFT_EMIT_LOC_STRINGS for it put every localized string in
@@ -257,14 +261,41 @@ describe('iOS App Shortcuts: strings', () => {
     expect(nameless, 'iOS silently discards a phrase that does not name the app').toEqual([])
   })
 
-  it('has a translated key for every phrase', () => {
-    // The compiler extracts a phrase with ${applicationName} where the Swift
-    // interpolates it.
-    const shortcuts = catalog('App/AppShortcuts.xcstrings')
+  // Phrases live in <lang>.lproj/AppShortcuts.strings, NOT in a String
+  // Catalog. appshortcutstringsprocessor rejects AppShortcuts.xcstrings
+  // outright whenever the app target deploys below iOS 17, and this one stays
+  // at 15.0 so phones that cannot run the widgets can still run the app. That
+  // rejection is a build failure, which is how the format was settled.
+  const PHRASE_LANGS = ['en', ...LANGS]
+
+  it.each(PHRASE_LANGS)('translates every phrase into %s', (lng) => {
+    const file = readFileSync(join(IOS, `App/${lng}.lproj/AppShortcuts.strings`), 'utf8')
+    // The key is the phrase with ${applicationName} where the Swift
+    // interpolates it; en maps each key to itself.
     const missing = phrases
       .map((p) => p.replace('\\(.applicationName)', '${applicationName}'))
-      .filter((k) => !shortcuts.strings[k]?.localizations)
-    expect(missing, 'these phrases would stay English on every non-English device').toEqual([])
+      .filter((key) => !file.includes(`"${key}" = "`))
+    expect(missing, `these phrases would stay English on ${lng} devices`).toEqual([])
+  })
+
+  it.each(PHRASE_LANGS)('keeps the app name in the %s phrases', (lng) => {
+    const file = readFileSync(join(IOS, `App/${lng}.lproj/AppShortcuts.strings`), 'utf8')
+    const values = [...file.matchAll(/^"[^"]*" = "([^"]*)";$/gm)].map((m) => m[1])
+    expect(values.length).toBe(phrases.length)
+    expect(
+      values.filter((v) => !v.includes('${applicationName}')),
+      'iOS silently discards a phrase that does not name the app, translated or not',
+    ).toEqual([])
+  })
+
+  it('registers the variant group so every language reaches the bundle', () => {
+    // A .strings file on disk that the project does not carry is a phrase that
+    // silently stays English, and nothing else here would catch it.
+    const variant = pbx.slice(pbx.indexOf('EE0000000000000000000020 /* AppShortcuts.strings */ = {'))
+    const group = variant.slice(0, variant.indexOf('};'))
+    expect(group).toMatch(/isa = PBXVariantGroup;/)
+    for (const lng of PHRASE_LANGS) expect(group, `${lng} missing from the variant group`).toContain(`/* ${lng} */`)
+    expect(pbx).toContain('AppShortcuts.strings in Resources */,')
   })
 })
 

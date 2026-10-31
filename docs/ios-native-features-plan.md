@@ -71,13 +71,17 @@ and only reimplements the native rendering per platform.
 >   refresh on snapshot push, not install; `IOS_BUILD=<n> npm run cap:ios` sets
 >   the build number for all three targets through the gitignored
 >   `ios/version.generated.xcconfig`, never in `project.pbxproj`.
+> - **Siri phrases are `.strings`, not a String Catalog.** Everything else the
+>   app target localizes lives in `App/Localizable.xcstrings`, but
+>   `appshortcutstringsprocessor` rejects an `AppShortcuts.xcstrings` outright
+>   whenever the app target deploys below iOS 17, and this one stays at 15.0.
+>   So the phrases are `App/<lang>.lproj/AppShortcuts.strings`, carried by a
+>   PBXVariantGroup, and are the only `.lproj` folders in the project. Keys are
+>   the English phrase with `${applicationName}` where the Swift interpolates
+>   `\(.applicationName)`.
 > - **Not yet seen on a device:** the purchase flows (the App Store products
->   and the paywall's store-aware copy), and whether Xcode extracts App Shortcut
->   phrases into `App/AppShortcuts.xcstrings` under the `${applicationName}` key
->   form the committed catalog uses. Neither is something CI can catch: billing
->   is store-side, and a wrong phrase key is not a build failure, just English
->   phrases on non-English devices plus a catalog that shows dirty after a
->   build.
+>   and the paywall's store-aware copy). CI cannot reach them: billing is
+>   store-side.
 
 ---
 

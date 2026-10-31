@@ -20,8 +20,6 @@ import { dirname, resolve } from 'node:path'
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 export const CATALOGS = [
   'ios/App/App/Localizable.xcstrings',
-  // App Shortcut phrases, which Xcode keeps in a catalog of this exact name.
-  'ios/App/App/AppShortcuts.xcstrings',
   'ios/App/GlanceWidgets/Localizable.xcstrings',
   'ios/App/ShareExtension/Localizable.xcstrings',
 ]
