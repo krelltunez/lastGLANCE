@@ -277,47 +277,42 @@ describe('iOS App Shortcuts: destinations', () => {
     plugin.consumeSharedChore.mockResolvedValue({ text: null })
   })
 
-  // Read the token and the chained URL out of each intent's own body, so the
-  // chain below is followed with the real values rather than literals retyped
-  // in a test.
+  // Read the token out of each intent's own body, so the chain below is
+  // followed with the real value rather than a literal retyped in a test.
   const intent = (name: string) => {
     const start = src.indexOf(`struct ${name}: AppIntent`)
     const body = src.slice(start, src.indexOf('\n}\n', start))
-    return {
-      token: body.match(/writePendingDeepLink\("([^"]+)"\)/)?.[1],
-      url: body.match(/OpenURLIntent\(URL\(string: "([^"]+)"\)!\)/)?.[1],
-    }
+    return { token: body.match(/writePendingDeepLink\("([^"]+)"\)/)?.[1] }
   }
 
   const CASES = [
-    ['AddChoreShortcutIntent', 'action:add', 'lastglance://action/add', 'lg:new-chore'],
-    ['ShowSoonChoresIntent', 'filter:soon', 'lastglance://filter/soon', 'lg:widget-filter-soon'],
+    ['AddChoreShortcutIntent', 'action:add', 'lg:new-chore'],
+    ['ShowSoonChoresIntent', 'filter:soon', 'lg:widget-filter-soon'],
   ] as const
 
   it.each(CASES)('%s writes the pending token itself', (name, token) => {
     expect(
       intent(name).token,
-      '`openAppWhenRun` foregrounds the app carrying no destination, and once it has ' +
-        'satisfied "open the app" the system need not perform the chained OpenURLIntent. ' +
-        'Without this write the shortcut opens the app on the chore list.',
+      '`openAppWhenRun` foregrounds the app carrying no destination of its own, so this ' +
+        'write is the whole of the destination. Without it the shortcut opens the app on ' +
+        'the chore list.',
     ).toBe(token)
   })
 
-  it.each(CASES)('%s keeps a chained URL AppDelegate maps to the same token', (name, token, url) => {
-    expect(intent(name).url).toBe(url)
-
-    // Mirror AppDelegate.deepLinkToken's parse: host, then lastPathComponent.
-    const { host, pathname } = new URL(url)
-    const last = pathname.split('/').filter(Boolean).pop()
-
-    const delegate = readFileSync(join(IOS, 'App/AppDelegate.swift'), 'utf8')
-    expect(delegate).toMatch(new RegExp(`case "${host}":`))
-    // The filter host maps every path to the one Soon token; the action host
-    // switches on the path.
-    expect(delegate).toMatch(new RegExp(`(case "${last}": )?return "${token}"`))
+  // AddChoreControl.swift chains an OpenURLIntent as a second carrier for the
+  // destination. These cannot: OpenURLIntent is iOS 18+ and this file is gated
+  // at 17, so adding one back breaks the build for every device between the
+  // two. That is a compile error rather than a test failure, but it is a
+  // compile error CI finds and a local build of a newer deployment target may
+  // not, so it is worth naming here.
+  it('chains no OpenURLIntent, which would not compile at the 17.0 floor', () => {
+    // The call form, not the bare name: the comment above those two intents
+    // names OpenURLIntent to explain its absence, and should go on doing so.
+    expect(src).not.toMatch(/OpenURLIntent\(/)
+    expect(src).toMatch(/@available\(iOS 17\.0, \*\)/)
   })
 
-  it.each(CASES)('%s routes its token to the right web event', async (name, _token, _url, event) => {
+  it.each(CASES)('%s routes its token to the right web event', async (name, _token, event) => {
     const dispatched: string[] = []
     vi.stubGlobal('window', { dispatchEvent: (e: Event) => { dispatched.push(e.type); return true } })
     plugin.consumeDeepLink.mockResolvedValue({ deepLink: intent(name).token! })

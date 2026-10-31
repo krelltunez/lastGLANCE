@@ -185,12 +185,20 @@ struct ChoreLastDoneIntent: AppIntent {
 // MARK: - CREATE and OPEN
 
 // Both of these open the app, and both carry their destination the way
-// AddChoreControl.swift documents at length: the token is written to the App
-// Group *before* the open is handed back, because `openAppWhenRun` can satisfy
-// "open the app" without the system ever performing the chained OpenURLIntent.
-// The chained intent is kept for the case where it does: AppDelegate maps the
-// URL to the same token, into the same single slot, so the destination is the
-// same value either way and is consumed once.
+// AddChoreControl.swift documents at length: `openAppWhenRun` foregrounds the
+// app but carries no destination of its own, so perform() writes the token to
+// the App Group itself, before handing the open back. usePendingDeepLink
+// drains it on mount (cold start) or on the visibilitychange the foregrounding
+// causes (warm start).
+//
+// NO CHAINED OpenURLIntent HERE, unlike the control. OpenURLIntent is iOS 18+,
+// and this file is gated at 17 so that every device offered Shortcuts runs one
+// code path. The control can chain one because a Control Center control is
+// 18-only anyway. Nothing is lost: AddChoreControl's own comment is explicit
+// that the chain is the half the system may decline to perform, and the
+// App-Group write is the half that cannot be dropped. Adding the chain back
+// here would not fail a test, it would fail the BUILD, for every device below
+// 18 that this file is meant to serve.
 //
 // This is a second Add-chore intent rather than a reuse of the control's
 // OpenAddChoreIntent, which does the identical thing. That one lives in
@@ -208,9 +216,9 @@ struct AddChoreShortcutIntent: AppIntent {
     static let openAppWhenRun = true
 
     @MainActor
-    func perform() async throws -> some IntentResult & OpensIntent {
+    func perform() async throws -> some IntentResult {
         SharedDataStore.writePendingDeepLink("action:add")
-        return .result(opensIntent: OpenURLIntent(URL(string: "lastglance://action/add")!))
+        return .result()
     }
 }
 
@@ -222,9 +230,9 @@ struct ShowSoonChoresIntent: AppIntent {
     static let openAppWhenRun = true
 
     @MainActor
-    func perform() async throws -> some IntentResult & OpensIntent {
+    func perform() async throws -> some IntentResult {
         SharedDataStore.writePendingDeepLink("filter:soon")
-        return .result(opensIntent: OpenURLIntent(URL(string: "lastglance://filter/soon")!))
+        return .result()
     }
 }
 
