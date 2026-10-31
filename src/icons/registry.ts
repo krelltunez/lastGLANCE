@@ -53,9 +53,9 @@ export const ALL_GROUPS: IconGroup[] = [
     id: 'accessibility',
     icons: [
       'Accessibility', 'ALargeSmall', 'AArrowDown', 'AArrowUp',
-      'Braille', 'Captions', 'Ear', 'EarOff',
+      'Captions', 'Ear', 'EarOff',
       'Eye', 'EyeOff', 'EyeClosed', 'ScanEye',
-      'HandBraille', 'PersonStanding', 'Wheelchair',
+      'PersonStanding',
     ],
   },
   {
@@ -137,7 +137,7 @@ export const ALL_GROUPS: IconGroup[] = [
       'GitCompare', 'GitCompareArrows', 'GitFork', 'GitGraph', 'GitMerge',
       'GitPullRequest', 'GitPullRequestArrow', 'GitPullRequestClosed', 'GitPullRequestCreate',
       'GitPullRequestCreateArrow', 'GitPullRequestDraft',
-      'Command', 'Regex', 'Variable', 'Function',
+      'Command', 'Regex', 'Variable', 'SquareFunction',
       'Cpu', 'Server', 'ServerCog', 'ServerCrash', 'ServerOff',
       'Webhook', 'Bot', 'BotMessageSquare', 'BotOff', 'Blocks',
     ],
@@ -154,7 +154,7 @@ export const ALL_GROUPS: IconGroup[] = [
       'MessageSquareDot', 'MessageSquareHeart', 'MessageSquareMore', 'MessageSquareOff',
       'MessageSquarePlus', 'MessageSquareQuote', 'MessageSquareReply',
       'MessageSquareShare', 'MessageSquareText', 'MessageSquareWarning', 'MessageSquareX',
-      'Messages', 'MessagesSquare',
+      'MessagesSquare',
       'Phone', 'PhoneCall', 'PhoneForwarded', 'PhoneIncoming', 'PhoneMissed',
       'PhoneOff', 'PhoneOutgoing',
       'Voicemail', 'Inbox', 'Send', 'SendHorizontal', 'Reply', 'ReplyAll', 'Forward',
@@ -239,9 +239,9 @@ export const ALL_GROUPS: IconGroup[] = [
       'FolderHeart', 'FolderInput', 'FolderKanban', 'FolderKey', 'FolderLock',
       'FolderMinus', 'FolderOpen', 'FolderOpenDot', 'FolderOutput', 'FolderPen',
       'FolderPlus', 'FolderRoot', 'FolderSearch', 'FolderSearch2', 'FolderSymlink',
-      'FolderSync', 'FolderTree', 'FolderUp', 'FolderUser', 'FolderX', 'Folders',
+      'FolderSync', 'FolderTree', 'FolderUp', 'FolderX', 'Folders',
       'Archive', 'ArchiveRestore', 'ArchiveX',
-      'Paperclip', 'Paperclips',
+      'Paperclip',
     ],
   },
   {
@@ -262,7 +262,7 @@ export const ALL_GROUPS: IconGroup[] = [
   {
     id: 'food',
     icons: [
-      'Apple', 'Banana', 'Cherry', 'Grape', 'Lemon',
+      'Apple', 'Banana', 'Cherry', 'Grape', 'Citrus',
       'Beer', 'BeerOff', 'Wine', 'WineOff', 'Coffee',
       'CupSoda', 'GlassWater', 'Milk', 'MilkOff',
       'UtensilsCrossed', 'Utensils', 'ChefHat', 'CookingPot', 'Microwave', 'Refrigerator',
@@ -351,10 +351,10 @@ export const ALL_GROUPS: IconGroup[] = [
       'Plus', 'Minus', 'X', 'Divide',
       'CirclePlus', 'CircleMinus', 'CircleX',
       'SquarePlus', 'SquareMinus', 'SquareX',
-      'Equal', 'NotEqual', 'Percent',
+      'Equal', 'EqualNot', 'Percent',
       'Pi', 'Infinity', 'Hash', 'Sigma',
       'Calculator', 'Superscript', 'Subscript',
-      'Radical', 'Variable', 'Binary', 'Delta',
+      'Radical', 'Variable', 'Binary',
     ],
   },
   {
@@ -445,7 +445,7 @@ export const ALL_GROUPS: IconGroup[] = [
     icons: [
       'ShoppingCart', 'ShoppingBag', 'ShoppingBasket',
       'Store', 'Package', 'Package2', 'PackageCheck', 'PackageMinus', 'PackageOpen',
-      'PackagePlus', 'PackageSearch', 'PackageX', 'Packages',
+      'PackagePlus', 'PackageSearch', 'PackageX',
       'Tag', 'Tags', 'Barcode', 'ScanBarcode', 'ScanQrCode',
       'Gift', 'Ticket', 'TicketCheck', 'TicketMinus', 'TicketPercent',
       'TicketPlus', 'TicketSlash', 'TicketX',

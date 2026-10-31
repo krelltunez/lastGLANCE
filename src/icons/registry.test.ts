@@ -77,26 +77,28 @@ describe('ICON_NAMES, the display list', () => {
 })
 
 /**
- * Eleven authored names are not in lucide 1.31.0 under any spelling — real
- * removals, not alias shadowing, and dropped before this change as well. They
- * are listed rather than counted so that a bump which removes a twelfth names
- * the casualty instead of just moving a number.
+ * Every authored name now resolves. Eleven did not until the taxonomy was
+ * remapped onto lucide 1.31.0: three were renames the library had made
+ * (Function -> SquareFunction, NotEqual -> EqualNot, Lemon -> Citrus), four had
+ * an equivalent already sitting in the same group (Messages, Paperclips,
+ * Packages, Wheelchair) and four have no equivalent in the library at all
+ * (Braille, HandBraille, FolderUser, Delta).
+ *
+ * The expected set is empty and asserted as a list rather than a count, so that
+ * a bump which removes an icon names the casualty rather than moving a number.
  */
-const REMOVED_FROM_LUCIDE = [
-  'Braille', 'Delta', 'Function', 'FolderUser', 'HandBraille', 'Lemon',
-  'Messages', 'NotEqual', 'Packages', 'Paperclips', 'Wheelchair',
-]
+const REMOVED_FROM_LUCIDE: string[] = []
 
 describe('the authored taxonomy', () => {
   const authored = [...new Set(ALL_GROUPS.flatMap((g) => g.icons))]
 
   it('still has the shape these baselines were measured against', () => {
     expect(ALL_GROUPS.length).toBe(33)
-    expect(authored.length).toBe(1089)
+    expect(authored.length).toBe(1081)
   })
 
-  it('loses only the names lucide has actually removed', () => {
-    // Was 523 before the split: 512 of those were alias-shadowed and came back.
+  it('loses nothing: every authored name resolves', () => {
+    // Was 523 before the alias split, then 11 after it, now none.
     expect(authored.filter((n) => !(n in ICON_REGISTRY)).sort()).toEqual([...REMOVED_FROM_LUCIDE].sort())
   })
 })
