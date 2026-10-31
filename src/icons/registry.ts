@@ -28,7 +28,11 @@ export interface IconGroup {
   icons: string[]
 }
 
-const ALL_GROUPS: IconGroup[] = [
+// Exported for the guard test only. ICON_GROUPS below is this list AFTER a
+// filter that silently drops names the installed lucide-react does not
+// export under that spelling, so it can never fail such an assertion; this
+// is the authored taxonomy, and the thing that actually rots.
+export const ALL_GROUPS: IconGroup[] = [
   {
     id: 'accessibility',
     icons: [
