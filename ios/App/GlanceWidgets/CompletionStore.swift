@@ -1,10 +1,10 @@
 import Foundation
 import WidgetKit
 
-// Record a widget completion: queue it for the app to replay into the DB, and
-// optimistically fold it into the snapshot so the widget reflects it instantly,
-// before the app ever runs. The iOS counterpart of CompletionStore in
-// SingleChoreWidget.kt, field for field:
+// Record a completion made outside the web app: queue it for the app to replay
+// into the DB, and optimistically fold it into the snapshot so the widgets
+// reflect it instantly, before the app ever runs. The iOS counterpart of
+// CompletionStore in SingleChoreWidget.kt, field for field:
 //
 //  - The sync_id is minted HERE (lowercase UUID). The web drain replays via
 //    logCompletion(choreId, { syncId }) which dedupes on it, so draining twice
@@ -15,6 +15,12 @@ import WidgetKit
 //    not through the Codable model: the model is lenient and lossy by design,
 //    and a decode→encode round trip would silently drop any field this build
 //    does not know about.
+//
+// This file is a member of BOTH the App and GlanceWidgetsExtension targets.
+// The widget Done buttons call it from the extension process; the Shortcuts
+// "Mark chore done" intent (ChoreShortcuts.swift) calls it from the app's.
+// Both write the same queue with the same contract, which is the whole point
+// of there being one of these rather than two.
 enum CompletionStore {
 
     static func complete(choreSyncId: String) {

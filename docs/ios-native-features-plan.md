@@ -6,11 +6,13 @@ lastGLANCE **iOS** app. This is the iOS counterpart to
 to be cross-platform, so this plan reuses the shared JS layer and data contracts
 and only reimplements the native rendering per platform.
 
-> **▶ STATUS (last updated 2026-08-22)**
-> **Feature-complete and device-verified.** Every phase of this plan — and the
-> stretch goals it deferred — is built, merged, and confirmed working on a
-> physical iPad via TestFlight. iOS now has parity with (and in places exceeds)
-> the Android native feature set.
+> **▶ STATUS (last updated 2026-10-31)**
+> **Feature-complete.** Every phase of this plan, the stretch goals it
+> deferred, and the three follow-ons its August status held open are built and
+> merged. iOS has parity with the Android native feature set and exceeds it in
+> several places. Phases 0-3 were confirmed on a physical iPad via TestFlight
+> in August; what landed after that is listed below with what remains unseen on
+> a device.
 >
 > - **Phase 0** ✅ App Group `group.com.lastglance`, WidgetBridge Swift plugin,
 >   snapshot push/read verified end to end.
@@ -28,18 +30,58 @@ and only reimplements the native rendering per platform.
 >   card (lifeGLANCE's pattern), with `pending_shared_chore` as a QUEUE because
 >   iOS cannot bring the app forward on share — a slot would drop all but the
 >   last of several queued shares.
+> - **The three follow-ons August left open, all now shipped:**
+>   Keychain-backed SecureStore (`plugins/SecureStorePlugin.swift`,
+>   `kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly`, so credentials are no
+>   longer plaintext in WebView storage); the accessory widgets
+>   (`AccessoryWidgets.swift` for circular/rectangular/inline,
+>   `NextDateAccessoryWidget` for People, and `AddChoreControl` as an iOS 18
+>   Control Center control, which is the Quick Settings tiles' analogue); and
+>   App Store billing — **via RevenueCat, not the raw StoreKit half this plan
+>   assumed** (`plugins/BillingBridgePlugin.swift` + `RevenueCatBilling.swift`,
+>   same JS contract as the Android plugin so `src/billing/billing.ts` drives
+>   both stores with no iOS-specific JS).
+> - **Arrived after this plan was written, none of it contemplated here:**
+>   zero-config iCloud sync and iCloud intents (`docs/icloud-sync.md`); Direct
+>   Access on iOS, as security-scoped bookmarks per file since the Files
+>   providers cannot hand an app a folder (`docs/direct-access.md`); phone
+>   contacts and the People widgets; the Pinned widget; the week-start setting;
+>   a Release-build guard that refuses a Safari-inspectable config; and a CI job
+>   that compiles the app for the Simulator on every PR that can affect it.
+> - **App Shortcuts (2026-10):** `App/ChoreShortcuts.swift` puts the four verbs
+>   of the Android intents bridge into Siri, Spotlight and the Shortcuts app —
+>   mark done and "when did I last" run headless off the App-Group snapshot and
+>   queue, add and show-soon open the app. Gated at iOS 17.0 like the widget
+>   extension. This is what Phase 3's "Shortcuts" bullet left as an either/or.
+> - **Where iOS now leads Android:** headless "Mark done" from a notification;
+>   the 52-week extra-large heatmap on iPad; a midnight timeline refresh so
+>   "Xd ago" stays honest while the app is closed, which the Android plan still
+>   lists as an open gap; and Shortcuts/Siri, which has no Android counterpart
+>   beyond the Tasker bridge.
+> - **No iOS counterpart, by platform shape rather than omission:** the launcher
+>   provider and its headless refresh (`docs/launcher-integration.md`), the
+>   Tasker broadcast intents bridge (App Shortcuts is the analogue), and exact
+>   alarms.
 > - **Portal state:** App Group enabled on all three App IDs (`com.lastglance`,
->   `.GlanceWidgets`, `.ShareExtension`).
+>   `.GlanceWidgets`, `.ShareExtension`). The two iCloud containers are on
+>   `com.lastglance`; note that is the iOS bundle ID, not the Android
+>   application ID `com.lastglance.app`, which is not an App ID at all.
 > - **Operational notes that outlived their PRs:** reboot the device before
 >   believing a widget bug (WidgetKit caches survive reinstalls); quick actions
 >   refresh on snapshot push, not install; `IOS_BUILD=<n> npm run cap:ios` sets
 >   the build number for all three targets through the gitignored
 >   `ios/version.generated.xcconfig`, never in `project.pbxproj`.
-> - **In flight / next:** Keychain-backed SecureStore (iOS credentials are
->   still plaintext in WebView storage), Lock Screen + Control Center accessory
->   widgets, and App Store billing (StoreKit half of `@glance-apps/billing` —
->   lives in the glance-billing repo; products and prices already defined in
->   `src/billing/billing.ts`).
+> - **Siri phrases are `.strings`, not a String Catalog.** Everything else the
+>   app target localizes lives in `App/Localizable.xcstrings`, but
+>   `appshortcutstringsprocessor` rejects an `AppShortcuts.xcstrings` outright
+>   whenever the app target deploys below iOS 17, and this one stays at 15.0.
+>   So the phrases are `App/<lang>.lproj/AppShortcuts.strings`, carried by a
+>   PBXVariantGroup, and are the only `.lproj` folders in the project. Keys are
+>   the English phrase with `${applicationName}` where the Swift interpolates
+>   `\(.applicationName)`.
+> - **Not yet seen on a device:** the purchase flows (the App Store products
+>   and the paywall's store-aware copy). CI cannot reach them: billing is
+>   store-side.
 
 ---
 
@@ -245,6 +287,18 @@ sync round-trip.
   **App Shortcuts via AppIntents** (Spotlight/Siri), targeting the same
   `lastglance://` verbs as the Android dynamic shortcuts (Add chore, Search,
   top-overdue chores, Soon).
+  **Both, in the end (2026-10).** The quick actions shipped with the rest of
+  Phase 3; App Shortcuts came later, in `App/ChoreShortcuts.swift`, and are
+  the iOS answer to the Android broadcast intents bridge rather than to the
+  dynamic shortcuts: same four verbs (CREATE, COMPLETE, QUERY, OPEN), with
+  COMPLETE and QUERY running headless off the App-Group snapshot and queue.
+  A `ChoreEntity` + `EntityStringQuery` over the snapshot is what lets Siri
+  match a chore the user *said*. The file is a member of the **app target
+  only**: App Shortcuts are read out of the app's AppIntents metadata, and an
+  intent vended by both targets appears twice in the Shortcuts list, which is
+  why the widget's `CompleteChoreIntent` and the control's `OpenAddChoreIntent`
+  are `isDiscoverable = false`. That membership is also why `Snapshot.swift`
+  and `CompletionStore.swift` are compiled into both targets.
 - **Share Extension**: an `NSExtension` share target writing shared text/links to
   the App Group (`pending_shared_chore`, preferring a title over the raw URL),
   consumed on foreground by the existing `consumeSharedChore` to open the
@@ -275,9 +329,12 @@ sync round-trip.
   iOS counterpart — an oversight, not a decision. On iOS it is a `systemSmall`
   widget whose only job is a `widgetURL` of `action:add`, so it belongs here with
   the other entry points rather than in Phase 2 with the data-bearing widgets.
-- **Stretch:** Lock Screen / Control Center widgets (WidgetKit accessory families)
-  are the closest analog to the Android Quick Settings tiles (`tiles/QsTiles.kt`,
-  add-chore and soon); optional.
+- **Stretch, since done:** Lock Screen / Control Center widgets (WidgetKit
+  accessory families) are the closest analog to the Android Quick Settings tiles
+  (`tiles/QsTiles.kt`, add-chore and soon). `AccessoryWidgets.swift` covers the
+  Lock Screen families and `AddChoreControl` the Control Center button, the
+  latter in `App/Shared/` because a control's intent must be visible to the app
+  target or the tap does nothing at all.
 
 There is **no iOS analog planned for background CRDT sync** (same as Android:
 out of scope; reconcile on next foreground).
@@ -309,7 +366,19 @@ out of scope; reconcile on next foreground).
   at iOS 15.0** and the **widget extension targets 17.0**. An extension may set a
   higher floor than its host, so no existing app user is dropped and there is only
   one widget code path — devices below 17 simply are not offered the widgets. No
-  pre-17 tap-to-open fallback will be built.
+  pre-17 tap-to-open fallback will be built. App Shortcuts took the same 17.0
+  floor in 2026-10, for the same reason: `ChoreShortcuts.swift` is annotated
+  rather than the app target's floor being raised.
+- **⚠ Not every AppIntents API shares that floor, and the app target's 15.0
+  setting will not tell you.** `OpenURLIntent` is **iOS 18+**.
+  `AddChoreControl.swift` chains one and compiles fine, because a Control Center
+  control is 18-only anyway; the same line in a 17-gated file is a build error,
+  which is how it was found (CI, on the App Shortcuts PR). The two
+  open-the-app shortcuts therefore chain nothing and rely on the App-Group
+  token write alone, which AddChoreControl's own comment already identifies as
+  the half that actually carries the destination. Check an AppIntents symbol's
+  availability against the annotation on the file you are putting it in, not
+  against `IPHONEOS_DEPLOYMENT_TARGET`.
 - **Notification actions may not be able to run headless.** On iOS a
   non-`.foreground` `UNNotificationAction` wakes the app process, but the
   Capacitor JS listener only fires if the WebView is alive to run it, so "Mark

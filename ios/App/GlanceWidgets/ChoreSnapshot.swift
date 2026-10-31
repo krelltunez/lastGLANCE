@@ -51,16 +51,12 @@ extension WidgetSnapshot {
     }
 }
 
-// The completion timestamps in the snapshot are minted by dayjs/Date on the JS
-// side and by the widget tap paths on both platforms, always in this exact
-// form. en_US_POSIX pins the format against locale settings.
-let isoMillisFormatter: DateFormatter = {
-    let f = DateFormatter()
-    f.locale = Locale(identifier: "en_US_POSIX")
-    f.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
-    f.timeZone = TimeZone(identifier: "UTC")
-    return f
-}()
+// isoMillisFormatter lives in Snapshot.swift, not here. This file is
+// widget-only: it imports SwiftUI and its String(localized:) lookups resolve
+// against the widget bundle's string catalog. CompletionStore needs the
+// formatter and is now a member of the app target too (the Shortcuts intents
+// queue completions through it), so the formatter had to move to a file the
+// app target compiles.
 
 extension SnapshotChore {
 
