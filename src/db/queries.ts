@@ -1,6 +1,7 @@
 import { db, SEED_CAT_SYNC_IDS, SEED_CHORE_SYNC_IDS } from './client'
 import type { Category, Chore, ChoreWithLastCompletion, CompletionEvent, User } from '@/types'
 import { markDirty, markDeleted } from '@/sync/dirtyTracker'
+import { markRosterDirty } from '@/multiuser/rosterDirtyTracker'
 import { getMultiUserEnabled, setMultiUserEnabled } from '@/multiuser/settings'
 import dayjs from 'dayjs'
 
@@ -447,6 +448,7 @@ export async function createUser(name: string, syncId?: string): Promise<number>
     updated_at: now,
   } as User)
   markDirty(sync_id)
+  markRosterDirty(sync_id)
   return id
 }
 
@@ -454,6 +456,7 @@ export async function updateUser(id: number, fields: { name: string }): Promise<
   await db.users.update(id, { ...fields, updated_at: new Date().toISOString() })
   const user = await db.users.get(id)
   markDirty(user?.sync_id)
+  markRosterDirty(user?.sync_id)
 }
 
 export async function deleteUser(id: number): Promise<void> {
@@ -467,6 +470,7 @@ export async function deleteUser(id: number): Promise<void> {
     }
   })
   markDeleted(deletedSyncId)
+  markRosterDirty(deletedSyncId)
 }
 
 // Removes duplicate user rows that share the same sync_id, keeping the one

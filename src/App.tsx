@@ -61,6 +61,8 @@ import { OPEN_PERSON_PENDING_EVENT, peekPendingOpenPerson } from '@/native/pendi
 import { createPeopleFileEngine } from '@/people/sync/fileEngine'
 import { createPeopleDbEngine } from '@/people/sync/dbEngine'
 import { registerPeopleDbEngine } from '@/people/sync/dirtyTracker'
+import { createRosterDbEngine } from '@/multiuser/rosterVault'
+import { registerRosterDbEngine } from '@/multiuser/rosterDirtyTracker'
 import { registerDbEngine } from '@/sync/dirtyTracker'
 import { isVaultEnabled } from '@/sync/vaultConfig'
 import { applyStatusBarTheme, initFullScreenInLandscape } from '@/native/statusBar'
@@ -268,6 +270,7 @@ function AppInner() {
   // lastglance-people vault app). Null until sync starts.
   const peopleFileEngineRef = useRef<SyncEngine | null>(null)
   const peopleDbEngineRef = useRef<DbSyncEngine | null>(null)
+  const rosterDbEngineRef = useRef<DbSyncEngine | null>(null)
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle')
   const [syncError, setSyncError] = useState<string | null>(null)
   const [syncHalted, setSyncHalted] = useState(false)
@@ -303,6 +306,8 @@ function AppInner() {
         .then(res => setVaultSkipped(res?.skipped ?? 0))
         .catch(() => {/* surfaced via onError */})
     }
+    // The household roster every GLANCE app shares rides the same triggers.
+    rosterDbEngineRef.current?.dbSyncCycle().catch(() => {/* logged by the engine */})
   }, [])
 
   // Runs both People sync roads, riding the same triggers as the chore
@@ -423,6 +428,12 @@ function AppInner() {
     })
     peopleDbEngineRef.current = peopleDb
     registerPeopleDbEngine(peopleDb)
+    const rosterDb = createRosterDbEngine({
+      onError: (msg, code) => { if (msg) console.warn('[lastglance] roster vault sync error:', code ?? '(no code)', msg) },
+      onUnsupported: () => console.warn('[lastglance] vault does not know glance-users yet; the roster syncs on the file roads only'),
+    })
+    rosterDbEngineRef.current = rosterDb
+    registerRosterDbEngine(rosterDb)
 
     deduplicateUsers()
       .catch(() => {})
@@ -432,7 +443,7 @@ function AppInner() {
       .catch(() => {/* errors surfaced via onError */})
     runDbSync()
 
-    return () => { registerDbEngine(null); registerPeopleDbEngine(null) }
+    return () => { registerDbEngine(null); registerPeopleDbEngine(null); registerRosterDbEngine(null) }
     // Mount-once engine init; runSharedUserSync is a stable callback invoked
     // imperatively elsewhere and intentionally not a dependency here.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -607,6 +618,8 @@ function AppInner() {
     if (peopleFile) tiers.push(['the people file sync', () => peopleFile.sync()])
     const peopleVault = peopleDbEngineRef.current
     if (peopleVault) tiers.push(['the people vault sync', () => peopleVault.dbSyncCycle()])
+    const rosterVault = rosterDbEngineRef.current
+    if (rosterVault) tiers.push(['the household roster vault sync', () => rosterVault.dbSyncCycle()])
     await runCappedRefreshCycle(tiers)
   }, [])
   // Android/Tasker intents transport — lets another Android app drive lastGLANCE

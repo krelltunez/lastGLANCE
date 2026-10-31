@@ -8,6 +8,8 @@ import { DirectAccessFileRow } from '@/components/SyncSettingsModal/DirectAccess
 import { getSyncWebdavConfig } from '@/sync/engine'
 import { isVaultEnabled } from '@/sync/vaultConfig'
 import { syncDbNow } from '@/sync/dirtyTracker'
+import { syncRosterNow } from '@/multiuser/rosterDirtyTracker'
+import { isRosterVaultUnsupported } from '@/multiuser/rosterVault'
 import type { SyncEngine } from '@glance-apps/sync'
 import type { User } from '@/types'
 import { useTranslation } from 'react-i18next'
@@ -119,7 +121,8 @@ export function UsersPanel({ engine, onUserMutated }: Props) {
     try {
       // The roster travels over every connected road: the WebDAV file, the
       // same file in the Direct Access folder (docs/direct-access.md), and
-      // GLANCEvault, where household members sync as user rows.
+      // GLANCEvault: the shared glance-users app every GLANCE app reads (the
+      // roster across apps), and this app's own user rows (across devices).
       const syncConfig = getSyncWebdavConfig(engine)
       const directAccess = directAccessTransport.isConnected()
       const vault = isVaultEnabled()
@@ -143,9 +146,13 @@ export function UsersPanel({ engine, onUserMutated }: Props) {
       }
       if (syncConfig) await apply(await syncSharedUsers(syncConfig, usersPath, await getUsers()))
       if (directAccess) await apply(await syncSharedUsersViaDirectAccess(usersPath, await getUsers()))
+      const rosterResult = vault ? await syncRosterNow() : 'off'
       const vaultResult = vault ? await syncDbNow() : 'off'
       await loadUsers()
       if (vaultResult === 'failed') throw new Error('vault sync failed')
+      // A server without glance-users is not a failure here: the roster still
+      // crosses devices on this app's own rows.
+      if (rosterResult === 'failed' && !isRosterVaultUnsupported()) throw new Error('roster sync failed')
       setSyncStatus('ok')
       setTimeout(() => setSyncStatus('idle'), 3000)
     } catch {
