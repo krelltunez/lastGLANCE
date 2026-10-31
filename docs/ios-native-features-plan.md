@@ -11,8 +11,7 @@ and only reimplements the native rendering per platform.
 > deferred, and the three follow-ons its August status held open are built and
 > merged. iOS has parity with the Android native feature set and exceeds it in
 > several places. Phases 0-3 were confirmed on a physical iPad via TestFlight
-> in August; what landed after that is listed below with what remains unseen on
-> a device.
+> in August, and the App Store purchase flows on device since.
 >
 > - **Phase 0** ✅ App Group `group.com.lastglance`, WidgetBridge Swift plugin,
 >   snapshot push/read verified end to end.
@@ -79,9 +78,6 @@ and only reimplements the native rendering per platform.
 >   PBXVariantGroup, and are the only `.lproj` folders in the project. Keys are
 >   the English phrase with `${applicationName}` where the Swift interpolates
 >   `\(.applicationName)`.
-> - **Not yet seen on a device:** the purchase flows (the App Store products
->   and the paywall's store-aware copy). CI cannot reach them: billing is
->   store-side.
 
 ---
 
