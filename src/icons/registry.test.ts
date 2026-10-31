@@ -21,76 +21,129 @@ describe('icon groups', () => {
 })
 
 /**
- * ICON_REGISTRY is built at runtime from lucide-react's exports and
- * deduplicated BY COMPONENT REFERENCE, so where one icon is exported under
- * several aliases only the name `Object.entries` happens to yield first
- * survives. Today that is the `Lucide`-prefixed alias for 763 of the 1767
- * entries, which means `Mail`, `Map`, `MapPin`, `PawPrint` and 759 others are
- * not in the registry at all — only `LucideMail` and friends are.
+ * lucide exports 4042 icon names for 1767 components — every component has at
+ * least two spellings, and 243 have more than one plain spelling. This file
+ * used to serve resolution and display from one map deduplicated by component
+ * reference, which threw away whichever alias `Object.entries` yielded second.
  *
- * Nothing warns you. Every call site is `ICON_REGISTRY[name]` with a null
- * fallback (ChoreRow, CategorySection, SearchModal, JournalModal, Ribbon, both
- * form modals), so a name that stops resolving renders nothing and logs
- * nothing.
+ * The two jobs are now separate, and the tests below are split the same way:
  *
- * Which alias wins depends on enumeration order in the INSTALLED lucide-react,
- * so an ordinary dependency bump can flip it. lucide-react is pinned exactly in
- * package.json for that reason. The suites below are the other half of that pin.
+ *   ICON_REGISTRY  every spelling resolves. Keyed lookup only. Additive, so no
+ *                  icon name already stored in user data changes meaning.
+ *   ICON_NAMES     one name per component, for anything that lists icons.
+ *
+ * lucide-react is pinned exactly in package.json because enumeration order used
+ * to decide which names worked. It no longer does — that is the point of the
+ * split — but the pin also keeps the baselines below stable, so a bump has to
+ * be a deliberate act with a re-measure attached.
  */
 
-describe('ICON_NAMES', () => {
-  it('is exactly the registry key set', () => {
-    expect([...ICON_NAMES].sort()).toEqual(Object.keys(ICON_REGISTRY).sort())
+describe('ICON_REGISTRY, the resolution table', () => {
+  it('carries every alias, not one name per component', () => {
+    expect(Object.keys(ICON_REGISTRY).length).toBeGreaterThan(ICON_NAMES.length)
   })
 
-  it('resolves every name it offers', () => {
-    // The picker's search filters ICON_NAMES, so anything here is pickable.
-    expect(ICON_NAMES.filter((n) => !ICON_REGISTRY[n])).toEqual([])
+  it.each([
+    ['Mail', 'LucideMail'],
+    ['PawPrint', 'LucidePawPrint'],
+    ['Home', 'House'],
+    ['BarChart', 'ChartNoAxesColumnIncreasing'],
+  ])('resolves %s and %s to the same component', (plain, alias) => {
+    // Each pair is one icon under two names. Before the split, one of each pair
+    // resolved and the other was simply absent, which is what silently blanked
+    // icons in stored data and emptied half the picker's categories.
+    expect(ICON_REGISTRY[plain], `${plain} must resolve`).toBeTruthy()
+    expect(ICON_REGISTRY[alias], `${alias} must resolve`).toBeTruthy()
+    expect(ICON_REGISTRY[plain]).toBe(ICON_REGISTRY[alias])
   })
 })
 
-describe('ICON_GROUPS', () => {
-  it('offers only names that resolve', () => {
-    // Note what this does and does not prove. ICON_GROUPS is ALL_GROUPS AFTER a
-    // filter that drops anything absent from the registry, so this assertion
-    // cannot fail while that filter exists. It is a tripwire for the filter
-    // being removed, not for lucide changing underneath. The assertion with
-    // teeth is the baseline below, against the authored list.
-    const broken = [...new Set(ICON_GROUPS.flatMap((g) => g.icons).filter((n) => !ICON_REGISTRY[n]))]
-    expect(broken).toEqual([])
+describe('ICON_NAMES, the display list', () => {
+  it('is exactly one name per distinct component', () => {
+    // The invariant that replaces "ICON_NAMES is the registry key set", which
+    // stopped holding when the registry started carrying aliases.
+    expect(new Set(Object.values(ICON_REGISTRY)).size).toBe(ICON_NAMES.length)
+    expect(new Set(ICON_NAMES.map((n) => ICON_REGISTRY[n])).size).toBe(ICON_NAMES.length)
+  })
+
+  it('resolves every name it offers', () => {
+    expect(ICON_NAMES.filter((n) => !ICON_REGISTRY[n])).toEqual([])
+  })
+
+  it('never offers a Lucide-prefixed alias', () => {
+    // These were what the picker's tooltips read before: "LucideMail".
+    expect(ICON_NAMES.filter((n) => n.startsWith('Lucide'))).toEqual([])
   })
 })
 
 /**
- * The authored taxonomy, pre-filter. This is where the dedup actually shows up:
- * a curated name on the losing side is not a broken icon, it is an icon that
- * silently leaves its category and lands in the catch-all "other" bucket. A
- * reader browsing Animals for a paw print does not find one, because `PawPrint`
- * was dropped and `LucidePawPrint` went to "other" along with ~1200 others.
+ * Every authored name now resolves. Eleven did not until the taxonomy was
+ * remapped onto lucide 1.31.0: three were renames the library had made
+ * (Function -> SquareFunction, NotEqual -> EqualNot, Lemon -> Citrus), four had
+ * an equivalent already sitting in the same group (Messages, Paperclips,
+ * Packages, Wheelchair) and four have no equivalent in the library at all
+ * (Braille, HandBraille, FolderUser, Delta).
  *
- * The count is pinned rather than asserted to zero because 523 of the 1256
- * authored names are already on the losing side today. Fixing that belongs with
- * the dedup rule, not with this guard. What this catches is MOVEMENT: bump
- * lucide-react and flip which aliases win, and this number changes, and CI says
- * so before anyone ships a picker whose categories have quietly reshuffled.
+ * The expected set is empty and asserted as a list rather than a count, so that
+ * a bump which removes an icon names the casualty rather than moving a number.
  */
-describe('the authored icon taxonomy', () => {
-  const authored = ALL_GROUPS.flatMap((g) => g.icons)
-  const shadowed = [...new Set(authored.filter((n) => !(n in ICON_REGISTRY)))]
+const REMOVED_FROM_LUCIDE: string[] = []
 
-  it('still has the shape this baseline was measured against', () => {
+describe('the authored taxonomy', () => {
+  const authored = [...new Set(ALL_GROUPS.flatMap((g) => g.icons))]
+
+  it('still has the shape these baselines were measured against', () => {
     expect(ALL_GROUPS.length).toBe(33)
-    expect(authored.length).toBe(1256)
+    expect(authored.length).toBe(1081)
   })
 
-  it('drops exactly the names it dropped when lucide-react was pinned', () => {
-    expect(
-      shadowed.length,
-      'The set of lucide aliases that win has moved. If you just bumped ' +
-        'lucide-react, every stored icon name on the newly-losing side stops ' +
-        'rendering, silently, in real user data. Re-measure deliberately and ' +
-        'update this number, or revert the bump.',
-    ).toBe(523)
+  it('loses nothing: every authored name resolves', () => {
+    // Was 523 before the alias split, then 11 after it, now none.
+    expect(authored.filter((n) => !(n in ICON_REGISTRY)).sort()).toEqual([...REMOVED_FROM_LUCIDE].sort())
+  })
+})
+
+describe('ICON_GROUPS, what the picker browses', () => {
+  const componentsOf = (names: string[]) =>
+    new Set(names.map((n) => ICON_REGISTRY[n]).filter(Boolean))
+
+  it('keeps every authored icon that resolves, in its own group', () => {
+    // The real version of the assertion that used to be vacuous. It compares
+    // each group against its AUTHORED source, so canonicalising to display
+    // names and deduplicating cannot quietly lose an icon from a category.
+    const lost: string[] = []
+    for (const authoredGroup of ALL_GROUPS) {
+      const shown = ICON_GROUPS.find((g) => g.id === authoredGroup.id)
+      const want = componentsOf(authoredGroup.icons)
+      const got = componentsOf(shown?.icons ?? [])
+      for (const c of want) if (!got.has(c)) lost.push(authoredGroup.id)
+    }
+    expect(lost).toEqual([])
+  })
+
+  it('shows no component twice within one group', () => {
+    // The authored list names two aliases of one component in the same group 33
+    // times (Home/House, most of the chart family). Once both spellings
+    // resolve, without the dedup those draw the same icon twice side by side.
+    const offenders: string[] = []
+    for (const group of ICON_GROUPS) {
+      const seen = new Map<unknown, string[]>()
+      for (const name of group.icons) {
+        const component = ICON_REGISTRY[name]
+        const names = seen.get(component) ?? []
+        names.push(name)
+        seen.set(component, names)
+      }
+      for (const names of seen.values()) {
+        if (names.length > 1) offenders.push(`${group.id}: ${names.join(' = ')}`)
+      }
+    }
+    expect(offenders).toEqual([])
+  })
+
+  it('shows every icon under its display name', () => {
+    const wrong = ICON_GROUPS.flatMap((g) => g.icons).filter((n) => !ICON_NAMES.includes(n))
+    expect(wrong).toEqual([])
   })
 })
 
@@ -106,17 +159,27 @@ describe('the icon names the app itself ships', () => {
   // maps, which exist because this dedup already bit the seed data once.
   const patched = [...client.matchAll(/'[0-9a-f-]{36}':\s*'([A-Za-z][A-Za-z0-9]*)'/g)].map((m) => m[1])
 
+  // The hand-maintained demo fixture, imported through Settings > Backup &
+  // Restore. Five of its names (House, Utensils, WashingMachine, Sprout,
+  // PawPrint) did not resolve before the split and now do, unedited.
+  const demo = JSON.parse(readFileSync(join(__dirname, '../../public/demo-backup.json'), 'utf8')) as {
+    categories: { icon?: string }[]
+    chores: { icon?: string }[]
+  }
+  const fixture = [...demo.categories, ...demo.chores].map((r) => r.icon).filter(Boolean) as string[]
+
   it('found the literals to check', () => {
     expect(seeded.length).toBeGreaterThan(10)
     expect(patched.length).toBeGreaterThan(10)
+    expect(fixture.length).toBeGreaterThan(20)
   })
 
-  // These are the ones with real teeth: nothing launders them, so a name on the
-  // losing side fails here. Every new install sees the seed, so a miss is a
-  // first-run screen of blank icons.
+  // Nothing launders these. Every new install sees the seed, so a miss there is
+  // a first-run screen of blank icons.
   it.each([
     ['seed data', () => seeded],
     ['the v15 icon migration', () => patched],
+    ['public/demo-backup.json', () => fixture],
   ])('resolves every icon name in %s', (_label, get) => {
     const broken = [...new Set(get().filter((n) => !ICON_REGISTRY[n]))]
     expect(broken).toEqual([])
