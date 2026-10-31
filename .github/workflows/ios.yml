@@ -1,0 +1,76 @@
+name: iOS
+
+# Compiles the iOS app on every PR that can affect it: a Swift typo, a project
+# file Xcode no longer accepts, or a package that stops resolving used to reach
+# a compiler only when someone opened Xcode. Build-only: no code signing, no
+# simulator run, no upload. Mirrors lifeGLANCE's iOS build job.
+#
+# The web build and `cap sync ios` come first because the App target bundles
+# the synced web assets and capacitor.config.json, and CapApp-SPM resolves the
+# Capacitor plugins from node_modules. `npm run build:ios` is the developer
+# path, so it also writes ios/version.generated.xcconfig, which both xcconfigs
+# include; IOS_BUILD only needs to be a valid build number here, since nothing
+# is uploaded. The RevenueCat xcframework carries a simulator slice.
+on:
+  pull_request:
+    paths:
+      - 'ios/**'
+      - 'src/**'
+      - 'public/**'
+      - 'scripts/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'capacitor.config.ts'
+      - '.github/workflows/ios.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'ios/**'
+      - 'src/**'
+      - 'public/**'
+      - 'scripts/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'capacitor.config.ts'
+      - '.github/workflows/ios.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: ios-${{ github.head_ref || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build:
+    # Xcode is macOS-only; macos-15 carries Xcode 16 or later.
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select latest Xcode
+        run: sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)"
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          # The Capacitor CLI (`cap sync`) requires Node 22 or later.
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build the web app and sync Capacitor
+        run: npm run build:ios
+        env:
+          IOS_BUILD: ${{ github.run_number }}
+
+      - name: Build the iOS app (no signing)
+        run: |
+          xcodebuild build \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
