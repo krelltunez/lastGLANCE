@@ -13,7 +13,13 @@ import { EUROPEAN_ONLY, BRAZILIAN_ONLY } from './ptMarkers'
  * the variant guardrail exists to stop.
  */
 const IOS = join(__dirname, '../ios/App')
-const CATALOGS = ['GlanceWidgets/Localizable.xcstrings', 'ShareExtension/Localizable.xcstrings']
+const CATALOGS = [
+  // Kept in step with scripts/format-xcstrings.mjs, which formats the same set.
+  'App/Localizable.xcstrings',
+  'App/AppShortcuts.xcstrings',
+  'GlanceWidgets/Localizable.xcstrings',
+  'ShareExtension/Localizable.xcstrings',
+]
 const PBXPROJ = join(IOS, 'App.xcodeproj/project.pbxproj')
 
 const LANGS = ['de', 'es', 'fr', 'it', 'pt-PT', 'pt-BR', 'zh-CN', 'pl', 'uk']
@@ -147,10 +153,29 @@ describe('pbxproj wiring', () => {
     expect(dupes, 'duplicate ids corrupt the project when Xcode next loads it').toEqual([])
   })
 
-  it('registers both catalogs as files, build files, and resources', () => {
-    expect(pbx.match(/\/\* Localizable\.xcstrings \*\/ = \{isa = PBXFileReference/g)?.length).toBe(2)
-    expect(pbx.match(/\/\* Localizable\.xcstrings in Resources \*\/ = \{isa = PBXBuildFile/g)?.length).toBe(2)
-    expect(pbx.match(/Localizable\.xcstrings in Resources \*\//g)?.length).toBe(4)
+  // Counted per file name rather than per catalog, because three targets ship a
+  // catalog called Localizable.xcstrings and the project file names them all
+  // the same way. A catalog that is committed but never registered compiles
+  // into nothing and every string falls back to English.
+  it('registers every catalog as a file, a build file, and a resource', () => {
+    const expected = new Map<string, number>()
+    for (const rel of CATALOGS) {
+      const name = rel.split('/').pop()!
+      expected.set(name, (expected.get(name) ?? 0) + 1)
+    }
+    for (const [name, n] of expected) {
+      const esc = name.split('.').join('\\.')
+      expect(
+        pbx.match(new RegExp(`/\\* ${esc} \\*/ = \\{isa = PBXFileReference`, 'g'))?.length,
+        `${name} file references`,
+      ).toBe(n)
+      expect(
+        pbx.match(new RegExp(`/\\* ${esc} in Resources \\*/ = \\{isa = PBXBuildFile`, 'g'))?.length,
+        `${name} build files`,
+      ).toBe(n)
+      // Each one is named twice: the build file, and the Resources phase entry.
+      expect(pbx.match(new RegExp(`${esc} in Resources \\*/`, 'g'))?.length, `${name} resource entries`).toBe(n * 2)
+    }
   })
 
   it('declares every catalog language in knownRegions', () => {
