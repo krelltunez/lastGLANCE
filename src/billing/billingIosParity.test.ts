@@ -89,7 +89,7 @@ describe('iOS BillingBridge plugin parity', () => {
         if (t === '#if DEBUG') stack.push({ isDebug: true, inDebugBranch: true })
         else if (/^#if\b/.test(t)) stack.push({ isDebug: false, inDebugBranch: false })
         else if (t === '#else') {
-          const top = stack.at(-1)
+          const top = stack[stack.length - 1]
           if (!top) throw new Error('#else with no open #if')
           top.inDebugBranch = top.isDebug ? false : top.inDebugBranch
         } else if (t === '#endif') {
