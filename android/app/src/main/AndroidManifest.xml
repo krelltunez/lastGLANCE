@@ -211,8 +211,8 @@
 
     <!-- The GLANCElauncher's permission to read the launcher snapshot and send
          writes. signature|knownSigner: lastGLANCE's own signature, or one of the
-         LAUNCHER's certificates in res/values/launcher_certs.xml (release,
-         debug until public release, Play once it ships there). knownSigner
+         LAUNCHER's certificates in res/values/launcher_certs.xml (release, and
+         Play once it ships there). knownSigner
          exists from Android 12; below that only the signature half applies and
          the launcher stays in demo mode. -->
     <permission
