@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import en from '../../public/locales/en/translation.json'
 import { ICON_REGISTRY, ICON_NAMES, ICON_GROUPS, ALL_GROUPS } from './registry'
@@ -183,5 +183,72 @@ describe('the icon names the app itself ships', () => {
   ])('resolves every icon name in %s', (_label, get) => {
     const broken = [...new Set(get().filter((n) => !ICON_REGISTRY[n]))]
     expect(broken).toEqual([])
+  })
+})
+
+// The native widgets and the launcher resolve chore.icon by resource name, so a
+// name with no drawable draws nothing and logs nothing. Regenerate with
+// `npm run gen:icons`.
+describe('the Android drawables', () => {
+  const res = join(__dirname, '../../android/app/src/main/res')
+  const files = new Set(
+    readdirSync(join(res, 'drawable'))
+      .filter((f) => f.startsWith('ic_lucide_'))
+      .map((f) => f.replace(/\.xml$/, '')),
+  )
+  const aliases = new Map(
+    [...readFileSync(join(res, 'values/lucide_icon_aliases.xml'), 'utf8')
+      .matchAll(/<drawable name="([^"]+)">@drawable\/([^<]+)<\/drawable>/g)]
+      .map((m) => [m[1], m[2]] as const),
+  )
+
+  // The transform in SingleChoreWidget.kt, WidgetShortcuts.java and the launcher.
+  const resName = (pascal: string) =>
+    'ic_lucide_' + [...pascal].map((ch, i) => (ch >= 'A' && ch <= 'Z' && i > 0 ? '_' : '') + ch.toLowerCase()).join('')
+  const component = new Map(Object.entries(ICON_REGISTRY).map(([name, icon]) => [resName(name), icon]))
+
+  it('finds a drawable under every name the registry resolves', () => {
+    const missing = Object.keys(ICON_REGISTRY).filter((n) => !files.has(resName(n)) && !aliases.has(resName(n)))
+    expect(missing).toEqual([])
+  })
+
+  it('has one file per icon, none of them under the Lucide prefix', () => {
+    expect(files.size).toBe(ICON_NAMES.length)
+    expect([...files].filter((f) => f.startsWith('ic_lucide_lucide_'))).toEqual([])
+  })
+
+  it('points every alias at a file of the same icon', () => {
+    const wrong = [...aliases].filter(([alias, target]) => !files.has(target) || component.get(alias) !== component.get(target))
+    expect(wrong).toEqual([])
+  })
+})
+
+// The iOS widgets look chore.icon up in generated data the same way, and a name
+// that is not there draws nothing. Regenerate with `npm run gen:icons:ios`.
+describe('the iOS widget icon data', () => {
+  const swift = readFileSync(join(__dirname, '../../ios/App/GlanceWidgets/LucideIcons.generated.swift'), 'utf8')
+  const parse = (key: string) => {
+    const body = swift.split(`static let ${key}: String = """\n`)[1].split('\n"""')[0]
+    return new Map(body.split('\n').map((line) => {
+      const sep = line.indexOf(' ')
+      return [line.slice(0, sep), line.slice(sep + 1)] as const
+    }))
+  }
+  const paths = parse('blob')
+  const aliases = parse('aliases')
+
+  it('finds path data under every name the registry resolves', () => {
+    const missing = Object.keys(ICON_REGISTRY).filter((n) => !paths.has(n) && !aliases.has(n))
+    expect(missing).toEqual([])
+  })
+
+  it('holds one entry per icon, none of them under the Lucide prefix', () => {
+    expect(paths.size).toBe(ICON_NAMES.length)
+    expect([...paths.keys()].filter((n) => n.startsWith('Lucide'))).toEqual([])
+  })
+
+  it('points every alias at an entry for the same icon', () => {
+    const wrong = [...aliases].filter(([alias, target]) => !paths.has(target) || ICON_REGISTRY[alias] !== ICON_REGISTRY[target])
+    expect(wrong).toEqual([])
   })
 })

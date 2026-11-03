@@ -22,17 +22,22 @@ import SwiftUI
 enum LucideIcons {
     // Parsed lazily from the generated blob on first access; `static let` gives
     // one-time thread-safe initialization for free.
-    static let paths: [String: String] = {
-        var out = [String: String](minimumCapacity: 2048)
-        for line in LucideIconData.blob.split(separator: "\n") {
+    static let paths: [String: String] = parseLines(LucideIconData.blob, capacity: 2048)
+
+    // Every other name chore.icon can store, to the name its path data is under.
+    static let aliases: [String: String] = parseLines(LucideIconData.aliases, capacity: 2560)
+
+    private static func parseLines(_ blob: String, capacity: Int) -> [String: String] {
+        var out = [String: String](minimumCapacity: capacity)
+        for line in blob.split(separator: "\n") {
             guard let sep = line.firstIndex(of: " ") else { continue }
             out[String(line[..<sep])] = String(line[line.index(after: sep)...])
         }
         return out
-    }()
+    }
 
     static func path(named name: String) -> Path? {
-        guard let d = paths[name] else { return nil }
+        guard let d = paths[name] ?? aliases[name].flatMap({ paths[$0] }) else { return nil }
         return parseSVGPath(d)
     }
 }

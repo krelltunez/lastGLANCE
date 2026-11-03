@@ -8,9 +8,9 @@
     <path android:strokeColor="#FF000000" android:strokeWidth="2" android:strokeLineCap="round" android:strokeLineJoin="round"
         android:pathData="M14 3a41 41 0 0 1 0 18"/>
     <path android:strokeColor="#FF000000" android:strokeWidth="2" android:strokeLineCap="round" android:strokeLineJoin="round"
-        android:pathData="M17 3a2 2 0 0 1 1.68 0.92 15.25 15.25 0 0 1 0 16.16A2 2 0 0 1 17 21H7a2 2 0 0 1-1.68-0.92 15.25 15.25 0 0 1 0-16.16A2 2 0 0 1 7 3z"/>
+        android:pathData="M17 21a2 2 0 0 0 1.68-0.92 15.25 15.25 0 0 0 0-16.16A2 2 0 0 0 17 3H7a2 2 0 0 0-1.68 0.92 15.25 15.25 0 0 0 0 16.16A2 2 0 0 0 7 21z"/>
     <path android:strokeColor="#FF000000" android:strokeWidth="2" android:strokeLineCap="round" android:strokeLineJoin="round"
-        android:pathData="M3.84 17h16.32"/>
+        android:pathData="M3.54 16h16.91"/>
     <path android:strokeColor="#FF000000" android:strokeWidth="2" android:strokeLineCap="round" android:strokeLineJoin="round"
-        android:pathData="M3.84 7h16.32"/>
+        android:pathData="M3.54 8h16.91"/>
 </vector>
