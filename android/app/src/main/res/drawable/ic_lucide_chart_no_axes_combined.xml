@@ -6,13 +6,13 @@
     <path android:strokeColor="#FF000000" android:strokeWidth="2" android:strokeLineCap="round" android:strokeLineJoin="round"
         android:pathData="M12 16v5"/>
     <path android:strokeColor="#FF000000" android:strokeWidth="2" android:strokeLineCap="round" android:strokeLineJoin="round"
-        android:pathData="M16 14v7"/>
+        android:pathData="M16 14.64V21"/>
     <path android:strokeColor="#FF000000" android:strokeWidth="2" android:strokeLineCap="round" android:strokeLineJoin="round"
-        android:pathData="M20 10v11"/>
+        android:pathData="M20 10.66V21"/>
     <path android:strokeColor="#FF000000" android:strokeWidth="2" android:strokeLineCap="round" android:strokeLineJoin="round"
         android:pathData="M22 3l-8.65 8.65a0.5 0.5 0 0 1-0.7 0l-3.3-3.3a0.5 0.5 0 0 0-0.7 0L2 15"/>
     <path android:strokeColor="#FF000000" android:strokeWidth="2" android:strokeLineCap="round" android:strokeLineJoin="round"
-        android:pathData="M4 18v3"/>
+        android:pathData="M4 18.46V21"/>
     <path android:strokeColor="#FF000000" android:strokeWidth="2" android:strokeLineCap="round" android:strokeLineJoin="round"
-        android:pathData="M8 14v7"/>
+        android:pathData="M8 14.66V21"/>
 </vector>
