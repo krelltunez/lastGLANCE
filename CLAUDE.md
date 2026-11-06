@@ -64,3 +64,9 @@ WebView with no Activity and no Capacitor bridge; main.tsx runs
   once handled, and runs the roads again when any changed something. The
   receiver schedules a run when a write reaches a dead app, outside the floor
   and with no run in flight (`HeadlessRefreshPolicy.runForWrite`).
+- **The run registers its vault engines while it applies the writes.** The
+  data layer marks what it saves through the dirty trackers, and the vault
+  pushes only marked rows; with no engine registered the writes were saved here
+  and never pushed (2.13.0 until the fix, re-pushed once by
+  `src/sync/launcherWritesRepair.ts`). The file roads diff whole payloads and
+  cannot show this, so the scenario that checks it fakes the vault engines.
