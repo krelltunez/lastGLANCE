@@ -27,6 +27,8 @@
 import { hasDbRootKey, initDbRootKey } from '@glance-apps/sync'
 import { createEngine, initSessionKey, CRYPTO_CONFIG, DB_CRYPTO_CONFIG } from '@/sync/engine'
 import { createDbEngine } from '@/sync/dbEngine'
+import { registerDbEngine } from '@/sync/dirtyTracker'
+import { registerPeopleDbEngine } from '@/people/sync/dirtyTracker'
 import { isVaultEnabled } from '@/sync/vaultConfig'
 import { createPeopleFileEngine } from '@/people/sync/fileEngine'
 import { createPeopleDbEngine } from '@/people/sync/dbEngine'
@@ -46,6 +48,9 @@ export interface HeadlessRoads {
   roads: HeadlessRoad[]
   // The heartbeat's syncedAt once the roads have run.
   syncedAt: () => string | null
+  // Hands the vault engines to the dirty trackers while the launcher's writes
+  // are applied, so the data layer marks what they save; returns the release.
+  trackWrites?: () => () => void
 }
 
 // Engines report failures through callbacks rather than by throwing; a road
@@ -92,12 +97,26 @@ export async function buildSyncRoads(report: ReportError): Promise<HeadlessRoads
   const peopleVault = createPeopleDbEngine({ onError: (msg) => report('people vault', msg) })
 
   const roads: HeadlessRoad[] = [{ name: 'file', run: () => file.sync() }]
+  // The app registers its engines at start (App.tsx); a run that did not left
+  // every write it applied unmarked, saved here and never pushed to the vault
+  // (src/sync/launcherWritesRepair.ts). Released before the second pass, which
+  // also drops the trackers' debounced pushes: that pass is the push, and the
+  // marks it reads are the engines' own, kept in storage.
+  const trackWrites = () => {
+    registerDbEngine(vault)
+    registerPeopleDbEngine(peopleVault)
+    return () => {
+      registerDbEngine(null)
+      registerPeopleDbEngine(null)
+    }
+  }
   if (vault) roads.push({ name: 'vault', run: () => vault.dbSyncCycle() })
   roads.push({ name: 'people file', run: () => peopleFile.sync() })
   if (peopleVault) roads.push({ name: 'people vault', run: () => peopleVault.dbSyncCycle() })
   return {
     roads,
     syncedAt: () => latestSyncedAt([file.getLastSynced?.(), vault?.getLastSynced?.()]),
+    trackWrites,
   }
 }
 
@@ -129,14 +148,16 @@ export async function runHeadlessRefresh(clientId: string, deps: HeadlessDeps): 
 
   try {
     if (shouldAbort()) return done(HEADLESS_OUTCOMES.ABORTED, 'app opened')
-    const { roads, syncedAt } = await buildRoads(report)
+    const { roads, syncedAt, trackWrites } = await buildRoads(report)
     if (shouldAbort()) return done(HEADLESS_OUTCOMES.ABORTED, 'app opened')
     const runRoads = () => Promise.all(roads.map(road => road.run().catch((e: unknown) => report(road.name, messageOf(e)))))
     await runRoads()
     if (shouldAbort()) return done(HEADLESS_OUTCOMES.ABORTED, 'app opened')
     // After the pull, as the app's drain sees it. A write that failed to apply
     // stays out of the ledger, and the launcher re-sends it.
+    const untrack = trackWrites?.()
     const applied = await applyWrites().catch(() => 0)
+    untrack?.()
     if (applied > 0) {
       if (shouldAbort()) return done(HEADLESS_OUTCOMES.ABORTED, 'app opened')
       await runRoads()

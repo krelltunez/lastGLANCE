@@ -14,7 +14,7 @@ vi.mock('@glance-apps/sync', async (importOriginal) => {
     ...actual,
     createDbSyncEngine: (config: Record<string, unknown>) => {
       captured.db = config
-      return { dbSyncCycle: fakeCycle, markDirty: vi.fn(), getHighWaterMark: () => 1 }
+      return { dbSyncCycle: fakeCycle, markDirty: vi.fn(), getHighWaterMark: () => 1, getLastSynced: () => null }
     },
     createSyncEngine: (config: Record<string, unknown>) => {
       captured.file = config

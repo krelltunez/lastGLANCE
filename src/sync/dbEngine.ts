@@ -28,6 +28,7 @@ import {
   removeDeferredCompletionsForChore,
   getDeferredCompletions,
 } from './deferredCompletions'
+import { cycleWithLauncherRepair, markChangedSince } from './launcherWritesRepair'
 
 const APP_ID = 'lastglance'
 const CRYPTO_DB_NAME = 'lastglance-crypto'
@@ -511,6 +512,10 @@ const HWM_RECOVERY_FLAG = `${APP_ID}-db-sync-hwm-recovery-gen`
 // initial marking; the engine's persisted dirty set owns delivery from there.
 const SNAPSHOT_SEEDED_FLAG = `${APP_ID}-db-sync-snapshot-seeded`
 
+// One-shot gate for the re-push of rows headless refreshes saved unmarked
+// (src/sync/launcherWritesRepair.ts).
+const LAUNCHER_REPAIR_FLAG = `${APP_ID}-db-sync-launcher-writes-repaired`
+
 // The seeding wrapper's migration shim, run at engine creation so it sees the
 // cursor before recoverStalePullCursor can rewind it.
 function latchSeededIfAlreadySynced(engine: DbSyncEngine): void {
@@ -565,6 +570,18 @@ export async function markAllLocalEntitiesDirty(engine: DbSyncEngine): Promise<v
   for (const c of chores) if (!isPristineSeed(c)) engine.markDirty(c.sync_id)
   for (const e of events) engine.markDirty(e.sync_id)
   for (const u of users) engine.markDirty(u.sync_id)
+}
+
+// Rows changed since headless refreshes began applying launcher writes
+// (src/sync/launcherWritesRepair.ts), over the tables the seed marks.
+export async function markLauncherRepairDirty(engine: DbSyncEngine): Promise<number> {
+  const [cats, chores, events, users] = await Promise.all([
+    db.categories.toArray(),
+    db.chores.toArray(),
+    db.completionEvents.toArray(),
+    db.users.toArray(),
+  ])
+  return markChangedSince(engine, [...cats, ...chores, ...events, ...users])
 }
 
 // Builds the DB engine when the vault is enabled and fully configured, else
@@ -663,7 +680,7 @@ export function createDbEngine(callbacks: DbEngineCallbacks = {}): DbSyncEngine 
     // The engine's own dbSyncCycle fires config.onRowsSkipped for any quarantined
     // rows and resolves to { applied, skipped, skippedEntityIds }; pass that result
     // straight through so callers can surface the per-cycle skip count.
-    const result = await runCycle()
+    const result = await cycleWithLauncherRepair(engine, runCycle, LAUNCHER_REPAIR_FLAG, () => markLauncherRepairDirty(engine))
     // A pull may have skipped already-present rows under last-writer-wins, so run
     // the repair after every cycle too; refresh the UI when it links anything.
     try {
