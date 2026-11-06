@@ -224,6 +224,76 @@ describe('headless refresh, end to end', () => {
     expect([...shell.looked].filter(m => !(HEADLESS_BRIDGE_METHODS as readonly string[]).includes(m))).toEqual([])
   }, 20_000)
 
+  // The vault pushes only rows the data layer marked, so a write the run applied
+  // has to be marked before the second pass, or it is saved here and never
+  // reaches another device. The vault engines are fakes that record what was
+  // marked when each cycle ran (the WebDAV road above is real).
+  // MUTATION: drop trackWrites from buildSyncRoads and both second cycles see nothing marked.
+  it("marks the launcher's writes for the vault before the second pass pushes them", async () => {
+    const cycles: Record<string, string[][]> = {}
+    vi.doMock('@glance-apps/sync', async (importOriginal) => {
+      const actual = await importOriginal<typeof import('@glance-apps/sync')>()
+      return {
+        ...actual,
+        createDbSyncEngine: (config: { appId: string }) => {
+          const marked = new Set<string>()
+          cycles[config.appId] = []
+          return {
+            markDirty: (id: string) => { marked.add(id) },
+            dbSyncCycle: async () => { cycles[config.appId].push([...marked]); return { applied: 0, skipped: 0, skippedEntityIds: [] } },
+            getHighWaterMark: () => 1,
+            setHighWaterMark: () => {},
+            getLastSynced: () => null,
+          }
+        },
+      }
+    })
+    shell.secure.set('lastglance-vault-config', JSON.stringify({
+      enabled: true, vaultUrl: 'https://vault.example', vaultToken: 't', accountId: 'acct',
+    }))
+    try {
+      const booted = await boot('rf-5')
+      shim = booted.shim
+      close = () => booted.db.close()
+      const { getSyncFolder } = await import('@/sync/syncFolder')
+      const fileUrl = `${DAV}/${getSyncFolder()}/lastglance-sync.json`
+      shell.files.set(fileUrl, { body: JSON.stringify({ appId: 'lastglance', lastModified: NOW, data: remotePayload() }), etag: '"e0"' })
+      const personId = 'c0ffee00-0000-4000-8000-000000000010'
+      await booted.db.people.add({
+        sync_id: personId, name: 'Sam', nickname: null, circle_sync_id: null, target_cadence_days: 14,
+        preferred_channel: 'call', details: null, archived: false, snoozed_until: null, created_at: NOW, updated_at: NOW,
+      } as never)
+      const L = 'com.lastglance.app.launcher.'
+      shell.queue.value = [
+        { action: `${L}COMPLETE`, clientId: 'w-done', payload: { chore_id: 'c0ffee00-0000-4000-8000-000000000002', completed_at: '2026-10-22T13:00:00.000Z' } },
+        { action: `${L}LOG_INTERACTION`, clientId: 'w-call', payload: { person_id: personId } },
+      ]
+
+      const { headlessBridge } = await import('./headlessMode')
+      const { runHeadlessRefresh } = await import('./headlessRefresh')
+      const result = await runHeadlessRefresh('rf-5', { bridge: headlessBridge()! })
+      expect(shell.acked).toEqual(['w-done', 'w-call'])
+
+      const event = (await booted.db.completionEvents.toArray()).find(e => e.completed_at === '2026-10-22T13:00:00.000Z')!
+      expect(event, JSON.stringify(result)).toBeDefined()
+      // Not marked when the first pass ran, marked by the time the second did.
+      expect(cycles.lastglance.length).toBe(2)
+      expect(cycles.lastglance[0]).not.toContain(event.sync_id)
+      expect(cycles.lastglance[1]).toContain(event.sync_id)
+      expect(cycles['lastglance-people'].length).toBe(2)
+      expect(cycles['lastglance-people'][0]).not.toContain('w-call')
+      expect(cycles['lastglance-people'][1]).toContain('w-call')
+
+      // Released again: a later write marks nothing and schedules no push.
+      const { markDirty } = await import('@/sync/dirtyTracker')
+      markDirty('after-the-run')
+      await new Promise(r => setTimeout(r, 3100))
+      expect(cycles.lastglance.length).toBe(2)
+    } finally {
+      vi.doUnmock('@glance-apps/sync')
+    }
+  }, 20_000)
+
   it('the app opening stops the run before it touches the network', async () => {
     const booted = await boot('rf-2')
     shim = booted.shim
