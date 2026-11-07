@@ -4,7 +4,7 @@
 
 Part of the **GLANCE family**: focused, standalone apps connected through a shared intent protocol. See also [dayGLANCE](https://github.com/krelltunez/dayGLANCE) (today), lastGLANCE (recent upkeep), and [lifeGLANCE](https://github.com/krelltunez/lifeGLANCE) (your whole timeline).
 
-[<img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play" height="75">](https://play.google.com/store/apps/details?id=com.lastglance.app)
+[<img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play" height="75">](https://play.google.com/store/apps/details?id=com.lastglance.app) [<img src="docs/badges/app-store.svg" alt="Download on the App Store" height="52">](https://apps.apple.com/app/idXXXXXXXXXX)
 
 [![Version](https://img.shields.io/github/package-json/v/krelltunez/lastGLANCE?color=green&label=version)](../../releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -18,6 +18,27 @@ lastGLANCE is a progressive web app that answers one question: *when did I last 
 It has two workspaces, switched under the wordmark:
 - **Chores**: recurring upkeep, colored by how long ago you last did it.
 - **People**: the people who matter to you, who you're overdue to reach out to, and the birthdays and dates coming up.
+
+---
+
+## iPhone & iPad App
+
+lastGLANCE is available on the **App Store** for iPhone and iPad. Like the Android app, it wraps the full lastGLANCE experience with native integrations, and one purchase covers your iPhone and iPad.
+
+[<img src="docs/badges/app-store.svg" alt="Download on the App Store" height="50">](https://apps.apple.com/app/idXXXXXXXXXX)
+
+The iOS app adds what only makes sense on an iPhone or iPad:
+
+| Feature | Details |
+|---|---|
+| ☁️ **iCloud sync** | On by default with nothing to set up: chores and People stay in step on every device signed in to your Apple ID, with an off switch on each |
+| 🏠 **Home Screen widgets** | Activity heatmap (up to a full year on iPad), Soon, Pinned, a single chore and Add chore, each with one-tap done. For People, Reach out and Coming up |
+| 🔒 **Lock Screen and Control Center** | Lock Screen widgets for what's overdue and the next birthday, and an Add chore control in Control Center (iOS 18) |
+| 🗣️ **Siri, Spotlight and Shortcuts** | Mark a chore done, ask when you last did one, add a chore, or open what's due. Marking done and asking run without opening the app (iOS 17) |
+| 🔔 **Actionable reminders** | Overdue chores, birthdays and dates, and a daily catch-up digest. "Mark done" right from the notification, without opening the app |
+| 📤 **Share sheet and quick actions** | Share text or a link from any app to save it as a chore, and long-press the app icon for shortcuts |
+| 📇 **Phone contacts** | Optional and read-only: import people with their birthdays, link a person to a contact, and call, text or email them in one tap |
+| 🔑 **Keychain** | Sync credentials and your encryption key live in the device Keychain, not in web storage |
 
 ---
 
@@ -219,7 +240,9 @@ npm run cap:ios        # build + sync, then open Xcode (requires macOS)
 ```
 
 WebDAV/Nextcloud sync works without a CORS proxy in the apps thanks to the
-CapacitorHttp plugin. See [docs/mobile.md](docs/mobile.md) for details.
+CapacitorHttp plugin. The native features are described in
+[docs/android-native-features-plan.md](docs/android-native-features-plan.md) and
+[docs/ios-native-features-plan.md](docs/ios-native-features-plan.md).
 
 ---
 
