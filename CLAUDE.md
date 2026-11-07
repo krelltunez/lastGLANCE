@@ -56,6 +56,10 @@ WebView with no Activity and no Capacitor bridge; main.tsx runs
 - **Same origin, same storage.** The WebView loads `assets/public` at
   `https://localhost`, Capacitor's origin, which is what shares IndexedDB and
   localStorage with the app. Do not move either side off it.
+- **No service worker.** The headless page has no Capacitor bridge, so
+  `Capacitor.isNativePlatform()` is false there; `src/native/serviceWorker.ts`
+  treats it as a native shell anyway. A worker it registered served the app a
+  stale bundle after the next Play update (a blank first launch, 2.14.0).
 - **Signal-abort.** `MainActivity.onCreate` destroys a run in flight before the
   bridge loads; the root checks `headlessShouldAbort` between phases.
 - **Launcher writes are applied, then pushed.** After its roads the run applies
