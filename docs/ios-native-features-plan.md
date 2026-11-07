@@ -6,7 +6,10 @@ lastGLANCE **iOS** app. This is the iOS counterpart to
 to be cross-platform, so this plan reuses the shared JS layer and data contracts
 and only reimplements the native rendering per platform.
 
-> **▶ STATUS (last updated 2026-10-31)**
+> **▶ STATUS (last updated 2026-11-06)**
+> **Released.** lastGLANCE 3.0.0 went live on the App Store on 2026-11-06, the
+> first public iOS release (built from the same code as 2.14.0; Android and the
+> web skipped 3.0.0 and go from 2.14.0 to 3.0.1).
 > **Feature-complete.** Every phase of this plan, the stretch goals it
 > deferred, and the three follow-ons its August status held open are built and
 > merged. iOS has parity with the Android native feature set and exceeds it in
