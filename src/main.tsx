@@ -7,6 +7,7 @@ import { hydrateSecureConfig, installSecureConfigShim } from './sync/secureConfi
 import { headlessBridge, headlessRequest } from './headless/headlessMode'
 import { initHardwareBackButton } from './native/backButton'
 import { lockViewportScaleOnIPhone } from './utils/viewportZoom'
+import { settleServiceWorker } from './native/serviceWorker'
 
 // crypto.randomUUID() is only available in secure contexts (HTTPS / localhost).
 // This polyfill covers HTTP access over a LAN IP (e.g. self-hosted Docker).
@@ -27,29 +28,18 @@ if (Capacitor.isNativePlatform()) {
   document.documentElement.classList.add('native')
 }
 
-// The PWA service worker is for the browser only. In the native shells the
-// bundle ships inside the app, and a worker there serves the precache of the
-// version that installed it: after a store update the first launch showed the
-// old bundle until the app was swiped away. Native removes any worker an
-// earlier build registered, with its caches.
-const registerServiceWorker = () => {
-  if (!('serviceWorker' in navigator)) return
-  if (Capacitor.isNativePlatform()) {
-    navigator.serviceWorker.getRegistrations()
-      .then(regs => Promise.all(regs.map(r => r.unregister())))
-      .catch(() => {})
-    if ('caches' in window) {
-      caches.keys()
-        .then(keys => Promise.all(keys.filter(k => k.startsWith('workbox-')).map(k => caches.delete(k))))
-        .catch(() => {})
-    }
-    return
-  }
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => {})
-  })
-}
-registerServiceWorker()
+// The PWA service worker is for the browser only; a native shell, including
+// Android's headless refresh WebView, removes one an earlier build left and,
+// when such a worker served this page, reloads from the installed bundle
+// instead of booting (see native/serviceWorker.ts).
+const booting = settleServiceWorker({
+  shell: Capacitor.isNativePlatform() || headlessBridge() !== null,
+  container: 'serviceWorker' in navigator ? navigator.serviceWorker : undefined,
+  caches: 'caches' in window ? window.caches : undefined,
+  session: (() => { try { return window.sessionStorage } catch { return undefined } })(),
+  reload: () => window.location.reload(),
+  onLoad: fn => window.addEventListener('load', fn),
+})
 
 // Cap the viewport scale on iPhone before anything can take focus, so WebKit
 // cannot zoom the page in on a sub-16px field it can never zoom back out of
@@ -92,18 +82,21 @@ const runHeadless = async (clientId: string) => {
 // IntentsContext and the sync engines read these keys synchronously during
 // mount. Both calls are no-ops off Android, and a hydration failure still
 // renders — the app degrades to "sync not configured", never a blank screen.
-installSecureConfigShim()
-const headless = headlessRequest(window.location.search)
-if (headless) {
-  hydrateSecureConfig()
-    .catch(() => {})
-    .then(() => runHeadless(headless.clientId))
-} else {
-  // The @capacitor/app plugin (added for the paywall dismiss control) swallows
-  // the hardware back button unless a JS listener owns it — this restores the
-  // stock behavior app-wide. No-op off Android.
-  initHardwareBackButton()
-  hydrateSecureConfig()
-    .catch(() => {})
-    .then(render)
+const boot = () => {
+  installSecureConfigShim()
+  const headless = headlessRequest(window.location.search)
+  if (headless) {
+    hydrateSecureConfig()
+      .catch(() => {})
+      .then(() => runHeadless(headless.clientId))
+  } else {
+    // The @capacitor/app plugin (added for the paywall dismiss control) swallows
+    // the hardware back button unless a JS listener owns it — this restores the
+    // stock behavior app-wide. No-op off Android.
+    initHardwareBackButton()
+    hydrateSecureConfig()
+      .catch(() => {})
+      .then(render)
+  }
 }
+booting.then(go => { if (go) boot() }, boot)

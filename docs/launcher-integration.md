@@ -135,14 +135,18 @@ refresh"):
   `failed` with `file: …`, `vault: …` in the reason. The snapshot is pushed
   either way: another road may have applied, and `checkedAt` records the look.
 
-The app registers its PWA service worker in the native build too, and it
-controls `https://localhost`, so a headless page is served from the worker's
-cache. Right after an update that can be the previous bundle, which has no
-headless root and would render App instead. The worker routes the service
-worker's own requests to the installed files (as Capacitor does), so its update
-check sees the new version, and tears down any page that has not called the
-bridge within 20 seconds (`failed`: "the page did not start a headless run").
-The next run gets the new bundle.
+No service worker in either WebView. The PWA worker is for the browser
+(`src/native/serviceWorker.ts`): the app and the headless page both count as a
+native shell, so neither registers it, and both remove one an earlier build
+left. Until 3.0.1 the headless page, having no Capacitor bridge, took the
+browser branch and registered it; after the next Play update that worker
+served the app its previous bundle, which deleted the worker's caches while
+its own chunks were still loading from them, and the first launch was blank. A
+page a leftover worker served now unregisters it and reloads once from the
+installed files, keeping those caches until then. LauncherRefreshWorker still
+routes a worker's requests to the installed files (as Capacitor does), and
+tears down any page that has not called the bridge within 20 seconds
+(`failed`: "the page did not start a headless run").
 
 The launcher measures staleness per app from `syncedAt` when sync is
 configured and from `checkedAt` otherwise, and shows the log in its
