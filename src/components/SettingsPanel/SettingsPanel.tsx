@@ -22,6 +22,8 @@ import { UsersPanel } from '@/components/UsersPanel/UsersPanel'
 import { BackupPanel } from '@/components/BackupModal/BackupModal'
 import { HelpContent } from '@/components/HelpModal/HelpModal'
 import { SubscriptionStatus } from '@/components/PaywallModal/SubscriptionStatus'
+import { LauncherPromoCard, LauncherPromoEntry } from '@/components/LauncherPromo/LauncherPromo'
+import { useLauncherPromo } from '@/hooks/useLauncherPromo'
 import { formatTimeSample, formatWeekdayShort, type TimeFormat, type WeekStartPref } from '@/utils/datetime'
 
 export type ThemePref = 'light' | 'dark' | 'system'
@@ -83,6 +85,9 @@ export function SettingsPanel(props: Props) {
   // Turning Phone contacts on asks for permission right away, after the
   // in-app disclosure; the switch only turns on once it is granted.
   const [askingContacts, setAskingContacts] = useState(false)
+  // GLANCElauncher, Android only: a one-time card above the sections and a
+  // permanent entry under Integrations (src/native/launcherPromo.ts).
+  const launcherPromo = useLauncherPromo()
 
   const toggle = (id: SectionId) => setOpen(o => (o === id ? null : id))
 
@@ -116,6 +121,9 @@ export function SettingsPanel(props: Props) {
         </div>
 
         <div className="flex-1 min-h-0 overflow-y-auto px-3 py-3">
+          {launcherPromo.card && launcherPromo.entry && (
+            <LauncherPromoCard link={launcherPromo.entry} onDismiss={launcherPromo.dismiss} />
+          )}
           <Section
             id="appearance" open={open} onToggle={toggle}
             icon={<Palette size={16} />} title={t('settings.appearance')}
@@ -258,6 +266,7 @@ export function SettingsPanel(props: Props) {
           >
             <Description>{t('settings.integrationsDesc')}</Description>
             <LinkRow icon={<Plug size={15} />} label={t('app.dayglanceIntegration')} onClick={props.onOpenIntegration} />
+            {launcherPromo.entry && <LauncherPromoEntry link={launcherPromo.entry} />}
           </Section>
 
           <Section

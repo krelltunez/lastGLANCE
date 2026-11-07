@@ -706,7 +706,13 @@
     "on": "开",
     "off": "关",
     "datesToDayglance": "生日发送到 dayGLANCE",
-    "datesToDayglanceHint": "将今天的生日和日期作为全天事项发送到 dayGLANCE。仅限本设备。"
+    "datesToDayglanceHint": "将今天的生日和日期作为全天事项发送到 dayGLANCE。仅限本设备。",
+    "launcherPromo": {
+      "body": "一款围绕你的一天打造的主屏幕启动器：dayGLANCE 中的任务和日常安排，以及 lastGLANCE 中的家务和联系人，解锁设备时即可看到。",
+      "viewOnGithub": "在 GitHub 上查看",
+      "getOnPlay": "在 Google Play 上获取",
+      "notNow": "稍后再说"
+    }
   },
   "people": {
     "close": "关闭",

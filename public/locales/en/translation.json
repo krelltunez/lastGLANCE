@@ -706,7 +706,13 @@
     "on": "On",
     "off": "Off",
     "datesToDayglance": "Birthdays to dayGLANCE",
-    "datesToDayglanceHint": "Sends today's birthdays and dates to dayGLANCE as all-day items. On this device only."
+    "datesToDayglanceHint": "Sends today's birthdays and dates to dayGLANCE as all-day items. On this device only.",
+    "launcherPromo": {
+      "body": "A home screen launcher built around your day: your dayGLANCE tasks and routines and your lastGLANCE chores and people, right where you will see it when you unlock your device.",
+      "viewOnGithub": "View on GitHub",
+      "getOnPlay": "Get it on Google Play",
+      "notNow": "Not now"
+    }
   },
   "people": {
     "close": "Close",

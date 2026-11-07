@@ -706,7 +706,13 @@
     "on": "An",
     "off": "Aus",
     "datesToDayglance": "Geburtstage an dayGLANCE",
-    "datesToDayglanceHint": "Schickt die heutigen Geburtstage und Termine als ganztägige Einträge an dayGLANCE. Nur auf diesem Gerät."
+    "datesToDayglanceHint": "Schickt die heutigen Geburtstage und Termine als ganztägige Einträge an dayGLANCE. Nur auf diesem Gerät.",
+    "launcherPromo": {
+      "body": "Ein Startbildschirm-Launcher rund um deinen Tag: deine Aufgaben und Routinen aus dayGLANCE und deine wiederkehrenden Aufgaben und Menschen aus lastGLANCE, genau dort, wo du sie siehst, wenn du dein Gerät entsperrst.",
+      "viewOnGithub": "Auf GitHub ansehen",
+      "getOnPlay": "Bei Google Play herunterladen",
+      "notNow": "Nicht jetzt"
+    }
   },
   "people": {
     "close": "Schließen",

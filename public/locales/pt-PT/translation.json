@@ -706,7 +706,13 @@
     "on": "Sim",
     "off": "Não",
     "datesToDayglance": "Aniversários para o dayGLANCE",
-    "datesToDayglanceHint": "Envia os aniversários e datas de hoje para o dayGLANCE como eventos de dia inteiro. Apenas neste dispositivo."
+    "datesToDayglanceHint": "Envia os aniversários e datas de hoje para o dayGLANCE como eventos de dia inteiro. Apenas neste dispositivo.",
+    "launcherPromo": {
+      "body": "Um launcher para o ecrã principal pensado em torno do seu dia: as suas tarefas e rotinas do dayGLANCE e as suas tarefas recorrentes e pessoas do lastGLANCE, exatamente onde as verá ao desbloquear o dispositivo.",
+      "viewOnGithub": "Ver no GitHub",
+      "getOnPlay": "Disponível no Google Play",
+      "notNow": "Agora não"
+    }
   },
   "people": {
     "close": "Fechar",
