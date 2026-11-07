@@ -207,6 +207,15 @@
         </service>
     </application>
 
+    <!-- Package visibility (Android 11+): lets LauncherBridgePlugin.promoInfo
+         see whether GLANCElauncher is installed, so Settings stops offering it
+         to someone who already has it (src/native/launcherPromo.ts). Without
+         this entry the lookup always reads "not installed". One named package,
+         not QUERY_ALL_PACKAGES. -->
+    <queries>
+        <package android:name="app.glance.launcher" />
+    </queries>
+
     <!-- Permissions -->
 
     <!-- The GLANCElauncher's permission to read the launcher snapshot and send

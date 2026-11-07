@@ -8,6 +8,7 @@ import { headlessBridge, headlessRequest } from './headless/headlessMode'
 import { initHardwareBackButton } from './native/backButton'
 import { lockViewportScaleOnIPhone } from './utils/viewportZoom'
 import { settleServiceWorker } from './native/serviceWorker'
+import { recordFirstSeen } from './native/launcherPromo'
 
 // crypto.randomUUID() is only available in secure contexts (HTTPS / localhost).
 // This polyfill covers HTTP access over a LAN IP (e.g. self-hosted Docker).
@@ -94,6 +95,10 @@ const boot = () => {
     // the hardware back button unless a JS listener owns it — this restores the
     // stock behavior app-wide. No-op off Android.
     initHardwareBackButton()
+    // The first day the app ran on this device, for the GLANCElauncher card in
+    // Settings (shown three days in). Android only, and never in a headless
+    // run, which takes the branch above (recordFirstSeen checks for one too).
+    recordFirstSeen({ platform: Capacitor.getPlatform(), now: Date.now() })
     hydrateSecureConfig()
       .catch(() => {})
       .then(render)

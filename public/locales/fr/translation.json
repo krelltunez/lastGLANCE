@@ -706,7 +706,13 @@
     "on": "Oui",
     "off": "Non",
     "datesToDayglance": "Anniversaires vers dayGLANCE",
-    "datesToDayglanceHint": "Envoie les anniversaires et dates du jour à dayGLANCE comme événements sur la journée. Sur cet appareil uniquement."
+    "datesToDayglanceHint": "Envoie les anniversaires et dates du jour à dayGLANCE comme événements sur la journée. Sur cet appareil uniquement.",
+    "launcherPromo": {
+      "body": "Un lanceur d'écran d'accueil pensé autour de votre journée : vos tâches et routines dayGLANCE et vos tâches récurrentes et proches lastGLANCE, là où vous les verrez en déverrouillant votre appareil.",
+      "viewOnGithub": "Voir sur GitHub",
+      "getOnPlay": "Disponible sur Google Play",
+      "notNow": "Pas maintenant"
+    }
   },
   "people": {
     "close": "Fermer",

@@ -738,7 +738,13 @@
     "on": "Wł.",
     "off": "Wył.",
     "datesToDayglance": "Urodziny do dayGLANCE",
-    "datesToDayglanceHint": "Wysyła dzisiejsze urodziny i daty do dayGLANCE jako wydarzenia całodniowe. Tylko na tym urządzeniu."
+    "datesToDayglanceHint": "Wysyła dzisiejsze urodziny i daty do dayGLANCE jako wydarzenia całodniowe. Tylko na tym urządzeniu.",
+    "launcherPromo": {
+      "body": "Launcher ekranu głównego zbudowany wokół Twojego dnia: zadania i rutyny z dayGLANCE oraz obowiązki i ludzie z lastGLANCE, dokładnie tam, gdzie zobaczysz je po odblokowaniu urządzenia.",
+      "viewOnGithub": "Zobacz na GitHubie",
+      "getOnPlay": "Pobierz z Google Play",
+      "notNow": "Nie teraz"
+    }
   },
   "people": {
     "close": "Zamknij",

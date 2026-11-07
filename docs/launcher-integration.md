@@ -230,6 +230,31 @@ lowercase, no colons). The Play entry stays a placeholder until the launcher shi
 there. There is no debug entry: where the launcher's release key is present, its
 debug builds carry that key too. They are the same digests dayGLANCE lists.
 
+## Telling users about the launcher
+
+Settings tells Android users about GLANCElauncher in two places, never as a
+popup: a one-time card at the top of the panel ("Not now" hides it for good on
+this device), and a permanent entry under Integrations with the same words and
+link. The rules are in `src/native/launcherPromo.ts`; `useLauncherPromo` feeds
+`SettingsPanel`. Both show only when all of these hold:
+
+- the Android app, not a headless run (never web, PWA or iOS);
+- a link for the build channel: `github` opens the launcher's latest release;
+  `play` uses `LAUNCHER_PLAY_URL`, which is empty until the launcher is
+  approved on Google Play, so the Play build shows neither until then; any
+  other channel shows nothing;
+- Android 12 or later, the `knownSigner` minimum above;
+- the launcher not installed. `LauncherBridge.promoInfo` answers
+  `{ sdk, installed }`, looking the package up through the manifest's
+  `<queries>` entry; any failure but "not found" reads as installed, and no
+  answer hides both.
+
+The card also waits until the app has been used on this device for three days:
+`main.tsx` stamps the first start on Android (never in a headless run). The
+stamp and the dismissal are device-local localStorage keys, named nowhere else,
+so neither sync nor backups carry them. `promoInfo` is not in the headless
+allowlist.
+
 ## Verifying on a device
 
 With a launcher signed by the release key and both apps installed:

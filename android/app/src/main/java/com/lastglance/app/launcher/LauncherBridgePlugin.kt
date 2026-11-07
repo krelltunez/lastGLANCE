@@ -1,5 +1,7 @@
 package com.lastglance.app.launcher
 
+import android.content.pm.PackageManager
+import android.os.Build
 import com.getcapacitor.JSObject
 import com.getcapacitor.Plugin
 import com.getcapacitor.PluginCall
@@ -13,6 +15,7 @@ import com.lastglance.app.SharedDataStore
  *
  *   updateSnapshot()       store the launcher snapshot and notify the provider's observers
  *   drainPendingIntents()  read + clear the launcher write queue
+ *   promoInfo()            the Android version, and whether the launcher is installed
  *
  * The wake for a write that lands while the app runs is the automation
  * transport's INTENT_RECEIVED signal, which [com.lastglance.app.intents.IntentsBridgePlugin]
@@ -99,7 +102,47 @@ class LauncherBridgePlugin : Plugin() {
         call.resolve()
     }
 
+    /**
+     * For the Settings promotion of GLANCElauncher (src/native/launcherPromo.ts):
+     * `{ sdk, installed }`. The lookup sees the launcher through the manifest's
+     * `<queries>` entry (package visibility, Android 11+). Any failure other
+     * than "not found" answers installed, so a doubtful answer hides the
+     * promotion rather than offering an app the user already has.
+     *
+     * App only: not in [HeadlessBridge], whose allowlist a headless refresh is
+     * held to (src/headless/headlessMode.ts).
+     */
+    @PluginMethod
+    fun promoInfo(call: PluginCall) {
+        val ret = JSObject()
+        ret.put("sdk", Build.VERSION.SDK_INT)
+        ret.put("installed", isLauncherInstalled())
+        call.resolve(ret)
+    }
+
+    // getPackageInfo(String, Int) is deprecated from Android 13, where the
+    // PackageInfoFlags overload replaces it; the old one serves older versions.
+    @Suppress("DEPRECATION")
+    private fun isLauncherInstalled(): Boolean {
+        return try {
+            val pm = context.packageManager
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                pm.getPackageInfo(LAUNCHER_PACKAGE, PackageManager.PackageInfoFlags.of(0))
+            } else {
+                pm.getPackageInfo(LAUNCHER_PACKAGE, 0)
+            }
+            true
+        } catch (e: PackageManager.NameNotFoundException) {
+            false
+        } catch (e: Exception) {
+            true
+        }
+    }
+
     companion object {
+        /** GLANCElauncher's application id; also named in AndroidManifest.xml's `<queries>`. */
+        const val LAUNCHER_PACKAGE = "app.glance.launcher"
+
         /**
          * True while the Capacitor bridge (and so the WebView) is loaded in this
          * process. A static, so a dead process answers false by construction; the
