@@ -4,7 +4,7 @@
 
 Part of the **GLANCE family**: focused, standalone apps connected through a shared intent protocol. See also [dayGLANCE](https://github.com/krelltunez/dayGLANCE) (today), lastGLANCE (recent upkeep), and [lifeGLANCE](https://github.com/krelltunez/lifeGLANCE) (your whole timeline).
 
-[<img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play" height="75">](https://play.google.com/store/apps/details?id=com.lastglance.app) [<img src="docs/badges/app-store.svg" alt="Download on the App Store" height="52">](https://apps.apple.com/us/app/lastglance-chores-people/id6781293640)
+[<img src="docs/badges/google-play.png" alt="Get it on Google Play" height="60">](https://play.google.com/store/apps/details?id=com.lastglance.app) [<img src="docs/badges/app-store.svg" alt="Download on the App Store" height="60">](https://apps.apple.com/us/app/lastglance-chores-people/id6781293640)
 
 [![Version](https://img.shields.io/github/package-json/v/krelltunez/lastGLANCE?color=green&label=version)](../../releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -46,7 +46,7 @@ The iOS app adds what only makes sense on an iPhone or iPad:
 
 A native Android app is available on Google Play and as a direct APK download. The Google Play build is a commercial binary that supports continued development.
 
-[<img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play" height="60">](https://play.google.com/store/apps/details?id=com.lastglance.app)
+[<img src="docs/badges/google-play.png" alt="Get it on Google Play" height="50">](https://play.google.com/store/apps/details?id=com.lastglance.app)
 
 [**Download APK from Releases →**](../../releases)
 
