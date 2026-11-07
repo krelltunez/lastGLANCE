@@ -1,6 +1,7 @@
 import { registerPlugin } from '@capacitor/core'
 import { isAndroid } from './platform'
 import { headlessBridge } from '@/headless/headlessMode'
+import type { PromoInfo } from './launcherPromo'
 
 // Native bridge to the GLANCElauncher integration (docs/launcher-integration.md).
 // The web app pushes the launcher snapshot here and the native LauncherProvider
@@ -20,6 +21,10 @@ export interface LauncherBridgePlugin {
   touchHeartbeat(options: { json: string }): Promise<void>
   // Record a REFRESH's outcome ({ clientId, outcome, reason?, durationMs }) in the native log.
   recordRefresh(options: { json: string }): Promise<void>
+  // The Android version and whether GLANCElauncher is installed, for the
+  // Settings promotion (src/native/launcherPromo.ts). App only: never in the
+  // headless allowlist.
+  promoInfo(): Promise<{ sdk: number; installed: boolean }>
 }
 
 const LauncherBridge = registerPlugin<LauncherBridgePlugin>('LauncherBridge')
@@ -125,5 +130,20 @@ export async function recordLauncherRefresh(record: RefreshRecord): Promise<void
     await LauncherBridge.recordRefresh({ json: JSON.stringify(record) })
   } catch {
     // Best-effort: the log is diagnostics, not state.
+  }
+}
+
+// For the Settings promotion: the shell's answer, or null when there is none
+// (not Android, a headless run, an older shell without the method, an error,
+// or an answer of the wrong shape). Null hides the promotion, so a doubtful
+// answer never shows it.
+export async function launcherPromoInfo(): Promise<PromoInfo | null> {
+  if (headlessBridge() || !isAndroid()) return null
+  try {
+    const res = await LauncherBridge.promoInfo()
+    if (typeof res?.sdk !== 'number' || typeof res?.installed !== 'boolean') return null
+    return { sdk: res.sdk, installed: res.installed }
+  } catch {
+    return null
   }
 }
