@@ -284,6 +284,10 @@ function AppInner() {
   // throwing, so this is how the Cloud Sync modal shows what went wrong.
   const [vaultSyncError, setVaultSyncError] = useState<string | null>(null)
   const [vaultSyncErrorCode, setVaultSyncErrorCode] = useState<SyncErrorCode | null>(null)
+  // Any vault engine failed its key check (KEY_MISMATCH). Sticky for the
+  // session: the cached key cannot change without the reload the recovery in
+  // Cloud Sync performs, so the next cycle would only fail the same way.
+  const [vaultKeyMismatch, setVaultKeyMismatch] = useState(false)
   // Durable count of rows the last vault cycle could not decrypt (1.5.0 per-row
   // quarantine). Survives after the transient toast dismisses so a key mismatch on
   // some rows stays visible in the Cloud Sync settings panel.
@@ -388,6 +392,22 @@ function AppInner() {
     })
     engineRef.current = engine
 
+    // All three vault engines share one cached root key, so a KEY_MISMATCH from
+    // any of them means that key is wrong for this account. People and roster
+    // errors were only logged to the console, which left the user in
+    // glance-vault #41 with a stalled People sync and nothing on screen. Flag
+    // it once: a toast pointing at Cloud Sync, where the panel offers the fix.
+    let keyMismatchReported = false
+    const reportKeyMismatch = (code: SyncErrorCode | null) => {
+      if (code !== 'KEY_MISMATCH' || keyMismatchReported) return
+      keyMismatchReported = true
+      setVaultKeyMismatch(true)
+      showToastRef.current({
+        title: i18n.t('notifications.vaultKeyMismatchTitle'),
+        body: i18n.t('notifications.vaultKeyMismatchBody'),
+      })
+    }
+
     // Construct the DB transport engine alongside the file engine when the vault
     // is enabled. It shares the local data but uses an entirely separate cycle.
     const dbEngine = createDbEngine({
@@ -406,6 +426,7 @@ function AppInner() {
         // is never polluted; ACCOUNT_ID_REQUIRED is retryable ("not ready yet").
         setVaultSyncError(msg)
         setVaultSyncErrorCode(code)
+        reportKeyMismatch(code)
         if (msg) console.warn('[lastglance] vault sync error:', code ?? '(no code)', msg)
       },
       onRowsSkipped: (count) => {
@@ -423,13 +444,19 @@ function AppInner() {
 
     peopleFileEngineRef.current = createPeopleFileEngine(import.meta.env.VITE_WEBDAV_PROXY_URL, engine)
     const peopleDb = createPeopleDbEngine({
-      onError: (msg, code) => { if (msg) console.warn('[lastglance] people vault sync error:', code ?? '(no code)', msg) },
+      onError: (msg, code) => {
+        reportKeyMismatch(code)
+        if (msg) console.warn('[lastglance] people vault sync error:', code ?? '(no code)', msg)
+      },
       onUnsupported: () => console.warn('[lastglance] vault does not know lastglance-people yet; People sync on the file road only'),
     })
     peopleDbEngineRef.current = peopleDb
     registerPeopleDbEngine(peopleDb)
     const rosterDb = createRosterDbEngine({
-      onError: (msg, code) => { if (msg) console.warn('[lastglance] roster vault sync error:', code ?? '(no code)', msg) },
+      onError: (msg, code) => {
+        reportKeyMismatch(code)
+        if (msg) console.warn('[lastglance] roster vault sync error:', code ?? '(no code)', msg)
+      },
       onUnsupported: () => console.warn('[lastglance] vault does not know glance-users yet; the roster syncs on the file roads only'),
     })
     rosterDbEngineRef.current = rosterDb
@@ -1027,6 +1054,7 @@ function AppInner() {
           vaultSyncError={vaultSyncError}
           vaultSyncErrorCode={vaultSyncErrorCode}
           vaultSkipped={vaultSkipped}
+          vaultKeyMismatch={vaultKeyMismatch}
           directAccess={directAccessSync}
           icloud={icloudTransport.isSupported() ? icloudSync : undefined}
           onClose={() => { setShowSyncSettings(false); runSharedUserSync(); backToSettings() }}

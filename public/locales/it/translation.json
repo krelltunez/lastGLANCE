@@ -400,7 +400,9 @@
     "channelDescription": "Ti avvisa quando un’attività supera la sua frequenza.",
     "rowsSkippedTitle_one": "Impossibile leggere {{count}} elemento",
     "rowsSkippedTitle_other": "Impossibile leggere {{count}} elementi",
-    "rowsSkippedBody": "Alcuni dati sincronizzati non sono stati decifrati. Controlla le impostazioni di sincronizzazione cloud."
+    "rowsSkippedBody": "Alcuni dati sincronizzati non sono stati decifrati. Controlla le impostazioni di sincronizzazione cloud.",
+    "vaultKeyMismatchTitle": "Sincronizzazione del vault in pausa: passphrase non corrispondente",
+    "vaultKeyMismatchBody": "La chiave del vault salvata su questo dispositivo non corrisponde a questo account. Apri la sincronizzazione cloud per reinserire la passphrase."
   },
   "passphrase": {
     "title": "Sblocca sincronizzazione",

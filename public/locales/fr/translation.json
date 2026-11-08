@@ -400,7 +400,9 @@
     "channelDescription": "Vous rappelle quand une tâche dépasse sa fréquence.",
     "rowsSkippedTitle_one": "{{count}} élément n’a pas pu être lu",
     "rowsSkippedTitle_other": "{{count}} éléments n’ont pas pu être lus",
-    "rowsSkippedBody": "Certaines données synchronisées n’ont pas pu être déchiffrées. Vérifiez les réglages de Sync cloud."
+    "rowsSkippedBody": "Certaines données synchronisées n’ont pas pu être déchiffrées. Vérifiez les réglages de Sync cloud.",
+    "vaultKeyMismatchTitle": "Sync du vault en pause : phrase secrète différente",
+    "vaultKeyMismatchBody": "La clé du vault enregistrée sur cet appareil ne correspond pas à ce compte. Ouvrez Sync cloud pour saisir à nouveau votre phrase secrète."
   },
   "passphrase": {
     "title": "Déverrouiller la sync",

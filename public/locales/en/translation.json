@@ -400,7 +400,9 @@
     "channelDescription": "Reminds you when a chore passes its cadence.",
     "rowsSkippedTitle_one": "{{count}} item couldn’t be read",
     "rowsSkippedTitle_other": "{{count}} items couldn’t be read",
-    "rowsSkippedBody": "Some synced rows couldn’t be decrypted. Check Cloud Sync settings."
+    "rowsSkippedBody": "Some synced rows couldn’t be decrypted. Check Cloud Sync settings.",
+    "vaultKeyMismatchTitle": "Vault sync paused: passphrase mismatch",
+    "vaultKeyMismatchBody": "The vault key saved on this device doesn’t match this account. Open Cloud Sync to re-enter your passphrase."
   },
   "passphrase": {
     "title": "Unlock Sync",
