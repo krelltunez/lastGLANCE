@@ -400,7 +400,9 @@
     "channelDescription": "当事项超过设定间隔时提醒你。",
     "rowsSkippedTitle_one": "有 {{count}} 项无法读取",
     "rowsSkippedTitle_other": "有 {{count}} 项无法读取",
-    "rowsSkippedBody": "部分同步数据无法解密。请检查云同步设置。"
+    "rowsSkippedBody": "部分同步数据无法解密。请检查云同步设置。",
+    "vaultKeyMismatchTitle": "vault 同步已暂停：口令不匹配",
+    "vaultKeyMismatchBody": "此设备上保存的 vault 密钥与该账户不匹配。请打开云同步设置，重新输入口令。"
   },
   "passphrase": {
     "title": "解锁同步",

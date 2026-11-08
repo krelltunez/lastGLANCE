@@ -8,6 +8,7 @@ import { flushSecureWrites } from '@/sync/secureConfigShim'
 import { syncErrorText } from '@/sync/syncErrorText'
 import { backoffStatusText, currentBackoff, type BackoffDescriptor } from '@/sync/backoffStatus'
 import { clearCredentialHalt, getVaultConfig, isProConnection, resetVaultSyncState, setVaultConfig, vaultIdentityChanged, type VaultConfig } from '@/sync/vaultConfig'
+import { clearCachedVaultKeys } from '@/sync/vaultKeys'
 import { connectVaultPro, VaultProEnrollError } from '@/sync/vaultPro'
 import { testVaultConnection } from '@/sync/testVaultConnection'
 import { cloudSyncProviders } from '@/utils/cloudSyncProviders'
@@ -35,6 +36,11 @@ interface Props {
   // quarantine). Shown as a durable amber note so a key mismatch on some rows is
   // visible after the transient toast dismisses.
   vaultSkipped: number
+  // True once any vault engine (chores, People, roster) failed its key check
+  // with KEY_MISMATCH this session. Shown as a standing panel with the way out
+  // (re-enter the passphrase), since a People or roster mismatch never reaches
+  // vaultSyncError and Sync now can look healthy around it (glance-vault #41).
+  vaultKeyMismatch: boolean
   // Direct Access (docs/direct-access.md): a cycle on demand and the last
   // folder error, from useDirectAccessSync in App.
   directAccess: { runSync: () => Promise<unknown>; lastError: string | null }
@@ -65,7 +71,7 @@ const VAULT_TEST_FAIL_TEXT: Record<'AUTH_FAILURE' | 'FORBIDDEN' | 'NETWORK_ERROR
   NETWORK_ERROR: 'Could not reach the vault at this URL.',
 }
 
-export function SyncSettingsModal({ engine, dbEngine, syncError, syncErrorCode, vaultSyncError, vaultSyncErrorCode, vaultSkipped, directAccess, icloud, onClose }: Props) {
+export function SyncSettingsModal({ engine, dbEngine, syncError, syncErrorCode, vaultSyncError, vaultSyncErrorCode, vaultSkipped, vaultKeyMismatch, directAccess, icloud, onClose }: Props) {
   const { t } = useTranslation()
   const existingConfig = engine?.getConfig() ?? null
   const initFolder = getSyncFolder()
@@ -138,6 +144,7 @@ export function SyncSettingsModal({ engine, dbEngine, syncError, syncErrorCode, 
   const [vaultSyncing, setVaultSyncing] = useState(false)
   const [vaultSyncResult, setVaultSyncResult] = useState<SyncResult>('idle')
   const [vaultSyncResultMsg, setVaultSyncResultMsg] = useState('')
+  const [vaultKeyResetting, setVaultKeyResetting] = useState(false)
   const [vaultLastSynced, setVaultLastSynced] = useState(() => dbEngine?.getLastSynced() ?? null)
   // Standing backoff window (issue #250), polled from getBackoffState() while
   // the modal is open — onError is an event stream and goes quiet during
@@ -209,16 +216,32 @@ export function SyncSettingsModal({ engine, dbEngine, syncError, syncErrorCode, 
     //    must never be applied to another, and an unlink drops the credentials,
     //    so the next link has no identity to compare against — it must start
     //    clean. The next cycle re-seeds in both directions.
+    //    The cached vault keys go too, as connectVaultPro already does: they
+    //    derive from the old account's salt, and a cached key is restored on
+    //    every launch before the passphrase is asked for, so a stale one would
+    //    fail the new account's key check (KEY_MISMATCH) with no way to enter
+    //    the passphrase again (glance-vault #41).
     //  - same-identity credential edit: exit any standing sync 1.10 credential
     //    halt only (issue #257) — the stream didn't move, cursors stay.
+    let clearKeys: Promise<void> = Promise.resolve()
     if (vaultIdentityChanged(prevVault, nextVault) || (prevVault && !nextVault)) {
       resetVaultSyncState()
+      clearKeys = clearCachedVaultKeys()
     } else if (vaultChanged && nextVault) {
       clearCredentialHalt()
     }
     if (folderChanged || vaultChanged) {
-      flushSecureWrites().finally(() => window.location.reload())
+      clearKeys.finally(() => flushSecureWrites().finally(() => window.location.reload()))
     }
+  }
+
+  // KEY_MISMATCH recovery: drop the cached vault keys and reload, so the app
+  // asks for the passphrase and derives the key again. The same fix as clearing
+  // the site's data, without losing what this device has not synced yet.
+  async function handleReenterVaultPassphrase() {
+    setVaultKeyResetting(true)
+    await clearCachedVaultKeys()
+    flushSecureWrites().finally(() => window.location.reload())
   }
 
   // GLANCEvault Pro: enroll with the pasted key, store the connection, turn on
@@ -906,6 +929,24 @@ export function SyncSettingsModal({ engine, dbEngine, syncError, syncErrorCode, 
                       ? t('sync.lastSynced', { date: formatLastSynced(vaultLastSynced) })
                       : 'Save & reload to activate GLANCEvault sync.'}
                   </p>
+                )}
+                {vaultKeyMismatch && (
+                  <div className="flex items-start gap-2 p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700/40">
+                    <AlertTriangle size={14} className="text-red-500 shrink-0 mt-0.5" />
+                    <div className="space-y-2">
+                      <p className="text-xs text-red-700 dark:text-red-300">
+                        The vault key saved on this device doesn’t match this account, so GLANCEvault sync is paused here. Nothing was uploaded with the wrong key. This happens when the saved key came from a different passphrase or account. Re-enter the passphrase your other devices use to fix it.
+                      </p>
+                      <button
+                        onClick={handleReenterVaultPassphrase}
+                        disabled={vaultKeyResetting}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-red-300 dark:border-red-600 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/40 disabled:opacity-40 transition-colors"
+                      >
+                        {vaultKeyResetting && <Loader size={12} className="animate-spin" />}
+                        Re-enter passphrase
+                      </button>
+                    </div>
+                  </div>
                 )}
                 {vaultBackoff && (
                   <div className="flex items-start gap-2 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/40">

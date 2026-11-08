@@ -400,7 +400,9 @@
     "channelDescription": "Te avisa cuando una tarea supera su frecuencia.",
     "rowsSkippedTitle_one": "No se pudo leer {{count}} elemento",
     "rowsSkippedTitle_other": "No se pudieron leer {{count}} elementos",
-    "rowsSkippedBody": "Algunos datos sincronizados no se pudieron descifrar. Comprueba los ajustes de sincronización en la nube."
+    "rowsSkippedBody": "Algunos datos sincronizados no se pudieron descifrar. Comprueba los ajustes de sincronización en la nube.",
+    "vaultKeyMismatchTitle": "Sincronización del vault en pausa: la contraseña no coincide",
+    "vaultKeyMismatchBody": "La clave del vault guardada en este dispositivo no coincide con esta cuenta. Abre la sincronización en la nube para volver a introducir tu contraseña."
   },
   "passphrase": {
     "title": "Desbloquear sincronización",

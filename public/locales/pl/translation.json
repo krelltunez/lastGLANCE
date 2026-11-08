@@ -420,7 +420,9 @@
     "rowsSkippedTitle_few": "{{count}} elementy nieczytelne",
     "rowsSkippedTitle_many": "{{count}} elementów nieczytelnych",
     "rowsSkippedTitle_other": "{{count}} elementu nieczytelnego",
-    "rowsSkippedBody": "Nie udało się odszyfrować części zsynchronizowanych wierszy. Sprawdź ustawienia synchronizacji w chmurze."
+    "rowsSkippedBody": "Nie udało się odszyfrować części zsynchronizowanych wierszy. Sprawdź ustawienia synchronizacji w chmurze.",
+    "vaultKeyMismatchTitle": "Synchronizacja vaulta wstrzymana: hasło się nie zgadza",
+    "vaultKeyMismatchBody": "Klucz vaulta zapisany na tym urządzeniu nie pasuje do tego konta. Otwórz synchronizację w chmurze, aby ponownie wpisać hasło."
   },
   "passphrase": {
     "title": "Odblokuj synchronizację",

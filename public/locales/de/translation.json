@@ -400,7 +400,9 @@
     "channelDescription": "Erinnert dich, wenn eine Aufgabe ihren Rhythmus überschreitet.",
     "rowsSkippedTitle_one": "{{count}} Eintrag konnte nicht gelesen werden",
     "rowsSkippedTitle_other": "{{count}} Einträge konnten nicht gelesen werden",
-    "rowsSkippedBody": "Einige synchronisierte Daten konnten nicht entschlüsselt werden. Überprüfe die Cloud-Sync-Einstellungen."
+    "rowsSkippedBody": "Einige synchronisierte Daten konnten nicht entschlüsselt werden. Überprüfe die Cloud-Sync-Einstellungen.",
+    "vaultKeyMismatchTitle": "Vault-Sync pausiert: Passphrase passt nicht",
+    "vaultKeyMismatchBody": "Der auf diesem Gerät gespeicherte Vault-Schlüssel passt nicht zu diesem Konto. Öffne die Cloud-Sync-Einstellungen, um deine Passphrase erneut einzugeben."
   },
   "passphrase": {
     "title": "Sync entsperren",
