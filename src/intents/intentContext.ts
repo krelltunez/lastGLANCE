@@ -52,6 +52,8 @@ async function ensureCategory(name: string | null): Promise<number> {
 }
 
 async function createChore(input: { name: string; categoryId: number }): Promise<{ id: number; sync_id: string }> {
+  // Inherit the category's assignees, as a chore added in the app's form does.
+  const category = await db.categories.get(input.categoryId)
   const id = await dbCreateChore({
     name: input.name,
     category_id: input.categoryId,
@@ -62,7 +64,7 @@ async function createChore(input: { name: string; categoryId: number }): Promise
     seasonal_start: null,
     seasonal_end: null,
     details: null,
-    assigned_user_sync_ids: [],
+    assigned_user_sync_ids: [...(category?.assigned_user_sync_ids ?? [])],
   })
   const created = await db.chores.get(id)
   return { id, sync_id: created?.sync_id ?? '' }
