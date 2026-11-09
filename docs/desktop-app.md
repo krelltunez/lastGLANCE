@@ -1,6 +1,7 @@
 # Desktop app (Electron): design
 
-Status: design, approved 2026-11-09. The build follows the phases in section 12.
+Status: design, approved 2026-11-09. The build follows the phases in section 12;
+Phase 1 (the scaffold) is built.
 
 The desktop app is the existing web bundle in an Electron shell for macOS,
 Windows and Linux, after dayGLANCE's desktop app (`krelltunez/dayGLANCE`,
@@ -93,7 +94,7 @@ implementation unchanged:
 **The allowlist is held by a test**, as `HEADLESS_BRIDGE_METHODS` is today.
 `electron/bridgeContract.test.ts` checks four things against each other:
 - the TypeScript interfaces above;
-- what `preload.ts` exposes;
+- what `preload.cts` exposes;
 - the `ipcMain.handle` channel names in `main.ts`;
 - the existing parity anchors (`ICloudPluginType`, `DirectAccessPluginType`
   minus the iOS-only slot methods).
@@ -490,18 +491,25 @@ path.
 
 | Path | Contents |
 |---|---|
-| `electron/` | `main.ts`, `preload.ts` and the modules, each with its vitest test beside it; the entitlements plists |
+| `electron/` | `main.ts`, `preload.cts` and the modules, each with its vitest test beside it; the entitlements plists; `resources/` icons (`scripts/gen-desktop-icons.mjs`) |
 | `electron-builder.config.cjs` | packaging config |
 | `tsconfig.electron.json` | main, ESM |
-| `tsconfig.electron.preload.json` | preload, CommonJS |
-| `vite.config.electron.ts` | the base config without `VitePWA`; defines `__DESKTOP__` and `__MAS_BUILD__` |
+| `tsconfig.electron.preload.json` | preload, CommonJS, emitted as `preload.cjs` because the package is `"type": "module"` |
+| `vite.config.ts`, `--mode electron` | the same config without `VitePWA`; the MAS build adds a `__MAS_BUILD__` define in Phase 5 |
 
 The `tsconfig` files use `removeComments`. vitest's include gains `electron/`.
 
 ### Scripts
 
 `dev:electron`, `build:electron`, `build:electron:release` and
-`build:electron:mas`, as in dayGLANCE.
+`build:electron:mas`, as in dayGLANCE. `build:electron:mas` arrives in Phase 5.
+
+| Script | What it does |
+|---|---|
+| `npm run dev:electron` | Vite on port 5183 with HMR; main and preload recompile on save and `electronmon` restarts the app |
+| `npm run build:electron` | the installers for the host OS, in `dist-app/` |
+| `npm run build:electron:dir` | the unpacked app only, which is what the smoke test launches |
+| `npm run test:electron-smoke` | the smoke test; Linux needs a display, so CI runs it under `xvfb-run` |
 
 ### Electron version
 

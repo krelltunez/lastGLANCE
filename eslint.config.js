@@ -10,10 +10,10 @@ import tseslint from 'typescript-eslint'
 // shells, and generated assets are ignored.
 export default tseslint.config(
   {
-    ignores: ['dist', 'dev-dist', 'android', 'ios', 'public', 'coverage'],
+    ignores: ['dist', 'dev-dist', 'dist-electron', 'dist-app', 'android', 'ios', 'public', 'coverage'],
   },
   {
-    files: ['**/*.{ts,tsx}'],
+    files: ['**/*.{ts,tsx,cts}'],
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     languageOptions: {
       ecmaVersion: 2022,
@@ -34,7 +34,7 @@ export default tseslint.config(
   },
   {
     // Node-context config/build files aren't browser code.
-    files: ['*.{js,ts}', 'scripts/**/*.{js,mjs,ts}'],
+    files: ['*.{js,cjs,ts}', 'scripts/**/*.{js,cjs,mjs,ts}', 'electron/**/*.{ts,cts}', 'e2e/**/*.mjs'],
     languageOptions: { globals: globals.node },
   },
 )

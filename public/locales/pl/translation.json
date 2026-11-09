@@ -1016,5 +1016,29 @@
       "startFresh": "Zacznij od nowa na tym urządzeniu",
       "startFreshHint": "Wyłącza tutaj synchronizację z iCloud. Kopia w iCloud zostaje, a synchronizację możesz włączyć później w Synchronizacji w chmurze."
     }
+  },
+  "menu": {
+    "file": "Plik",
+    "edit": "Edycja",
+    "view": "Widok",
+    "window": "Okno",
+    "quit": "Zakończ",
+    "close": "Zamknij",
+    "undo": "Cofnij",
+    "redo": "Ponów",
+    "cut": "Wytnij",
+    "copy": "Kopiuj",
+    "paste": "Wklej",
+    "delete": "Usuń",
+    "selectAll": "Zaznacz wszystko",
+    "reload": "Przeładuj",
+    "forceReload": "Wymuś przeładowanie",
+    "toggleDevTools": "Przełącz narzędzia deweloperskie",
+    "resetZoom": "Rozmiar rzeczywisty",
+    "zoomIn": "Powiększ",
+    "zoomOut": "Pomniejsz",
+    "toggleFullScreen": "Przełącz pełny ekran",
+    "minimize": "Minimalizuj",
+    "zoom": "Powiększenie"
   }
 }

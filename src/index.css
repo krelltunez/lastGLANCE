@@ -79,3 +79,18 @@
     padding-bottom: env(safe-area-inset-bottom);
   }
 }
+
+/* Desktop app on macOS (docs/desktop-app.md, section 5, Window chrome): the
+   window has no title bar (titleBarStyle hiddenInset), so the header clears
+   the traffic lights at the top left and is the handle the window is dragged
+   by. Controls inside it stay clickable, and anything fixed (modals, the add
+   button) is never a drag handle, even where it covers the header: Chromium
+   resolves drag regions without regard to stacking order. */
+html.desktop-darwin .app-safe-top {
+  padding-top: 2.75rem;
+  -webkit-app-region: drag;
+}
+html.desktop-darwin .app-safe-top :is(button, a, input, select, textarea, label, [role="button"], [role="tab"], [tabindex]),
+html.desktop-darwin .fixed {
+  -webkit-app-region: no-drag;
+}

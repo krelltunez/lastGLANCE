@@ -14,3 +14,9 @@ android/keystore.properties
 
 # Generated marketing/store screenshots (npm run gen:screenshots)
 store-screenshots/
+
+# Desktop (Electron) build outputs
+dist-electron
+dist-app
+# MAS provisioning profile (docs/desktop-app.md, section 11)
+electron/*.provisionprofile

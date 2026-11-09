@@ -66,6 +66,12 @@ jobs:
         env:
           IOS_BUILD: ${{ github.run_number }}
 
+      # -packageCachePath: resolve Swift packages into a cache private to this
+      # job. Some macos-15 runners start with entries in the shared cache
+      # (~/Library/Caches/org.swift.swiftpm) that make SwiftPM refuse the
+      # Capacitor and Cordova binary-target downloads ("already exists in file
+      # system"), failing the build before it compiles (2026-11-09, PRs #421
+      # and #422).
       - name: Build the iOS app (no signing)
         run: |
           xcodebuild build \
@@ -73,4 +79,5 @@ jobs:
             -scheme App \
             -configuration Debug \
             -destination 'generic/platform=iOS Simulator' \
+            -packageCachePath "$RUNNER_TEMP/spm-cache" \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO

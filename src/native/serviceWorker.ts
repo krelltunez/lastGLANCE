@@ -23,7 +23,11 @@ export const SW_RELOAD_KEY = 'lastglance.swReloaded'
 type Session = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>
 
 export interface ServiceWorkerEnv {
-  /** The Capacitor app, or the headless refresh WebView. */
+  /**
+   * The Capacitor app, the headless refresh WebView, or the Electron desktop
+   * app. On the desktop's app:// origin Chromium refuses the API altogether,
+   * so getRegistrations() rejects and the page simply boots.
+   */
   shell: boolean
   container: ServiceWorkerContainer | undefined
   caches: CacheStorage | undefined

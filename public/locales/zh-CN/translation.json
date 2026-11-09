@@ -968,5 +968,29 @@
       "startFresh": "在此设备上重新开始",
       "startFreshHint": "在此关闭 iCloud 同步。iCloud 中的副本会保留，你之后可以在云同步中重新开启。"
     }
+  },
+  "menu": {
+    "file": "文件",
+    "edit": "编辑",
+    "view": "查看",
+    "window": "窗口",
+    "quit": "退出",
+    "close": "关闭",
+    "undo": "撤销",
+    "redo": "重做",
+    "cut": "剪切",
+    "copy": "复制",
+    "paste": "粘贴",
+    "delete": "删除",
+    "selectAll": "全选",
+    "reload": "重新加载",
+    "forceReload": "强制重新加载",
+    "toggleDevTools": "切换开发者工具",
+    "resetZoom": "实际大小",
+    "zoomIn": "放大",
+    "zoomOut": "缩小",
+    "toggleFullScreen": "切换全屏",
+    "minimize": "最小化",
+    "zoom": "缩放"
   }
 }

@@ -968,5 +968,29 @@
       "startFresh": "Repartir de zéro sur cet appareil",
       "startFreshHint": "Désactive la synchronisation iCloud ici. La copie dans iCloud est conservée, et vous pourrez la réactiver dans Sync cloud."
     }
+  },
+  "menu": {
+    "file": "Fichier",
+    "edit": "Édition",
+    "view": "Affichage",
+    "window": "Fenêtre",
+    "quit": "Quitter",
+    "close": "Fermer",
+    "undo": "Annuler",
+    "redo": "Rétablir",
+    "cut": "Couper",
+    "copy": "Copier",
+    "paste": "Coller",
+    "delete": "Supprimer",
+    "selectAll": "Tout sélectionner",
+    "reload": "Recharger",
+    "forceReload": "Forcer le rechargement",
+    "toggleDevTools": "Activer/désactiver les outils de développement",
+    "resetZoom": "Taille réelle",
+    "zoomIn": "Zoom avant",
+    "zoomOut": "Zoom arrière",
+    "toggleFullScreen": "Activer/désactiver le plein écran",
+    "minimize": "Réduire",
+    "zoom": "Zoom"
   }
 }

@@ -1,0 +1,20 @@
+{
+  // The sandboxed preload: CommonJS, emitted as preload.cjs because the package
+  // is "type": "module" and a .js file would be read as ESM.
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "CommonJS",
+    "moduleResolution": "node10",
+    "outDir": "dist-electron",
+    "rootDir": "electron",
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "sourceMap": true,
+    "removeComments": true,
+    "types": ["node"]
+  },
+  "include": ["electron/preload.cts"]
+}
