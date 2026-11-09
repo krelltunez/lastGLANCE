@@ -43,6 +43,8 @@
     "replaceWarning": "To <strong>zastąpi wszystkie bieżące dane</strong> kopią zapasową.",
     "replaceRemoteWarning": "To <strong>zastąpi wszystkie bieżące dane</strong> zdalną kopią zapasową.",
     "summary": "Kategorie: {{categories}} · Obowiązki: {{chores}} · Wykonania: {{events}}",
+    "summaryPeople": "Ludzie: {{people}} · Interakcje: {{interactions}}",
+    "noPeopleInBackup": "Ta kopia pochodzi ze starszej wersji i nie zawiera danych Ludzi. Twoje obecne dane Ludzi zostaną zachowane.",
     "areYouSure": "Czy na pewno?",
     "areYouSureBody": "Wszystkie Twoje bieżące dane zostaną zastąpione kopią zapasową. Jeśli synchronizacja w chmurze jest włączona, zmiana obejmie każde synchronizowane urządzenie.",
     "snapshotNote": "Najpierw zostanie zapisana kopia Twoich bieżących danych, więc możesz to cofnąć.",

@@ -43,6 +43,8 @@
     "replaceWarning": "Dies wird <strong>alle aktuellen Daten</strong> durch die Sicherung ersetzen.",
     "replaceRemoteWarning": "Dies wird <strong>alle aktuellen Daten</strong> durch die Remote-Sicherung ersetzen.",
     "summary": "{{categories}} Kategorien · {{chores}} Aufgaben · {{events}} Einträge",
+    "summaryPeople": "{{people}} Menschen · {{interactions}} Kontakte",
+    "noPeopleInBackup": "Diese Sicherung stammt aus einer älteren Version und enthält keine Daten zu Menschen. Deine aktuellen Daten zu Menschen bleiben erhalten.",
     "areYouSure": "Bist du sicher?",
     "areYouSureBody": "Dies ersetzt alle deine aktuellen Daten durch die Sicherung. Wenn Cloud-Sync aktiviert ist, gilt die Änderung für alle synchronisierten Geräte.",
     "snapshotNote": "Eine Sicherung deiner aktuellen Daten wird zuerst gespeichert, damit du dies rückgängig machen kannst.",

@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect } from 'react'
 import { Download, Upload, Cloud, X, Loader, Trash2, Archive } from 'lucide-react'
 import { exportBackup, restoreFromBackup, hasSeedData, seedChoresUsed, clearSeedData, type BackupPayload } from '@/db/queries'
-import { buildPayload } from '@/sync/engine'
+import { buildBackupPayload } from '@/sync/engine'
 import { saveJsonFile, stashJsonFile } from '@/utils/exportFile'
 import { formatDateTime } from '@/utils/datetime'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
@@ -139,7 +139,7 @@ export function BackupPanel({ engine, onImported, onDone }: PanelProps) {
     if (engine && syncConfig) {
       try {
         const provider = engine.autoBackupProviders[syncConfig.provider as string] ?? engine.autoBackupProviders.webdav
-        await provider.uploadBackup(syncConfig as Record<string, unknown>, await buildPayload())
+        await provider.uploadBackup(syncConfig as Record<string, unknown>, await buildBackupPayload())
       } catch { /* best-effort remote parachute */ }
     }
   }
@@ -209,6 +209,16 @@ export function BackupPanel({ engine, onImported, onDone }: PanelProps) {
               events: pending.completionEvents.length,
             })}
           </p>
+          {pending.people ? (
+            <p className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">
+              {t('backup.summaryPeople', {
+                people: pending.people.people?.length ?? 0,
+                interactions: pending.people.interactions?.length ?? 0,
+              })}
+            </p>
+          ) : (
+            <p className="text-xs text-slate-500 dark:text-slate-400">{t('backup.noPeopleInBackup')}</p>
+          )}
           <div className="flex gap-3 pt-1">
             <button onClick={() => setState('idle')} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
               {t('backup.cancel')}

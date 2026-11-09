@@ -143,7 +143,7 @@ describe('#192 — restoreFromBackup', () => {
     }
 
     const counts = await restoreFromBackup(syncPayload)
-    expect(counts).toEqual({ categories: 1, chores: 1, completionEvents: 1 })
+    expect(counts).toEqual({ categories: 1, chores: 1, completionEvents: 1, people: 0, interactions: 0 })
 
     const cat = (await db.categories.toArray())[0]
     const chore = (await db.chores.toArray())[0]
