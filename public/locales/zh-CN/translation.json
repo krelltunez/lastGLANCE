@@ -43,6 +43,8 @@
     "replaceWarning": "这将使用备份<strong>替换所有当前数据</strong>。",
     "replaceRemoteWarning": "这将使用远程备份<strong>替换所有当前数据</strong>。",
     "summary": "{{categories}} 个分类 · {{chores}} 个事项 · {{events}} 条完成记录",
+    "summaryPeople": "{{people}} 位联系人 · {{interactions}} 条互动",
+    "noPeopleInBackup": "此备份来自旧版本，不含联系人数据。你当前的联系人数据将保留。",
     "areYouSure": "确定吗？",
     "areYouSureBody": "这会用备份替换你当前的所有数据。如果已启用云同步，此更改将应用到所有已同步设备。",
     "snapshotNote": "系统会先保存一份当前数据的备份，因此可以撤销此次操作。",

@@ -43,6 +43,8 @@
     "replaceWarning": "Cela va <strong>remplacer toutes les données actuelles</strong> par la sauvegarde.",
     "replaceRemoteWarning": "Cela va <strong>remplacer toutes les données actuelles</strong> par la sauvegarde distante.",
     "summary": "{{categories}} catégories · {{chores}} tâches · {{events}} événements",
+    "summaryPeople": "{{people}} proches · {{interactions}} interactions",
+    "noPeopleInBackup": "Cette sauvegarde provient d'une ancienne version et ne contient pas de données Proches. Vos données Proches actuelles seront conservées.",
     "areYouSure": "Êtes-vous sûr ?",
     "areYouSureBody": "Cela remplace toutes vos données actuelles par la sauvegarde. Si la sync cloud est activée, le changement s'applique à tous les appareils synchronisés.",
     "snapshotNote": "Une sauvegarde de vos données actuelles est d'abord enregistrée, pour que vous puissiez annuler cette action.",

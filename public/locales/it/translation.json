@@ -43,6 +43,8 @@
     "replaceWarning": "Questo <strong>sostituirà tutti i dati attuali</strong> con il backup.",
     "replaceRemoteWarning": "Questo <strong>sostituirà tutti i dati attuali</strong> con il backup remoto.",
     "summary": "{{categories}} categorie · {{chores}} attività · {{events}} eventi",
+    "summaryPeople": "{{people}} persone · {{interactions}} interazioni",
+    "noPeopleInBackup": "Questo backup proviene da una versione precedente e non contiene dati Persone. I tuoi dati Persone attuali verranno mantenuti.",
     "areYouSure": "Sei sicuro?",
     "areYouSureBody": "Questo sostituisce tutti i tuoi dati attuali con il backup. Se la sincronizzazione cloud è attiva, la modifica si applica a tutti i dispositivi sincronizzati.",
     "snapshotNote": "Prima viene salvato un backup dei tuoi dati attuali, così puoi annullare questa operazione.",

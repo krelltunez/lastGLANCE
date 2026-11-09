@@ -6,9 +6,9 @@ import { db } from '@/db/client'
 import type { Table } from 'dexie'
 import {
   fromSyncInteraction, fromSyncPerson, fromSyncPersonCircle, fromSyncPersonDate,
-  invalidReason, toSyncInteraction, toSyncPerson, toSyncPersonCircle, toSyncPersonDate,
+  invalidReason, toSyncInteraction, toSyncPerson, toSyncPersonCircle, toSyncPersonDate, uuidRe,
 } from './types'
-import type { SyncPeopleEntity } from './types'
+import type { PeoplePayload, SyncPeopleEntity } from './types'
 
 type Kind = SyncPeopleEntity['kind']
 
@@ -84,4 +84,26 @@ export async function getLocalPeopleEntity(syncId: string): Promise<SyncPeopleEn
 export function notifyPeopleApplied(): void {
   if (typeof window === 'undefined') return
   window.dispatchEvent(new CustomEvent('lg:people-changed'))
+}
+
+// The full People snapshot in wire shape: the payload of the People file road,
+// and the `people` section of every backup (src/db/queries.ts exportBackup,
+// src/sync/engine.ts buildBackupPayload).
+export async function buildPeoplePayload(): Promise<PeoplePayload> {
+  const [people, interactions, personDates, personCircles, tombstoneRows] = await Promise.all([
+    db.people.toArray(),
+    db.interactions.toArray(),
+    db.personDates.toArray(),
+    db.personCircles.toArray(),
+    db.peopleTombstones.toArray(),
+  ])
+  const tombstones: Record<string, string> = {}
+  for (const t of tombstoneRows) if (uuidRe.test(t.id)) tombstones[t.id] = t.deleted_at
+  return {
+    people: people.map(toSyncPerson),
+    interactions: interactions.map(toSyncInteraction),
+    personDates: personDates.map(toSyncPersonDate),
+    personCircles: personCircles.map(toSyncPersonCircle),
+    tombstones,
+  }
 }

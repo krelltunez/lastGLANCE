@@ -4,6 +4,12 @@ import { markDirty, markDeleted } from '@/sync/dirtyTracker'
 import { markRosterDirty } from '@/multiuser/rosterDirtyTracker'
 import { getMultiUserEnabled, setMultiUserEnabled } from '@/multiuser/settings'
 import dayjs from 'dayjs'
+import { buildPeoplePayload, PEOPLE_TABLES, notifyPeopleApplied } from '@/people/sync/apply'
+import { markPeopleDirty } from '@/people/sync/dirtyTracker'
+import {
+  fromSyncInteraction, fromSyncPerson, fromSyncPersonCircle, fromSyncPersonDate, invalidReason,
+} from '@/people/sync/types'
+import type { PeoplePayload, SyncPeopleEntity } from '@/people/sync/types'
 
 // Upper bound on a chore's free-text details, enforced both by the form's
 // maxLength and by backup validation so an edited file can't smuggle in a
@@ -507,6 +513,11 @@ export async function deduplicateUsers(): Promise<number> {
 //     the WebDAV backups/ folder (buildBackupPayload in src/sync/engine.ts).
 // Restore keys off sync_id in either shape, so a file downloaded from the WebDAV
 // backups folder imports as happily as an in-app export (issue #192).
+//
+// Both shapes always carry a `people` section (the People payload, in the same
+// camelCase wire shape as lastglance-people.json). It was missing until issue
+// #424, so a backup written before then has none: restoring such a file leaves
+// the local People data alone rather than wiping it.
 
 const BACKUP_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -518,25 +529,29 @@ export interface BackupPayload {
   completionEvents: CompletionEvent[]
   users?: User[]
   settings?: { multiUserEnabled: boolean }
+  // Always written since version 3; absent only in files from older builds.
+  people?: PeoplePayload
 }
 
 export async function exportBackup(): Promise<BackupPayload> {
-  const [categories, chores, completionEvents, users] = await Promise.all([
+  const [categories, chores, completionEvents, users, people] = await Promise.all([
     db.categories.toArray(),
     db.chores.toArray(),
     db.completionEvents.toArray(),
     db.users.toArray(),
+    buildPeoplePayload(),
   ])
   // version 2 adds users + settings so a file export is a complete snapshot and a
-  // restore from it won't drop the roster.
+  // restore from it won't drop the roster. version 3 adds People (issue #424).
   return {
-    version: 2,
+    version: 3,
     exportedAt: new Date().toISOString(),
     categories,
     chores,
     completionEvents,
     users,
     settings: { multiUserEnabled: getMultiUserEnabled() },
+    people,
   }
 }
 
@@ -552,6 +567,12 @@ interface NormalizedChore {
 }
 interface NormalizedEvent { sync_id: string; chore_sync_id: string; completed_at: string; updated_at: string; note: string | null; source: 'manual' | 'dayglance'; completed_by_user_sync_id: string | null }
 interface NormalizedUser { sync_id: string; name: string }
+interface NormalizedPeople {
+  people: SyncPeopleEntity[]
+  interactions: SyncPeopleEntity[]
+  personDates: SyncPeopleEntity[]
+  personCircles: SyncPeopleEntity[]
+}
 interface NormalizedBackup {
   categories: NormalizedCategory[]
   chores: NormalizedChore[]
@@ -559,6 +580,25 @@ interface NormalizedBackup {
   users: NormalizedUser[]
   hasUsers: boolean
   multiUserEnabled?: boolean
+  // null when the file predates People in backups (no `people` section).
+  people: NormalizedPeople | null
+}
+
+const PEOPLE_KINDS = {
+  people: 'person', interactions: 'interaction', personDates: 'personDate', personCircles: 'personCircle',
+} as const
+
+// The People section is already in wire shape. Each array fixes its rows' kind,
+// so a row cannot land in another table by carrying the wrong tag.
+function normalizePeople(raw: unknown): NormalizedPeople | null {
+  if (raw == null || typeof raw !== 'object') return null
+  const r = raw as Raw
+  const out = { people: [], interactions: [], personDates: [], personCircles: [] } as NormalizedPeople
+  for (const key of Object.keys(PEOPLE_KINDS) as (keyof NormalizedPeople)[]) {
+    const items = Array.isArray(r[key]) ? (r[key] as Raw[]) : []
+    out[key] = items.map(e => ({ ...e, kind: PEOPLE_KINDS[key] }) as unknown as SyncPeopleEntity)
+  }
+  return out
 }
 
 type Raw = Record<string, unknown>
@@ -661,7 +701,7 @@ function normalizeBackup(raw: unknown, now: string): NormalizedBackup {
   const settings = r.settings as Raw | undefined
   const multiUserEnabled = settings && typeof settings.multiUserEnabled === 'boolean' ? settings.multiUserEnabled : undefined
 
-  return { categories, chores, completionEvents, users, hasUsers: Array.isArray(r.users), multiUserEnabled }
+  return { categories, chores, completionEvents, users, hasUsers: Array.isArray(r.users), multiUserEnabled, people: normalizePeople(r.people) }
 }
 
 function validateNormalizedBackup(b: NormalizedBackup): void {
@@ -690,7 +730,18 @@ function validateNormalizedBackup(b: NormalizedBackup): void {
     if (!BACKUP_UUID_RE.test(u.sync_id)) throw new Error('invalid user sync_id')
     if (typeof u.name !== 'string' || u.name.length === 0 || u.name.length > 100) throw new Error('invalid user name')
   }
+  if (b.people) {
+    for (const key of Object.keys(PEOPLE_KINDS) as (keyof NormalizedPeople)[]) {
+      for (const e of b.people[key]) {
+        const reason = invalidReason(e)
+        if (reason) throw new Error(`invalid ${PEOPLE_KINDS[key]}: ${reason}`)
+      }
+    }
+  }
 }
+
+const peopleCount = (p: NormalizedPeople | null): number =>
+  p ? p.people.length + p.interactions.length + p.personDates.length + p.personCircles.length : 0
 
 /**
  * Replace all local data with the backup, authoritatively.
@@ -706,19 +757,21 @@ function validateNormalizedBackup(b: NormalizedBackup): void {
  * and chores keep their created_at. Throws on a completely empty backup so a
  * corrupt or truncated file can't silently wipe everything.
  */
-export async function restoreFromBackup(raw: unknown): Promise<{ categories: number; chores: number; completionEvents: number }> {
+export async function restoreFromBackup(raw: unknown): Promise<{ categories: number; chores: number; completionEvents: number; people: number; interactions: number }> {
   const now = new Date().toISOString()
   const b = normalizeBackup(raw, now)
   validateNormalizedBackup(b)
 
-  if (b.categories.length === 0 && b.chores.length === 0 && b.completionEvents.length === 0 && b.users.length === 0) {
+  if (b.categories.length === 0 && b.chores.length === 0 && b.completionEvents.length === 0 && b.users.length === 0 && peopleCount(b.people) === 0) {
     throw new Error('empty backup')
   }
 
   let restoredSyncIds: string[] = []
   let tombstonedSyncIds: string[] = []
+  let peopleRestoredIds: string[] = []
+  let peopleRemovedIds: string[] = []
 
-  await db.transaction('rw', [db.categories, db.chores, db.completionEvents, db.tombstones, db.users], async () => {
+  await db.transaction('rw', [db.categories, db.chores, db.completionEvents, db.tombstones, db.users, ...PEOPLE_TABLES()], async () => {
     // Snapshot what exists so we can tombstone whatever the backup omits.
     const [curCats, curChores, curEvts, curUsers] = await Promise.all([
       db.categories.toArray(), db.chores.toArray(), db.completionEvents.toArray(), db.users.toArray(),
@@ -803,6 +856,39 @@ export async function restoreFromBackup(raw: unknown): Promise<{ categories: num
 
     restoredSyncIds = [...restored].filter(sid => BACKUP_UUID_RE.test(sid))
     tombstonedSyncIds = removed
+
+    // People, the same way: replace the tables, stamp every restored row `now`,
+    // and tombstone what the backup omits, so both People roads (the
+    // lastglance-people file and the vault app) converge to the backup.
+    if (b.people) {
+      const p = b.people
+      const [curPeople, curInteractions, curDates, curCircles] = await Promise.all([
+        db.people.toArray(), db.interactions.toArray(), db.personDates.toArray(), db.personCircles.toArray(),
+      ])
+      const before = new Set<string>()
+      for (const row of [...curPeople, ...curInteractions, ...curDates, ...curCircles]) if (row.sync_id) before.add(row.sync_id)
+      const after = new Set<string>()
+
+      await db.people.clear()
+      await db.interactions.clear()
+      await db.personDates.clear()
+      await db.personCircles.clear()
+      await db.peopleTombstones.clear()
+
+      const stamp = <T extends SyncPeopleEntity>(e: T): T => {
+        after.add(e.id)
+        return { ...e, updatedAt: now }
+      }
+      await db.personCircles.bulkAdd(p.personCircles.map(e => fromSyncPersonCircle(stamp(e as Extract<SyncPeopleEntity, { kind: 'personCircle' }>))))
+      await db.people.bulkAdd(p.people.map(e => fromSyncPerson(stamp(e as Extract<SyncPeopleEntity, { kind: 'person' }>))))
+      await db.personDates.bulkAdd(p.personDates.map(e => fromSyncPersonDate(stamp(e as Extract<SyncPeopleEntity, { kind: 'personDate' }>))))
+      await db.interactions.bulkAdd(p.interactions.map(e => fromSyncInteraction(stamp(e as Extract<SyncPeopleEntity, { kind: 'interaction' }>))))
+
+      const gone = [...before].filter(sid => !after.has(sid) && BACKUP_UUID_RE.test(sid))
+      if (gone.length) await db.peopleTombstones.bulkPut(gone.map(id => ({ id, deleted_at: now })))
+      peopleRestoredIds = [...after]
+      peopleRemovedIds = gone
+    }
   })
 
   if (b.multiUserEnabled !== undefined) setMultiUserEnabled(b.multiUserEnabled)
@@ -812,13 +898,19 @@ export async function restoreFromBackup(raw: unknown): Promise<{ categories: num
   // transport uploads the restored state rather than pulling the old one back.
   for (const sid of restoredSyncIds) markDirty(sid)
   for (const sid of tombstonedSyncIds) markDeleted(sid)
+  // The People vault engine resolves a deletion by absence, so one mark covers both.
+  for (const sid of [...peopleRestoredIds, ...peopleRemovedIds]) markPeopleDirty(sid)
+  if (b.people) notifyPeopleApplied()
 
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('lg:sync-applied'))
     window.dispatchEvent(new CustomEvent('lg:chore-logged'))
   }
 
-  return { categories: b.categories.length, chores: b.chores.length, completionEvents: b.completionEvents.length }
+  return {
+    categories: b.categories.length, chores: b.chores.length, completionEvents: b.completionEvents.length,
+    people: b.people?.people.length ?? 0, interactions: b.people?.interactions.length ?? 0,
+  }
 }
 
 // ── Seed data helpers ─────────────────────────────────────────────────────────

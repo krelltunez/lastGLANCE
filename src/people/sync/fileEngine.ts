@@ -17,35 +17,17 @@ import { db } from '@/db/client'
 import { browserDirectFetch, isNativePlatform, nativeHttpFetch, webdavDirect } from '@/sync/nativeHttp'
 import { FILE_SYNC_KEY_HOOKS } from '@/sync/nativeKeyHooks'
 import { getSyncFolder } from '@/sync/syncFolder'
-import { deletePeopleRow, notifyPeopleApplied, PEOPLE_TABLES, upsertPeopleEntity } from './apply'
-import {
-  emptyPeoplePayload, invalidReason, toSyncInteraction, toSyncPerson, toSyncPersonCircle,
-  toSyncPersonDate, uuidRe,
-} from './types'
+import { buildPeoplePayload, deletePeopleRow, notifyPeopleApplied, PEOPLE_TABLES, upsertPeopleEntity } from './apply'
+import { emptyPeoplePayload, invalidReason, uuidRe } from './types'
 import type { PeoplePayload, SyncPeopleEntity } from './types'
 
 export const PEOPLE_SYNC_FILENAME = 'lastglance-people.json'
 const PREFIX = 'lastglance-people'
 const TOMBSTONE_TTL_MS = 90 * 24 * 60 * 60 * 1000
 
-export async function buildPeoplePayload(): Promise<PeoplePayload> {
-  const [people, interactions, personDates, personCircles, tombstoneRows] = await Promise.all([
-    db.people.toArray(),
-    db.interactions.toArray(),
-    db.personDates.toArray(),
-    db.personCircles.toArray(),
-    db.peopleTombstones.toArray(),
-  ])
-  const tombstones: Record<string, string> = {}
-  for (const t of tombstoneRows) if (uuidRe.test(t.id)) tombstones[t.id] = t.deleted_at
-  return {
-    people: people.map(toSyncPerson),
-    interactions: interactions.map(toSyncInteraction),
-    personDates: personDates.map(toSyncPersonDate),
-    personCircles: personCircles.map(toSyncPersonCircle),
-    tombstones,
-  }
-}
+// Lives in ./apply so the backup code can read People without loading the
+// sync engine; re-exported here for the file roads that already import it.
+export { buildPeoplePayload }
 
 type R = Record<string, unknown>
 const ARRAYS = ['people', 'interactions', 'personDates', 'personCircles'] as const

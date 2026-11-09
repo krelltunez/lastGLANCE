@@ -43,6 +43,8 @@
     "replaceWarning": "Esto <strong>reemplazará todos los datos actuales</strong> con la copia de seguridad.",
     "replaceRemoteWarning": "Esto <strong>reemplazará todos los datos actuales</strong> con la copia de seguridad remota.",
     "summary": "{{categories}} categorías · {{chores}} tareas · {{events}} eventos",
+    "summaryPeople": "{{people}} personas · {{interactions}} interacciones",
+    "noPeopleInBackup": "Esta copia es de una versión anterior y no incluye datos de Personas. Se conservarán tus datos de Personas actuales.",
     "areYouSure": "¿Estás seguro?",
     "areYouSureBody": "Esto reemplaza todos tus datos actuales con la copia de seguridad. Si la sincronización en la nube está activada, el cambio se aplica a todos los dispositivos sincronizados.",
     "snapshotNote": "Primero se guarda una copia de seguridad de tus datos actuales, para que puedas deshacer esta acción.",
