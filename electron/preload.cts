@@ -13,15 +13,15 @@ import { contextBridge, ipcRenderer } from 'electron';
 
 const DESKTOP_INFO_ARG = '--lastglance-desktop-info=';
 
-function readInfo(): { version: string; isMAS: boolean } {
+function readInfo(): { version: string; isMAS: boolean; secureStorage: boolean } {
   const arg = process.argv.find((a) => a.startsWith(DESKTOP_INFO_ARG));
   try {
     const parsed = JSON.parse(decodeURIComponent((arg ?? '').slice(DESKTOP_INFO_ARG.length)));
-    if (typeof parsed?.version === 'string' && typeof parsed?.isMAS === 'boolean') {
-      return { version: parsed.version, isMAS: parsed.isMAS };
+    if (typeof parsed?.version === 'string' && typeof parsed?.isMAS === 'boolean' && typeof parsed?.secureStorage === 'boolean') {
+      return { version: parsed.version, isMAS: parsed.isMAS, secureStorage: parsed.secureStorage };
     }
   } catch { /* absent or malformed: fall through */ }
-  return { version: '', isMAS: false };
+  return { version: '', isMAS: false, secureStorage: false };
 }
 
 const info = readInfo();
@@ -39,6 +39,7 @@ contextBridge.exposeInMainWorld('lastGlanceDesktop', {
     platform: process.platform,
     version: info.version,
     isMAS: info.isMAS,
+    secureStorage: info.secureStorage,
   },
   shell: {
     setMenuLabels: (labels: Record<string, string>) => ipcRenderer.send('shell:set-menu-labels', labels),
@@ -56,5 +57,10 @@ contextBridge.exposeInMainWorld('lastGlanceDesktop', {
     start: (options: { vaultUrl: string; vaultToken: string; accountId: string }) => ipcRenderer.invoke('vault-sse:start', options),
     stop: () => ipcRenderer.invoke('vault-sse:stop'),
     onMessage: (listener: (message: unknown) => void) => subscribe('vault-sse:message', listener),
+  },
+  secureStore: {
+    get: (options: { key: string }) => ipcRenderer.invoke('secure-store:get', options.key),
+    set: (options: { key: string; value: string }) => ipcRenderer.invoke('secure-store:set', options.key, options.value),
+    delete: (options: { key: string }) => ipcRenderer.invoke('secure-store:delete', options.key),
   },
 });

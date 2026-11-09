@@ -4,7 +4,7 @@
 // links, crash recovery and the startup log. The window, protocol and lifecycle
 // code follows dayGLANCE's electron/main.ts (krelltunez/dayGLANCE@8d72008).
 
-import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, net, protocol, screen, session, shell } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, net, protocol, safeStorage, screen, session, shell } from 'electron';
 import dns from 'node:dns';
 import fs from 'node:fs';
 import nodeNet from 'node:net';
@@ -18,6 +18,7 @@ import { createHttpProxy } from './httpProxy.js';
 import { createNetworkTrust, type NetworkTrust } from './networkTrust.js';
 import { decideRecovery } from './rendererRecovery.js';
 import { createVaultSseReader } from './vaultSse.js';
+import { createSecureStore, secureStorageUsable } from './secureStore.js';
 import { initStartupLog, logStartup } from './startupLog.js';
 import { shouldQuitOnAllWindowsClosed } from './startupQuit.js';
 import { DESKTOP_INFO_ARG, encodeDesktopInfo } from './desktopInfo.js';
@@ -199,6 +200,41 @@ ipcMain.handle('vault-sse:stop', (event) => {
   if (isMainWindowSender(event.sender)) vaultSse.stop();
 });
 
+// ── Secure storage (docs/desktop-app.md, section 5) ─────────────────────────
+// The SecureStore contract over safeStorage. Asked only after ready, when
+// safeStorage can answer; unusable (a Linux machine without a keyring) means
+// the renderer keeps its web storage, as the phones' web build does.
+function isSecureStorageUsable(): boolean {
+  return secureStorageUsable(
+    process.platform,
+    safeStorage.isEncryptionAvailable(),
+    process.platform === 'linux' ? safeStorage.getSelectedStorageBackend() : undefined,
+  );
+}
+
+let secureStore: ReturnType<typeof createSecureStore> | null = null;
+function store() {
+  if (!isSecureStorageUsable()) throw new Error('Secure storage is not available');
+  secureStore ??= createSecureStore({
+    file: path.join(app.getPath('userData'), 'secure-store.json'),
+    cipher: { encrypt: (plain) => safeStorage.encryptString(plain), decrypt: (cipher) => safeStorage.decryptString(cipher) },
+  });
+  return secureStore;
+}
+
+ipcMain.handle('secure-store:get', (event, key: unknown) => {
+  if (!isMainWindowSender(event.sender)) return { value: null };
+  return store().get(key);
+});
+ipcMain.handle('secure-store:set', (event, key: unknown, value: unknown) => {
+  if (!isMainWindowSender(event.sender)) throw new Error('Not allowed from this window');
+  store().set(key, value);
+});
+ipcMain.handle('secure-store:delete', (event, key: unknown) => {
+  if (!isMainWindowSender(event.sender)) return;
+  store().delete(key);
+});
+
 function createWindow(): BrowserWindow {
   const userData = app.getPath('userData');
   const saved = onScreen(loadWindowState(userData), screen.getAllDisplays().map((d) => d.workArea));
@@ -225,7 +261,7 @@ function createWindow(): BrowserWindow {
       devTools: DEV,
       // The facts the preload exposes as bridge.info (desktopInfo.ts).
       additionalArguments: [
-        `${DESKTOP_INFO_ARG}${encodeDesktopInfo({ version: app.getVersion(), isMAS: process.mas === true })}`,
+        `${DESKTOP_INFO_ARG}${encodeDesktopInfo({ version: app.getVersion(), isMAS: process.mas === true, secureStorage: isSecureStorageUsable() })}`,
       ],
     },
   });

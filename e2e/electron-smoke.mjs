@@ -61,6 +61,21 @@ try {
   check(info?.platform === mainPlatform, `bridge reports the platform (${info?.platform})`)
   check(info?.isMAS === false, 'bridge reports a non-MAS build')
 
+  // Secure storage: a round trip where the OS protects secrets; elsewhere
+  // (Linux without a keyring, as on CI) the app reports it and keeps web storage.
+  if (info?.secureStorage === true) {
+    const stored = await page.evaluate(async () => {
+      const s = window.lastGlanceDesktop.secureStore
+      await s.set({ key: 'smoke-test', value: 'v' })
+      const { value } = await s.get({ key: 'smoke-test' })
+      await s.delete({ key: 'smoke-test' })
+      return value
+    })
+    check(stored === 'v', 'secure storage round-trips')
+  } else {
+    check(info?.secureStorage === false, `secure storage reported unavailable here (${info?.secureStorage})`)
+  }
+
   const dbs = await page.evaluate(async () => (await indexedDB.databases()).map((d) => d.name))
   check(dbs.includes('lastglance'), `Dexie opened the lastglance database (${dbs.join(', ')})`)
 

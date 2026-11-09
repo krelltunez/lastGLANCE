@@ -17,6 +17,8 @@ export interface DesktopInfo {
   version: string
   /** The Mac App Store build: sandboxed, and the only gated desktop build. */
   isMAS: boolean
+  /** The OS protects secrets here; false on Linux without a keyring. */
+  secureStorage: boolean
 }
 
 export interface DesktopShell {
@@ -70,11 +72,19 @@ export interface DesktopVaultSse {
   onMessage(listener: (message: unknown) => void): () => void
 }
 
+/** The SecureStore contract of src/native/secureStore.ts, over Electron's safeStorage. */
+export interface DesktopSecureStore {
+  get(options: { key: string }): Promise<{ value: string | null }>
+  set(options: { key: string; value: string }): Promise<void>
+  delete(options: { key: string }): Promise<void>
+}
+
 export interface DesktopBridge {
   info: DesktopInfo
   shell: DesktopShell
   http: DesktopHttp
   vaultSse: DesktopVaultSse
+  secureStore: DesktopSecureStore
 }
 
 /**
@@ -94,6 +104,9 @@ export const DESKTOP_BRIDGE_METHODS = [
   'vaultSse.start',
   'vaultSse.stop',
   'vaultSse.onMessage',
+  'secureStore.get',
+  'secureStore.set',
+  'secureStore.delete',
 ] as const
 
 declare global {

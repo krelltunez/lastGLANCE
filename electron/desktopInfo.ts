@@ -12,6 +12,8 @@ export const DESKTOP_INFO_ARG = '--lastglance-desktop-info=';
 export interface DesktopInfoArg {
   version: string;
   isMAS: boolean;
+  /** safeStorage protects secrets here (secureStore.ts, secureStorageUsable). */
+  secureStorage: boolean;
 }
 
 export function encodeDesktopInfo(info: DesktopInfoArg): string {
@@ -24,8 +26,8 @@ export function decodeDesktopInfo(argv: readonly string[]): DesktopInfoArg | nul
   if (!arg) return null;
   try {
     const parsed = JSON.parse(decodeURIComponent(arg.slice(DESKTOP_INFO_ARG.length))) as Partial<DesktopInfoArg>;
-    if (typeof parsed.version !== 'string' || typeof parsed.isMAS !== 'boolean') return null;
-    return { version: parsed.version, isMAS: parsed.isMAS };
+    if (typeof parsed.version !== 'string' || typeof parsed.isMAS !== 'boolean' || typeof parsed.secureStorage !== 'boolean') return null;
+    return { version: parsed.version, isMAS: parsed.isMAS, secureStorage: parsed.secureStorage };
   } catch {
     return null;
   }
