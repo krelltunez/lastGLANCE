@@ -49,11 +49,30 @@ jobs:
           node-version: 20
           cache: npm
 
+      # electron-builder downloads the Electron binary (a GitHub release asset)
+      # into ~/.cache/electron. Cached, the 127 MB zip comes down only when the
+      # lockfile changes.
+      - name: Cache the Electron download
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/electron
+          key: electron-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: electron-${{ runner.os }}-
+
       - name: Install dependencies
         run: npm ci
 
+      # Retried: even with the zip cached, electron-builder fetches Electron's
+      # checksum file from GitHub releases, which returned 504s on 2026-11-09.
+      # A real build failure fails all three attempts.
       - name: Package the unpacked Linux app
-        run: npm run build:electron:dir
+        run: |
+          for attempt in 1 2 3; do
+            npm run build:electron:dir && exit 0
+            echo "::warning::Packaging failed (attempt $attempt of 3)"
+            sleep $((attempt * 15))
+          done
+          exit 1
 
       - name: Smoke test
         env:
