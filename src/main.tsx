@@ -11,6 +11,7 @@ import { settleServiceWorker } from './native/serviceWorker'
 import { recordFirstSeen } from './native/launcherPromo'
 import { desktopBridge } from './native/desktop'
 import { syncDesktopMenuLabels } from './native/desktopMenu'
+import { listenForEscape } from './hooks/useEscapeKey'
 
 // crypto.randomUUID() is only available in secure contexts (HTTPS / localhost).
 // This polyfill covers HTTP access over a LAN IP (e.g. self-hosted Docker).
@@ -38,6 +39,8 @@ const desktop = desktopBridge()
 if (desktop) {
   document.documentElement.classList.add('desktop', `desktop-${desktop.info.platform}`)
   syncDesktopMenuLabels(i18n, desktop)
+  // Escape leaves fullscreen even before any modal has opened (useEscapeKey).
+  listenForEscape()
 }
 
 // The PWA service worker is for the browser only; a native shell, including

@@ -100,6 +100,16 @@ ipcMain.on('shell:set-theme', (event, dark: unknown) => {
   live(mainWindow)?.setBackgroundColor(windowBackgroundColor(app.getPath('userData'), nativeTheme.shouldUseDarkColors));
 });
 
+// Escape leaves native fullscreen, which macOS does not do by itself. The
+// renderer asks only for an Escape that closed nothing and was not typed into
+// a field (src/hooks/useEscapeKey.ts). Works for F11 fullscreen on Windows and
+// Linux too; a no-op when the window is not fullscreen.
+ipcMain.on('shell:exit-fullscreen', (event) => {
+  const w = live(mainWindow);
+  if (!isMainWindowSender(event.sender) || !w?.isFullScreen()) return;
+  w.setFullScreen(false);
+});
+
 function createWindow(): BrowserWindow {
   const userData = app.getPath('userData');
   const saved = onScreen(loadWindowState(userData), screen.getAllDisplays().map((d) => d.workArea));

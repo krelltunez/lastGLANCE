@@ -35,5 +35,6 @@ contextBridge.exposeInMainWorld('lastGlanceDesktop', {
   shell: {
     setMenuLabels: (labels: Record<string, string>) => ipcRenderer.send('shell:set-menu-labels', labels),
     setTheme: (dark: boolean) => ipcRenderer.send('shell:set-theme', dark),
+    exitFullscreen: () => ipcRenderer.send('shell:exit-fullscreen'),
   },
 });

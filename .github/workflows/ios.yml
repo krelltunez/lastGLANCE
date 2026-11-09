@@ -66,6 +66,21 @@ jobs:
         env:
           IOS_BUILD: ${{ github.run_number }}
 
+      # The Swift binary targets (Capacitor, Cordova, RevenueCat: about 210 MB
+      # of GitHub release assets) are fetched by curl into a SwiftPM cache that
+      # xcodebuild then copies from, verifying each checksum. This Xcode's
+      # SwiftPM turns a server error on its own download into a misleading
+      # "already exists in file system" failure; see the script. Cached between
+      # runs, keyed on the manifests that name the artifacts.
+      - name: Restore the Swift binary artifacts
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/spm-cache/artifacts
+          key: spm-artifacts-${{ hashFiles('ios/App/CapApp-SPM/Package.swift', 'ios/App/Packages/*/Package.swift') }}
+
+      - name: Fetch the Swift binary artifacts
+        run: scripts/ios-prefetch-binary-artifacts.sh "$RUNNER_TEMP/spm-cache"
+
       - name: Build the iOS app (no signing)
         run: |
           xcodebuild build \
@@ -73,4 +88,5 @@ jobs:
             -scheme App \
             -configuration Debug \
             -destination 'generic/platform=iOS Simulator' \
+            -packageCachePath "$RUNNER_TEMP/spm-cache" \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO

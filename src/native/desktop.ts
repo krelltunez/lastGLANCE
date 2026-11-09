@@ -24,6 +24,8 @@ export interface DesktopShell {
   setMenuLabels(labels: Record<string, string>): void
   /** The resolved theme, so the next launch's window paints the right color first. */
   setTheme(dark: boolean): void
+  /** Leave native fullscreen; a no-op when the window is not fullscreen. */
+  exitFullscreen(): void
 }
 
 export interface DesktopBridge {
@@ -39,6 +41,7 @@ export interface DesktopBridge {
 export const DESKTOP_BRIDGE_METHODS = [
   'shell.setMenuLabels',
   'shell.setTheme',
+  'shell.exitFullscreen',
 ] as const
 
 declare global {
