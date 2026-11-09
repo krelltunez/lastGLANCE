@@ -1,7 +1,7 @@
 # Desktop app (Electron): design
 
 Status: design, approved 2026-11-09. The build follows the phases in section 12;
-Phase 1 (the scaffold) is built.
+Phases 1 (the scaffold) and 2 (network and sync) are built.
 
 The desktop app is the existing web bundle in an Electron shell for macOS,
 Windows and Linux, after dayGLANCE's desktop app (`krelltunez/dayGLANCE`,
@@ -142,17 +142,23 @@ side and not the others fails CI.
 **Every network request goes through main.**
 - The renderer's WebDAV, GLANCEvault, intents and roster traffic all goes
   through `bridge.http`.
-- `bridge.http` is main-process `net.fetch` with:
+- `bridge.http` is main-process `net.fetch` (`electron/httpProxy.ts`) with:
   - a 30 s timeout;
-  - manual redirects, re-checked on every hop;
+  - manual redirects, re-checked on every hop, with `Authorization`, `Cookie`
+    and `Proxy-Authorization` dropped on a redirect to another origin;
   - methods including PROPFIND and MKCOL;
   - normalized ETags.
+- A request that got no response (refused, timed out, network failure) comes
+  back as an error, not a made-up HTTP status, and the renderer throws it, as
+  Capacitor's native HTTP does on the phones.
 
 This removes CORS from the picture, so a self-hosted vault or Nextcloud needs no
 `app://lastglance` entry in its allowed origins.
 
 **Wiring.**
-- `nativeHttp.ts` gains the desktop branch.
+- `nativeHttp.ts` gains the desktop branch, and `hasNativeHttp` (native,
+  headless or desktop) is the question every WebDAV and vault call site asks;
+  `isNativePlatform` stays the Capacitor-shell question.
 - A new `shellFetchImpl()` generalizes today's `headlessFetchImpl()`. It returns
   a fetch-shaped function for the vault engines (`dbEngine.ts`,
   `people/sync/dbEngine.ts`, `multiuser/rosterVault.ts`) and for
@@ -166,7 +172,9 @@ its `'native-bridge'` road. dayGLANCE instead reads SSE straight from the
 renderer, which is why GLANCEvault's README tells self-hosters to allow
 `app://dayglance`. lastGLANCE avoids that step.
 
-**LAN servers.** dayGLANCE's `proxyUrlPolicy.ts` is copied as is.
+**LAN servers.** dayGLANCE's `proxyUrlPolicy.ts` is copied as is, and held to
+`api/ssrf-vectors.json` like the web proxy (`electron/networkTrust.ts` adds
+the DNS, the grants file and the dialog).
 - Private, loopback, CGNAT and ULA addresses are refused until the user grants
   that one host, port and scheme in a native dialog that only a button press
   can open.
@@ -175,8 +183,9 @@ renderer, which is why GLANCEvault's README tells self-hosters to allow
 A home Nextcloud on `192.168.x.x` is a common lastGLANCE setup, so the
 "Allow this server" step needs clear copy in Cloud Sync.
 
-`syncProxySettings.ts`, the optional user-configured outbound proxy, is copied
-too. It is cheap, and its absence is a support question.
+`syncProxySettings.ts`, dayGLANCE's optional user-configured outbound proxy, is
+deferred: requests already follow the operating system's proxy settings, and
+the setting needs its own UI. It comes when someone asks for it.
 
 ## 5. Platform features
 
@@ -208,7 +217,8 @@ vitest. Its rules are already lastGLANCE's own (docs/direct-access.md):
 
 Picking uses `dialog.showOpenDialog` with security-scoped bookmarks, which the
 MAS sandbox needs; the bookmark is restored on launch. A debounced `fs.watch`
-nudges a cycle, with self-write suppression. The 15 s poll stays the source of
+on the snapshot and People files nudges a cycle, with self-write suppression,
+through an `onChanged` event the phone bridges do not have. The 15 s poll stays the source of
 truth.
 
 Gate changes: `isDirectAccessAvailable` and the default `platform` argument in

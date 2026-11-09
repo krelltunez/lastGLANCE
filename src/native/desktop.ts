@@ -102,6 +102,14 @@ export interface DesktopDirectAccess {
   onChanged(listener: () => void): () => void
 }
 
+/** Exports and the pre-restore copy (src/utils/exportFile.ts; electron/files.ts). */
+export interface DesktopFiles {
+  /** The native save dialog; `saved` is false when the user cancelled. */
+  saveText(options: { filename: string; text: string }): Promise<{ saved: boolean }>
+  /** Written silently to the app's backups folder. */
+  stash(options: { filename: string; text: string }): Promise<void>
+}
+
 export interface DesktopBridge {
   info: DesktopInfo
   shell: DesktopShell
@@ -109,6 +117,7 @@ export interface DesktopBridge {
   vaultSse: DesktopVaultSse
   secureStore: DesktopSecureStore
   directAccess: DesktopDirectAccess
+  files: DesktopFiles
 }
 
 /**
@@ -143,6 +152,8 @@ export const DESKTOP_BRIDGE_METHODS = [
   'directAccess.deleteFileAt',
   'directAccess.makeDir',
   'directAccess.onChanged',
+  'files.saveText',
+  'files.stash',
 ] as const
 
 declare global {

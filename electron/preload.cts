@@ -77,4 +77,8 @@ contextBridge.exposeInMainWorld('lastGlanceDesktop', {
     makeDir: (options: { rel: string }) => ipcRenderer.invoke('direct-access:make-dir', options),
     onChanged: (listener: (payload: unknown) => void) => subscribe('direct-access:changed', listener),
   },
+  files: {
+    saveText: (options: { filename: string; text: string }) => ipcRenderer.invoke('files:save-text', options),
+    stash: (options: { filename: string; text: string }) => ipcRenderer.invoke('files:stash', options),
+  },
 });

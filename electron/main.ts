@@ -20,6 +20,7 @@ import { decideRecovery } from './rendererRecovery.js';
 import { createVaultSseReader } from './vaultSse.js';
 import { createSecureStore, secureStorageUsable } from './secureStore.js';
 import { registerDirectAccessHandlers } from './directAccess.js';
+import { registerFilesHandlers } from './files.js';
 import { initStartupLog, logStartup } from './startupLog.js';
 import { shouldQuitOnAllWindowsClosed } from './startupQuit.js';
 import { DESKTOP_INFO_ARG, encodeDesktopInfo } from './desktopInfo.js';
@@ -238,6 +239,17 @@ ipcMain.handle('secure-store:delete', (event, key: unknown) => {
 
 // Direct Access: a folder a sync tool keeps in step (directAccess.ts).
 registerDirectAccessHandlers({ app, dialog, ipcMain, getWindow: () => live(mainWindow), isMainWindowSender, log: logStartup });
+
+// Exports through the save dialog; the pre-restore copy into userData (files.ts).
+registerFilesHandlers({
+  ipcMain,
+  dialog,
+  getWindow: () => live(mainWindow),
+  isMainWindowSender,
+  downloadsDir: () => app.getPath('downloads'),
+  backupsDir: () => path.join(app.getPath('userData'), 'backups'),
+  log: logStartup,
+});
 
 function createWindow(): BrowserWindow {
   const userData = app.getPath('userData');

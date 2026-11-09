@@ -178,6 +178,27 @@ try {
     rmSync(folder, { recursive: true, force: true })
   }
 
+  // Exports: the native save dialog (answered with a temp path), and the
+  // pre-restore copy written silently into the app's backups folder.
+  const exportDir = mkdtempSync(path.join(os.tmpdir(), 'lastglance-smoke-export-'))
+  try {
+    const target = path.join(exportDir, 'chosen.json')
+    await app.evaluate(({ dialog }, file) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath: file }) }, target)
+    const userData = await app.evaluate(({ app }) => app.getPath('userData'))
+    const saved = await page.evaluate(async () => {
+      const f = window.lastGlanceDesktop.files
+      const r = await f.saveText({ filename: 'backup.json', text: '{"saved":true}' })
+      await f.stash({ filename: 'smoke-before-restore.json', text: '{"stashed":true}' })
+      return r.saved
+    })
+    const stashed = path.join(userData, 'backups', 'smoke-before-restore.json')
+    check(saved && readFileSync(target, 'utf-8') === '{"saved":true}' && readFileSync(stashed, 'utf-8') === '{"stashed":true}',
+      'exports: save dialog, and the silent pre-restore copy')
+    rmSync(stashed, { force: true })
+  } finally {
+    rmSync(exportDir, { recursive: true, force: true })
+  }
+
   if (process.env.SMOKE_SCREENSHOT) await page.screenshot({ path: process.env.SMOKE_SCREENSHOT })
   check(pageErrors.length === 0, `no uncaught page errors${pageErrors.length ? `: ${pageErrors.join(' | ')}` : ''}`)
 } finally {
