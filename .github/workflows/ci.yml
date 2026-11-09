@@ -29,3 +29,41 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Typecheck the desktop shell
+        run: npm run build:electron:main
+
+  # The packaged desktop app, launched for real (docs/desktop-app.md, section
+  # 11): the app:// origin, the preload bridge, Dexie, no service worker and the
+  # CSP, none of which a unit test can see. Linux only; macOS and Windows
+  # packaging is exercised by the release workflow.
+  desktop-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Package the unpacked Linux app
+        run: npm run build:electron:dir
+
+      - name: Smoke test
+        env:
+          SMOKE_SCREENSHOT: desktop-smoke.png
+        run: xvfb-run -a npm run test:electron-smoke
+
+      - name: Upload the screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-smoke
+          path: desktop-smoke.png
+          if-no-files-found: ignore

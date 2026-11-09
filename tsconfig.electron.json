@@ -1,0 +1,23 @@
+{
+  // The desktop shell's main process (electron/, ESM like the package). The
+  // preload is compiled separately as CommonJS (tsconfig.electron.preload.json).
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "outDir": "dist-electron",
+    "rootDir": "electron",
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "sourceMap": true,
+    // Comments do not ship in the app (dayGLANCE's rule: its MAS verification
+    // greps app.asar for feature strings). Sources and sourcemaps keep them.
+    "removeComments": true,
+    "types": ["node"]
+  },
+  "include": ["electron"],
+  "exclude": ["electron/preload.cts", "electron/**/*.test.ts"]
+}

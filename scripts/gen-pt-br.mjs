@@ -231,6 +231,14 @@ const RULES = [
 // Whole-string replacements for the handful of sentences a word-level rule
 // cannot rebuild — passive reordering and the addressee pronoun.
 const OVERRIDES = {
+  // Desktop application menu (Windows and Linux), as dayGLANCE's pt-BR has it.
+  // Menu verbs differ by country rather than by spelling (Exibir, Desfazer,
+  // Recortar), and "ecrã inteiro" (m) would come out as "tela inteiro".
+  'menu.view': 'Exibir',
+  'menu.undo': 'Desfazer',
+  'menu.cut': 'Recortar',
+  'menu.toggleDevTools': 'Alternar ferramentas do desenvolvedor',
+  'menu.toggleFullScreen': 'Alternar tela cheia',
   // pt-PT "num", "Definições" and "hora" for a clock time read European in Brazil.
   'people.form.notifyHint': 'Entra em um único lembrete por dia. Escolha o horário nas Configurações.',
   'settings.dateRemindersHint': 'Uma notificação em aniversários e outras datas, no horário que você escolher.',

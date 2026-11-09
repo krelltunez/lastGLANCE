@@ -968,5 +968,29 @@
       "startFresh": "Começar do zero neste dispositivo",
       "startFreshHint": "Desativa aqui a sincronização com o iCloud. A cópia no iCloud mantém-se e pode ativá-la mais tarde em Sincronização na nuvem."
     }
+  },
+  "menu": {
+    "file": "Arquivo",
+    "edit": "Editar",
+    "view": "Exibir",
+    "window": "Janela",
+    "quit": "Sair",
+    "close": "Fechar",
+    "undo": "Desfazer",
+    "redo": "Refazer",
+    "cut": "Recortar",
+    "copy": "Copiar",
+    "paste": "Colar",
+    "delete": "Excluir",
+    "selectAll": "Selecionar tudo",
+    "reload": "Recarregar",
+    "forceReload": "Forçar recarregamento",
+    "toggleDevTools": "Alternar ferramentas do desenvolvedor",
+    "resetZoom": "Tamanho real",
+    "zoomIn": "Ampliar",
+    "zoomOut": "Reduzir",
+    "toggleFullScreen": "Alternar tela cheia",
+    "minimize": "Minimizar",
+    "zoom": "Zoom"
   }
 }

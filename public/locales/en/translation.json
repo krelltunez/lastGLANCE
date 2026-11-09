@@ -968,5 +968,29 @@
       "startFresh": "Start fresh on this device",
       "startFreshHint": "Turn iCloud sync off here. The copy in iCloud stays, and you can turn it on later in Cloud Sync."
     }
+  },
+  "menu": {
+    "file": "File",
+    "edit": "Edit",
+    "view": "View",
+    "window": "Window",
+    "quit": "Quit",
+    "close": "Close",
+    "undo": "Undo",
+    "redo": "Redo",
+    "cut": "Cut",
+    "copy": "Copy",
+    "paste": "Paste",
+    "delete": "Delete",
+    "selectAll": "Select All",
+    "reload": "Reload",
+    "forceReload": "Force Reload",
+    "toggleDevTools": "Toggle Developer Tools",
+    "resetZoom": "Actual Size",
+    "zoomIn": "Zoom In",
+    "zoomOut": "Zoom Out",
+    "toggleFullScreen": "Toggle Full Screen",
+    "minimize": "Minimize",
+    "zoom": "Zoom"
   }
 }

@@ -3,6 +3,9 @@
   "private": true,
   "license": "MIT",
   "version": "3.0.1",
+  "description": "When did you last...? A last-done tracker for the things that matter.",
+  "homepage": "https://www.glance-apps.com/lastglance",
+  "main": "dist-electron/main.js",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -23,7 +26,14 @@
     "format:xcstrings": "node scripts/format-xcstrings.mjs",
     "cap:android": "npm run cap:sync && cap open android",
     "cap:ios": "npm run build:ios && cap open ios",
-    "demo-backup": "node scripts/gen-demo-backup.mjs"
+    "demo-backup": "node scripts/gen-demo-backup.mjs",
+    "dev:electron": "npm run build:electron:main && concurrently -k -n renderer,main,preload,electron -c cyan,yellow,magenta,green \"vite --mode electron --port 5183 --strictPort\" \"tsc -p tsconfig.electron.json -w --preserveWatchOutput\" \"tsc -p tsconfig.electron.preload.json -w --preserveWatchOutput\" \"electronmon .\"",
+    "build:electron:renderer": "tsc -b && vite build --mode electron",
+    "build:electron:main": "tsc -p tsconfig.electron.json && tsc -p tsconfig.electron.preload.json",
+    "build:electron": "npm run build:electron:renderer && npm run build:electron:main && electron-builder --config electron-builder.config.cjs",
+    "build:electron:release": "npm run build:electron -- --publish never",
+    "build:electron:dir": "npm run build:electron:renderer && npm run build:electron:main && electron-builder --config electron-builder.config.cjs --dir",
+    "test:electron-smoke": "node e2e/electron-smoke.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.0",
@@ -57,6 +67,10 @@
     "@vitejs/plugin-react": "^4.4.1",
     "@vitest/coverage-v8": "^4.1.7",
     "autoprefixer": "^10.4.21",
+    "concurrently": "^8.2.2",
+    "electron": "^43.8.3",
+    "electron-builder": "^26.18.0",
+    "electronmon": "^2.0.4",
     "eslint": "^9.20.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.5.3",
@@ -92,5 +106,17 @@
     "rimraf": {
       "glob": "^13.0.0"
     }
+  },
+  "electronmon": {
+    "patterns": [
+      "!src/**",
+      "!public/**",
+      "!dist/**",
+      "!docs/**",
+      "!e2e/**",
+      "!electron/**",
+      "!android/**",
+      "!ios/**"
+    ]
   }
 }

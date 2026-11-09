@@ -66,6 +66,7 @@ import { registerRosterDbEngine } from '@/multiuser/rosterDirtyTracker'
 import { registerDbEngine } from '@/sync/dirtyTracker'
 import { isVaultEnabled } from '@/sync/vaultConfig'
 import { applyStatusBarTheme, initFullScreenInLandscape } from '@/native/statusBar'
+import { desktopBridge } from '@/native/desktop'
 import { hasDbRootKey, initDbRootKey, getSyncPassphrase } from '@glance-apps/sync'
 import type { SyncEngine, SyncStatus, DbSyncEngine, SyncErrorCode } from '@glance-apps/sync'
 import { syncSharedUsers, syncSharedUsersViaDirectAccess, type SyncSharedUsersResult } from '@/multiuser/sharedUsers'
@@ -326,6 +327,8 @@ function AppInner() {
   useEffect(() => {
     document.documentElement.classList.toggle('dark', isDark)
     applyStatusBarTheme(isDark)
+    // The desktop window paints this color before its next launch's first frame.
+    desktopBridge()?.shell.setTheme(isDark)
   }, [isDark])
 
   useEffect(() => {

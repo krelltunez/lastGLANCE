@@ -2,13 +2,15 @@ import { StrictMode, Suspense } from 'react'
 import { createRoot } from 'react-dom/client'
 import { Capacitor } from '@capacitor/core'
 import './index.css'
-import './i18n'
+import i18n from './i18n'
 import { hydrateSecureConfig, installSecureConfigShim } from './sync/secureConfigShim'
 import { headlessBridge, headlessRequest } from './headless/headlessMode'
 import { initHardwareBackButton } from './native/backButton'
 import { lockViewportScaleOnIPhone } from './utils/viewportZoom'
 import { settleServiceWorker } from './native/serviceWorker'
 import { recordFirstSeen } from './native/launcherPromo'
+import { desktopBridge } from './native/desktop'
+import { syncDesktopMenuLabels } from './native/desktopMenu'
 
 // crypto.randomUUID() is only available in secure contexts (HTTPS / localhost).
 // This polyfill covers HTTP access over a LAN IP (e.g. self-hosted Docker).
@@ -29,12 +31,22 @@ if (Capacitor.isNativePlatform()) {
   document.documentElement.classList.add('native')
 }
 
+// The Electron desktop shell (docs/desktop-app.md) is not a Capacitor shell, so
+// `native` stays off there; `desktop` and `desktop-<platform>` carry its window
+// chrome instead (the macOS traffic-light inset and drag region, index.css).
+const desktop = desktopBridge()
+if (desktop) {
+  document.documentElement.classList.add('desktop', `desktop-${desktop.info.platform}`)
+  syncDesktopMenuLabels(i18n, desktop)
+}
+
 // The PWA service worker is for the browser only; a native shell, including
-// Android's headless refresh WebView, removes one an earlier build left and,
+// Android's headless refresh WebView and the desktop app, removes one an
+// earlier build left and,
 // when such a worker served this page, reloads from the installed bundle
 // instead of booting (see native/serviceWorker.ts).
 const booting = settleServiceWorker({
-  shell: Capacitor.isNativePlatform() || headlessBridge() !== null,
+  shell: Capacitor.isNativePlatform() || headlessBridge() !== null || desktop !== null,
   container: 'serviceWorker' in navigator ? navigator.serviceWorker : undefined,
   caches: 'caches' in window ? window.caches : undefined,
   session: (() => { try { return window.sessionStorage } catch { return undefined } })(),
