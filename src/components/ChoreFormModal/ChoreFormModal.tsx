@@ -73,12 +73,26 @@ export function ChoreFormModal({ category, allCategories, chore, initialName, on
   const { isConfigured } = useIntents()
 
   const { multiUserEnabled, users: allUsers } = useUsersContext()
-  const [assignedIds, setAssignedIds] = useState<string[]>(chore?.assigned_user_sync_ids ?? [])
+  // A new chore inherits its category's assignees, and keeps following the
+  // category picker until the user edits the assignment themselves. An existing
+  // chore keeps its own assignment.
+  const [assignedIds, setAssignedIds] = useState<string[]>(
+    chore ? chore.assigned_user_sync_ids : [...(category.assigned_user_sync_ids ?? [])]
+  )
+  const [assignedTouched, setAssignedTouched] = useState(false)
 
   function toggleAssigned(syncId: string) {
+    setAssignedTouched(true)
     setAssignedIds(prev =>
       prev.includes(syncId) ? prev.filter(id => id !== syncId) : [...prev, syncId]
     )
+  }
+
+  function selectCategory(id: number) {
+    setSelectedCategoryId(id)
+    if (isEdit || assignedTouched) return
+    const next = categoryOptions.find(c => c.id === id)
+    setAssignedIds([...(next?.assigned_user_sync_ids ?? [])])
   }
 
   const [isSeasonal, setIsSeasonal] = useState(Boolean(chore?.seasonal_start))
@@ -208,7 +222,7 @@ export function ChoreFormModal({ category, allCategories, chore, initialName, on
                 <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">{t('choreForm.categoryLabel')}</label>
                 <select
                   value={selectedCategoryId}
-                  onChange={e => setSelectedCategoryId(Number(e.target.value))}
+                  onChange={e => selectCategory(Number(e.target.value))}
                   className="w-full bg-slate-100 dark:bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
                 >
                   {sortHierarchically(categoryOptions).map(cat => (
