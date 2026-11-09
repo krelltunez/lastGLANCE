@@ -1,6 +1,6 @@
 # Desktop app (Electron): design
 
-Status: design, for review before the build. Nothing here is built yet.
+Status: design, approved 2026-11-09. The build follows the phases in section 12.
 
 The desktop app is the existing web bundle in an Electron shell for macOS,
 Windows and Linux, after dayGLANCE's desktop app (`krelltunez/dayGLANCE`,
@@ -573,9 +573,10 @@ dayGLANCE's set, including the electron-builder lessons it learned:
 
 ### No auto-update in this release
 
-Direct builds update by downloading the new release. A small "update available"
-notice, like dayGLANCE's `versionCheck.js` (the GitHub releases API every 6 h,
-not shown on MAS), is the open question in section 14.
+Direct builds update by downloading the new release. They show a small "update
+available" notice, like dayGLANCE's `versionCheck.js`: the renderer asks the
+GitHub releases API every 6 h and links to the release. The notice is never
+shown on MAS, where the App Store updates the app.
 
 ## 12. Build phases
 
@@ -608,6 +609,7 @@ Each phase lands as its own PR, with tests.
    - Signing and notarization, and `release-desktop.yml`.
    - The MAS build: entitlements, provisioning, billing, and the parity and
      gate tests.
+   - The "update available" notice on direct builds.
    - `RELEASING`-style steps for desktop in the docs, and the README sections.
 
 Later: MCP, then Stream Deck, on the seams in section 10.
@@ -629,7 +631,7 @@ These steps need your accounts, and the MAS phase needs them done:
   `CSC_KEY_PASSWORD`, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD` and
   `APPLE_TEAM_ID`. They can be the same team's values that dayGLANCE uses.
 
-## 14. Risks and open questions
+## 14. Risks and decisions
 
 **Risks.**
 - **iCloud on macOS 14 and later.** The dataless-file read path and the MAS
@@ -646,9 +648,8 @@ These steps need your accounts, and the MAS phase needs them done:
 - **Two Mac builds keep separate local data.** That is expected, and the README
   will say so.
 
-**Open questions for you.**
-1. Should direct builds show the "update available" notice (section 11)?
-   This design assumes yes, since there is no auto-update.
-2. Should "Keep running in the background" default to on for Windows and Linux?
-   It does here, so reminders work out of the box.
-3. Port numbers 7900 (MCP) and 7901 (Stream Deck): fine to reserve?
+**Decided in review (2026-11-09).**
+1. Direct builds show the "update available" notice (section 11). MAS does not.
+2. "Keep running in the background" defaults to on for Windows and Linux, so
+   reminders work out of the box (section 7).
+3. Ports 7900 (MCP) and 7901 (Stream Deck) are reserved (section 10).
