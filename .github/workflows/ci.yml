@@ -49,6 +49,17 @@ jobs:
           node-version: 20
           cache: npm
 
+      # Electron's binary comes from a GitHub release asset, which returned
+      # 504s on 2026-11-09. Cached, a run downloads it only when the lockfile
+      # changes; build:electron:dir then reuses the copy npm ci installed
+      # rather than downloading it a second time.
+      - name: Cache the Electron download
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/electron
+          key: electron-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: electron-${{ runner.os }}-
+
       - name: Install dependencies
         run: npm ci
 

@@ -66,12 +66,31 @@ jobs:
         env:
           IOS_BUILD: ${{ github.run_number }}
 
-      # -packageCachePath: resolve Swift packages into a cache private to this
-      # job. Some macos-15 runners start with entries in the shared cache
-      # (~/Library/Caches/org.swift.swiftpm) that make SwiftPM refuse the
-      # Capacitor and Cordova binary-target downloads ("already exists in file
-      # system"), failing the build before it compiles (2026-11-09, PRs #421
-      # and #422).
+      # Swift packages are resolved on their own, with retries. The binary
+      # targets (Capacitor, Cordova, RevenueCat) download from GitHub release
+      # assets, and when a download fails SwiftPM leaves the partial file
+      # behind and its own retry reports "already exists in file system". On
+      # 2026-11-09 this failed the build before it compiled on PRs #421 and
+      # #422 and on main, including in a cache that started empty, while
+      # GitHub release downloads were also returning 504 to electron-builder.
+      # Each retry clears the partial downloads first; a real resolution error
+      # (a bad version, a missing package) fails all three attempts. The cache
+      # lives under RUNNER_TEMP so the retry knows exactly what to clear.
+      - name: Resolve Swift packages
+        run: |
+          for attempt in 1 2 3; do
+            if xcodebuild -resolvePackageDependencies \
+                -project ios/App/App.xcodeproj \
+                -scheme App \
+                -packageCachePath "$RUNNER_TEMP/spm-cache"; then
+              exit 0
+            fi
+            echo "::warning::Swift package resolution failed (attempt $attempt of 3); clearing partial downloads"
+            rm -rf "$RUNNER_TEMP/spm-cache/artifacts"
+            sleep $((attempt * 20))
+          done
+          exit 1
+
       - name: Build the iOS app (no signing)
         run: |
           xcodebuild build \
