@@ -9,12 +9,15 @@
 //   - no service worker registered;
 //   - the CSP blocks a direct network request from the renderer;
 //   - the desktop chrome classes are set and `native` is not;
+//   - requests go through the main process: a server on a private address is
+//     refused until granted, then reached, and the grant can be revoked;
 //   - no uncaught page error.
 //
 // Usage: npm run build:electron:dir && npm run test:electron-smoke
 // Linux CI runs it under xvfb-run. SMOKE_SCREENSHOT=path saves a screenshot.
 import { _electron as electron } from 'playwright-core'
 import { readFileSync, existsSync } from 'node:fs'
+import http from 'node:http'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -85,6 +88,29 @@ try {
   const classes = await page.evaluate(() => document.documentElement.className)
   check(/\bdesktop\b/.test(classes) && classes.includes(`desktop-${info?.platform}`), `desktop chrome classes set (${classes})`)
   check(!/\bnative\b/.test(classes), 'not marked as a Capacitor native shell')
+
+  // The network path (docs/desktop-app.md, section 4), against a local server:
+  // 127.0.0.1 is a private address, so it needs a grant. The native dialog is
+  // answered "Allow" by replacing showMessageBox in the main process.
+  const hits = []
+  const server = http.createServer((req, res) => { hits.push(`${req.method} ${req.url}`); res.writeHead(207); res.end('<multistatus/>') })
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve))
+  const target = `http://127.0.0.1:${server.address().port}/dav/`
+  try {
+    const call = (fn, ...args) => page.evaluate(([f, a]) => window.lastGlanceDesktop.http[f](...a), [fn, args])
+    const refused = await call('request', 'PROPFIND', target, { Depth: '0' }, null)
+    check(refused?.error === 'Private/reserved address' && hits.length === 0, `a private address is refused before any request (${JSON.stringify(refused)})`)
+    await app.evaluate(({ dialog }) => { dialog.showMessageBox = async () => ({ response: 1, checkboxChecked: false }) })
+    const granted = await call('grant', target, {})
+    const reached = await call('request', 'PROPFIND', target, { Depth: '0' }, null)
+    check(granted?.ok === true && reached?.status === 207 && hits.length === 1, `once granted, the request reaches the server (${reached?.status}, ${hits.join(', ')})`)
+    const origin = new URL(target).origin
+    await call('revoke', origin)
+    const again = await call('request', 'GET', target, {}, null)
+    check(again?.error === 'Private/reserved address' && hits.length === 1, 'a revoked grant refuses again')
+  } finally {
+    server.close()
+  }
 
   if (process.env.SMOKE_SCREENSHOT) await page.screenshot({ path: process.env.SMOKE_SCREENSHOT })
   check(pageErrors.length === 0, `no uncaught page errors${pageErrors.length ? `: ${pageErrors.join(' | ')}` : ''}`)

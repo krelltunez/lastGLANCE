@@ -14,7 +14,7 @@
 import { createSyncEngine, mergeArrayById, pruneTombstones } from '@glance-apps/sync'
 import type { SyncEngine, SyncErrorCode, SyncStatus } from '@glance-apps/sync'
 import { db } from '@/db/client'
-import { browserDirectFetch, isNativePlatform, nativeHttpFetch, webdavDirect } from '@/sync/nativeHttp'
+import { browserDirectFetch, hasNativeHttp, nativeHttpFetch, webdavDirect } from '@/sync/nativeHttp'
 import { FILE_SYNC_KEY_HOOKS } from '@/sync/nativeKeyHooks'
 import { getSyncFolder } from '@/sync/syncFolder'
 import { buildPeoplePayload, deletePeopleRow, notifyPeopleApplied, PEOPLE_TABLES, upsertPeopleEntity } from './apply'
@@ -139,7 +139,7 @@ export function createPeopleFileEngine(
     appId: PREFIX,
     appName: 'lastGLANCE People',
     proxyUrl,
-    electronProxyFetch: isNativePlatform ? nativeHttpFetch : webdavDirect ? browserDirectFetch : undefined,
+    electronProxyFetch: hasNativeHttp ? nativeHttpFetch : webdavDirect ? browserDirectFetch : undefined,
     buildPayload: buildPeoplePayload,
     buildBackupPayload: buildPeoplePayload,
     applyPayload: applyPeoplePayload,

@@ -231,6 +231,26 @@ const RULES = [
 // Whole-string replacements for the handful of sentences a word-level rule
 // cannot rebuild — passive reordering and the addressee pronoun.
 const OVERRIDES = {
+  // Desktop private-address permission (sync.privateAddress), as dayGLANCE's
+  // reviewed pt-BR has it: conectar (not ligar), acessar, em uma, você.
+  'sync.privateAddress.needsPermission':
+    "{{origin}} está em uma rede privada, então o lastGLANCE precisa da sua permissão para se conectar. O servidor ainda não foi contatado.",
+  'sync.privateAddress.refused':
+    "{{origin}} é um endereço reservado ao qual o lastGLANCE não se conecta.",
+  'sync.privateAddress.allowHint':
+    "O lastGLANCE pedirá sua confirmação. Permita apenas endereços da sua própria rede.",
+  'sync.privateAddress.consentQuestion':
+    "Permitir que o lastGLANCE se conecte a este endereço?",
+  'sync.privateAddress.consentResolvesTo':
+    "Ele aponta para um endereço de rede privada:",
+  'sync.privateAddress.consentWarning':
+    "Só permita se for o seu próprio servidor, na sua própria rede (uma rede doméstica ou de escritório, um host Docker ou uma VPN como o Tailscale). O lastGLANCE poderá acessá-lo, e tudo o que ele retornar passará a fazer parte dos seus dados.",
+  'sync.privateAddress.consentWarningLoopbackVault':
+    "Este endereço é um serviço em execução neste computador. Só permita se for o seu próprio GLANCEvault e a porta for aquela em que ele escuta. Outros programas nesta máquina ficam acessíveis em outras portas, e esta permissão não os abrange.",
+  'sync.privateAddress.consentWarningLoopbackServer':
+    "Este endereço é um serviço em execução neste computador. Só permita se for o seu próprio servidor de sincronização e a porta for aquela em que ele escuta. Outros programas nesta máquina ficam acessíveis em outras portas, e esta permissão não os abrange.",
+  'sync.privateAddress.consentScope':
+    "Isso vale apenas para este endereço. Você pode removê-lo depois em Configurações, em Sincronização na nuvem.",
   // Desktop application menu (Windows and Linux), as dayGLANCE's pt-BR has it.
   // Menu verbs differ by country rather than by spelling (Exibir, Desfazer,
   // Recortar), and "ecrã inteiro" (m) would come out as "tela inteiro".

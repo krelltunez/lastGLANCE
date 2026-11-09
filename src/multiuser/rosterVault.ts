@@ -23,7 +23,7 @@ import type { User } from '@/types'
 import { getVaultConfig, isVaultEnabled } from '@/sync/vaultConfig'
 import { getDeviceId } from '@/sync/deviceId'
 import { DB_ROOT_KEY_HOOKS } from '@/sync/nativeKeyHooks'
-import { headlessFetchImpl } from '@/headless/headlessHttp'
+import { shellFetchImpl } from '@/sync/shellFetch'
 import { isUnknownAppError } from '@/people/sync/dbEngine'
 import { getMultiUserEnabled } from './settings'
 
@@ -125,7 +125,7 @@ export function createRosterDbEngine(callbacks: RosterDbEngineCallbacks = {}): D
     ...DB_ROOT_KEY_HOOKS,
     vaultUrl: cfg.vaultUrl,
     vaultToken: cfg.vaultToken,
-    fetchImpl: headlessFetchImpl(),
+    fetchImpl: shellFetchImpl(),
     accountId: cfg.accountId,
     deviceId: rosterDeviceId(),
     getLocalEntity: getLocalRosterEntity,

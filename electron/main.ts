@@ -4,14 +4,18 @@
 // links, crash recovery and the startup log. The window, protocol and lifecycle
 // code follows dayGLANCE's electron/main.ts (krelltunez/dayGLANCE@8d72008).
 
-import { app, BrowserWindow, ipcMain, Menu, nativeTheme, protocol, screen, session, shell } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, net, protocol, screen, session, shell } from 'electron';
+import dns from 'node:dns';
 import fs from 'node:fs';
+import nodeNet from 'node:net';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { APP_BASE_URL, APP_HOST, APP_SCHEME, resolveAppRequest } from './appProtocol.js';
 import { buildApplicationMenuTemplate, isApplicationMenuLabels, supportsCustomApplicationMenu, type ApplicationMenuLabels } from './applicationMenu.js';
 import { CONTENT_SECURITY_POLICY } from './csp.js';
 import { isAllowedExternalUrl } from './externalLinks.js';
+import { createHttpProxy } from './httpProxy.js';
+import { createNetworkTrust, type NetworkTrust } from './networkTrust.js';
 import { decideRecovery } from './rendererRecovery.js';
 import { initStartupLog, logStartup } from './startupLog.js';
 import { shouldQuitOnAllWindowsClosed } from './startupQuit.js';
@@ -108,6 +112,68 @@ ipcMain.on('shell:exit-fullscreen', (event) => {
   const w = live(mainWindow);
   if (!isMainWindowSender(event.sender) || !w?.isFullScreen()) return;
   w.setFullScreen(false);
+});
+
+// ── Network (docs/desktop-app.md, section 4) ────────────────────────────────
+// The renderer's only way out: WebDAV, GLANCEvault, intents and the roster all
+// arrive here as `http:request`. networkTrust.ts decides which servers may be
+// reached (a private address only once the user grants it); httpProxy.ts makes
+// the request.
+
+// Every A/AAAA record, so a public name with a private record is caught.
+// dns.lookup goes through the OS resolver, which is what resolves Tailscale
+// MagicDNS names (host.tailnet.ts.net).
+async function resolveHostAddresses(host: string): Promise<string[]> {
+  const bare = host.replace(/^\[|\]$/g, '');
+  if (nodeNet.isIP(bare)) return [bare];
+  return (await dns.promises.lookup(bare, { all: true })).map(({ address }) => address);
+}
+
+let networkTrust: NetworkTrust | null = null;
+function trust(): NetworkTrust {
+  networkTrust ??= createNetworkTrust({
+    grantsFile: path.join(app.getPath('userData'), 'proxy-trusted-hosts.json'),
+    resolve: resolveHostAddresses,
+    confirm: async ({ title, message, detail, allow, cancel }) => {
+      const options: Electron.MessageBoxOptions = {
+        type: 'warning', buttons: [cancel, allow], defaultId: 0, cancelId: 0, title, message, detail,
+      };
+      const parent = live(mainWindow);
+      const { response } = parent ? await dialog.showMessageBox(parent, options) : await dialog.showMessageBox(options);
+      return response === 1;
+    },
+    log: logStartup,
+  });
+  return networkTrust;
+}
+
+const httpRequest = createHttpProxy({
+  send: (url, init) => net.fetch(url, init),
+  validate: (url, isRedirect) => trust().validate(url, isRedirect),
+});
+
+ipcMain.handle('http:request', (event, method: unknown, url: unknown, headers: unknown, body: unknown) => {
+  if (!isMainWindowSender(event.sender)) return { error: 'Not allowed from this window' };
+  return httpRequest(method, url, headers, body);
+});
+
+ipcMain.handle('http:inspect', (event, url: unknown) => {
+  if (!isMainWindowSender(event.sender) || typeof url !== 'string') return { blocked: false };
+  return trust().inspect(url);
+});
+
+// The only path to the permission dialog, called from the "Allow this
+// address" button in Cloud Sync.
+ipcMain.handle('http:grant', (event, url: unknown, labels: unknown) => {
+  if (!isMainWindowSender(event.sender) || typeof url !== 'string') return { ok: false, reason: 'Invalid URL' };
+  return trust().request(url, labels);
+});
+
+ipcMain.handle('http:grants', (event) => (isMainWindowSender(event.sender) ? trust().list() : []));
+
+ipcMain.handle('http:revoke', (event, origin: unknown) => {
+  if (!isMainWindowSender(event.sender) || typeof origin !== 'string') return { ok: false };
+  return trust().revoke(origin);
 });
 
 function createWindow(): BrowserWindow {

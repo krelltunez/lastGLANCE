@@ -37,4 +37,11 @@ contextBridge.exposeInMainWorld('lastGlanceDesktop', {
     setTheme: (dark: boolean) => ipcRenderer.send('shell:set-theme', dark),
     exitFullscreen: () => ipcRenderer.send('shell:exit-fullscreen'),
   },
+  http: {
+    request: (method: string, url: string, headers: Record<string, string>, body: string | null) => ipcRenderer.invoke('http:request', method, url, headers, body),
+    inspect: (url: string) => ipcRenderer.invoke('http:inspect', url),
+    grant: (url: string, labels: Record<string, string>) => ipcRenderer.invoke('http:grant', url, labels),
+    grants: () => ipcRenderer.invoke('http:grants'),
+    revoke: (origin: string) => ipcRenderer.invoke('http:revoke', origin),
+  },
 });

@@ -20,7 +20,7 @@ import type { SyncCategory, SyncChore, SyncCompletionEvent, SyncUser } from './t
 import { getVaultConfig, isVaultEnabled } from './vaultConfig'
 import { getDeviceId } from './deviceId'
 import { DB_ROOT_KEY_HOOKS } from './nativeKeyHooks'
-import { headlessFetchImpl } from '@/headless/headlessHttp'
+import { shellFetchImpl } from '@/sync/shellFetch'
 import { addDeferredChore, removeDeferredChore, getDeferredChores } from './deferredChores'
 import {
   addDeferredCompletion,
@@ -603,7 +603,7 @@ export function createDbEngine(callbacks: DbEngineCallbacks = {}): DbSyncEngine 
     vaultUrl: cfg.vaultUrl,
     vaultToken: cfg.vaultToken,
     // A headless refresh has no CapacitorHttp; the shell's HTTP stands in.
-    fetchImpl: headlessFetchImpl(),
+    fetchImpl: shellFetchImpl(),
     accountId: cfg.accountId,
     deviceId: getDeviceId(),
     getLocalEntity,

@@ -28,9 +28,41 @@ export interface DesktopShell {
   exitFullscreen(): void
 }
 
+/** A response from the main process, or why no response came (refused, timeout, network). */
+export type DesktopHttpResult =
+  | { status: number; statusText: string; body: string; headers: Record<string, string> }
+  | { error: string }
+
+/** Whether the main process will refuse a URL, and whether a grant could unlock it. */
+export type DesktopHttpInspect =
+  | { blocked: false }
+  | { blocked: true; canGrant: true; origin: string; addresses: string[] }
+  | { blocked: true; canGrant: false; origin: string; reason: string }
+
+export interface DesktopHttpGrant {
+  origin: string
+  grantedAt: string
+  addresses: string[]
+}
+
+/**
+ * The renderer's HTTP (docs/desktop-app.md, section 4), made by the main
+ * process with no CORS. A private network address is refused until the user
+ * grants its origin through `grant`, which shows a native confirmation.
+ */
+export interface DesktopHttp {
+  request(method: string, url: string, headers: Record<string, string>, body: string | null): Promise<DesktopHttpResult>
+  inspect(url: string): Promise<DesktopHttpInspect>
+  /** The permission dialog; `labels` is its translated text. */
+  grant(url: string, labels: Record<string, string>): Promise<{ ok: boolean; reason?: string }>
+  grants(): Promise<DesktopHttpGrant[]>
+  revoke(origin: string): Promise<{ ok: boolean }>
+}
+
 export interface DesktopBridge {
   info: DesktopInfo
   shell: DesktopShell
+  http: DesktopHttp
 }
 
 /**
@@ -42,6 +74,11 @@ export const DESKTOP_BRIDGE_METHODS = [
   'shell.setMenuLabels',
   'shell.setTheme',
   'shell.exitFullscreen',
+  'http.request',
+  'http.inspect',
+  'http.grant',
+  'http.grants',
+  'http.revoke',
 ] as const
 
 declare global {

@@ -20,6 +20,9 @@ import { formatDateTime } from '@/utils/datetime'
 import { buildSyncConfigToSave } from './buildSyncConfig'
 import { DirectAccessSection } from './DirectAccessSection'
 import { ICloudSection } from './ICloudSection'
+import { AllowAddressButton, AllowedAddresses } from './PrivateAddress'
+import { usePrivateAddressGrants } from '@/hooks/usePrivateAddressGrants'
+import { blockedMessage, checkPrivateAddress, grantPrivateAddress, providerServerUrl, type PrivateAddressBlock } from '@/sync/privateAddress'
 
 interface Props {
   engine: SyncEngine | null
@@ -90,6 +93,10 @@ export function SyncSettingsModal({ engine, dbEngine, syncError, syncErrorCode, 
 
   const [testStatus, setTestStatus] = useState<TestStatus>('idle')
   const [testError, setTestError] = useState('')
+  // The desktop refused the server as a private address (src/sync/privateAddress.ts).
+  const [testBlock, setTestBlock] = useState<PrivateAddressBlock | null>(null)
+  const [granting, setGranting] = useState(false)
+  const privateGrants = usePrivateAddressGrants()
 
   // Master on/off for the WebDAV cloud sync. When off, the engine config is
   // persisted with enabled:false — credentials are kept but all auto-sync and
@@ -132,6 +139,7 @@ export function SyncSettingsModal({ engine, dbEngine, syncError, syncErrorCode, 
   // result can't outlive the credentials it verified.
   const [vaultTestStatus, setVaultTestStatus] = useState<TestStatus>('idle')
   const [vaultTestMsg, setVaultTestMsg] = useState('')
+  const [vaultTestBlock, setVaultTestBlock] = useState<PrivateAddressBlock | null>(null)
   const vaultFieldsFilled = Boolean(vaultUrl.trim() && vaultToken.trim() && vaultAccountId.trim())
 
   const [syncing, setSyncing] = useState(false)
@@ -279,6 +287,16 @@ export function SyncSettingsModal({ engine, dbEngine, syncError, syncErrorCode, 
     if (!engine || !requiredFieldsFilled) return
     setTestStatus('testing')
     setTestError('')
+    setTestBlock(null)
+    // The desktop refuses a private-network server until the user allows it;
+    // say so, instead of a network error from a server never contacted.
+    const block = await checkPrivateAddress(providerServerUrl(activeProvider?.configFields, formData))
+    if (block) {
+      setTestStatus('fail')
+      setTestError(blockedMessage(t, block))
+      setTestBlock(block)
+      return
+    }
     try {
       const result = await engine.test({ provider, ...formData })
       if (result.success) {
@@ -291,6 +309,34 @@ export function SyncSettingsModal({ engine, dbEngine, syncError, syncErrorCode, 
       setTestStatus('fail')
       setTestError(err instanceof Error ? err.message : String(err))
     }
+  }
+
+  // "Allow this address…": the main process shows the permission dialog; once
+  // granted, the test runs again and reaches the server.
+  async function handleAllowServer() {
+    const url = providerServerUrl(activeProvider?.configFields, formData)
+    if (!url) return
+    setGranting(true)
+    const refusal = await grantPrivateAddress(t, url, 'server')
+    setGranting(false)
+    await privateGrants.refresh()
+    if (refusal !== null) {
+      setTestError(refusal)
+      return
+    }
+    await handleTest()
+  }
+
+  async function handleAllowVault() {
+    setGranting(true)
+    const refusal = await grantPrivateAddress(t, vaultUrl.trim(), 'vault')
+    setGranting(false)
+    await privateGrants.refresh()
+    if (refusal !== null) {
+      setVaultTestMsg(refusal)
+      return
+    }
+    await handleVaultTest()
   }
 
   async function handleEnableEncryption() {
@@ -377,6 +423,14 @@ export function SyncSettingsModal({ engine, dbEngine, syncError, syncErrorCode, 
     if (!vaultFieldsFilled) return
     setVaultTestStatus('testing')
     setVaultTestMsg('')
+    setVaultTestBlock(null)
+    const block = await checkPrivateAddress(vaultUrl.trim())
+    if (block) {
+      setVaultTestStatus('fail')
+      setVaultTestMsg(blockedMessage(t, block))
+      setVaultTestBlock(block)
+      return
+    }
     const outcome = await testVaultConnection({
       vaultUrl: vaultUrl.trim(),
       vaultToken: vaultToken.trim(),
@@ -581,6 +635,9 @@ export function SyncSettingsModal({ engine, dbEngine, syncError, syncErrorCode, 
                   <span className="text-xs text-red-500 dark:text-red-400">{testError || t('sync.testFailed')}</span>
                 )}
               </div>
+              {testStatus === 'fail' && testBlock?.canGrant && (
+                <AllowAddressButton onClick={handleAllowServer} busy={granting} />
+              )}
               {syncResult === 'ok' && (
                 <span className="flex items-center gap-1.5 text-xs text-green-500 dark:text-green-400">
                   <CheckCircle size={13} />
@@ -895,6 +952,9 @@ export function SyncSettingsModal({ engine, dbEngine, syncError, syncErrorCode, 
                       </span>
                     )}
                   </div>
+                  {vaultTestStatus === 'fail' && vaultTestBlock?.canGrant && (
+                    <AllowAddressButton onClick={handleAllowVault} busy={granting} />
+                  )}
                 </div>
               </div>
             )}
@@ -967,6 +1027,11 @@ export function SyncSettingsModal({ engine, dbEngine, syncError, syncErrorCode, 
               </div>
             )}
           </div>
+
+          {/* The desktop's allowed private-network servers; nothing elsewhere. */}
+          {privateGrants.supported && (
+            <AllowedAddresses grants={privateGrants.grants} onRemove={origin => { void privateGrants.revoke(origin) }} />
+          )}
 
         </div>
 

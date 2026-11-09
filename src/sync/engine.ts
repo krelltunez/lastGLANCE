@@ -11,7 +11,7 @@ import type { SyncEngine, SyncStatus, SyncErrorCode, BackupFrequency } from '@gl
 import { db } from '@/db/client'
 import type { Category, Chore, CompletionEvent, User } from '@/types'
 import { buildAuthHeader, ensureFolder, forgetEnsuredFolders } from '@/intents/webdav'
-import { browserDirectFetch, isNativePlatform, nativeHttpFetch, webdavDirect } from './nativeHttp'
+import { browserDirectFetch, hasNativeHttp, nativeHttpFetch, webdavDirect } from './nativeHttp'
 import { DB_ROOT_KEY_HOOKS, FILE_SYNC_KEY_HOOKS } from './nativeKeyHooks'
 import type { SyncPayload, SyncSettings } from './types'
 import { getMultiUserEnabled, setMultiUserEnabled } from '@/multiuser/settings'
@@ -596,7 +596,7 @@ export function createEngine(proxyUrl: string | undefined, callbacks: EngineCall
     // works without the CORS proxy. In the browser use a direct fetch when
     // VITE_WEBDAV_DIRECT is enabled. Takes priority over proxyUrl in the engine,
     // so leaving it undefined keeps the proxy path.
-    electronProxyFetch: isNativePlatform ? nativeHttpFetch : webdavDirect ? browserDirectFetch : undefined,
+    electronProxyFetch: hasNativeHttp ? nativeHttpFetch : webdavDirect ? browserDirectFetch : undefined,
     buildPayload,
     buildBackupPayload,
     applyPayload,
