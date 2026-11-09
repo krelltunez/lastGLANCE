@@ -68,25 +68,26 @@ jobs:
 
       # Swift packages are resolved on their own, with retries. The binary
       # targets (Capacitor, Cordova, RevenueCat) download from GitHub release
-      # assets, and when a download fails SwiftPM leaves the partial file
-      # behind and its own retry reports "already exists in file system". On
-      # 2026-11-09 this failed the build before it compiled on PRs #421 and
-      # #422 and on main, including in a cache that started empty, while
-      # GitHub release downloads were also returning 504 to electron-builder.
-      # Each retry clears the partial downloads first; a real resolution error
-      # (a bad version, a missing package) fails all three attempts. The cache
-      # lives under RUNNER_TEMP so the retry knows exactly what to clear.
+      # assets, and on 2026-11-09 those downloads failed intermittently with
+      # "already exists in file system", in a cache that started empty, on
+      # PRs #421, #422 and #423 and on main. A failed attempt leaves state in
+      # both the download cache and Xcode's package checkouts, so a retry that
+      # keeps either one fails instantly without downloading again. Both live
+      # under RUNNER_TEMP and are deleted between attempts, so each retry is a
+      # fresh resolve; a real resolution error (a bad version, a missing
+      # package) still fails all three.
       - name: Resolve Swift packages
         run: |
           for attempt in 1 2 3; do
             if xcodebuild -resolvePackageDependencies \
                 -project ios/App/App.xcodeproj \
                 -scheme App \
-                -packageCachePath "$RUNNER_TEMP/spm-cache"; then
+                -packageCachePath "$RUNNER_TEMP/spm-cache" \
+                -clonedSourcePackagesDirPath "$RUNNER_TEMP/spm-packages"; then
               exit 0
             fi
-            echo "::warning::Swift package resolution failed (attempt $attempt of 3); clearing partial downloads"
-            rm -rf "$RUNNER_TEMP/spm-cache/artifacts"
+            echo "::warning::Swift package resolution failed (attempt $attempt of 3); starting over from empty package folders"
+            rm -rf "$RUNNER_TEMP/spm-cache" "$RUNNER_TEMP/spm-packages"
             sleep $((attempt * 20))
           done
           exit 1
@@ -99,4 +100,5 @@ jobs:
             -configuration Debug \
             -destination 'generic/platform=iOS Simulator' \
             -packageCachePath "$RUNNER_TEMP/spm-cache" \
+            -clonedSourcePackagesDirPath "$RUNNER_TEMP/spm-packages" \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
