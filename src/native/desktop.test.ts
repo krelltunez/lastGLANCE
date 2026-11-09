@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { desktopBridge, isDesktop, isDesktopMac } from './desktop'
 
-const shell = { setMenuLabels: () => {}, setTheme: () => {} }
+const shell = { setMenuLabels: () => {}, setTheme: () => {}, exitFullscreen: () => {} }
 
 function stubWindow(lastGlanceDesktop: unknown) {
   vi.stubGlobal('window', { lastGlanceDesktop })
