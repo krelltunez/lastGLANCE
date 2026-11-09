@@ -26,6 +26,14 @@ function readInfo(): { version: string; isMAS: boolean } {
 
 const info = readInfo();
 
+// A main-to-renderer event as a listener the renderer can remove: returns the
+// unsubscribe function. The IPC event object never reaches the page.
+function subscribe(channel: string, listener: (payload: unknown) => void): () => void {
+  const handler = (_event: Electron.IpcRendererEvent, payload: unknown) => listener(payload);
+  ipcRenderer.on(channel, handler);
+  return () => { ipcRenderer.removeListener(channel, handler); };
+}
+
 contextBridge.exposeInMainWorld('lastGlanceDesktop', {
   info: {
     platform: process.platform,
@@ -43,5 +51,10 @@ contextBridge.exposeInMainWorld('lastGlanceDesktop', {
     grant: (url: string, labels: Record<string, string>) => ipcRenderer.invoke('http:grant', url, labels),
     grants: () => ipcRenderer.invoke('http:grants'),
     revoke: (origin: string) => ipcRenderer.invoke('http:revoke', origin),
+  },
+  vaultSse: {
+    start: (options: { vaultUrl: string; vaultToken: string; accountId: string }) => ipcRenderer.invoke('vault-sse:start', options),
+    stop: () => ipcRenderer.invoke('vault-sse:stop'),
+    onMessage: (listener: (message: unknown) => void) => subscribe('vault-sse:message', listener),
   },
 });

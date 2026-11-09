@@ -59,10 +59,22 @@ export interface DesktopHttp {
   revoke(origin: string): Promise<{ ok: boolean }>
 }
 
+/**
+ * GLANCEvault's real-time push, read by the main process: the VaultSse
+ * contract of src/native/vaultSse.ts, as the phone shells implement it.
+ */
+export interface DesktopVaultSse {
+  start(options: { vaultUrl: string; vaultToken: string; accountId: string }): Promise<void>
+  stop(): Promise<void>
+  /** Every reader message ({type:'open'|'frame'|'closed'|'error'}); returns the unsubscribe. */
+  onMessage(listener: (message: unknown) => void): () => void
+}
+
 export interface DesktopBridge {
   info: DesktopInfo
   shell: DesktopShell
   http: DesktopHttp
+  vaultSse: DesktopVaultSse
 }
 
 /**
@@ -79,6 +91,9 @@ export const DESKTOP_BRIDGE_METHODS = [
   'http.grant',
   'http.grants',
   'http.revoke',
+  'vaultSse.start',
+  'vaultSse.stop',
+  'vaultSse.onMessage',
 ] as const
 
 declare global {

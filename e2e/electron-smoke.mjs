@@ -93,7 +93,18 @@ try {
   // 127.0.0.1 is a private address, so it needs a grant. The native dialog is
   // answered "Allow" by replacing showMessageBox in the main process.
   const hits = []
-  const server = http.createServer((req, res) => { hits.push(`${req.method} ${req.url}`); res.writeHead(207); res.end('<multistatus/>') })
+  const server = http.createServer((req, res) => {
+    hits.push(`${req.method} ${req.url}`)
+    if (req.url.startsWith('/events')) {
+      // A heartbeat, then one event, then held open like a real vault.
+      res.writeHead(200, { 'content-type': 'text/event-stream' })
+      res.write(': heartbeat\n\n')
+      res.write('data: {"seq":42}\n\n')
+      return
+    }
+    res.writeHead(207)
+    res.end('<multistatus/>')
+  })
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve))
   const target = `http://127.0.0.1:${server.address().port}/dav/`
   try {
@@ -108,7 +119,23 @@ try {
     await call('revoke', origin)
     const again = await call('request', 'GET', target, {}, null)
     check(again?.error === 'Private/reserved address' && hits.length === 1, 'a revoked grant refuses again')
+
+    // GLANCEvault's real-time push, read by the main process and relayed.
+    await call('grant', target, {})
+    const sse = await page.evaluate(([vaultUrl]) => new Promise((resolve) => {
+      const seen = []
+      const stop = window.lastGlanceDesktop.vaultSse.onMessage((m) => {
+        seen.push(m)
+        if (m.type === 'frame') { stop(); void window.lastGlanceDesktop.vaultSse.stop(); resolve(seen) }
+      })
+      void window.lastGlanceDesktop.vaultSse.start({ vaultUrl, vaultToken: 'smoke', accountId: 'a1' })
+      setTimeout(() => { stop(); resolve(seen) }, 8000)
+    }), [new URL(target).origin])
+    const types = sse.map((m) => m.type).join(',')
+    check(types === 'open,frame' && sse[1].block === 'data: {"seq":42}' && hits.includes('GET /events?accountId=a1'),
+      `vault live updates reach the page (${types})`)
   } finally {
+    server.closeAllConnections?.()
     server.close()
   }
 

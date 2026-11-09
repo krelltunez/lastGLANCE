@@ -17,6 +17,7 @@ import { isAllowedExternalUrl } from './externalLinks.js';
 import { createHttpProxy } from './httpProxy.js';
 import { createNetworkTrust, type NetworkTrust } from './networkTrust.js';
 import { decideRecovery } from './rendererRecovery.js';
+import { createVaultSseReader } from './vaultSse.js';
 import { initStartupLog, logStartup } from './startupLog.js';
 import { shouldQuitOnAllWindowsClosed } from './startupQuit.js';
 import { DESKTOP_INFO_ARG, encodeDesktopInfo } from './desktopInfo.js';
@@ -174,6 +175,28 @@ ipcMain.handle('http:grants', (event) => (isMainWindowSender(event.sender) ? tru
 ipcMain.handle('http:revoke', (event, origin: unknown) => {
   if (!isMainWindowSender(event.sender) || typeof origin !== 'string') return { ok: false };
   return trust().revoke(origin);
+});
+
+// GLANCEvault's real-time push, read here and relayed to the renderer, which
+// takes the same 'native-bridge' road as the phone shells (vaultSse.ts).
+const vaultSse = createVaultSseReader({
+  fetch: (url, init) => net.fetch(url, init),
+  validate: (url) => trust().validate(url, false),
+  push: (message) => {
+    if (message.type === 'error') logStartup(`vault SSE: ${message.code ?? 'error'}: ${message.message}`);
+    live(mainWindow)?.webContents.send('vault-sse:message', message);
+  },
+});
+
+ipcMain.handle('vault-sse:start', (event, options: unknown) => {
+  if (!isMainWindowSender(event.sender) || !options || typeof options !== 'object') return;
+  const { vaultUrl, vaultToken, accountId } = options as Record<string, unknown>;
+  if (typeof vaultUrl !== 'string' || typeof vaultToken !== 'string' || typeof accountId !== 'string') return;
+  vaultSse.start({ vaultUrl, vaultToken, accountId });
+});
+
+ipcMain.handle('vault-sse:stop', (event) => {
+  if (isMainWindowSender(event.sender)) vaultSse.stop();
 });
 
 function createWindow(): BrowserWindow {
@@ -376,7 +399,10 @@ app.whenReady().then(() => {
   app.on('activate', () => showMainWindow());
 });
 
-app.on('before-quit', () => { isQuitting = true; });
+app.on('before-quit', () => {
+  isQuitting = true;
+  vaultSse.stop();
+});
 
 app.on('window-all-closed', () => {
   if (shouldQuitOnAllWindowsClosed(process.platform, didCreateMainWindow)) {

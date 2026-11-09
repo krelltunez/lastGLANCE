@@ -89,6 +89,13 @@ describe('desktop bridge contract', () => {
     expect([...sent].sort()).toEqual([...handled].sort());
   });
 
+  it('listens in the preload only to events main sends', () => {
+    const listened = new Set([...preload.matchAll(/subscribe\('([^']+)'/g)].map((m) => m[1]));
+    const sentByMain = new Set([...mainTs.matchAll(/webContents\.send\('([^']+)'/g)].map((m) => m[1]));
+    expect(listened.size).toBeGreaterThan(0);
+    expect([...listened].sort()).toEqual([...sentByMain].sort());
+  });
+
   it('spells the info switch the same in the preload and desktopInfo.ts', () => {
     expect(preload).toContain(`const DESKTOP_INFO_ARG = '${DESKTOP_INFO_ARG}';`);
   });
