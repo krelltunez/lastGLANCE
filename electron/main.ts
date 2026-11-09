@@ -19,6 +19,7 @@ import { createNetworkTrust, type NetworkTrust } from './networkTrust.js';
 import { decideRecovery } from './rendererRecovery.js';
 import { createVaultSseReader } from './vaultSse.js';
 import { createSecureStore, secureStorageUsable } from './secureStore.js';
+import { registerDirectAccessHandlers } from './directAccess.js';
 import { initStartupLog, logStartup } from './startupLog.js';
 import { shouldQuitOnAllWindowsClosed } from './startupQuit.js';
 import { DESKTOP_INFO_ARG, encodeDesktopInfo } from './desktopInfo.js';
@@ -234,6 +235,9 @@ ipcMain.handle('secure-store:delete', (event, key: unknown) => {
   if (!isMainWindowSender(event.sender)) return;
   store().delete(key);
 });
+
+// Direct Access: a folder a sync tool keeps in step (directAccess.ts).
+registerDirectAccessHandlers({ app, dialog, ipcMain, getWindow: () => live(mainWindow), isMainWindowSender, log: logStartup });
 
 function createWindow(): BrowserWindow {
   const userData = app.getPath('userData');

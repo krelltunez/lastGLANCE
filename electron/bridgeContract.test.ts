@@ -10,7 +10,7 @@
 // this is the seam a method added on one side only would slip through.
 
 import { describe, expect, it } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { DESKTOP_BRIDGE_METHODS } from '../src/native/desktop';
 import { DESKTOP_INFO_ARG } from './desktopInfo.js';
@@ -21,6 +21,11 @@ const read = (rel: string) => readFileSync(path.join(root, rel), 'utf-8');
 const preload = read('electron/preload.cts');
 const desktopTs = read('src/native/desktop.ts');
 const mainTs = read('electron/main.ts');
+// Every main-process module: handlers and events live beside main.ts too.
+const mainProcess = readdirSync(path.join(root, 'electron'))
+  .filter((f) => f.endsWith('.ts') && !f.endsWith('.test.ts'))
+  .map((f) => read(`electron/${f}`))
+  .join('\n');
 
 /** The exposed object literal's groups: { group: { key: isFunction } }. */
 function preloadGroups(): Record<string, Record<string, boolean>> {
@@ -85,13 +90,17 @@ describe('desktop bridge contract', () => {
 
   it('handles in main every channel the preload sends or invokes', () => {
     const sent = new Set([...preload.matchAll(/ipcRenderer\.(?:send|invoke)\('([^']+)'/g)].map((m) => m[1]));
-    const handled = new Set([...mainTs.matchAll(/ipcMain\.(?:on|handle)\('([^']+)'/g)].map((m) => m[1]));
+    const handled = new Set([
+      ...[...mainProcess.matchAll(/ipcMain\.(?:on|handle)\('([^']+)'/g)].map((m) => m[1]),
+      // A module that registers through a helper names the channel as its first argument.
+      ...[...mainProcess.matchAll(/\bhandle\('([a-z-]+:[a-z-]+)'/g)].map((m) => m[1]),
+    ]);
     expect([...sent].sort()).toEqual([...handled].sort());
   });
 
   it('listens in the preload only to events main sends', () => {
     const listened = new Set([...preload.matchAll(/subscribe\('([^']+)'/g)].map((m) => m[1]));
-    const sentByMain = new Set([...mainTs.matchAll(/webContents\.send\('([^']+)'/g)].map((m) => m[1]));
+    const sentByMain = new Set([...mainProcess.matchAll(/webContents\.send\('([^']+)'/g)].map((m) => m[1]));
     expect(listened.size).toBeGreaterThan(0);
     expect([...listened].sort()).toEqual([...sentByMain].sort());
   });

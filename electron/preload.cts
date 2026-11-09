@@ -63,4 +63,18 @@ contextBridge.exposeInMainWorld('lastGlanceDesktop', {
     set: (options: { key: string; value: string }) => ipcRenderer.invoke('secure-store:set', options.key, options.value),
     delete: (options: { key: string }) => ipcRenderer.invoke('secure-store:delete', options.key),
   },
+  directAccess: {
+    status: () => ipcRenderer.invoke('direct-access:status'),
+    pickFolder: () => ipcRenderer.invoke('direct-access:pick-folder'),
+    disconnect: () => ipcRenderer.invoke('direct-access:disconnect'),
+    read: () => ipcRenderer.invoke('direct-access:read'),
+    write: (options: { text: string }) => ipcRenderer.invoke('direct-access:write', options),
+    deleteFile: () => ipcRenderer.invoke('direct-access:delete'),
+    listFiles: (options: { rel: string }) => ipcRenderer.invoke('direct-access:list-files', options),
+    readFile: (options: { rel: string }) => ipcRenderer.invoke('direct-access:read-file', options),
+    writeFile: (options: { rel: string; text: string }) => ipcRenderer.invoke('direct-access:write-file', options),
+    deleteFileAt: (options: { rel: string }) => ipcRenderer.invoke('direct-access:delete-file', options),
+    makeDir: (options: { rel: string }) => ipcRenderer.invoke('direct-access:make-dir', options),
+    onChanged: (listener: (payload: unknown) => void) => subscribe('direct-access:changed', listener),
+  },
 });

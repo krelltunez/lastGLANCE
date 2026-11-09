@@ -79,12 +79,36 @@ export interface DesktopSecureStore {
   delete(options: { key: string }): Promise<void>
 }
 
+type DirectAccessReadResult = { kind: 'absent' | 'downloading' | 'error' | 'text'; text?: string; error?: string }
+type DirectAccessFolderStatus = { configured: boolean; name: string | null; path: string | null; reachable: boolean }
+
+/**
+ * Direct Access: the ANDROID folder contract of src/native/directAccess.ts
+ * (electron/directAccess.ts), plus a change event from the folder watcher.
+ */
+export interface DesktopDirectAccess {
+  status(): Promise<DirectAccessFolderStatus>
+  pickFolder(): Promise<DirectAccessFolderStatus | { cancelled: true }>
+  disconnect(): Promise<void>
+  read(): Promise<DirectAccessReadResult>
+  write(options: { text: string }): Promise<{ ok: boolean }>
+  deleteFile(): Promise<{ ok: boolean }>
+  listFiles(options: { rel: string }): Promise<{ names: string[] | null }>
+  readFile(options: { rel: string }): Promise<DirectAccessReadResult>
+  writeFile(options: { rel: string; text: string }): Promise<{ ok: boolean }>
+  deleteFileAt(options: { rel: string }): Promise<{ ok: boolean }>
+  makeDir(options: { rel: string }): Promise<{ ok: boolean }>
+  /** The folder's snapshot or People file changed on disk; returns the unsubscribe. */
+  onChanged(listener: () => void): () => void
+}
+
 export interface DesktopBridge {
   info: DesktopInfo
   shell: DesktopShell
   http: DesktopHttp
   vaultSse: DesktopVaultSse
   secureStore: DesktopSecureStore
+  directAccess: DesktopDirectAccess
 }
 
 /**
@@ -107,6 +131,18 @@ export const DESKTOP_BRIDGE_METHODS = [
   'secureStore.get',
   'secureStore.set',
   'secureStore.delete',
+  'directAccess.status',
+  'directAccess.pickFolder',
+  'directAccess.disconnect',
+  'directAccess.read',
+  'directAccess.write',
+  'directAccess.deleteFile',
+  'directAccess.listFiles',
+  'directAccess.readFile',
+  'directAccess.writeFile',
+  'directAccess.deleteFileAt',
+  'directAccess.makeDir',
+  'directAccess.onChanged',
 ] as const
 
 declare global {

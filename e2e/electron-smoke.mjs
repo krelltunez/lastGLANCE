@@ -16,7 +16,8 @@
 // Usage: npm run build:electron:dir && npm run test:electron-smoke
 // Linux CI runs it under xvfb-run. SMOKE_SCREENSHOT=path saves a screenshot.
 import { _electron as electron } from 'playwright-core'
-import { readFileSync, existsSync } from 'node:fs'
+import { readFileSync, existsSync, mkdtempSync, rmSync } from 'node:fs'
+import os from 'node:os'
 import http from 'node:http'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -152,6 +153,29 @@ try {
   } finally {
     server.closeAllConnections?.()
     server.close()
+  }
+
+  // Direct Access (docs/desktop-app.md, section 5): a folder picked through the
+  // native dialog (answered here with a temp folder), files by path inside it,
+  // nothing outside it.
+  const folder = mkdtempSync(path.join(os.tmpdir(), 'lastglance-smoke-folder-'))
+  try {
+    await app.evaluate(({ dialog }, dir) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [dir], bookmarks: [] }) }, folder)
+    const da = await page.evaluate(async () => {
+      const d = window.lastGlanceDesktop.directAccess
+      const picked = await d.pickFolder()
+      const wrote = await d.writeFile({ rel: 'GLANCE/users/glance-users.json', text: '{"users":[]}' })
+      const read = await d.readFile({ rel: 'GLANCE/users/glance-users.json' })
+      const escaped = await d.writeFile({ rel: '../escaped.json', text: 'x' })
+      await d.disconnect()
+      const after = await d.status()
+      return { picked: picked.configured && picked.reachable, wrote: wrote.ok, read: read.text, escaped: escaped.ok, after: after.configured }
+    })
+    check(da.picked && da.wrote && da.read === '{"users":[]}' && da.escaped === false && da.after === false
+      && existsSync(path.join(folder, 'GLANCE/users/glance-users.json')),
+      `direct access: pick, files by path, confined, disconnect (${JSON.stringify(da)})`)
+  } finally {
+    rmSync(folder, { recursive: true, force: true })
   }
 
   if (process.env.SMOKE_SCREENSHOT) await page.screenshot({ path: process.env.SMOKE_SCREENSHOT })

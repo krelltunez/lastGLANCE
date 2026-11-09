@@ -24,7 +24,8 @@
 // The folder's tree URI and the iOS bookmarks live in the shell; the page sees
 // a name for the settings section and nothing else.
 
-import { createDirectAccessBridge, isDirectAccessAvailable } from '@/native/directAccess'
+import { createDirectAccessBridge, desktopDirectAccessPlugin, isDirectAccessAvailable } from '@/native/directAccess'
+import { desktopBridge } from '@/native/desktop'
 import type { DirectAccessBridge, DirectAccessRead, DirectAccessStatus } from '@/native/directAccess'
 
 /** Poll cadence: the tool does the network work; we read the local file. */
@@ -99,7 +100,14 @@ export interface DirectAccessTransportDeps {
 let nativeBridge: DirectAccessBridge | null = null
 const defaultBridge = (): DirectAccessBridge | null => {
   if (!isDirectAccessAvailable()) return null
-  nativeBridge ??= createDirectAccessBridge()
+  if (!nativeBridge) {
+    // The desktop holds a real folder, as Android does: the same bridge, plus
+    // the folder watcher's change event.
+    const desktop = desktopBridge()?.directAccess
+    nativeBridge = desktop
+      ? { ...createDirectAccessBridge(desktopDirectAccessPlugin(desktop), 'android'), onChanged: (cb) => desktop.onChanged(cb) }
+      : createDirectAccessBridge()
+  }
   return nativeBridge
 }
 const defaultStorage = (): StorageLike | null => (typeof localStorage === 'undefined' ? null : localStorage)
@@ -134,6 +142,7 @@ export function createDirectAccessTransport({
     { status: 'unknown', name: null, path: null, pickError: null, people: null, roster: null, events: null }
   const statusListeners = new Set<(s: DirectAccessSnapshot) => void>()
   const changeListeners = new Set<() => void>()
+  let unwatch: (() => void) | null = null
   let initPromise: Promise<void> | null = null
   let reprobing = false
 
@@ -396,11 +405,16 @@ export function createDirectAccessTransport({
     events: eventsSlot,
     files,
 
-    // Push signals: a folder picked or re-enabled in settings, and a folder
-    // that came back from unreachable. The shells have no folder watcher.
+    // Push signals: a folder picked or re-enabled in settings, a folder that
+    // came back from unreachable, and on the desktop a change the folder
+    // watcher saw on disk. The phone shells have no watcher; the poll covers it.
     onChanged: (cb: () => void): (() => void) => {
       changeListeners.add(cb)
-      return () => { changeListeners.delete(cb) }
+      if (changeListeners.size === 1) unwatch = bridge()?.onChanged?.(emitChanged) ?? null
+      return () => {
+        changeListeners.delete(cb)
+        if (changeListeners.size === 0) { unwatch?.(); unwatch = null }
+      }
     },
 
     isEnabled,

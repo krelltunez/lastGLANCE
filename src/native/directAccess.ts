@@ -1,5 +1,6 @@
 import { Capacitor, registerPlugin } from '@capacitor/core'
 import { isAndroid, isIOS } from './platform'
+import { desktopBridge, type DesktopDirectAccess } from './desktop'
 
 // Direct Access sync (docs/direct-access.md): the native folder plugin, and
 // the bridge shape the shared file transport consumes.
@@ -73,9 +74,46 @@ export interface DirectAccessPluginType {
 
 export const DirectAccess = registerPlugin<DirectAccessPluginType>('DirectAccess')
 
-/** True only inside a shell that registered the plugin; an older shell, and the web, answer false. */
+/** True only inside a shell that registered the plugin, or the desktop app; an older shell, and the web, answer false. */
 export function isDirectAccessAvailable(): boolean {
-  return Capacitor.isNativePlatform() && Capacitor.isPluginAvailable('DirectAccess')
+  return (Capacitor.isNativePlatform() && Capacitor.isPluginAvailable('DirectAccess')) || desktopBridge() !== null
+}
+
+const notOnDesktop = () => Promise.reject(new Error('Not available on the desktop'))
+
+/**
+ * The desktop app's folder (electron/directAccess.ts) as the plugin: Android's
+ * folder methods, the iOS-only slot methods refused. Built into a bridge with
+ * platform 'android', so the transport sees what it sees on Android.
+ */
+export function desktopDirectAccessPlugin(desktop: DesktopDirectAccess): DirectAccessPluginType {
+  return {
+    status: () => desktop.status(),
+    pickFolder: () => desktop.pickFolder(),
+    pickFile: notOnDesktop,
+    createFile: notOnDesktop,
+    disconnect: () => desktop.disconnect(),
+    read: () => desktop.read(),
+    write: (o) => desktop.write(o),
+    deleteFile: () => desktop.deleteFile(),
+    listFiles: (o) => desktop.listFiles(o),
+    readFile: (o) => desktop.readFile(o),
+    writeFile: (o) => desktop.writeFile(o),
+    deleteFileAt: (o) => desktop.deleteFileAt(o),
+    makeDir: (o) => desktop.makeDir(o),
+    peopleStatus: notOnDesktop,
+    readPeople: notOnDesktop,
+    writePeople: notOnDesktop,
+    forgetPeople: notOnDesktop,
+    usersStatus: notOnDesktop,
+    readUsers: notOnDesktop,
+    writeUsers: notOnDesktop,
+    forgetUsers: notOnDesktop,
+    eventsStatus: notOnDesktop,
+    readEvents: notOnDesktop,
+    writeEvents: notOnDesktop,
+    forgetEvents: notOnDesktop,
+  }
 }
 
 export interface FileSlot {
@@ -105,6 +143,8 @@ export interface DirectAccessBridge {
   people?: FileSlot
   users?: FileSlot
   events?: FileSlot
+  /** The desktop's folder watcher; the phone shells have none and rely on the poll. */
+  onChanged?: (listener: () => void) => () => void
 }
 
 type PickResult = DirectAccessStatus | { cancelled: true }
