@@ -7,7 +7,7 @@ vi.mock('@capacitor/core', () => ({
 
 import {
   createICloudTransport, getICloudSyncPref, isICloudSyncEnabled, setICloudSyncEnabled, choresHaveRealData, realChoreCount,
-  ICLOUD_SYNC_PREF_KEY, ICLOUD_LAST_SYNCED_KEY, ICLOUD_PEOPLE_LAST_SYNCED_KEY, ICLOUD_DOWNLOAD_GRACE_MS,
+  ICLOUD_SYNC_PREF_KEY, ICLOUD_LAST_SYNCED_KEY, ICLOUD_PEOPLE_LAST_SYNCED_KEY, ICLOUD_DOWNLOAD_GRACE_MS, ICLOUD_FIRST_SYNC_GRACE_MS,
 } from './icloud'
 import { createICloudBridge, type ICloudBridge, type ICloudPluginType } from '@/native/icloud'
 import { SEED_TIMESTAMP, SEED_CHORE_SYNC_IDS, SEED_CAT_SYNC_IDS } from '@/db/client'
@@ -137,6 +137,32 @@ describe('the iCloud transport', () => {
     expect(await t.read()).toBe('{"new":true}')
     f.stall('lastglance-sync.json', '{"old":true}')
     expect(await t.read()).toBe('{"downloading":true}')      // the clock restarted after a real read
+  })
+
+  it('on iOS a missing file is missing: a first sync seeds it at once', async () => {
+    const f = fakeICloud()
+    const t = createICloudTransport({ bridge: () => f.bridge, storage: memStorage() })
+    expect(await t.read()).toBeNull()
+  })
+
+  it('on a Mac that has never synced, a missing file is waited for, per file', async () => {
+    const f = fakeICloud()
+    let now = 0
+    const storage = memStorage()
+    const warn = vi.fn()
+    const t = createICloudTransport({ bridge: () => ({ ...f.bridge, absentMayBePending: true }), storage, now: () => now, log: { warn } })
+    expect(await t.read()).toBe('{"downloading":true}')
+    now += ICLOUD_FIRST_SYNC_GRACE_MS - 1
+    expect(await t.read()).toBe('{"downloading":true}')
+    f.files.set('lastglance-people.json', '{"people":1}')
+    expect(await t.peopleFile.read()).toBe('{"people":1}')        // the other file has its own clock
+    now += 1
+    expect(await t.read()).toBeNull()                              // still missing after the wait: seed it
+    expect(warn).toHaveBeenCalledOnce()
+    // Once a snapshot was read, a missing file is the cycle's eviction rule.
+    storage().setItem(ICLOUD_LAST_SYNCED_KEY, '2026-11-10T00:00:00.000Z')
+    const again = createICloudTransport({ bridge: () => ({ ...f.bridge, absentMayBePending: true }), storage, now: () => now })
+    expect(await again.read()).toBeNull()
   })
 
   it('a stall with no bytes on the device keeps waiting', async () => {

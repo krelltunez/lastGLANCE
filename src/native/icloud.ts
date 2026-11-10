@@ -63,13 +63,20 @@ export interface ICloudBridge {
   remove: (path: string, container?: ICloudContainer) => Promise<boolean>
   makeDir: (path: string, container?: ICloudContainer) => Promise<boolean>
   onChanged: (cb: () => void) => () => void
+  /**
+   * A missing file may be one iCloud has not listed on this device yet: the
+   * desktop app reads the iCloud Drive folder as plain files. iOS's API lists
+   * a file before its bytes arrive, so there a missing file is missing.
+   */
+  absentMayBePending?: boolean
 }
 
 const badAnswer: DirectAccessRead = { kind: 'error', error: 'bad answer from the shell' }
 
-export function createICloudBridge(plugin: ICloudPluginType = ICloud): ICloudBridge {
+export function createICloudBridge(plugin: ICloudPluginType = ICloud, { absentMayBePending = false } = {}): ICloudBridge {
   const errorOf = (err: unknown): DirectAccessRead => ({ kind: 'error', error: (err as Error)?.message ?? String(err) })
   return {
+    absentMayBePending,
     available: async () => { try { return (await plugin.available())?.available === true } catch { return false } },
     read: async (path, { container = 'own', allowStale = false } = {}) => {
       try {
@@ -104,7 +111,7 @@ export function icloudBridge(): ICloudBridge | null {
   if (!isICloudAvailable()) return null
   if (!shared) {
     const desktop = desktopICloud()
-    shared = desktop ? createICloudBridge(desktopICloudPlugin(desktop)) : createICloudBridge()
+    shared = desktop ? createICloudBridge(desktopICloudPlugin(desktop), { absentMayBePending: true }) : createICloudBridge()
   }
   return shared
 }

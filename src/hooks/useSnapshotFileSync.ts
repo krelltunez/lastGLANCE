@@ -4,6 +4,7 @@ import type { SnapshotFileTransport } from '@glance-apps/sync'
 import { runDirectAccessCycle, type DirectAccessCycleDeps } from '@/sync/directAccessCycle'
 import { runPeopleDirectAccessCycle } from '@/people/sync/directAccessCycle'
 import { CRYPTO_CONFIG } from '@/sync/engine'
+import { desktopLog } from '@/native/desktop'
 
 // Schedules snapshot-file sync for one transport: Direct Access (a folder a
 // third-party tool keeps in step, sync/directAccess.ts) or iCloud (the app's
@@ -120,6 +121,16 @@ export function useSnapshotFileSync({
   const cycleStateRef = useRef<Parameters<typeof runDirectAccessCycle>[1]>({ missingSince: 0, lastWriteAt: 0 })
   const peopleStateRef = useRef<Parameters<typeof runDirectAccessCycle>[1]>({ missingSince: 0, lastWriteAt: 0 })
   const keyRestoreTriedRef = useRef(false)
+  // The desktop app's log file gets a line when a file's outcome changes
+  // (a no-op elsewhere): enough to trace a sync from a user's report.
+  const loggedOutcomeRef = useRef(new Map<string, string>())
+  const logOutcome = (file: string, outcome: Outcome) => {
+    const o = outcome as { kind: string; reason?: string; error?: string; wrote?: boolean }
+    const line = [o.kind, o.reason, o.error, o.wrote === false ? 'not written' : ''].filter(Boolean).join(' ')
+    if (loggedOutcomeRef.current.get(file) === line) return
+    loggedOutcomeRef.current.set(file, line)
+    desktopLog(`[${file}] ${line}`)
+  }
 
   const runCycle = async (isRetry = false): Promise<void> => {
     if (!enabled || !readyRef.current || firstRunPendingRef.current) return
@@ -170,6 +181,7 @@ export function useSnapshotFileSync({
 
       const { state, outcome } = await runDirectAccessCycle({ transport, ...callbacksRef.current.cycleDeps }, cycleStateRef.current)
       cycleStateRef.current = state
+      logOutcome(transport.id ?? 'file-tier', outcome)
       if (asked(outcome, 'chores')) return
       if (outcome.kind === 'error') {
         console.error(`[${transport.id ?? 'file-tier'}] unavailable:`, outcome.error)
@@ -188,6 +200,7 @@ export function useSnapshotFileSync({
         try {
           const people = await runPeopleDirectAccessCycle({ transport: transport.peopleFile, ...callbacksRef.current.peopleCycleDeps }, peopleStateRef.current)
           peopleStateRef.current = people.state
+          logOutcome(`${transport.id ?? 'file-tier'}-people`, people.outcome)
           if (asked(people.outcome, 'people')) return
           if (people.outcome.kind === 'error') console.warn(`[${transport.id ?? 'file-tier'}] People file unavailable:`, people.outcome.error)
           else if (await keyOutcome(people.outcome)) rerunWithKey = true
@@ -200,6 +213,8 @@ export function useSnapshotFileSync({
       // not surface as an unhandled rejection from a timer; the next poll
       // retries exactly as it does for a skipped cycle.
       console.error(`[${transport.id ?? 'file-tier'}] sync cycle failed:`, (err as Error)?.message ?? err)
+      desktopLog(`[${transport.id ?? 'file-tier'}] cycle failed: ${(err as Error)?.message ?? String(err)}`)
+      loggedOutcomeRef.current.delete(transport.id ?? 'file-tier')
     } finally {
       fileTierLock.held = false
     }

@@ -32,7 +32,7 @@ describe('desktop menu labels', () => {
       isInitialized: true,
     }
     const setMenuLabels = vi.fn()
-    syncDesktopMenuLabels(i18n as never, { shell: { setMenuLabels, setTheme: vi.fn(), exitFullscreen: vi.fn() } })
+    syncDesktopMenuLabels(i18n as never, { shell: { setMenuLabels, setTheme: vi.fn(), exitFullscreen: vi.fn(), log: vi.fn() } })
     expect(setMenuLabels).toHaveBeenLastCalledWith({ file: 'File' })
     labels = { file: 'Fichier' }
     handlers.languageChanged()

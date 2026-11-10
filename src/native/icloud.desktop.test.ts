@@ -5,7 +5,10 @@ afterEach(() => {
   vi.resetModules()
 })
 
+const log = vi.fn()
+
 function desktop(platform: 'darwin' | 'win32' | 'linux') {
+  log.mockClear()
   const icloud = {
     available: vi.fn(async () => ({ available: true })),
     readFile: vi.fn(async () => ({ kind: 'text', text: '{"v":1}' })),
@@ -18,7 +21,7 @@ function desktop(platform: 'darwin' | 'win32' | 'linux') {
   vi.stubGlobal('window', {
     lastGlanceDesktop: {
       info: { platform, version: '3.0.1', isMAS: false, secureStorage: true },
-      shell: { setMenuLabels: () => {}, setTheme: () => {}, exitFullscreen: () => {} },
+      shell: { setMenuLabels: () => {}, setTheme: () => {}, exitFullscreen: () => {}, log },
       icloud,
     },
   })
@@ -32,6 +35,7 @@ describe('iCloud on the desktop', () => {
     expect(isICloudAvailable()).toBe(true)
     const bridge = icloudBridge()!
     expect(await bridge.available()).toBe(true)
+    expect(bridge.absentMayBePending).toBe(true)   // a folder iCloud has not filled in yet looks empty
     expect(await bridge.read('lastglance-sync.json')).toEqual({ kind: 'text', text: '{"v":1}' })
     await bridge.write('GLANCE/events/e.json', '{}', { container: 'dayglance' })
     expect(icloud.writeFile).toHaveBeenCalledWith({ path: 'GLANCE/events/e.json', text: '{}', container: 'dayglance', atomic: false })
@@ -46,5 +50,18 @@ describe('iCloud on the desktop', () => {
     const { icloudBridge, isICloudAvailable } = await import('./icloud')
     expect(isICloudAvailable()).toBe(false)
     expect(icloudBridge()).toBeNull()
+  })
+})
+
+describe('the desktop log', () => {
+  it('sends a line to the shell on the desktop, and is a no-op elsewhere', async () => {
+    desktop('darwin')
+    const { desktopLog } = await import('./desktop')
+    desktopLog('[icloud] merged')
+    expect(log).toHaveBeenCalledWith('[icloud] merged')
+    vi.unstubAllGlobals()
+    vi.stubGlobal('window', {})
+    expect(() => desktopLog('x')).not.toThrow()
+    expect(log).toHaveBeenCalledTimes(1)
   })
 })
