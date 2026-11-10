@@ -29,6 +29,12 @@ export interface WidgetBridgePlugin {
 const WidgetBridge = registerPlugin<WidgetBridgePlugin>('WidgetBridge')
 
 export async function pushWidgetSnapshot(json: string): Promise<void> {
+  // The desktop app's tray is a widget too (docs/desktop-app.md, section 7).
+  const desktop = desktopBridge()
+  if (desktop) {
+    try { desktop.widget.updateSnapshot(json) } catch { /* the tray keeps its last one */ }
+    return
+  }
   if (!isNativeShell()) return
   try {
     await WidgetBridge.updateSnapshot({ json })

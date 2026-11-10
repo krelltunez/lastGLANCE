@@ -92,8 +92,16 @@ contextBridge.exposeInMainWorld('lastGlanceDesktop', {
     pending: () => ipcRenderer.invoke('notifications:pending'),
   },
   widget: {
+    updateSnapshot: (json: string) => ipcRenderer.send('widget:update-snapshot', json),
     consumeDeepLink: () => ipcRenderer.invoke('widget:consume-deep-link'),
     onDeepLink: (listener: (payload: unknown) => void) => subscribe('widget:deep-link', listener),
+  },
+  tray: {
+    state: () => ipcRenderer.invoke('tray:state'),
+    complete: (syncId: string) => ipcRenderer.send('tray:complete', syncId),
+    open: (token: string | null) => ipcRenderer.send('tray:open', token),
+    hide: () => ipcRenderer.send('tray:hide'),
+    onState: (listener: (payload: unknown) => void) => subscribe('tray:state', listener),
   },
   commands: {
     take: () => ipcRenderer.invoke('commands:take'),

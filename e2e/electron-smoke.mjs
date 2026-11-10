@@ -11,6 +11,8 @@
 //   - the desktop chrome classes are set and `native` is not;
 //   - requests go through the main process: a server on a private address is
 //     refused until granted, then reached, and the grant can be revoked;
+//   - background settings, reminders through main, the command queue and the
+//     tray popup's page (Phase 4);
 //   - the page's log lines reach the log file;
 //   - no uncaught page error.
 //
@@ -205,6 +207,39 @@ try {
   } finally {
     rmSync(exportDir, { recursive: true, force: true })
   }
+
+  // Phase 4 (docs/desktop-app.md, sections 7, 8 and 10): background settings,
+  // the reminder scheduler, the command queue, and the tray popup's page.
+  const phase4 = await page.evaluate(async () => {
+    const d = window.lastGlanceDesktop
+    const settings = await d.shell.getBackgroundSettings()
+    const future = Date.now() + 60 * 60 * 1000
+    await d.notifications.schedule([{ id: 4242, title: 'Smoke chore', body: 'b', at: future, open: 'chore:smoke', actions: [], extra: { choreSyncId: 'smoke' } }])
+    const pending = (await d.notifications.pending()).map((r) => r.id)
+    await d.notifications.cancel([4242])
+    const after = (await d.notifications.pending()).map((r) => r.id)
+    const commands = await d.commands.take()
+    return { settings, pending, after, commands }
+  })
+  check(phase4.settings?.keepRunning === true && phase4.settings?.openAtLogin === false,
+    `background settings default to keep running, not at login (${JSON.stringify(phase4.settings)})`)
+  check(phase4.pending.includes(4242) && !phase4.after.includes(4242), 'reminders schedule and cancel through main')
+  check(Array.isArray(phase4.commands) && phase4.commands.length === 0, 'the command queue answers, empty')
+
+  // The tray popup is the same bundle in its own window, rendered without App.
+  const trayRendered = await app.evaluate(async ({ app, BrowserWindow }) => {
+    const preload = `${app.getAppPath()}/dist-electron/preload.cjs`
+    const w = new BrowserWindow({ show: false, webPreferences: { preload, sandbox: true, contextIsolation: true } })
+    await w.loadURL('app://lastglance/?tray=1')
+    let text = ''
+    for (let i = 0; i < 50 && !text.includes('lastGLANCE'); i++) {
+      await new Promise((r) => setTimeout(r, 100))
+      text = await w.webContents.executeJavaScript('document.body.innerText')
+    }
+    w.destroy()
+    return text
+  })
+  check(trayRendered.includes('lastGLANCE'), `the tray popup page renders (${JSON.stringify(trayRendered.slice(0, 60))})`)
 
   // The page's lines reach the log file in userData (shell.log).
   const logLine = `smoke-log-${Date.now()}`

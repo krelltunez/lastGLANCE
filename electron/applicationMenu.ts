@@ -40,6 +40,10 @@ export const APPLICATION_MENU_LABEL_KEYS = [
 export const SHELL_LABEL_KEYS = [
   'backgroundTitle',
   'backgroundBody',
+  'trayOpen',
+  'trayQuit',
+  'trayMarkDone',
+  'trayNothingDue',
 ] as const;
 
 export type ApplicationMenuLabelKey = typeof APPLICATION_MENU_LABEL_KEYS[number];

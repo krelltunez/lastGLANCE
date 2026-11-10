@@ -50,6 +50,9 @@ module.exports = {
     '!**/*.map',
     '!node_modules/**/*',
   ],
+  // The tray icons (section 7), outside the asar so nativeImage reads them
+  // from process.resourcesPath/tray.
+  extraResources: [{ from: 'electron/resources/tray', to: 'tray' }],
   mac: {
     // null: ad-hoc (no certificate); undefined: electron-builder picks the
     // Developer ID identity when CSC_LINK is set.

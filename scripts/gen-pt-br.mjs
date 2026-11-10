@@ -231,6 +231,8 @@ const RULES = [
 // Whole-string replacements for the handful of sentences a word-level rule
 // cannot rebuild — passive reordering and the addressee pronoun.
 const OVERRIDES = {
+  // The desktop tray: no momento (de momento is European).
+  'tray.nothingDue': "Nada pendente no momento.",
   // The desktop app's background mode: bandeja do sistema, fazer login,
   // continuam chegando (the gerund), você.
   'settings.keepRunningHint':

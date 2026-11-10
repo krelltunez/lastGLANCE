@@ -74,6 +74,13 @@ describe('electron-builder.config.cjs', () => {
     expect(config.linux.category).toBeTruthy();
   });
 
+  it('ships the tray icons main loads', () => {
+    expect(config.extraResources).toEqual([{ from: 'electron/resources/tray', to: 'tray' }]);
+    for (const name of ['trayTemplate.png', 'trayTemplate@2x.png', 'tray.png', 'tray@2x.png']) {
+      expect(existsSync(path.join(root, 'electron/resources/tray', name)), name).toBe(true);
+    }
+  });
+
   it('registers the lastglance:// scheme the app handles', () => {
     expect(config.protocols).toEqual([{ name: 'lastGLANCE', schemes: [DEEP_LINK_SCHEME] }]);
   });

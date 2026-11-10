@@ -1,7 +1,7 @@
 # Desktop app (Electron): design
 
 Status: design, approved 2026-11-09. The build follows the phases in section 12;
-Phases 1 (the scaffold), 2 (network and sync) and 3 (iCloud Drive) are built.
+Phases 1 (the scaffold), 2 (network and sync), 3 (iCloud Drive) and 4 (background mode) are built.
 
 The desktop app is the existing web bundle in an Electron shell for macOS,
 Windows and Linux, after dayGLANCE's desktop app (`krelltunez/dayGLANCE`,
@@ -377,6 +377,10 @@ Neither can be tested in CI.
   - macOS and Windows use `app.setLoginItemSettings`, which is SMAppService on
     MAS;
   - Linux uses an XDG autostart `.desktop` file.
+- Windows and Linux start hidden at login (`--hidden`), to the tray. macOS
+  opens the window: SMAppService passes no arguments to tell a login start.
+- Both settings live in Settings, "Desktop app", and in
+  `userData/desktop-settings.json`, kept by main (`electron/backgroundMode.ts`).
 
 ### The renderer keeps working while hidden
 
@@ -384,7 +388,9 @@ Neither can be tested in CI.
   sync polls and the reminder diff keep their cadence.
 - Many hooks kick work on `visibilitychange`, and a hidden window never sends
   it. Main therefore forwards two events: `powerMonitor` resume and unlock, and
-  window show. `bridge.shell.onWake` triggers the same kicks as foregrounding.
+  window show. `bridge.shell.onWake` replays `visibilitychange`
+  (`src/native/desktopWake.ts`); each hook still checks `visibilityState`, so a
+  hidden window's visible-only kicks stay quiet.
 
 ### Reminders
 
@@ -394,9 +400,13 @@ Neither can be tested in CI.
 - the People dates and digest;
 - the "Mark done" and "Send to dayGLANCE" actions.
 
-`bridge.notifications` implements the calls it makes: `checkPermissions`,
-`requestPermissions`, `schedule`, `cancel`, `getPending`, `registerActionTypes`
-and the action listener.
+`src/native/desktopNotifications.ts` implements the calls it makes over
+`bridge.notifications`: `checkPermissions`, `requestPermissions`, `schedule`,
+`cancel`, `getPending` and `registerActionTypes`. What a phone decides in the
+page when a notification is answered (`handleNotificationAction`) is decided
+here at schedule time and carried to main as data: the token a click opens,
+and each button's token or command. The desktop schedules the full set (no
+iOS cap).
 
 Main owns the schedule:
 - It persists it to `userData/reminders.json` and arms a timer for the next one
@@ -404,12 +414,17 @@ Main owns the schedule:
 - It re-arms on resume and on clock or timezone change.
 - On launch or resume, a reminder missed within 12 hours fires once. Older ones
   are dropped.
+- The timer never waits more than an hour, so a clock change or a sleep the
+  resume event missed is caught within the hour
+  (`electron/reminderScheduler.ts`).
 
 Firing:
 - A reminder fires an Electron `Notification`.
 - A click opens the target through the deep-link token path (section 8).
 - On macOS the "Mark done" action is a real notification button, which Electron
-  supports there. Windows and Linux get click-to-open only.
+  supports there, and a People date's Log and Open are too. Windows and Linux
+  get click-to-open only.
+- The phones' "Send to dayGLANCE" button has no desktop equivalent yet.
 - An action becomes a queued command (section 10), so it is applied through the
   app's own handlers.
 
@@ -429,8 +444,13 @@ attributed to "electron.app.lastGLANCE". The People reminder fields in Settings
   phones.
 - The main window pushes the existing widget snapshot (`native/snapshot.ts`,
   `buildSnapshot`) through `bridge.widget.updateSnapshot`, and main caches it.
-- The popup loads `app://lastglance/?tray=1`. It renders a compact due list
-  from that snapshot, and "Mark done" queues a completion.
+- Main keeps the snapshot's due chores (`electron/trayModel.ts`). The popup
+  loads `app://lastglance/?tray=1`, the same bundle with no App
+  (`src/tray/TrayPopup.tsx`); main answers its calls only from the popup
+  window. It renders a compact due list, and "Mark done" queues a completion;
+  main hides that chore until a snapshot made after it shows it done.
+- A chore turns due with no event, so the desktop re-pushes the snapshot every
+  15 minutes.
 - The main renderer drains the queue (`usePendingCompletions`, which already
   handles widget completions on the phones). Main nudges it with an event, so
   this happens at once rather than on the next foreground.
@@ -440,8 +460,8 @@ attributed to "electron.app.lastGLANCE". The People reminder fields in Settings
   anchored under the icon, which hides on blur. Right click opens a menu: Open
   lastGLANCE, Quit.
 - **Windows:** the same popup, anchored to the tray icon's bounds.
-- **Linux:** a native menu only, with Open, the top due chores each with "Mark
-  done", and Quit. AppIndicator does not deliver clicks reliably on many
+- **Linux:** a native menu only, with Open, the top due chores each with a
+  submenu ("Mark done", Open), and Quit. AppIndicator does not deliver clicks reliably on many
   desktops, so a popup window cannot be anchored there.
 
 ## 8. Deep links
@@ -462,7 +482,10 @@ attributed to "electron.app.lastGLANCE". The People reminder fields in Settings
 - The renderer consumes the token through `bridge.widget.consumeDeepLink()`.
   That is the pull model `pendingDeepLink.ts` already uses.
 - The mapping is a pure function in `electron/deepLink.ts`. A test holds it
-  equal to the `case` list in `ios/App/App/AppDelegate.swift`.
+  equal to the `case` list in `ios/App/App/AppDelegate.swift`. Ids must look
+  like sync ids; anything else is refused.
+- `pinned` and `action:add-person`, which the Android widgets and launcher use,
+  are not iOS URL hosts and so are not desktop ones either.
 
 ## 9. Billing
 
@@ -516,7 +539,8 @@ and CLAUDE.md's "Launcher writes are applied, then pushed"):
 
 In this release the queue carries the tray's and the notifications' "Mark done".
 It is written generically so that MCP and Stream Deck do not need a second write
-path.
+path. The page applies commands with the GLANCElauncher's handlers and ledger
+(`src/native/desktopCommands.ts` over `src/intents/launcherQueue.ts`).
 
 **Ports, reserved now, so the two apps can run side by side.** dayGLANCE uses
 7892 for its Stream Deck WebSocket and 7893 for MCP.

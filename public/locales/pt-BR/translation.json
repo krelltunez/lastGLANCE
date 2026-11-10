@@ -1019,6 +1019,17 @@
     "minimize": "Minimizar",
     "zoom": "Zoom",
     "backgroundTitle": "O lastGLANCE continua em execução",
-    "backgroundBody": "Os lembretes continuam chegando com a janela fechada. Abra o lastGLANCE pela bandeja do sistema."
+    "backgroundBody": "Os lembretes continuam chegando com a janela fechada. Abra o lastGLANCE pela bandeja do sistema.",
+    "trayOpen": "Abrir o lastGLANCE",
+    "trayQuit": "Sair do lastGLANCE",
+    "trayMarkDone": "Marcar como concluída",
+    "trayNothingDue": "Nada pendente"
+  },
+  "tray": {
+    "overdue": "Em atraso: {{count}}",
+    "soon": "Em breve: {{count}}",
+    "nothingDue": "Nada pendente no momento.",
+    "notReady": "Abra o lastGLANCE uma vez para ver o que está pendente.",
+    "open": "Abrir o lastGLANCE"
   }
 }

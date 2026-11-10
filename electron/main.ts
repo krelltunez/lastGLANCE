@@ -4,7 +4,7 @@
 // links, crash recovery and the startup log. The window, protocol and lifecycle
 // code follows dayGLANCE's electron/main.ts (krelltunez/dayGLANCE@8d72008).
 
-import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, net, Notification, powerMonitor, protocol, safeStorage, screen, session, shell } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, nativeTheme, net, Notification, powerMonitor, protocol, safeStorage, screen, session, shell, Tray } from 'electron';
 import dns from 'node:dns';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
@@ -31,6 +31,7 @@ import { loadWindowState, onScreen, saveWindowState, saveWindowTheme, windowBack
 import { createCommandQueue, type CommandSource } from './commandQueue.js';
 import { DEEP_LINK_SCHEME, deepLinkFromArgv, deepLinkToken } from './deepLink.js';
 import { createReminderScheduler, type ScheduledReminder } from './reminderScheduler.js';
+import { parseTraySnapshot, popupPosition, settledCompletions, trayMenuItems, trayState, type TraySnapshot } from './trayModel.js';
 import { applyOpenAtLogin, closeAction, launchedHidden, loadDesktopSettings, saveDesktopSettings, type DesktopSettings } from './backgroundMode.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -256,8 +257,167 @@ ipcMain.handle('notifications:schedule', (event, list: unknown) => (isMainWindow
 ipcMain.handle('notifications:cancel', (event, ids: unknown) => { if (isMainWindowSender(event.sender)) reminders.cancel(ids); });
 ipcMain.handle('notifications:pending', (event) => (isMainWindowSender(event.sender) ? reminders.pending() : []));
 
-// The tray (section 7): refreshed when its labels or the settings change.
-function refreshTray(): void { /* the tray arrives with the tray popup */ }
+// ── The tray (docs/desktop-app.md, section 7) ───────────────────────────────
+// A widget: it shows the snapshot the main window pushes and never opens the
+// database (trayModel.ts). macOS gets a menu bar icon and Windows a tray icon,
+// each with a popup (app://lastglance/?tray=1, src/tray/); Linux gets a menu
+// only, since AppIndicator does not deliver clicks reliably there.
+let tray: Tray | null = null;
+let trayWindow: BrowserWindow | null = null;
+let traySnapshot: TraySnapshot | null = null;
+const doneHere = new Map<string, number>();
+const TRAY_POPUP_SIZE = { width: 340, height: 460 };
+const USE_TRAY_POPUP = process.platform !== 'linux';
+
+function isTrayWindowSender(sender: Electron.WebContents): boolean {
+  return sender === live(trayWindow)?.webContents;
+}
+
+function currentTrayState() {
+  return trayState(traySnapshot, doneHere);
+}
+
+function trayIconPath(name: string): string {
+  return app.isPackaged
+    ? path.join(process.resourcesPath, 'tray', name)
+    : path.join(__dirname, '..', 'electron', 'resources', 'tray', name);
+}
+
+function trayMenuLabels() {
+  return {
+    open: label('trayOpen', 'Open lastGLANCE'),
+    quit: label('trayQuit', 'Quit lastGLANCE'),
+    markDone: label('trayMarkDone', 'Mark done'),
+    nothingDue: label('trayNothingDue', 'Nothing due'),
+  };
+}
+
+function trayMenu(withChores: boolean): Menu {
+  const items = trayMenuItems(currentTrayState(), trayMenuLabels(), withChores);
+  return Menu.buildFromTemplate(items.map((item): Electron.MenuItemConstructorOptions => {
+    switch (item.kind) {
+      case 'open': return { label: item.label, click: () => showMainWindow() };
+      case 'quit': return { label: item.label, click: () => app.quit() };
+      case 'empty': return { label: item.label, enabled: false };
+      case 'chore': return {
+        label: item.label,
+        submenu: [
+          { label: item.markDone, click: () => completeFromTray(item.syncId) },
+          { label: item.open, click: () => openToken(`chore:${item.syncId}`) },
+        ],
+      };
+      default: return { type: 'separator' };
+    }
+  }));
+}
+
+function refreshTray(): void {
+  if (!tray || tray.isDestroyed()) return;
+  const { counts } = currentTrayState();
+  tray.setToolTip(counts.overdue > 0 ? `lastGLANCE · ${counts.overdue}` : 'lastGLANCE');
+  if (!USE_TRAY_POPUP) tray.setContextMenu(trayMenu(true));
+  live(trayWindow)?.webContents.send('tray:state', currentTrayState());
+}
+
+function completeFromTray(syncId: unknown): void {
+  if (typeof syncId !== 'string' || !traySnapshot?.chores.some((c) => c.syncId === syncId)) return;
+  doneHere.set(syncId, Date.now());
+  queueCommand('complete', { chore_id: syncId }, 'tray');
+  refreshTray();
+}
+
+function createTrayWindow(): BrowserWindow {
+  const w = new BrowserWindow({
+    ...TRAY_POPUP_SIZE,
+    show: false,
+    frame: false,
+    resizable: false,
+    movable: false,
+    minimizable: false,
+    maximizable: false,
+    fullscreenable: false,
+    skipTaskbar: true,
+    alwaysOnTop: true,
+    backgroundColor: windowBackgroundColor(app.getPath('userData'), nativeTheme.shouldUseDarkColors),
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.cjs'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true,
+      devTools: DEV,
+      additionalArguments: [
+        `${DESKTOP_INFO_ARG}${encodeDesktopInfo({ version: app.getVersion(), isMAS: process.mas === true, secureStorage: isSecureStorageUsable() })}`,
+      ],
+    },
+  });
+  trayWindow = w;
+  w.on('blur', () => { if (!DEV || !w.webContents.isDevToolsOpened()) w.hide(); });
+  w.webContents.setWindowOpenHandler(({ url }) => { openExternalSafe(url); return { action: 'deny' }; });
+  w.webContents.on('will-navigate', (event) => event.preventDefault());
+  w.webContents.on('render-process-gone', (_e, details) => {
+    logStartup(`tray render-process-gone: reason=${details.reason}`);
+    if (!isQuitting && live(trayWindow) === w) { w.destroy(); trayWindow = null; }
+  });
+  void w.loadURL(`${DEV ? VITE_DEV_SERVER_URL : APP_BASE_URL}?tray=1`);
+  return w;
+}
+
+function toggleTrayPopup(): void {
+  if (!tray) return;
+  const w = live(trayWindow) ?? createTrayWindow();
+  if (w.isVisible()) { w.hide(); return; }
+  const icon = tray.getBounds();
+  const display = screen.getDisplayNearestPoint({ x: icon.x, y: icon.y });
+  w.setPosition(...Object.values(popupPosition(icon, TRAY_POPUP_SIZE, display.workArea)) as [number, number]);
+  w.webContents.send('tray:state', currentTrayState());
+  w.show();
+  w.focus();
+}
+
+function createTray(): void {
+  const image = IS_MAC
+    ? nativeImage.createFromPath(trayIconPath('trayTemplate.png'))
+    : nativeImage.createFromPath(trayIconPath('tray@2x.png'));
+  if (IS_MAC) image.setTemplateImage(true);
+  tray = new Tray(image);
+  tray.setToolTip('lastGLANCE');
+  if (USE_TRAY_POPUP) {
+    tray.on('click', () => toggleTrayPopup());
+    tray.on('right-click', () => tray?.popUpContextMenu(trayMenu(false)));
+  }
+  refreshTray();
+}
+
+// The main window's widget snapshot (src/native/widgetBridge.ts).
+ipcMain.on('widget:update-snapshot', (event, json: unknown) => {
+  if (!isMainWindowSender(event.sender)) return;
+  const snapshot = parseTraySnapshot(json);
+  if (!snapshot) return;
+  traySnapshot = snapshot;
+  for (const id of settledCompletions(doneHere, snapshot)) doneHere.delete(id);
+  refreshTray();
+});
+
+// The popup's calls: its state, Mark done, open a target, close.
+ipcMain.handle('tray:state', (event) => (isTrayWindowSender(event.sender) ? currentTrayState() : null));
+ipcMain.on('tray:complete', (event, syncId: unknown) => {
+  if (isTrayWindowSender(event.sender)) completeFromTray(syncId);
+});
+ipcMain.on('tray:open', (event, token: unknown) => {
+  if (!isTrayWindowSender(event.sender)) return;
+  live(trayWindow)?.hide();
+  openToken(typeof token === 'string' ? deepLinkTokenFromTray(token) : null);
+});
+ipcMain.on('tray:hide', (event) => {
+  if (isTrayWindowSender(event.sender)) live(trayWindow)?.hide();
+});
+
+/** The popup may open a chore it shows, or the app; nothing else. */
+function deepLinkTokenFromTray(token: string): string | null {
+  if (!token.startsWith('chore:')) return null;
+  const id = token.slice('chore:'.length);
+  return traySnapshot?.chores.some((c) => c.syncId === id) ? token : null;
+}
 
 // Hooks for the tray and reminders (section 7).
 function onShellLabels(): void { refreshTray(); }
@@ -695,6 +855,8 @@ app.whenReady().then(() => {
 
   // A link that launched the app opens the window even at login.
   createWindow({ startHidden: !IS_MAC && launchedHidden(process.argv) && !pendingDeepLink });
+
+  createTray();
 
   // Reminders due while the app was not running: within 12 hours fire once.
   reminders.rearm();

@@ -1019,6 +1019,17 @@
     "minimize": "最小化",
     "zoom": "缩放",
     "backgroundTitle": "lastGLANCE 仍在运行",
-    "backgroundBody": "窗口关闭后提醒照常送达。可从系统托盘打开 lastGLANCE。"
+    "backgroundBody": "窗口关闭后提醒照常送达。可从系统托盘打开 lastGLANCE。",
+    "trayOpen": "打开 lastGLANCE",
+    "trayQuit": "退出 lastGLANCE",
+    "trayMarkDone": "标记为完成",
+    "trayNothingDue": "暂无到期事项"
+  },
+  "tray": {
+    "overdue": "已逾期：{{count}}",
+    "soon": "即将到期：{{count}}",
+    "nothingDue": "目前没有到期事项。",
+    "notReady": "先打开一次 lastGLANCE，即可在这里查看到期事项。",
+    "open": "打开 lastGLANCE"
   }
 }

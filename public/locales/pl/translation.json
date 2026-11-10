@@ -1067,6 +1067,17 @@
     "minimize": "Minimalizuj",
     "zoom": "Powiększenie",
     "backgroundTitle": "lastGLANCE nadal działa",
-    "backgroundBody": "Przypomnienia przychodzą też przy zamkniętym oknie. Otwórz lastGLANCE z zasobnika systemowego."
+    "backgroundBody": "Przypomnienia przychodzą też przy zamkniętym oknie. Otwórz lastGLANCE z zasobnika systemowego.",
+    "trayOpen": "Otwórz lastGLANCE",
+    "trayQuit": "Zakończ lastGLANCE",
+    "trayMarkDone": "Oznacz jako zrobione",
+    "trayNothingDue": "Nic do zrobienia"
+  },
+  "tray": {
+    "overdue": "Po terminie: {{count}}",
+    "soon": "Wkrótce: {{count}}",
+    "nothingDue": "Na razie nic do zrobienia.",
+    "notReady": "Otwórz lastGLANCE raz, aby zobaczyć, co jest do zrobienia.",
+    "open": "Otwórz lastGLANCE"
   }
 }

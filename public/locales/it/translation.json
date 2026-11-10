@@ -1019,6 +1019,17 @@
     "minimize": "Riduci a icona",
     "zoom": "Zoom",
     "backgroundTitle": "lastGLANCE è ancora in esecuzione",
-    "backgroundBody": "I promemoria continuano ad arrivare a finestra chiusa. Apri lastGLANCE dall'area di notifica."
+    "backgroundBody": "I promemoria continuano ad arrivare a finestra chiusa. Apri lastGLANCE dall'area di notifica.",
+    "trayOpen": "Apri lastGLANCE",
+    "trayQuit": "Esci da lastGLANCE",
+    "trayMarkDone": "Segna come fatta",
+    "trayNothingDue": "Niente in scadenza"
+  },
+  "tray": {
+    "overdue": "In ritardo: {{count}}",
+    "soon": "In scadenza: {{count}}",
+    "nothingDue": "Al momento non c'è niente in scadenza.",
+    "notReady": "Apri lastGLANCE una volta per vedere cosa è in scadenza.",
+    "open": "Apri lastGLANCE"
   }
 }

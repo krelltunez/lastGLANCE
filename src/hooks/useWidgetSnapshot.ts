@@ -3,6 +3,9 @@ import { pushSnapshot } from '@/native/snapshot'
 import { PEOPLE_CHANGED_EVENT } from '@/people/queries'
 import i18n from 'i18next'
 import { WEEK_START_CHANGED_EVENT } from '@/utils/datetime'
+import { desktopBridge } from '@/native/desktop'
+
+const DESKTOP_REFRESH_MS = 15 * 60 * 1000
 
 // Keeps the native widget snapshot fresh. Pushes on mount, whenever a chore is
 // logged, People change or a sync is applied (the signals the in-app heatmap
@@ -32,6 +35,9 @@ export function useWidgetSnapshot(): void {
     const onVisibility = () => {
       if (document.visibilityState === 'hidden') pushSnapshot()
     }
+    // The desktop tray shows each chore's state as of the last snapshot; a
+    // chore turns due with no event, so the desktop re-pushes on a timer.
+    const refresh = desktopBridge() ? setInterval(onChange, DESKTOP_REFRESH_MS) : undefined
     document.addEventListener('visibilitychange', onVisibility)
 
     return () => {
@@ -42,6 +48,7 @@ export function useWidgetSnapshot(): void {
       window.removeEventListener(WEEK_START_CHANGED_EVENT, onChange)
       clearTimeout(peopleTimer)
       document.removeEventListener('visibilitychange', onVisibility)
+      clearInterval(refresh)
     }
   }, [])
 }

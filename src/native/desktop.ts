@@ -157,11 +157,40 @@ export interface DesktopNotifications {
   pending(): Promise<DesktopReminder[]>
 }
 
-/** The widget plugin's desktop half: deep links now, the tray's snapshot with the tray. */
+/** The widget plugin's desktop half: the snapshot the tray shows, and deep links. */
 export interface DesktopWidget {
+  /** The widget snapshot (src/native/snapshot.ts), as the phones' widgets get it. */
+  updateSnapshot(json: string): void
   consumeDeepLink(): Promise<{ deepLink: string | null }>
   /** A deep link is waiting; returns the unsubscribe. */
   onDeepLink(listener: () => void): () => void
+}
+
+/** A due chore as the tray shows it (electron/trayModel.ts). */
+export interface DesktopTrayChore {
+  syncId: string
+  name: string
+  categoryName: string | null
+  state: 'overdue' | 'soon'
+  elapsedDays: number | null
+  targetCadenceDays: number | null
+  ratio: number | null
+}
+
+export interface DesktopTrayState {
+  due: DesktopTrayChore[]
+  counts: { overdue: number; soon: number }
+  ready: boolean
+}
+
+/** The tray popup's calls (src/tray/); main answers them only from the popup window. */
+export interface DesktopTray {
+  state(): Promise<DesktopTrayState | null>
+  complete(syncId: string): void
+  /** Show the app, on a chore when given `chore:<id>`. */
+  open(token: string | null): void
+  hide(): void
+  onState(listener: (state: unknown) => void): () => void
 }
 
 /** A write from outside the window (electron/commandQueue.ts): handleIntent's vocabulary. */
@@ -193,6 +222,7 @@ export interface DesktopBridge {
   commands: DesktopCommands
   notifications: DesktopNotifications
   widget: DesktopWidget
+  tray: DesktopTray
 }
 
 /**
@@ -247,8 +277,14 @@ export const DESKTOP_BRIDGE_METHODS = [
   'notifications.schedule',
   'notifications.cancel',
   'notifications.pending',
+  'widget.updateSnapshot',
   'widget.consumeDeepLink',
   'widget.onDeepLink',
+  'tray.state',
+  'tray.complete',
+  'tray.open',
+  'tray.hide',
+  'tray.onState',
 ] as const
 
 declare global {

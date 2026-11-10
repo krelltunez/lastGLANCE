@@ -1019,6 +1019,17 @@
     "minimize": "Réduire",
     "zoom": "Zoom",
     "backgroundTitle": "lastGLANCE est toujours ouvert",
-    "backgroundBody": "Les rappels continuent d'arriver fenêtre fermée. Ouvrez lastGLANCE depuis la zone de notification."
+    "backgroundBody": "Les rappels continuent d'arriver fenêtre fermée. Ouvrez lastGLANCE depuis la zone de notification.",
+    "trayOpen": "Ouvrir lastGLANCE",
+    "trayQuit": "Quitter lastGLANCE",
+    "trayMarkDone": "Marquer comme fait",
+    "trayNothingDue": "Rien à faire"
+  },
+  "tray": {
+    "overdue": "En retard : {{count}}",
+    "soon": "Bientôt : {{count}}",
+    "nothingDue": "Rien à faire pour le moment.",
+    "notReady": "Ouvrez lastGLANCE une fois pour voir ce qui est à faire.",
+    "open": "Ouvrir lastGLANCE"
   }
 }

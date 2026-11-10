@@ -1067,6 +1067,17 @@
     "minimize": "Згорнути",
     "zoom": "Масштаб",
     "backgroundTitle": "lastGLANCE і далі працює",
-    "backgroundBody": "Нагадування надходять і при закритому вікні. Відкрийте lastGLANCE із системного лотка."
+    "backgroundBody": "Нагадування надходять і при закритому вікні. Відкрийте lastGLANCE із системного лотка.",
+    "trayOpen": "Відкрити lastGLANCE",
+    "trayQuit": "Вийти з lastGLANCE",
+    "trayMarkDone": "Позначити виконаним",
+    "trayNothingDue": "Нічого не чекає"
+  },
+  "tray": {
+    "overdue": "Протерміновано: {{count}}",
+    "soon": "Незабаром: {{count}}",
+    "nothingDue": "Зараз нічого не чекає.",
+    "notReady": "Відкрийте lastGLANCE один раз, щоб побачити, що на черзі.",
+    "open": "Відкрити lastGLANCE"
   }
 }

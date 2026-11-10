@@ -1019,6 +1019,17 @@
     "minimize": "Minimize",
     "zoom": "Zoom",
     "backgroundTitle": "lastGLANCE is still running",
-    "backgroundBody": "Reminders keep coming while the window is closed. Open lastGLANCE from the tray."
+    "backgroundBody": "Reminders keep coming while the window is closed. Open lastGLANCE from the tray.",
+    "trayOpen": "Open lastGLANCE",
+    "trayQuit": "Quit lastGLANCE",
+    "trayMarkDone": "Mark done",
+    "trayNothingDue": "Nothing due"
+  },
+  "tray": {
+    "overdue": "Overdue: {{count}}",
+    "soon": "Due soon: {{count}}",
+    "nothingDue": "Nothing due right now.",
+    "notReady": "Open lastGLANCE once to see what's due.",
+    "open": "Open lastGLANCE"
   }
 }

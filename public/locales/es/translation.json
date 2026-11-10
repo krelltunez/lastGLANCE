@@ -1019,6 +1019,17 @@
     "minimize": "Minimizar",
     "zoom": "Zoom",
     "backgroundTitle": "lastGLANCE sigue en ejecución",
-    "backgroundBody": "Los recordatorios siguen llegando con la ventana cerrada. Abre lastGLANCE desde la bandeja del sistema."
+    "backgroundBody": "Los recordatorios siguen llegando con la ventana cerrada. Abre lastGLANCE desde la bandeja del sistema.",
+    "trayOpen": "Abrir lastGLANCE",
+    "trayQuit": "Salir de lastGLANCE",
+    "trayMarkDone": "Marcar como hecha",
+    "trayNothingDue": "Nada pendiente"
+  },
+  "tray": {
+    "overdue": "Atrasadas: {{count}}",
+    "soon": "Pronto: {{count}}",
+    "nothingDue": "No hay nada pendiente ahora mismo.",
+    "notReady": "Abre lastGLANCE una vez para ver lo pendiente.",
+    "open": "Abrir lastGLANCE"
   }
 }

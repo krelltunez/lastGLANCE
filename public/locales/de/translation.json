@@ -1019,6 +1019,17 @@
     "minimize": "Minimieren",
     "zoom": "Zoomen",
     "backgroundTitle": "lastGLANCE läuft weiter",
-    "backgroundBody": "Erinnerungen kommen weiter an, während das Fenster geschlossen ist. Öffne lastGLANCE über den Infobereich."
+    "backgroundBody": "Erinnerungen kommen weiter an, während das Fenster geschlossen ist. Öffne lastGLANCE über den Infobereich.",
+    "trayOpen": "lastGLANCE öffnen",
+    "trayQuit": "lastGLANCE beenden",
+    "trayMarkDone": "Als erledigt markieren",
+    "trayNothingDue": "Nichts fällig"
+  },
+  "tray": {
+    "overdue": "Überfällig: {{count}}",
+    "soon": "Bald fällig: {{count}}",
+    "nothingDue": "Gerade ist nichts fällig.",
+    "notReady": "Öffne lastGLANCE einmal, um zu sehen, was fällig ist.",
+    "open": "lastGLANCE öffnen"
   }
 }
