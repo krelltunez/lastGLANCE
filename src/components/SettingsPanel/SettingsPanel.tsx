@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import {
   X, Settings, ChevronDown, ChevronRight, Palette, Users, Plug, Archive, Info,
-  Sun, Moon, Monitor, Contact,
+  Sun, Moon, Monitor, Contact, AppWindow,
 } from 'lucide-react'
 import type { SyncEngine } from '@glance-apps/sync'
 import type { UseBillingResult } from '@glance-apps/billing/react'
@@ -15,7 +15,9 @@ import {
 } from '@/people/settings'
 import { useIntents } from '@/intents/IntentsContext'
 import { contactsSupported } from '@/native/contacts'
-import { isNativeShell } from '@/native/platform'
+import { hasNativeReminders } from '@/native/platform'
+import { desktopBridge } from '@/native/desktop'
+import { useDesktopBackgroundSettings } from '@/hooks/useDesktopBackgroundSettings'
 import { ContactsModal } from '@/components/People/ContactsModal'
 import { LanguagePicker } from '@/components/LanguagePicker/LanguagePicker'
 import { UsersPanel } from '@/components/UsersPanel/UsersPanel'
@@ -28,7 +30,7 @@ import { formatTimeSample, formatWeekdayShort, type TimeFormat, type WeekStartPr
 
 export type ThemePref = 'light' | 'dark' | 'system'
 
-export type SettingsSection = 'appearance' | 'people' | 'sync' | 'integrations' | 'household' | 'data' | 'about'
+export type SettingsSection = 'appearance' | 'people' | 'sync' | 'integrations' | 'household' | 'data' | 'desktop' | 'about'
 type SectionId = SettingsSection
 
 interface Props {
@@ -88,6 +90,9 @@ export function SettingsPanel(props: Props) {
   // GLANCElauncher, Android only: a one-time card above the sections and a
   // permanent entry under Integrations (src/native/launcherPromo.ts).
   const launcherPromo = useLauncherPromo()
+  // The desktop app's background settings; macOS always keeps running.
+  const desktop = desktopBridge()
+  const background = useDesktopBackgroundSettings()
 
   const toggle = (id: SectionId) => setOpen(o => (o === id ? null : id))
 
@@ -207,7 +212,7 @@ export function SettingsPanel(props: Props) {
                 <p className="mt-1.5 text-xs text-slate-400 dark:text-slate-500">{t('settings.phoneContactsHint')}</p>
               </Field>
             )}
-            {isNativeShell() && (
+            {hasNativeReminders() && (
               <Field label={t('settings.dateReminders')}>
                 <Segmented<'on' | 'off'>
                   label={t('settings.dateReminders')}
@@ -229,7 +234,7 @@ export function SettingsPanel(props: Props) {
                 <p className="mt-1.5 text-xs text-slate-400 dark:text-slate-500">{t('settings.dateRemindersHint')}</p>
               </Field>
             )}
-            {isNativeShell() && (
+            {hasNativeReminders() && (
               <Field label={t('settings.digestTime')} htmlFor="settings-digest-time">
                 <TimeInput id="settings-digest-time" minutes={digestMinutes} onChange={setDigestMinutes} />
                 <p className="mt-1.5 text-xs text-slate-400 dark:text-slate-500">{t('settings.digestTimeHint')}</p>
@@ -284,6 +289,40 @@ export function SettingsPanel(props: Props) {
                 closes to show the result. */}
             <BackupPanel engine={props.engine} onImported={props.onImported} onDone={onClose} />
           </Section>
+
+          {desktop && background.settings && (
+            <Section
+              id="desktop" open={open} onToggle={toggle}
+              icon={<AppWindow size={16} />} title={t('settings.desktop')}
+            >
+              {desktop.info.platform !== 'darwin' && (
+                <Field label={t('settings.keepRunning')}>
+                  <Segmented<'on' | 'off'>
+                    label={t('settings.keepRunning')}
+                    value={background.settings.keepRunning ? 'on' : 'off'}
+                    onChange={v => background.update({ keepRunning: v === 'on' })}
+                    options={[
+                      { value: 'on', label: t('settings.on') },
+                      { value: 'off', label: t('settings.off') },
+                    ]}
+                  />
+                  <p className="mt-1.5 text-xs text-slate-400 dark:text-slate-500">{t('settings.keepRunningHint')}</p>
+                </Field>
+              )}
+              <Field label={t('settings.openAtLogin')}>
+                <Segmented<'on' | 'off'>
+                  label={t('settings.openAtLogin')}
+                  value={background.settings.openAtLogin ? 'on' : 'off'}
+                  onChange={v => background.update({ openAtLogin: v === 'on' })}
+                  options={[
+                    { value: 'on', label: t('settings.on') },
+                    { value: 'off', label: t('settings.off') },
+                  ]}
+                />
+                <p className="mt-1.5 text-xs text-slate-400 dark:text-slate-500">{t('settings.openAtLoginHint')}</p>
+              </Field>
+            </Section>
+          )}
 
           <Section
             id="about" open={open} onToggle={toggle}

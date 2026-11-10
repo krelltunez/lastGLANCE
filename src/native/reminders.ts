@@ -4,7 +4,9 @@ import { LocalNotifications } from '@capacitor/local-notifications'
 // main.tsx imports '@/i18n' before anything schedules, so by the time these
 // t() calls run the instance is initialized.
 import i18n from 'i18next'
-import { isAndroid, isNativeShell } from './platform'
+import { hasNativeReminders, isAndroid } from './platform'
+import { desktopBridge } from './desktop'
+import { desktopNotificationsPlugin } from './desktopNotifications'
 import type { PendingLocalNotificationSchema } from '@capacitor/local-notifications'
 import { getCategories, getChoresForCategory, logCompletion } from '@/db/queries'
 import { db } from '@/db/client'
@@ -39,6 +41,20 @@ import dayjs from 'dayjs'
 // alarm, iOS has no equivalent and the system may batch delivery. Fine for a
 // single-shot "it's been N days" nudge; do not build anything time-critical on
 // top of it.
+
+// The calls the reminder sync makes, beyond the Android-only channel and
+// exact-alarm ones: the phones' plugin, or the desktop app's scheduler.
+type ReminderNotifications = Pick<typeof LocalNotifications, 'checkPermissions' | 'requestPermissions' | 'getPending' | 'cancel'> & {
+  registerActionTypes(o: { types: Parameters<typeof LocalNotifications.registerActionTypes>[0]['types'] }): Promise<void>
+  schedule(o: Parameters<typeof LocalNotifications.schedule>[0]): Promise<unknown>
+}
+let desktopPlugin: ReminderNotifications | null = null
+export function reminderNotifications(): ReminderNotifications {
+  const desktop = desktopBridge()
+  if (!desktop) return LocalNotifications
+  desktopPlugin ??= desktopNotificationsPlugin(desktop.notifications) as unknown as ReminderNotifications
+  return desktopPlugin
+}
 
 const CHANNEL_ID = 'overdue'
 // People reminders (dates and the daily digest) get their own channel, so
@@ -139,7 +155,7 @@ i18n.on('languageChanged', () => {
 async function ensureActionTypes(): Promise<void> {
   if (actionTypesReady) return
   try {
-    await LocalNotifications.registerActionTypes({
+    await reminderNotifications().registerActionTypes({
       types: [
         { id: ACTION_TYPE, actions: [{ id: 'mark_done', title: i18n.t('notifications.markDone') }] },
         {
@@ -297,11 +313,12 @@ async function buildPeopleDescriptors(): Promise<ReminderDescriptor[]> {
 // schedule only what's new or changed. Avoids a blanket cancel-all that could
 // drop an alarm in the window before it's re-registered.
 export async function syncReminders(): Promise<void> {
-  if (!isNativeShell()) return
+  if (!hasNativeReminders()) return
+  const notifications = reminderNotifications()
   try {
-    let perm = await LocalNotifications.checkPermissions()
+    let perm = await notifications.checkPermissions()
     if (perm.display !== 'granted') {
-      perm = await LocalNotifications.requestPermissions()
+      perm = await notifications.requestPermissions()
       if (perm.display !== 'granted') return
     }
     await ensureChannels()
@@ -313,8 +330,8 @@ export async function syncReminders(): Promise<void> {
     const dgEnabled = anyIntentsTransportOn(intentsTransportsOn())
     const [chores, people] = await Promise.all([buildReminders(dgEnabled), buildPeopleDescriptors()])
     const all = [...chores, ...people]
-    // iOS-only cap. On Android the full set is scheduled; there is no limit.
-    const desired = isAndroid() ? all : withinCap(all, IOS_PENDING_LIMIT)
+    // iOS-only cap. On Android and the desktop the full set is scheduled; there is no limit.
+    const desired = isAndroid() || desktopBridge() ? all : withinCap(all, IOS_PENDING_LIMIT)
     if (desired.length > 0) await maybePromptExactAlarm()
 
     // Android bakes each scheduled notification — including its small-icon
@@ -340,7 +357,7 @@ export async function syncReminders(): Promise<void> {
 
     const desiredById = new Map(desired.map(r => [r.id, r]))
     const pending: PendingLocalNotificationSchema[] =
-      (await LocalNotifications.getPending()).notifications
+      (await notifications.getPending()).notifications
     const pendingById = new Map(pending.map(p => [p.id, p]))
 
     const changed = (p: PendingLocalNotificationSchema, d: ReminderDescriptor) => {
@@ -361,7 +378,7 @@ export async function syncReminders(): Promise<void> {
       return !d || (!force && changed(p, d))
     })
     if (toCancel.length > 0) {
-      await LocalNotifications.cancel({ notifications: toCancel.map(p => ({ id: p.id })) })
+      await notifications.cancel({ notifications: toCancel.map(p => ({ id: p.id })) })
     }
 
     const cancelledIds = new Set(toCancel.map(p => p.id))
@@ -369,7 +386,7 @@ export async function syncReminders(): Promise<void> {
       ? desired
       : desired.filter(d => !pendingById.has(d.id) || cancelledIds.has(d.id))
     if (toSchedule.length > 0) {
-      await LocalNotifications.schedule({
+      await notifications.schedule({
         notifications: toSchedule.map(d => ({
           id: d.id,
           title: d.title,

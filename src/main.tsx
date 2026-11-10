@@ -11,6 +11,7 @@ import { settleServiceWorker } from './native/serviceWorker'
 import { recordFirstSeen } from './native/launcherPromo'
 import { desktopBridge } from './native/desktop'
 import { syncDesktopMenuLabels } from './native/desktopMenu'
+import { installDesktopWake } from './native/desktopWake'
 import { listenForEscape } from './hooks/useEscapeKey'
 
 // crypto.randomUUID() is only available in secure contexts (HTTPS / localhost).
@@ -36,9 +37,14 @@ if (Capacitor.isNativePlatform()) {
 // `native` stays off there; `desktop` and `desktop-<platform>` carry its window
 // chrome instead (the macOS traffic-light inset and drag region, index.css).
 const desktop = desktopBridge()
+// The tray popup (src/tray/) is the same bundle in its own window.
+const trayMode = desktop !== null && new URLSearchParams(window.location.search).get('tray') === '1'
 if (desktop) {
   document.documentElement.classList.add('desktop', `desktop-${desktop.info.platform}`)
-  syncDesktopMenuLabels(i18n, desktop)
+  if (!trayMode) {
+    syncDesktopMenuLabels(i18n, desktop)
+    installDesktopWake(desktop)
+  }
   // Escape leaves fullscreen even before any modal has opened (useEscapeKey).
   listenForEscape()
 }
@@ -84,6 +90,20 @@ const render = async () => {
   )
 }
 
+// The tray popup renders only the due list main sends it: no database, no
+// sync engine, no App (docs/desktop-app.md, section 7).
+const renderTray = async () => {
+  if (!desktop) return
+  const { TrayPopup } = await import('./tray/TrayPopup')
+  createRoot(document.getElementById('root')!).render(
+    <StrictMode>
+      <Suspense fallback={null}>
+        <TrayPopup tray={desktop.tray} />
+      </Suspense>
+    </StrictMode>,
+  )
+}
+
 // One sync cycle and a launcher push, then the shell tears the WebView down.
 // The credentials it needs come through the same shim, hydrated first.
 const runHeadless = async (clientId: string) => {
@@ -99,6 +119,7 @@ const runHeadless = async (clientId: string) => {
 // mount. Both calls are no-ops off Android, and a hydration failure still
 // renders — the app degrades to "sync not configured", never a blank screen.
 const boot = () => {
+  if (trayMode) { void renderTray(); return }
   installSecureConfigShim()
   const headless = headlessRequest(window.location.search)
   if (headless) {

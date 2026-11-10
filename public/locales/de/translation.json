@@ -735,7 +735,12 @@
       "viewOnGithub": "Auf GitHub ansehen",
       "getOnPlay": "Bei Google Play herunterladen",
       "notNow": "Nicht jetzt"
-    }
+    },
+    "desktop": "Desktop-App",
+    "keepRunning": "Im Hintergrund weiterlaufen",
+    "keepRunningHint": "Wenn du das Fenster schließt, bleibt lastGLANCE im Infobereich, damit Erinnerungen weiter ankommen.",
+    "openAtLogin": "Bei der Anmeldung öffnen",
+    "openAtLoginHint": "lastGLANCE starten, wenn du dich an diesem Computer anmeldest."
   },
   "people": {
     "close": "Schließen",
@@ -1012,6 +1017,19 @@
     "zoomOut": "Verkleinern",
     "toggleFullScreen": "Vollbild ein-/ausschalten",
     "minimize": "Minimieren",
-    "zoom": "Zoomen"
+    "zoom": "Zoomen",
+    "backgroundTitle": "lastGLANCE läuft weiter",
+    "backgroundBody": "Erinnerungen kommen weiter an, während das Fenster geschlossen ist. Öffne lastGLANCE über den Infobereich.",
+    "trayOpen": "lastGLANCE öffnen",
+    "trayQuit": "lastGLANCE beenden",
+    "trayMarkDone": "Als erledigt markieren",
+    "trayNothingDue": "Nichts fällig"
+  },
+  "tray": {
+    "overdue": "Überfällig: {{count}}",
+    "soon": "Bald fällig: {{count}}",
+    "nothingDue": "Gerade ist nichts fällig.",
+    "notReady": "Öffne lastGLANCE einmal, um zu sehen, was fällig ist.",
+    "open": "lastGLANCE öffnen"
   }
 }

@@ -30,6 +30,16 @@ export interface DesktopShell {
   exitFullscreen(): void
   /** One line in the app's log file (lastglance-startup.log), for support. */
   log(message: string): void
+  /** Background mode (docs/desktop-app.md, section 7). keepRunning applies on Windows and Linux. */
+  getBackgroundSettings(): Promise<DesktopBackgroundSettings | null>
+  setBackgroundSettings(patch: Partial<DesktopBackgroundSettings>): Promise<DesktopBackgroundSettings>
+  /** The machine woke, the screen unlocked, or the window was shown; returns the unsubscribe. */
+  onWake(listener: (why: unknown) => void): () => void
+}
+
+export interface DesktopBackgroundSettings {
+  keepRunning: boolean
+  openAtLogin: boolean
 }
 
 /** A response from the main process, or why no response came (refused, timeout, network). */
@@ -127,6 +137,79 @@ export interface DesktopICloud {
   onChanged(listener: () => void): () => void
 }
 
+/** A reminder as the main process schedules it (electron/reminderScheduler.ts). */
+export interface DesktopReminder {
+  id: number
+  title: string
+  body: string
+  at: number
+  /** The deep-link token a click opens. */
+  open: string | null
+  actions: { id: string; title: string; open?: string; command?: { action: string; payload: Record<string, unknown> } }[]
+  extra: Record<string, unknown>
+}
+
+/** The reminder scheduler in main (docs/desktop-app.md, section 7). */
+export interface DesktopNotifications {
+  checkPermissions(): Promise<{ display: string }>
+  schedule(list: DesktopReminder[]): Promise<number>
+  cancel(ids: number[]): Promise<void>
+  pending(): Promise<DesktopReminder[]>
+}
+
+/** The widget plugin's desktop half: the snapshot the tray shows, and deep links. */
+export interface DesktopWidget {
+  /** The widget snapshot (src/native/snapshot.ts), as the phones' widgets get it. */
+  updateSnapshot(json: string): void
+  consumeDeepLink(): Promise<{ deepLink: string | null }>
+  /** A deep link is waiting; returns the unsubscribe. */
+  onDeepLink(listener: () => void): () => void
+}
+
+/** A due chore as the tray shows it (electron/trayModel.ts). */
+export interface DesktopTrayChore {
+  syncId: string
+  name: string
+  categoryName: string | null
+  state: 'overdue' | 'soon'
+  elapsedDays: number | null
+  targetCadenceDays: number | null
+  ratio: number | null
+}
+
+export interface DesktopTrayState {
+  due: DesktopTrayChore[]
+  counts: { overdue: number; soon: number }
+  ready: boolean
+}
+
+/** The tray popup's calls (src/tray/); main answers them only from the popup window. */
+export interface DesktopTray {
+  state(): Promise<DesktopTrayState | null>
+  complete(syncId: string): void
+  /** Show the app, on a chore when given `chore:<id>`. */
+  open(token: string | null): void
+  hide(): void
+  onState(listener: (state: unknown) => void): () => void
+}
+
+/** A write from outside the window (electron/commandQueue.ts): handleIntent's vocabulary. */
+export interface DesktopCommand {
+  clientId: string
+  action: string
+  payload: Record<string, unknown>
+  source: 'tray' | 'notification'
+  at: string
+}
+
+/** The command queue (docs/desktop-app.md, section 10): taken, applied, then acknowledged. */
+export interface DesktopCommands {
+  take(): Promise<DesktopCommand[]>
+  ack(ids: string[]): Promise<void>
+  /** A command was queued; returns the unsubscribe. */
+  onQueued(listener: () => void): () => void
+}
+
 export interface DesktopBridge {
   info: DesktopInfo
   shell: DesktopShell
@@ -136,6 +219,10 @@ export interface DesktopBridge {
   directAccess: DesktopDirectAccess
   files: DesktopFiles
   icloud: DesktopICloud
+  commands: DesktopCommands
+  notifications: DesktopNotifications
+  widget: DesktopWidget
+  tray: DesktopTray
 }
 
 /**
@@ -148,6 +235,9 @@ export const DESKTOP_BRIDGE_METHODS = [
   'shell.setTheme',
   'shell.exitFullscreen',
   'shell.log',
+  'shell.getBackgroundSettings',
+  'shell.setBackgroundSettings',
+  'shell.onWake',
   'http.request',
   'http.inspect',
   'http.grant',
@@ -180,6 +270,21 @@ export const DESKTOP_BRIDGE_METHODS = [
   'icloud.deleteFile',
   'icloud.makeDir',
   'icloud.onChanged',
+  'commands.take',
+  'commands.ack',
+  'commands.onQueued',
+  'notifications.checkPermissions',
+  'notifications.schedule',
+  'notifications.cancel',
+  'notifications.pending',
+  'widget.updateSnapshot',
+  'widget.consumeDeepLink',
+  'widget.onDeepLink',
+  'tray.state',
+  'tray.complete',
+  'tray.open',
+  'tray.hide',
+  'tray.onState',
 ] as const
 
 declare global {

@@ -767,7 +767,12 @@
       "viewOnGithub": "Переглянути на GitHub",
       "getOnPlay": "Завантажити з Google Play",
       "notNow": "Не зараз"
-    }
+    },
+    "desktop": "Застосунок для комп’ютера",
+    "keepRunning": "Працювати у фоні",
+    "keepRunningHint": "Після закриття вікна lastGLANCE лишається в системному лотку, тож нагадування й далі надходять.",
+    "openAtLogin": "Відкривати під час входу",
+    "openAtLoginHint": "Запускати lastGLANCE, коли ви входите в систему на цьому комп’ютері."
   },
   "people": {
     "close": "Закрити",
@@ -1060,6 +1065,19 @@
     "zoomOut": "Зменшити",
     "toggleFullScreen": "Перемкнути повноекранний режим",
     "minimize": "Згорнути",
-    "zoom": "Масштаб"
+    "zoom": "Масштаб",
+    "backgroundTitle": "lastGLANCE і далі працює",
+    "backgroundBody": "Нагадування надходять і при закритому вікні. Відкрийте lastGLANCE із системного лотка.",
+    "trayOpen": "Відкрити lastGLANCE",
+    "trayQuit": "Вийти з lastGLANCE",
+    "trayMarkDone": "Позначити виконаним",
+    "trayNothingDue": "Нічого не чекає"
+  },
+  "tray": {
+    "overdue": "Протерміновано: {{count}}",
+    "soon": "Незабаром: {{count}}",
+    "nothingDue": "Зараз нічого не чекає.",
+    "notReady": "Відкрийте lastGLANCE один раз, щоб побачити, що на черзі.",
+    "open": "Відкрити lastGLANCE"
   }
 }

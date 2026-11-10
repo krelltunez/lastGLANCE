@@ -1,4 +1,5 @@
 import { Capacitor } from '@capacitor/core'
+import { isDesktop } from './desktop'
 
 // Platform predicates for the native bridges.
 //
@@ -20,4 +21,11 @@ export function isIOS(): boolean {
 // behind this call", not "which OS is it".
 export function isNativeShell(): boolean {
   return isAndroid() || isIOS()
+}
+
+// Scheduled reminders that fire with the app closed or in the background: the
+// phones' Local Notifications plugin, or the desktop app's scheduler in main
+// (src/native/desktopNotifications.ts). The web and PWA keep the in-page path.
+export function hasNativeReminders(): boolean {
+  return isNativeShell() || isDesktop()
 }

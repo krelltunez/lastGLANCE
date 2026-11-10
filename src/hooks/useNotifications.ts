@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react'
 import i18n from 'i18next'
 import { getCategories, getChoresForCategory, logCompletion } from '@/db/queries'
-import { LocalNotifications } from '@capacitor/local-notifications'
-import { isNativeShell } from '@/native/platform'
+import { hasNativeReminders } from '@/native/platform'
+import { reminderNotifications } from '@/native/reminders'
 import { useToast, type ToastOptions } from '@/components/Toast/Toast'
 import { useIntents } from '@/intents/IntentsContext'
 import { emitCreateIntent } from '@/intents/emitter'
@@ -75,11 +75,12 @@ export async function requestNotificationPermission(): Promise<NotificationPermi
   // in the native Local Notifications plugin, which also delivers the closed-app
   // reminders. Check/request there and map the plugin's PermissionState onto the
   // web NotificationPermission the UI expects.
-  if (isNativeShell()) {
+  if (hasNativeReminders()) {
     try {
-      let status = await LocalNotifications.checkPermissions()
+      const notifications = reminderNotifications()
+      let status = await notifications.checkPermissions()
       if (status.display === 'prompt' || status.display === 'prompt-with-rationale') {
-        status = await LocalNotifications.requestPermissions()
+        status = await notifications.requestPermissions()
       }
       if (status.display === 'granted') return 'granted'
       return status.display === 'denied' ? 'denied' : 'default'
@@ -165,10 +166,11 @@ export function useNotifications() {
                 toastOpts.onSendToDayGlance = async () => emitCreateIntent(chore)
               }
               showToastRef.current(toastOpts)
-            } else if (!isNativeShell()) {
-              // In both native shells the scheduled reminders (useReminders) own
-              // closed/backgrounded delivery — skip the web notification so it
-              // isn't duplicated. Web/PWA keeps the in-WebView path.
+            } else if (!hasNativeReminders()) {
+              // In both native shells and the desktop app the scheduled
+              // reminders (useReminders) own closed/backgrounded delivery — skip
+              // the web notification so it isn't duplicated. Web/PWA keeps the
+              // in-WebView path.
               await fireBrowserNotification(chore.name, body)
             }
 

@@ -46,6 +46,9 @@ contextBridge.exposeInMainWorld('lastGlanceDesktop', {
     setTheme: (dark: boolean) => ipcRenderer.send('shell:set-theme', dark),
     exitFullscreen: () => ipcRenderer.send('shell:exit-fullscreen'),
     log: (message: string) => ipcRenderer.send('shell:log', message),
+    getBackgroundSettings: () => ipcRenderer.invoke('shell:get-background-settings'),
+    setBackgroundSettings: (patch: { keepRunning?: boolean; openAtLogin?: boolean }) => ipcRenderer.invoke('shell:set-background-settings', patch),
+    onWake: (listener: (payload: unknown) => void) => subscribe('shell:wake', listener),
   },
   http: {
     request: (method: string, url: string, headers: Record<string, string>, body: string | null) => ipcRenderer.invoke('http:request', method, url, headers, body),
@@ -81,6 +84,29 @@ contextBridge.exposeInMainWorld('lastGlanceDesktop', {
   files: {
     saveText: (options: { filename: string; text: string }) => ipcRenderer.invoke('files:save-text', options),
     stash: (options: { filename: string; text: string }) => ipcRenderer.invoke('files:stash', options),
+  },
+  notifications: {
+    checkPermissions: () => ipcRenderer.invoke('notifications:permission'),
+    schedule: (list: unknown[]) => ipcRenderer.invoke('notifications:schedule', list),
+    cancel: (ids: number[]) => ipcRenderer.invoke('notifications:cancel', ids),
+    pending: () => ipcRenderer.invoke('notifications:pending'),
+  },
+  widget: {
+    updateSnapshot: (json: string) => ipcRenderer.send('widget:update-snapshot', json),
+    consumeDeepLink: () => ipcRenderer.invoke('widget:consume-deep-link'),
+    onDeepLink: (listener: (payload: unknown) => void) => subscribe('widget:deep-link', listener),
+  },
+  tray: {
+    state: () => ipcRenderer.invoke('tray:state'),
+    complete: (syncId: string) => ipcRenderer.send('tray:complete', syncId),
+    open: (token: string | null) => ipcRenderer.send('tray:open', token),
+    hide: () => ipcRenderer.send('tray:hide'),
+    onState: (listener: (payload: unknown) => void) => subscribe('tray:state', listener),
+  },
+  commands: {
+    take: () => ipcRenderer.invoke('commands:take'),
+    ack: (ids: string[]) => ipcRenderer.invoke('commands:ack', ids),
+    onQueued: (listener: (payload: unknown) => void) => subscribe('commands:queued', listener),
   },
   icloud: {
     available: () => ipcRenderer.invoke('icloud:available'),

@@ -10,6 +10,11 @@
 //   icon.png      1024px, icon-primary.svg as is (its own ~18% rounding), for
 //                 Windows and Linux, where electron-builder derives the .ico
 //                 and the hicolor PNG set from it.
+//   tray/         the tray icon (section 7), the brand mark reduced to a 5x5
+//                 grid with its highlighted bar: trayTemplate.png and @2x for
+//                 the macOS menu bar (black and alpha only; macOS tints it),
+//                 tray.png and @2x in the brand colors for Windows and Linux.
+//                 Shipped as extraResources.
 //
 // Run after a brand change and commit the output:
 //
@@ -51,4 +56,24 @@ await sharp(Buffer.from(brand('icon-primary.svg')), { density: 72 * (CANVAS / 51
   .png()
   .toFile(path.join(outDir, 'icon.png'))
 
-console.log('wrote electron/resources/icon-mac.png and icon.png')
+// The tray mark: a 5x5 grid of rounded cells with the middle column's
+// middle three lit, as the brand mark's bar. `scale` is 1 or 2.
+function traySvg(scale, lit, dim) {
+  const cell = 2 * scale, gap = 1 * scale, size = 16 * scale, offset = 1 * scale
+  let cells = ''
+  for (let r = 0; r < 5; r++) {
+    for (let c = 0; c < 5; c++) {
+      const on = c === 2 && r >= 1 && r <= 3
+      cells += `<rect x="${offset + c * (cell + gap)}" y="${offset + r * (cell + gap)}" width="${cell}" height="${cell}" rx="${0.5 * scale}" fill="${on ? lit : dim}"/>`
+    }
+  }
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">${cells}</svg>`
+}
+const trayDir = path.join(outDir, 'tray')
+fs.mkdirSync(trayDir, { recursive: true })
+for (const [scale, suffix] of [[1, ''], [2, '@2x']]) {
+  await sharp(Buffer.from(traySvg(scale, '#000000', 'rgba(0,0,0,0.38)'))).png().toFile(path.join(trayDir, `trayTemplate${suffix}.png`))
+  await sharp(Buffer.from(traySvg(scale, '#3DDC84', 'rgba(148,163,184,0.75)'))).png().toFile(path.join(trayDir, `tray${suffix}.png`))
+}
+
+console.log('wrote electron/resources/icon-mac.png, icon.png and tray/')

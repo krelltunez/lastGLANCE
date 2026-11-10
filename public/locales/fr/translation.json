@@ -735,7 +735,12 @@
       "viewOnGithub": "Voir sur GitHub",
       "getOnPlay": "Disponible sur Google Play",
       "notNow": "Pas maintenant"
-    }
+    },
+    "desktop": "Application de bureau",
+    "keepRunning": "Continuer en arrière-plan",
+    "keepRunningHint": "Fermer la fenêtre laisse lastGLANCE dans la zone de notification, et les rappels continuent d'arriver.",
+    "openAtLogin": "Ouvrir à la connexion",
+    "openAtLoginHint": "Lancer lastGLANCE quand vous ouvrez une session sur cet ordinateur."
   },
   "people": {
     "close": "Fermer",
@@ -1012,6 +1017,19 @@
     "zoomOut": "Zoom arrière",
     "toggleFullScreen": "Activer/désactiver le plein écran",
     "minimize": "Réduire",
-    "zoom": "Zoom"
+    "zoom": "Zoom",
+    "backgroundTitle": "lastGLANCE est toujours ouvert",
+    "backgroundBody": "Les rappels continuent d'arriver fenêtre fermée. Ouvrez lastGLANCE depuis la zone de notification.",
+    "trayOpen": "Ouvrir lastGLANCE",
+    "trayQuit": "Quitter lastGLANCE",
+    "trayMarkDone": "Marquer comme fait",
+    "trayNothingDue": "Rien à faire"
+  },
+  "tray": {
+    "overdue": "En retard : {{count}}",
+    "soon": "Bientôt : {{count}}",
+    "nothingDue": "Rien à faire pour le moment.",
+    "notReady": "Ouvrez lastGLANCE une fois pour voir ce qui est à faire.",
+    "open": "Ouvrir lastGLANCE"
   }
 }

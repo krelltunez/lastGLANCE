@@ -9,6 +9,7 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, readdirSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
+import { DEEP_LINK_SCHEME } from './deepLink';
 
 const require = createRequire(import.meta.url);
 const root = path.resolve(__dirname, '..');
@@ -71,6 +72,17 @@ describe('electron-builder.config.cjs', () => {
   it('gives the deb the metadata it fails without', () => {
     expect(config.linux.maintainer).toMatch(/<.+@.+>/);
     expect(config.linux.category).toBeTruthy();
+  });
+
+  it('ships the tray icons main loads', () => {
+    expect(config.extraResources).toEqual([{ from: 'electron/resources/tray', to: 'tray' }]);
+    for (const name of ['trayTemplate.png', 'trayTemplate@2x.png', 'tray.png', 'tray@2x.png']) {
+      expect(existsSync(path.join(root, 'electron/resources/tray', name)), name).toBe(true);
+    }
+  });
+
+  it('registers the lastglance:// scheme the app handles', () => {
+    expect(config.protocols).toEqual([{ name: 'lastGLANCE', schemes: [DEEP_LINK_SCHEME] }]);
   });
 
   it('keeps the Android application id for direct builds', () => {
