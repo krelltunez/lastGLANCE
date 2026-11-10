@@ -231,6 +231,15 @@ const RULES = [
 // Whole-string replacements for the handful of sentences a word-level rule
 // cannot rebuild — passive reordering and the addressee pronoun.
 const OVERRIDES = {
+  // The desktop app's background mode: bandeja do sistema, fazer login,
+  // continuam chegando (the gerund), você.
+  'settings.keepRunningHint':
+    "Ao fechar a janela, o lastGLANCE fica na bandeja do sistema e os lembretes continuam chegando.",
+  'settings.openAtLogin': "Abrir ao fazer login",
+  'settings.openAtLoginHint':
+    "Iniciar o lastGLANCE quando você fizer login neste computador.",
+  'menu.backgroundBody':
+    "Os lembretes continuam chegando com a janela fechada. Abra o lastGLANCE pela bandeja do sistema.",
   // iCloud and Direct Access hints that name the Mac and desktop apps:
   // seu without the article, ficar for manter-se, o app (masculine in Brazil).
   'icloud.onHint':

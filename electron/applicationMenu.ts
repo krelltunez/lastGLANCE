@@ -32,6 +32,16 @@ export const APPLICATION_MENU_LABEL_KEYS = [
   'zoom',
 ] as const;
 
+/**
+ * The shell's own text that rides in the same `menu` block (section 7): the
+ * background notice, the tray and its menu. Optional: main falls back to
+ * English for any that has not arrived.
+ */
+export const SHELL_LABEL_KEYS = [
+  'backgroundTitle',
+  'backgroundBody',
+] as const;
+
 export type ApplicationMenuLabelKey = typeof APPLICATION_MENU_LABEL_KEYS[number];
 export type ApplicationMenuLabels = Record<ApplicationMenuLabelKey, string>;
 

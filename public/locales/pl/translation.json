@@ -767,7 +767,12 @@
       "viewOnGithub": "Zobacz na GitHubie",
       "getOnPlay": "Pobierz z Google Play",
       "notNow": "Nie teraz"
-    }
+    },
+    "desktop": "Aplikacja na komputer",
+    "keepRunning": "Działaj w tle",
+    "keepRunningHint": "Po zamknięciu okna lastGLANCE zostaje w zasobniku systemowym, więc przypomnienia dalej przychodzą.",
+    "openAtLogin": "Otwieraj po zalogowaniu",
+    "openAtLoginHint": "Uruchamiaj lastGLANCE po zalogowaniu się na tym komputerze."
   },
   "people": {
     "close": "Zamknij",
@@ -1060,6 +1065,8 @@
     "zoomOut": "Pomniejsz",
     "toggleFullScreen": "Przełącz pełny ekran",
     "minimize": "Minimalizuj",
-    "zoom": "Powiększenie"
+    "zoom": "Powiększenie",
+    "backgroundTitle": "lastGLANCE nadal działa",
+    "backgroundBody": "Przypomnienia przychodzą też przy zamkniętym oknie. Otwórz lastGLANCE z zasobnika systemowego."
   }
 }

@@ -4,7 +4,7 @@
 // links, crash recovery and the startup log. The window, protocol and lifecycle
 // code follows dayGLANCE's electron/main.ts (krelltunez/dayGLANCE@8d72008).
 
-import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, net, protocol, safeStorage, screen, session, shell } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, net, Notification, powerMonitor, protocol, safeStorage, screen, session, shell } from 'electron';
 import dns from 'node:dns';
 import fs from 'node:fs';
 import nodeNet from 'node:net';
@@ -27,6 +27,7 @@ import { initStartupLog, logStartup } from './startupLog.js';
 import { shouldQuitOnAllWindowsClosed } from './startupQuit.js';
 import { DESKTOP_INFO_ARG, encodeDesktopInfo } from './desktopInfo.js';
 import { loadWindowState, onScreen, saveWindowState, saveWindowTheme, windowBackgroundColor } from './windowState.js';
+import { applyOpenAtLogin, closeAction, launchedHidden, loadDesktopSettings, saveDesktopSettings, type DesktopSettings } from './backgroundMode.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -65,6 +66,12 @@ let isQuitting = false;
 let didCreateMainWindow = false;
 let mainRecoveryAttempts: number[] = [];
 let applicationMenuSignature: string | null = null;
+// The page's translated strings for the shell's own text (the `menu` block):
+// the application menu, the tray, the background notice. English until the
+// page sends them.
+let shellLabels: Record<string, string> = {};
+const label = (key: string, fallback: string): string => shellLabels[key] || fallback;
+let desktopSettings: DesktopSettings = loadDesktopSettings(app.getPath('userData'));
 
 // Null for a destroyed window, so callers need no isDestroyed() checks.
 function live(win: BrowserWindow | null): BrowserWindow | null {
@@ -101,8 +108,66 @@ function updateApplicationMenu(labels: ApplicationMenuLabels): void {
 
 ipcMain.on('shell:set-menu-labels', (event, labels: unknown) => {
   if (!isMainWindowSender(event.sender) || !isApplicationMenuLabels(labels)) return;
+  shellLabels = { ...labels };
   updateApplicationMenu(labels);
+  onShellLabels();
 });
+
+// ── Background mode (docs/desktop-app.md, section 7) ────────────────────────
+// The settings the page shows: keep running (Windows and Linux) and open at login.
+function backgroundSettingsView() {
+  return { keepRunning: desktopSettings.keepRunning, openAtLogin: desktopSettings.openAtLogin };
+}
+
+ipcMain.handle('shell:get-background-settings', (event) => {
+  if (!isMainWindowSender(event.sender)) return null;
+  return backgroundSettingsView();
+});
+
+ipcMain.handle('shell:set-background-settings', (event, patch: unknown) => {
+  if (!isMainWindowSender(event.sender) || !patch || typeof patch !== 'object') return backgroundSettingsView();
+  const p = patch as Record<string, unknown>;
+  if (typeof p.keepRunning === 'boolean') desktopSettings = { ...desktopSettings, keepRunning: p.keepRunning };
+  if (typeof p.openAtLogin === 'boolean' && p.openAtLogin !== desktopSettings.openAtLogin) {
+    const applied = applyOpenAtLogin(p.openAtLogin, {
+      platform: process.platform,
+      setLoginItemSettings: (settings) => app.setLoginItemSettings(settings),
+      configHome: process.env.XDG_CONFIG_HOME || path.join(app.getPath('home'), '.config'),
+      exec: process.env.APPIMAGE || process.execPath,
+    });
+    if (applied) desktopSettings = { ...desktopSettings, openAtLogin: p.openAtLogin };
+    else logStartup('open at login: could not be changed');
+  }
+  saveDesktopSettings(app.getPath('userData'), desktopSettings);
+  onBackgroundSettingsChanged();
+  return backgroundSettingsView();
+});
+
+// The first time closing hides the window on Windows or Linux, say so: the
+// app is still running in the tray.
+function noteFirstBackgroundHide(): void {
+  if (IS_MAC || desktopSettings.backgroundNoticeShown) return;
+  desktopSettings = { ...desktopSettings, backgroundNoticeShown: true };
+  saveDesktopSettings(app.getPath('userData'), desktopSettings);
+  if (!Notification.isSupported()) return;
+  new Notification({
+    title: label('backgroundTitle', 'lastGLANCE is still running'),
+    body: label('backgroundBody', 'Reminders keep coming while the window is closed. Open lastGLANCE from the tray.'),
+  }).show();
+}
+
+// The tray (section 7): refreshed when its labels or the settings change.
+function refreshTray(): void { /* the tray arrives with the tray popup */ }
+
+// Hooks for the tray and reminders (section 7).
+function onShellLabels(): void { refreshTray(); }
+function onBackgroundSettingsChanged(): void { refreshTray(); }
+
+// The page's foreground kicks never fire for a hidden window, or on a resume
+// with the window already up: tell it the machine woke or the window came back.
+function sendWake(why: string): void {
+  live(mainWindow)?.webContents.send('shell:wake', why);
+}
 
 ipcMain.on('shell:set-theme', (event, dark: unknown) => {
   if (!isMainWindowSender(event.sender) || typeof dark !== 'boolean') return;
@@ -313,7 +378,7 @@ registerFilesHandlers({
   log: logStartup,
 });
 
-function createWindow(): BrowserWindow {
+function createWindow({ startHidden = false }: { startHidden?: boolean } = {}): BrowserWindow {
   const userData = app.getPath('userData');
   const saved = onScreen(loadWindowState(userData), screen.getAllDisplays().map((d) => d.workArea));
   didCreateMainWindow = true;
@@ -337,6 +402,9 @@ function createWindow(): BrowserWindow {
       nodeIntegration: false,
       sandbox: true,
       devTools: DEV,
+      // A hidden window keeps the 15 s sync polls and the reminder diff on
+      // their cadence (section 7).
+      backgroundThrottling: false,
       // The facts the preload exposes as bridge.info (desktopInfo.ts).
       additionalArguments: [
         `${DESKTOP_INFO_ARG}${encodeDesktopInfo({ version: app.getVersion(), isMAS: process.mas === true, secureStorage: isSecureStorageUsable() })}`,
@@ -355,9 +423,9 @@ function createWindow(): BrowserWindow {
   win.on('move', trackBounds);
   win.on('close', (event) => {
     saveWindowState(userData, { ...normalBounds, maximized: live(mainWindow)?.isMaximized() ?? false });
-    if (IS_MAC && !isQuitting) {
-      // Closing hides on macOS. Hiding a fullscreen window strands its Space as
-      // a black screen, so leave fullscreen first.
+    if (closeAction({ platform: process.platform, isQuitting, keepRunning: desktopSettings.keepRunning }) === 'hide') {
+      // Closing hides (backgroundMode.ts). Hiding a fullscreen window strands
+      // its Space as a black screen on macOS, so leave fullscreen first.
       event.preventDefault();
       const w = live(mainWindow);
       if (!w) return;
@@ -367,8 +435,10 @@ function createWindow(): BrowserWindow {
       } else {
         w.hide();
       }
+      noteFirstBackgroundHide();
     }
   });
+  win.on('show', () => sendWake('show'));
 
   if (saved.maximized) win.maximize();
 
@@ -379,6 +449,8 @@ function createWindow(): BrowserWindow {
   const showOnce = (why: string) => {
     if (shown) return;
     shown = true;
+    // An open-at-login start on Windows or Linux stays in the tray.
+    if (startHidden) { logStartup(`main window kept hidden (${why}, started at login)`); return; }
     logStartup(`main window show (${why})`);
     live(mainWindow)?.show();
   };
@@ -508,7 +580,12 @@ app.whenReady().then(() => {
     }
   });
 
-  createWindow();
+  createWindow({ startHidden: !IS_MAC && launchedHidden(process.argv) });
+
+  // A woken machine or an unlocked screen: the page's foreground kicks
+  // (section 7). Reminders re-arm on the same signals.
+  powerMonitor.on('resume', () => sendWake('resume'));
+  powerMonitor.on('unlock-screen', () => sendWake('unlock'));
 
   // A sync file changed in iCloud: run a cycle now rather than at the next poll.
   if (icloud) {

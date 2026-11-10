@@ -735,7 +735,12 @@
       "viewOnGithub": "Ver no GitHub",
       "getOnPlay": "Disponível no Google Play",
       "notNow": "Agora não"
-    }
+    },
+    "desktop": "App para computador",
+    "keepRunning": "Continuar em segundo plano",
+    "keepRunningHint": "Ao fechar a janela, o lastGLANCE fica na bandeja do sistema e os lembretes continuam chegando.",
+    "openAtLogin": "Abrir ao fazer login",
+    "openAtLoginHint": "Iniciar o lastGLANCE quando você fizer login neste computador."
   },
   "people": {
     "close": "Fechar",
@@ -1012,6 +1017,8 @@
     "zoomOut": "Reduzir",
     "toggleFullScreen": "Alternar tela cheia",
     "minimize": "Minimizar",
-    "zoom": "Zoom"
+    "zoom": "Zoom",
+    "backgroundTitle": "O lastGLANCE continua em execução",
+    "backgroundBody": "Os lembretes continuam chegando com a janela fechada. Abra o lastGLANCE pela bandeja do sistema."
   }
 }

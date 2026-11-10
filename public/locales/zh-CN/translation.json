@@ -735,7 +735,12 @@
       "viewOnGithub": "在 GitHub 上查看",
       "getOnPlay": "在 Google Play 上获取",
       "notNow": "稍后再说"
-    }
+    },
+    "desktop": "桌面应用",
+    "keepRunning": "在后台继续运行",
+    "keepRunningHint": "关闭窗口后，lastGLANCE 会留在系统托盘中，提醒照常送达。",
+    "openAtLogin": "登录时打开",
+    "openAtLoginHint": "登录这台电脑时启动 lastGLANCE。"
   },
   "people": {
     "close": "关闭",
@@ -1012,6 +1017,8 @@
     "zoomOut": "缩小",
     "toggleFullScreen": "切换全屏",
     "minimize": "最小化",
-    "zoom": "缩放"
+    "zoom": "缩放",
+    "backgroundTitle": "lastGLANCE 仍在运行",
+    "backgroundBody": "窗口关闭后提醒照常送达。可从系统托盘打开 lastGLANCE。"
   }
 }

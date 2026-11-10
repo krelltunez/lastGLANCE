@@ -735,7 +735,12 @@
       "viewOnGithub": "Vedi su GitHub",
       "getOnPlay": "Disponibile su Google Play",
       "notNow": "Non ora"
-    }
+    },
+    "desktop": "App desktop",
+    "keepRunning": "Continua in background",
+    "keepRunningHint": "Chiudendo la finestra, lastGLANCE resta nell'area di notifica e i promemoria continuano ad arrivare.",
+    "openAtLogin": "Apri all'accesso",
+    "openAtLoginHint": "Avvia lastGLANCE quando accedi a questo computer."
   },
   "people": {
     "close": "Chiudi",
@@ -1012,6 +1017,8 @@
     "zoomOut": "Riduci",
     "toggleFullScreen": "Attiva/disattiva schermo intero",
     "minimize": "Riduci a icona",
-    "zoom": "Zoom"
+    "zoom": "Zoom",
+    "backgroundTitle": "lastGLANCE è ancora in esecuzione",
+    "backgroundBody": "I promemoria continuano ad arrivare a finestra chiusa. Apri lastGLANCE dall'area di notifica."
   }
 }

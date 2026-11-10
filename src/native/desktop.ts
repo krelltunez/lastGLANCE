@@ -30,6 +30,16 @@ export interface DesktopShell {
   exitFullscreen(): void
   /** One line in the app's log file (lastglance-startup.log), for support. */
   log(message: string): void
+  /** Background mode (docs/desktop-app.md, section 7). keepRunning applies on Windows and Linux. */
+  getBackgroundSettings(): Promise<DesktopBackgroundSettings | null>
+  setBackgroundSettings(patch: Partial<DesktopBackgroundSettings>): Promise<DesktopBackgroundSettings>
+  /** The machine woke, the screen unlocked, or the window was shown; returns the unsubscribe. */
+  onWake(listener: (why: unknown) => void): () => void
+}
+
+export interface DesktopBackgroundSettings {
+  keepRunning: boolean
+  openAtLogin: boolean
 }
 
 /** A response from the main process, or why no response came (refused, timeout, network). */
@@ -148,6 +158,9 @@ export const DESKTOP_BRIDGE_METHODS = [
   'shell.setTheme',
   'shell.exitFullscreen',
   'shell.log',
+  'shell.getBackgroundSettings',
+  'shell.setBackgroundSettings',
+  'shell.onWake',
   'http.request',
   'http.inspect',
   'http.grant',

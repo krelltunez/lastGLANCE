@@ -46,6 +46,9 @@ contextBridge.exposeInMainWorld('lastGlanceDesktop', {
     setTheme: (dark: boolean) => ipcRenderer.send('shell:set-theme', dark),
     exitFullscreen: () => ipcRenderer.send('shell:exit-fullscreen'),
     log: (message: string) => ipcRenderer.send('shell:log', message),
+    getBackgroundSettings: () => ipcRenderer.invoke('shell:get-background-settings'),
+    setBackgroundSettings: (patch: { keepRunning?: boolean; openAtLogin?: boolean }) => ipcRenderer.invoke('shell:set-background-settings', patch),
+    onWake: (listener: (payload: unknown) => void) => subscribe('shell:wake', listener),
   },
   http: {
     request: (method: string, url: string, headers: Record<string, string>, body: string | null) => ipcRenderer.invoke('http:request', method, url, headers, body),

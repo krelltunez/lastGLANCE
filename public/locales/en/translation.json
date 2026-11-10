@@ -735,7 +735,12 @@
       "viewOnGithub": "View on GitHub",
       "getOnPlay": "Get it on Google Play",
       "notNow": "Not now"
-    }
+    },
+    "desktop": "Desktop app",
+    "keepRunning": "Keep running in the background",
+    "keepRunningHint": "Closing the window leaves lastGLANCE in the tray, so reminders keep coming.",
+    "openAtLogin": "Open at login",
+    "openAtLoginHint": "Start lastGLANCE when you sign in to this computer."
   },
   "people": {
     "close": "Close",
@@ -1012,6 +1017,8 @@
     "zoomOut": "Zoom Out",
     "toggleFullScreen": "Toggle Full Screen",
     "minimize": "Minimize",
-    "zoom": "Zoom"
+    "zoom": "Zoom",
+    "backgroundTitle": "lastGLANCE is still running",
+    "backgroundBody": "Reminders keep coming while the window is closed. Open lastGLANCE from the tray."
   }
 }

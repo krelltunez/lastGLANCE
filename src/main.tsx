@@ -11,6 +11,7 @@ import { settleServiceWorker } from './native/serviceWorker'
 import { recordFirstSeen } from './native/launcherPromo'
 import { desktopBridge } from './native/desktop'
 import { syncDesktopMenuLabels } from './native/desktopMenu'
+import { installDesktopWake } from './native/desktopWake'
 import { listenForEscape } from './hooks/useEscapeKey'
 
 // crypto.randomUUID() is only available in secure contexts (HTTPS / localhost).
@@ -39,6 +40,7 @@ const desktop = desktopBridge()
 if (desktop) {
   document.documentElement.classList.add('desktop', `desktop-${desktop.info.platform}`)
   syncDesktopMenuLabels(i18n, desktop)
+  installDesktopWake(desktop)
   // Escape leaves fullscreen even before any modal has opened (useEscapeKey).
   listenForEscape()
 }
