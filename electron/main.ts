@@ -29,6 +29,8 @@ import { shouldQuitOnAllWindowsClosed } from './startupQuit.js';
 import { DESKTOP_INFO_ARG, encodeDesktopInfo } from './desktopInfo.js';
 import { loadWindowState, onScreen, saveWindowState, saveWindowTheme, windowBackgroundColor } from './windowState.js';
 import { createCommandQueue, type CommandSource } from './commandQueue.js';
+import { registerElectronBilling } from '@glance-apps/billing/electron-main';
+import { MAS_BILLING } from './billingConfig.js';
 import { DEEP_LINK_SCHEME, deepLinkFromArgv, deepLinkToken } from './deepLink.js';
 import { createReminderScheduler, type ScheduledReminder } from './reminderScheduler.js';
 import { parseTraySnapshot, popupPosition, settledCompletions, trayMenuItems, trayOpenToken, trayState, type TraySnapshot } from './trayModel.js';
@@ -880,7 +882,12 @@ app.whenReady().then(() => {
   }
 
   // A link that launched the app opens the window even at login.
-  createWindow({ startHidden: !IS_MAC && launchedHidden(process.argv) && !pendingDeepLink });
+  const firstWindow = createWindow({ startHidden: !IS_MAC && launchedHidden(process.argv) && !pendingDeepLink });
+
+  // In-app purchases, on the Mac App Store build only (section 9; billingConfig.ts).
+  // Registered once: its handlers are app-wide, and a window recreated by crash
+  // recovery reads the status afresh.
+  if (process.mas) registerElectronBilling(firstWindow, { ...MAS_BILLING, products: { ...MAS_BILLING.products } });
 
   createTray();
 

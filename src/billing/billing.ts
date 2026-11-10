@@ -1,6 +1,10 @@
 import { Capacitor, registerPlugin } from '@capacitor/core'
-import { DEFAULT_STORAGE_KEYS, appleManageSubscriptionUrl, playManageSubscriptionUrl } from '@glance-apps/billing'
+import {
+  DEFAULT_STORAGE_KEYS, appleManageSubscriptionUrl, createElectronRendererAdapter, playManageSubscriptionUrl,
+  type ElectronBillingApi,
+} from '@glance-apps/billing'
 import { createCapacitorAdapter, type CapacitorBillingPlugin } from '@glance-apps/billing/capacitor'
+import { desktopBridge } from '@/native/desktop'
 import { useBilling, type UseBillingResult } from '@glance-apps/billing/react'
 import { REVIEWER_SECRET } from '@/config/reviewerAccess'
 
@@ -34,7 +38,18 @@ const PLATFORM = Capacitor.getPlatform()
 // distribution: if GLANCE ever ships the iOS app outside the App Store, that
 // build needs a channel of its own.
 const CHANNEL = import.meta.env.VITE_BUILD_CHANNEL ?? 'web'
-const isGatedChannel = (CHANNEL === 'play' && PLATFORM === 'android') || PLATFORM === 'ios'
+
+// The desktop app (docs/desktop-app.md, section 9) is gated on the Mac App
+// Store build only, the one desktop build a store sells. Its main process
+// reports process.mas (info.isMAS), and @glance-apps/billing/electron-main
+// independently answers "entitled" to any build without an App Store receipt:
+// two separate signals that Developer ID, Windows and Linux builds are free.
+const DESKTOP = desktopBridge()
+const DESKTOP_MAS = DESKTOP?.info.isMAS === true
+// The App Store: the iOS app, or the Mac app under Universal Purchase.
+const APP_STORE = PLATFORM === 'ios' || DESKTOP_MAS
+
+const isGatedChannel = (CHANNEL === 'play' && PLATFORM === 'android') || APP_STORE
 
 // Safe to register unconditionally: on ungated builds the proxy is simply never
 // called because the adapter below is null.
@@ -57,13 +72,18 @@ const billingPlugin: CapacitorBillingPlugin = PLATFORM === 'ios'
     }
   : BillingBridge
 
-const adapter = isGatedChannel
-  ? createCapacitorAdapter({ plugin: billingPlugin, products: PRODUCT_IDS })
-  : null
+const adapter = DESKTOP_MAS && DESKTOP
+  ? createElectronRendererAdapter({ api: DESKTOP.billing as unknown as ElectronBillingApi })
+  : isGatedChannel
+    ? createCapacitorAdapter({ plugin: billingPlugin, products: PRODUCT_IDS })
+    : null
+
+/** Whether this build sells the app (a store build with an adapter). */
+export const BILLING_GATED = adapter !== null
 
 // The store's own subscription-management screen. Apple's has no per-app deep
 // link; the account's subscription list is where the user cancels.
-export const MANAGE_SUBSCRIPTION_URL = PLATFORM === 'ios'
+export const MANAGE_SUBSCRIPTION_URL = APP_STORE
   ? appleManageSubscriptionUrl()
   : playManageSubscriptionUrl('com.lastglance.app', PRODUCT_IDS.yearly)
 
@@ -71,13 +91,14 @@ export const MANAGE_SUBSCRIPTION_URL = PLATFORM === 'ios'
 // affordance on the gate (and rejected this app once for an unclear one), and
 // on Android it backgrounds the app. iOS has no sanctioned way for an app to
 // close itself (CapacitorApp.minimizeApp is unimplemented there), so the
-// control could only be a dead button: it is not rendered at all.
-export const GATE_DISMISSIBLE = PLATFORM !== 'ios'
+// control could only be a dead button: it is not rendered at all. The Mac App
+// Store app follows iOS: a Mac app has no sanctioned way to dismiss itself either.
+export const GATE_DISMISSIBLE = !APP_STORE
 
 // Store name for paywall copy ("Payment via …", "your … subscription
 // settings"). Bare brand name (no article) so it reads right in the possessive.
 // Every store-specific paywall string takes it through {{store}}.
-export const STORE_NAME = PLATFORM === 'ios' ? 'App Store' : 'Google Play'
+export const STORE_NAME = APP_STORE ? 'App Store' : 'Google Play'
 
 // The app-wide billing hook. Reviewer bypass (README rule 9: store review needs
 // a way past a hard gate) uses REVIEWER_SECRET from the committed config module

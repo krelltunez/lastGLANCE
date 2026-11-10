@@ -53,8 +53,14 @@ describe('electron-builder.config.cjs', () => {
     }
   });
 
-  it('ships the renderer bundle and main, and no node_modules', () => {
+  it('ships the renderer bundle and main, and of node_modules only the billing main half', () => {
     expect(config.files).toEqual(expect.arrayContaining(['dist/**/*', 'dist-electron/**/*', '!**/*.map', '!node_modules/**/*']));
+    const shipped = config.files.filter((f: string) => f.startsWith('node_modules/'));
+    expect(shipped).toEqual(['node_modules/@glance-apps/billing/package.json', 'node_modules/@glance-apps/billing/dist/electron-main/**/*']);
+    // That half may import nothing that would then be missing from the package.
+    const src = readFileSync(path.join(root, 'node_modules/@glance-apps/billing/dist/electron-main/index.js'), 'utf-8');
+    const imports = [...src.matchAll(/^import .* from '([^']+)'/gm)].map((m) => m[1]);
+    expect(imports.every((m) => m === 'electron' || m.startsWith('node:'))).toBe(true);
   });
 
   it('points at icons that exist', () => {

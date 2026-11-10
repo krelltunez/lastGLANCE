@@ -234,6 +234,20 @@ export interface DesktopCommands {
   onQueued(listener: () => void): () => void
 }
 
+/**
+ * In-app purchases on the Mac App Store build (docs/desktop-app.md, section 9):
+ * @glance-apps/billing's ElectronBillingApi, which createElectronRendererAdapter
+ * drives. Every other desktop build answers as entitled.
+ */
+export interface DesktopBilling {
+  subscriptionStatus(): Promise<{ active: boolean; productId: string | null }>
+  subscriptionPurchase(productId: string): Promise<void>
+  subscriptionRestore(): Promise<void>
+  subscriptionPrices(): Promise<{ yearly: string | null; lifetime: string | null; yearlyTrialDays?: number | null } | null>
+  onSubscriptionEvent(listener: (event: never) => void): () => void
+  onSubscriptionPricesReady(listener: (prices: never) => void): () => void
+}
+
 export interface DesktopBridge {
   info: DesktopInfo
   shell: DesktopShell
@@ -247,6 +261,7 @@ export interface DesktopBridge {
   notifications: DesktopNotifications
   widget: DesktopWidget
   tray: DesktopTray
+  billing: DesktopBilling
 }
 
 /**
@@ -310,6 +325,12 @@ export const DESKTOP_BRIDGE_METHODS = [
   'tray.open',
   'tray.hide',
   'tray.onState',
+  'billing.subscriptionStatus',
+  'billing.subscriptionPurchase',
+  'billing.subscriptionRestore',
+  'billing.subscriptionPrices',
+  'billing.onSubscriptionEvent',
+  'billing.onSubscriptionPricesReady',
 ] as const
 
 declare global {

@@ -72,11 +72,16 @@ module.exports = {
   // the registry on Windows (NSIS), and the .desktop MimeType on Linux, which
   // the deb registers on install and an AppImage only once integrated.
   protocols: [{ name: 'lastGLANCE', schemes: ['lastglance'] }],
+  //
+  // The one exception is @glance-apps/billing's main-process half (MAS billing,
+  // electron/billingConfig.ts), which imports only electron and node builtins.
   files: [
     'dist/**/*',
     'dist-electron/**/*',
     '!**/*.map',
     '!node_modules/**/*',
+    'node_modules/@glance-apps/billing/package.json',
+    'node_modules/@glance-apps/billing/dist/electron-main/**/*',
   ],
   // The tray icons (section 7), outside the asar so nativeImage reads them
   // from process.resourcesPath/tray.
