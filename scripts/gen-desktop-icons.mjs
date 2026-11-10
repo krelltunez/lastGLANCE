@@ -11,8 +11,8 @@
 //                 Windows and Linux, where electron-builder derives the .ico
 //                 and the hicolor PNG set from it.
 //   tray/         the tray icon (section 7): the app icon's rounded square
-//                 around a 3x3 grid with its lit middle column, 22pt (the
-//                 menu bar's full height, as dayGLANCE's icon is).
+//                 around a 3x3 grid with its lit middle column: a 19pt
+//                 mark in the menu bar's 22pt image (dayGLANCE's is 20pt).
 //                 trayTemplate.png and @2x for the macOS menu bar (black and
 //                 alpha only; macOS tints it), tray.png and @2x in the brand
 //                 colors on the icon's dark ground for Windows and Linux.
@@ -59,8 +59,8 @@ await sharp(Buffer.from(brand('icon-primary.svg')), { density: 72 * (CANVAS / 51
   .toFile(path.join(outDir, 'icon.png'))
 
 // The tray mark: the app icon's rounded square around a 3x3 grid whose middle
-// column is lit, as the brand mark's bar. 22pt, the menu bar's full height,
-// matching dayGLANCE's menu bar icon beside it;
+// column is lit, as the brand mark's bar. A 19pt mark centred in the menu
+// bar's 22pt image, sized by eye beside dayGLANCE's 20pt icon;
 // `scale` is 1 or 2. The template draws the frame as an outline, so it reads
 // on any menu bar and still shows when macOS dims an inactive one. The colour
 // version (Windows, Linux) fills the square with the icon's dark ground, so it
@@ -68,17 +68,19 @@ await sharp(Buffer.from(brand('icon-primary.svg')), { density: 72 * (CANVAS / 51
 function traySvg(scale, { frame, fill, lit, dim }) {
   const u = (n) => n * scale
   const size = u(22)
-  const cell = u(3.25), gap = u(1.25), grid = 3 * cell + 2 * gap
+  // The visible mark is 19pt square, centred in the menu bar's 22pt image.
+  const glyph = u(19), pad = (size - glyph) / 2
+  const cell = u(2.8), gap = u(1.1), grid = 3 * cell + 2 * gap
   const o = (size - grid) / 2
   let cells = ''
   for (let r = 0; r < 3; r++) {
     for (let c = 0; c < 3; c++) {
-      cells += `<rect x="${o + c * (cell + gap)}" y="${o + r * (cell + gap)}" width="${cell}" height="${cell}" rx="${u(0.75)}" fill="${c === 1 ? lit : dim}"/>`
+      cells += `<rect x="${o + c * (cell + gap)}" y="${o + r * (cell + gap)}" width="${cell}" height="${cell}" rx="${u(0.65)}" fill="${c === 1 ? lit : dim}"/>`
     }
   }
-  const sw = u(1.75), inset = u(0.75) + sw / 2
+  const sw = u(1.6), inset = pad + sw / 2
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
-    <rect x="${inset}" y="${inset}" width="${size - 2 * inset}" height="${size - 2 * inset}" rx="${u(5)}" fill="${fill}" stroke="${frame}" stroke-width="${sw}"/>${cells}</svg>`
+    <rect x="${inset}" y="${inset}" width="${size - 2 * inset}" height="${size - 2 * inset}" rx="${u(4.4)}" fill="${fill}" stroke="${frame}" stroke-width="${sw}"/>${cells}</svg>`
 }
 const trayDir = path.join(outDir, 'tray')
 fs.mkdirSync(trayDir, { recursive: true })
