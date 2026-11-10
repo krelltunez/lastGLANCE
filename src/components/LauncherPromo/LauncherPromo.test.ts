@@ -148,8 +148,15 @@ describe('in the Settings panel', () => {
     expect(html).not.toContain('GLANCElauncher')
   })
 
+  it('offers the Play listing in the Play build', () => {
+    promo = promoFor({ channel: 'play' })
+    const html = render('integrations')
+    expect(html).toContain('data-testid="launcher-promo-entry"')
+    expect(html).toContain(`href="${PLAY.url}"`)
+  })
+
   it('hides both off Android and on a channel with no link', () => {
-    for (const over of [{ platform: 'web' }, { platform: 'ios' }, { channel: 'play' }, { channel: 'web' }, { channel: undefined }]) {
+    for (const over of [{ platform: 'web' }, { platform: 'ios' }, { channel: 'web' }, { channel: undefined }]) {
       promo = promoFor(over)
       expect(render('integrations')).not.toContain('launcher-promo')
     }

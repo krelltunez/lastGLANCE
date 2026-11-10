@@ -33,11 +33,9 @@ export const LAUNCHER_MIN_SDK = 31
 // The sideload build (github channel) links to the launcher's releases.
 export const LAUNCHER_GITHUB_URL = 'https://github.com/krelltunez/GLANCElauncher/releases/latest'
 
-// The Play build's link. EMPTY until GLANCElauncher is approved on Google
-// Play, and while it is empty the Play build shows neither the card nor the
-// Settings entry. Once the launcher is live on Play, set this to:
-//   https://play.google.com/store/apps/details?id=app.glance.launcher
-export const LAUNCHER_PLAY_URL = ''
+// The Play build links to the launcher's Google Play listing. Emptying it
+// hides both the card and the Settings entry in the Play build.
+export const LAUNCHER_PLAY_URL = 'https://play.google.com/store/apps/details?id=app.glance.launcher'
 
 // How long the app must have been in use on this device before the card shows.
 export const PROMO_DELAY_MS = 3 * 24 * 60 * 60 * 1000
