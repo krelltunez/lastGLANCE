@@ -39,11 +39,14 @@ export function TrayPopup({ tray }: { tray: DesktopTray }) {
     tray.state().then((s) => { if (live && s) setState(s) }).catch(() => {})
     const off = tray.onState((s) => setState(s as DesktopTrayState))
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') tray.hide() }
+    // Nothing stays focused while the popup is hidden. Chromium restores focus
+    // when the window comes back, and after an Escape (keyboard input) it drew
+    // its keyboard focus ring around the restored element, the tab clicked last.
+    const onBlur = () => { (document.activeElement as HTMLElement | null)?.blur?.() }
     window.addEventListener('keydown', onKey)
-    return () => { live = false; off(); window.removeEventListener('keydown', onKey) }
+    window.addEventListener('blur', onBlur)
+    return () => { live = false; off(); window.removeEventListener('keydown', onKey); window.removeEventListener('blur', onBlur) }
   }, [tray])
-
-  const due = state?.counts.overdue ?? 0
 
   return (
     <div className="h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 select-none">
@@ -61,16 +64,13 @@ export function TrayPopup({ tray }: { tray: DesktopTray }) {
               role="tab"
               aria-selected={mode === m}
               onClick={() => setMode(m)}
-              className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+              className={`px-3 py-1 rounded-md text-xs font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-green-400/60 ${
                 mode === m
                   ? 'bg-white dark:bg-slate-800 text-green-500 dark:text-green-400 shadow-sm'
                   : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
               }`}
             >
               {m === 'chores' ? t('app.modeChores') : t('app.modePeople')}
-              {m === 'chores' && due > 0 && (
-                <span className="ml-1.5 inline-flex min-w-4 h-4 px-1 items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-bold tabular-nums">{due}</span>
-              )}
             </button>
           ))}
         </div>
@@ -84,7 +84,7 @@ export function TrayPopup({ tray }: { tray: DesktopTray }) {
 
       <button
         onClick={() => tray.open(mode === 'people' ? 'people' : null)}
-        className="shrink-0 flex items-center justify-center gap-1 px-4 py-2.5 text-sm font-medium text-green-600 dark:text-green-400 border-t border-slate-200 dark:border-slate-800/80 hover:bg-white dark:hover:bg-slate-900 transition-colors"
+        className="shrink-0 flex items-center justify-center gap-1 px-4 py-2.5 text-sm font-medium text-green-600 dark:text-green-400 border-t border-slate-200 dark:border-slate-800/80 hover:bg-white dark:hover:bg-slate-900 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-green-400/60"
       >
         {t('tray.open')}
         <ChevronRight size={14} />
@@ -155,7 +155,7 @@ function ChoreCard({ chore, tray }: { chore: DesktopTrayChore; tray: DesktopTray
         <button
           onClick={markDone}
           aria-label={t('choreRow.quickLogAriaLabel', { name: chore.name })}
-          className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 border ${
+          className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 border outline-none focus-visible:ring-2 focus-visible:ring-green-400/60 ${
             done
               ? 'bg-green-500/20 border-green-500/40 text-green-500 dark:text-green-400'
               : 'bg-slate-100 dark:bg-slate-700/60 border-slate-200 dark:border-slate-600/40 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-200 dark:hover:bg-slate-700 hover:border-slate-300 dark:hover:border-slate-500/60'
@@ -214,7 +214,7 @@ function PersonCard({ person, tray }: { person: DesktopTrayPerson; tray: Desktop
         <button
           onClick={(e) => { e.stopPropagation(); tray.open(`log:${person.syncId}`) }}
           aria-label={t('people.row.logAriaLabel', { name: person.name })}
-          className="shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium border bg-slate-100 dark:bg-slate-700/60 border-slate-200 dark:border-slate-600/40 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+          className="shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium border bg-slate-100 dark:bg-slate-700/60 border-slate-200 dark:border-slate-600/40 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-green-400/60"
         >
           <Plus size={12} strokeWidth={2.5} />
           <span>{t('people.row.log')}</span>
@@ -234,7 +234,7 @@ function DateTile({ date, tray }: { date: DesktopTrayDate; tray: DesktopTray }) 
   return (
     <button
       onClick={() => tray.open(`person:${date.personSyncId}`)}
-      className={`aspect-square min-w-0 flex flex-col justify-between rounded-xl border p-2.5 text-left transition-colors ${
+      className={`aspect-square min-w-0 flex flex-col justify-between rounded-xl border p-2.5 text-left transition-colors outline-none focus-visible:ring-2 focus-visible:ring-green-400/60 ${
         soon
           ? 'bg-pink-400/10 border-pink-400/40 hover:border-pink-400/70'
           : 'bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700/40 hover:border-slate-300 dark:hover:border-slate-600/60'
