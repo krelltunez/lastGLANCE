@@ -15,7 +15,7 @@ import {
 } from '@/people/settings'
 import { useIntents } from '@/intents/IntentsContext'
 import { contactsSupported } from '@/native/contacts'
-import { isNativeShell } from '@/native/platform'
+import { hasNativeReminders } from '@/native/platform'
 import { desktopBridge } from '@/native/desktop'
 import { useDesktopBackgroundSettings } from '@/hooks/useDesktopBackgroundSettings'
 import { ContactsModal } from '@/components/People/ContactsModal'
@@ -212,7 +212,7 @@ export function SettingsPanel(props: Props) {
                 <p className="mt-1.5 text-xs text-slate-400 dark:text-slate-500">{t('settings.phoneContactsHint')}</p>
               </Field>
             )}
-            {isNativeShell() && (
+            {hasNativeReminders() && (
               <Field label={t('settings.dateReminders')}>
                 <Segmented<'on' | 'off'>
                   label={t('settings.dateReminders')}
@@ -234,7 +234,7 @@ export function SettingsPanel(props: Props) {
                 <p className="mt-1.5 text-xs text-slate-400 dark:text-slate-500">{t('settings.dateRemindersHint')}</p>
               </Field>
             )}
-            {isNativeShell() && (
+            {hasNativeReminders() && (
               <Field label={t('settings.digestTime')} htmlFor="settings-digest-time">
                 <TimeInput id="settings-digest-time" minutes={digestMinutes} onChange={setDigestMinutes} />
                 <p className="mt-1.5 text-xs text-slate-400 dark:text-slate-500">{t('settings.digestTimeHint')}</p>

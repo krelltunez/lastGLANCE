@@ -137,6 +137,33 @@ export interface DesktopICloud {
   onChanged(listener: () => void): () => void
 }
 
+/** A reminder as the main process schedules it (electron/reminderScheduler.ts). */
+export interface DesktopReminder {
+  id: number
+  title: string
+  body: string
+  at: number
+  /** The deep-link token a click opens. */
+  open: string | null
+  actions: { id: string; title: string; open?: string; command?: { action: string; payload: Record<string, unknown> } }[]
+  extra: Record<string, unknown>
+}
+
+/** The reminder scheduler in main (docs/desktop-app.md, section 7). */
+export interface DesktopNotifications {
+  checkPermissions(): Promise<{ display: string }>
+  schedule(list: DesktopReminder[]): Promise<number>
+  cancel(ids: number[]): Promise<void>
+  pending(): Promise<DesktopReminder[]>
+}
+
+/** The widget plugin's desktop half: deep links now, the tray's snapshot with the tray. */
+export interface DesktopWidget {
+  consumeDeepLink(): Promise<{ deepLink: string | null }>
+  /** A deep link is waiting; returns the unsubscribe. */
+  onDeepLink(listener: () => void): () => void
+}
+
 /** A write from outside the window (electron/commandQueue.ts): handleIntent's vocabulary. */
 export interface DesktopCommand {
   clientId: string
@@ -164,6 +191,8 @@ export interface DesktopBridge {
   files: DesktopFiles
   icloud: DesktopICloud
   commands: DesktopCommands
+  notifications: DesktopNotifications
+  widget: DesktopWidget
 }
 
 /**
@@ -214,6 +243,12 @@ export const DESKTOP_BRIDGE_METHODS = [
   'commands.take',
   'commands.ack',
   'commands.onQueued',
+  'notifications.checkPermissions',
+  'notifications.schedule',
+  'notifications.cancel',
+  'notifications.pending',
+  'widget.consumeDeepLink',
+  'widget.onDeepLink',
 ] as const
 
 declare global {

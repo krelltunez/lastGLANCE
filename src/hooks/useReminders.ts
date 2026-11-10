@@ -3,7 +3,7 @@ import { LocalNotifications } from '@capacitor/local-notifications'
 import type { PluginListenerHandle } from '@capacitor/core'
 import i18n from 'i18next'
 import { syncReminders, handleNotificationAction } from '@/native/reminders'
-import { isNativeShell } from '@/native/platform'
+import { hasNativeReminders, isNativeShell } from '@/native/platform'
 import { PEOPLE_CHANGED_EVENT } from '@/people/queries'
 import { DATE_REMINDER_TIME_KEY, DATE_REMINDERS_KEY, DIGEST_TIME_KEY } from '@/people/settings'
 
@@ -16,7 +16,7 @@ const SETTING_EVENTS = [DATE_REMINDERS_KEY, DATE_REMINDER_TIME_KEY, DIGEST_TIME_
 // native shells; no-op on web/PWA (syncReminders also guards internally).
 export function useReminders(): void {
   useEffect(() => {
-    if (!isNativeShell()) return
+    if (!hasNativeReminders()) return
 
     syncReminders()
 
@@ -43,10 +43,14 @@ export function useReminders(): void {
     }
     document.addEventListener('visibilitychange', onVisibility)
 
+    // The phones route a tap here; the desktop app's main process opens the
+    // target or queues the action itself (src/native/desktopNotifications.ts).
     let tapHandle: PluginListenerHandle | undefined
-    LocalNotifications.addListener('localNotificationActionPerformed', action => {
-      handleNotificationAction(action.actionId, action.notification.extra)
-    }).then(handle => { tapHandle = handle })
+    if (isNativeShell()) {
+      LocalNotifications.addListener('localNotificationActionPerformed', action => {
+        handleNotificationAction(action.actionId, action.notification.extra)
+      }).then(handle => { tapHandle = handle })
+    }
 
     return () => {
       window.removeEventListener('lg:chore-logged', onChange)

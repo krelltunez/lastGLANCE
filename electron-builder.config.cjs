@@ -40,6 +40,10 @@ module.exports = {
   // The renderer is one Vite bundle and main needs only electron and node
   // builtins, so no node_modules ship: every runtime dependency is already
   // inside dist/. Sourcemaps stay out of the package.
+  // lastglance:// (docs/desktop-app.md, section 8): CFBundleURLTypes on macOS,
+  // the registry on Windows (NSIS), and the .desktop MimeType on Linux, which
+  // the deb registers on install and an AppImage only once integrated.
+  protocols: [{ name: 'lastGLANCE', schemes: ['lastglance'] }],
   files: [
     'dist/**/*',
     'dist-electron/**/*',

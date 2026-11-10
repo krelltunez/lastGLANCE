@@ -29,6 +29,8 @@ import { shouldQuitOnAllWindowsClosed } from './startupQuit.js';
 import { DESKTOP_INFO_ARG, encodeDesktopInfo } from './desktopInfo.js';
 import { loadWindowState, onScreen, saveWindowState, saveWindowTheme, windowBackgroundColor } from './windowState.js';
 import { createCommandQueue, type CommandSource } from './commandQueue.js';
+import { DEEP_LINK_SCHEME, deepLinkFromArgv, deepLinkToken } from './deepLink.js';
+import { createReminderScheduler, type ScheduledReminder } from './reminderScheduler.js';
 import { applyOpenAtLogin, closeAction, launchedHidden, loadDesktopSettings, saveDesktopSettings, type DesktopSettings } from './backgroundMode.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -178,6 +180,82 @@ ipcMain.handle('commands:ack', (event, ids: unknown) => {
   if (isMainWindowSender(event.sender)) commands.ack(ids);
 });
 
+// ── Deep links (docs/desktop-app.md, section 8) ─────────────────────────────
+// A lastglance:// URL (or a reminder's click, or the tray) becomes the token
+// the iOS shell stashes; the page pulls it with widget.consumeDeepLink, as it
+// does on the phones (src/native/pendingDeepLink.ts).
+let pendingDeepLink: string | null = null;
+const coldStartLink = deepLinkFromArgv(process.argv);
+if (coldStartLink) pendingDeepLink = deepLinkToken(coldStartLink);
+
+/** Show the window and, with a token, have the page open it. */
+function openToken(token: string | null): void {
+  if (token) pendingDeepLink = token;
+  if (!app.isReady()) return;
+  showMainWindow();
+  if (token) live(mainWindow)?.webContents.send('widget:deep-link');
+}
+
+function openDeepLinkUrl(url: unknown): void {
+  const token = deepLinkToken(url);
+  if (!token) { logStartup('deep link refused'); if (app.isReady()) showMainWindow(); return; }
+  openToken(token);
+}
+
+// macOS hands URLs over as an event, possibly before the app is ready.
+app.on('open-url', (event, url) => {
+  event.preventDefault();
+  openDeepLinkUrl(url);
+});
+
+ipcMain.handle('widget:consume-deep-link', (event) => {
+  if (!isMainWindowSender(event.sender)) return { deepLink: null };
+  const deepLink = pendingDeepLink;
+  pendingDeepLink = null;
+  return { deepLink };
+});
+
+// ── Reminders (docs/desktop-app.md, section 7) ──────────────────────────────
+// The page's reminder diff schedules here (reminderScheduler.ts); main shows
+// each one as a system notification when it is due. A click opens its target;
+// on macOS its buttons are real ("Mark done" queues a completion). Windows and
+// Linux get click-to-open only.
+const shownNotifications = new Set<Notification>();
+
+function showReminder(r: ScheduledReminder): void {
+  if (!Notification.isSupported()) return;
+  const actions = IS_MAC ? r.actions : [];
+  const n = new Notification({ title: r.title, body: r.body, actions: actions.map((a) => ({ type: 'button' as const, text: a.title })) });
+  // Held until it is answered: a notification collected early loses its handlers.
+  shownNotifications.add(n);
+  const done = () => { shownNotifications.delete(n); };
+  n.on('click', () => { done(); openToken(r.open); });
+  n.on('action', (_event, index) => {
+    done();
+    const action = actions[index];
+    if (!action) return;
+    if (action.command) queueCommand(action.command.action, action.command.payload, 'notification');
+    if (action.open) openToken(action.open);
+  });
+  n.on('close', done);
+  n.show();
+  logStartup(`reminder ${r.id} shown`);
+}
+
+const reminders = createReminderScheduler({
+  file: path.join(app.getPath('userData'), 'reminders.json'),
+  fire: showReminder,
+  log: logStartup,
+});
+
+ipcMain.handle('notifications:permission', (event) => {
+  if (!isMainWindowSender(event.sender)) return { display: 'denied' };
+  return { display: Notification.isSupported() ? 'granted' : 'denied' };
+});
+ipcMain.handle('notifications:schedule', (event, list: unknown) => (isMainWindowSender(event.sender) ? reminders.schedule(list) : 0));
+ipcMain.handle('notifications:cancel', (event, ids: unknown) => { if (isMainWindowSender(event.sender)) reminders.cancel(ids); });
+ipcMain.handle('notifications:pending', (event) => (isMainWindowSender(event.sender) ? reminders.pending() : []));
+
 // The tray (section 7): refreshed when its labels or the settings change.
 function refreshTray(): void { /* the tray arrives with the tray popup */ }
 
@@ -188,6 +266,7 @@ function onBackgroundSettingsChanged(): void { refreshTray(); }
 // The page's foreground kicks never fire for a hidden window, or on a resume
 // with the window already up: tell it the machine woke or the window came back.
 function sendWake(why: string): void {
+  if (why !== 'show') reminders.rearm();
   live(mainWindow)?.webContents.send('shell:wake', why);
 }
 
@@ -546,7 +625,11 @@ const gotSingleInstanceLock = app.requestSingleInstanceLock();
 if (!gotSingleInstanceLock) {
   app.quit();
 } else {
-  app.on('second-instance', () => showMainWindow());
+  app.on('second-instance', (_event, argv) => {
+    const url = deepLinkFromArgv(argv);
+    if (url) openDeepLinkUrl(url);
+    else showMainWindow();
+  });
 }
 
 if (process.platform === 'win32') app.setAppUserModelId('com.lastglance.app');
@@ -602,7 +685,20 @@ app.whenReady().then(() => {
     }
   });
 
-  createWindow({ startHidden: !IS_MAC && launchedHidden(process.argv) });
+  // lastglance:// opens this app. A dev run registers the Electron binary
+  // with the app's entry, as Windows and Linux need.
+  if (process.defaultApp && process.argv.length >= 2) {
+    app.setAsDefaultProtocolClient(DEEP_LINK_SCHEME, process.execPath, [path.resolve(process.argv[1])]);
+  } else {
+    app.setAsDefaultProtocolClient(DEEP_LINK_SCHEME);
+  }
+
+  // A link that launched the app opens the window even at login.
+  createWindow({ startHidden: !IS_MAC && launchedHidden(process.argv) && !pendingDeepLink });
+
+  // Reminders due while the app was not running: within 12 hours fire once.
+  reminders.rearm();
+  app.on('will-quit', () => reminders.stop());
 
   // A woken machine or an unlocked screen: the page's foreground kicks
   // (section 7). Reminders re-arm on the same signals.

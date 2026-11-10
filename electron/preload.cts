@@ -85,6 +85,16 @@ contextBridge.exposeInMainWorld('lastGlanceDesktop', {
     saveText: (options: { filename: string; text: string }) => ipcRenderer.invoke('files:save-text', options),
     stash: (options: { filename: string; text: string }) => ipcRenderer.invoke('files:stash', options),
   },
+  notifications: {
+    checkPermissions: () => ipcRenderer.invoke('notifications:permission'),
+    schedule: (list: unknown[]) => ipcRenderer.invoke('notifications:schedule', list),
+    cancel: (ids: number[]) => ipcRenderer.invoke('notifications:cancel', ids),
+    pending: () => ipcRenderer.invoke('notifications:pending'),
+  },
+  widget: {
+    consumeDeepLink: () => ipcRenderer.invoke('widget:consume-deep-link'),
+    onDeepLink: (listener: (payload: unknown) => void) => subscribe('widget:deep-link', listener),
+  },
   commands: {
     take: () => ipcRenderer.invoke('commands:take'),
     ack: (ids: string[]) => ipcRenderer.invoke('commands:ack', ids),

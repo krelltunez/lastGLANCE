@@ -1,5 +1,6 @@
 import { registerPlugin } from '@capacitor/core'
 import { isNativeShell } from './platform'
+import { desktopBridge } from './desktop'
 
 // Native bridge to the home-screen widgets. The web app owns the data (IndexedDB
 // lives in the WebView), so it pushes a denormalized JSON snapshot to a native
@@ -55,6 +56,12 @@ export async function drainPendingCompletions(): Promise<PendingCompletion[]> {
 }
 
 export async function consumeDeepLink(): Promise<string | null> {
+  // The desktop app stashes lastglance:// links, reminder clicks and tray
+  // picks in main, as the phones' shells do (electron/deepLink.ts).
+  const desktop = desktopBridge()
+  if (desktop) {
+    try { return (await desktop.widget.consumeDeepLink())?.deepLink ?? null } catch { return null }
+  }
   if (!isNativeShell()) return null
   try {
     const res = await WidgetBridge.consumeDeepLink()
