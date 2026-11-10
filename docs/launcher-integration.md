@@ -219,15 +219,16 @@ circles, dates and a cadence that a one-line write would leave unset.
 Both the provider and the receiver sit behind `com.lastglance.permission.LAUNCHER`,
 `protectionLevel="signature|knownSigner"`, with `knownCerts` naming the
 **launcher's** signing certificates (`res/values/launcher_certs.xml`): its
-release certificate, and its Play app signing certificate once it ships there. lastGLANCE's own
+release certificate, which also signs its Google Play build (the launcher's key
+was uploaded to Play App Signing). lastGLANCE's own
 signature satisfies the `signature` half, so the app can always reach its own
 provider. `knownSigner` exists from Android 12; on older devices the permission
 is signature-only and the launcher stays in demo mode. The launcher declares
 `<uses-permission android:name="com.lastglance.permission.LAUNCHER" />`.
 
 A digest is read from the launcher's keystore (`keytool -list -v`, SHA-256,
-lowercase, no colons). The Play entry stays a placeholder until the launcher ships
-there. There is no debug entry: where the launcher's release key is present, its
+lowercase, no colons). Play's App signing key certificate shows the same digest,
+so no separate Play entry is needed. There is no debug entry: where the launcher's release key is present, its
 debug builds carry that key too. They are the same digests dayGLANCE lists.
 
 ## Telling users about the launcher
