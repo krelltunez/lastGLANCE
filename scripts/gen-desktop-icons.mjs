@@ -10,10 +10,11 @@
 //   icon.png      1024px, icon-primary.svg as is (its own ~18% rounding), for
 //                 Windows and Linux, where electron-builder derives the .ico
 //                 and the hicolor PNG set from it.
-//   tray/         the tray icon (section 7), the brand mark reduced to a 5x5
-//                 grid with its highlighted bar: trayTemplate.png and @2x for
-//                 the macOS menu bar (black and alpha only; macOS tints it),
-//                 tray.png and @2x in the brand colors for Windows and Linux.
+//   tray/         the tray icon (section 7): the app icon's rounded square
+//                 around a 3x3 grid with its lit middle column, 18pt.
+//                 trayTemplate.png and @2x for the macOS menu bar (black and
+//                 alpha only; macOS tints it), tray.png and @2x in the brand
+//                 colors on the icon's dark ground for Windows and Linux.
 //                 Shipped as extraResources.
 //
 // Run after a brand change and commit the output:
@@ -56,24 +57,34 @@ await sharp(Buffer.from(brand('icon-primary.svg')), { density: 72 * (CANVAS / 51
   .png()
   .toFile(path.join(outDir, 'icon.png'))
 
-// The tray mark: a 5x5 grid of rounded cells with the middle column's
-// middle three lit, as the brand mark's bar. `scale` is 1 or 2.
-function traySvg(scale, lit, dim) {
-  const cell = 2 * scale, gap = 1 * scale, size = 16 * scale, offset = 1 * scale
+// The tray mark: the app icon's rounded square around a 3x3 grid whose middle
+// column is lit, as the brand mark's bar. 18pt, the menu bar's glyph size;
+// `scale` is 1 or 2. The template draws the frame as an outline, so it reads
+// on any menu bar and still shows when macOS dims an inactive one. The colour
+// version (Windows, Linux) fills the square with the icon's dark ground, so it
+// shows on light and dark taskbars alike.
+function traySvg(scale, { frame, fill, lit, dim }) {
+  const u = (n) => n * scale
+  const size = u(18)
+  const cell = u(2.5), gap = u(1), grid = 3 * cell + 2 * gap
+  const o = (size - grid) / 2
   let cells = ''
-  for (let r = 0; r < 5; r++) {
-    for (let c = 0; c < 5; c++) {
-      const on = c === 2 && r >= 1 && r <= 3
-      cells += `<rect x="${offset + c * (cell + gap)}" y="${offset + r * (cell + gap)}" width="${cell}" height="${cell}" rx="${0.5 * scale}" fill="${on ? lit : dim}"/>`
+  for (let r = 0; r < 3; r++) {
+    for (let c = 0; c < 3; c++) {
+      cells += `<rect x="${o + c * (cell + gap)}" y="${o + r * (cell + gap)}" width="${cell}" height="${cell}" rx="${u(0.6)}" fill="${c === 1 ? lit : dim}"/>`
     }
   }
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">${cells}</svg>`
+  const sw = u(1.5)
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+    <rect x="${sw / 2 + u(0.5)}" y="${sw / 2 + u(0.5)}" width="${size - sw - u(1)}" height="${size - sw - u(1)}" rx="${u(4)}" fill="${fill}" stroke="${frame}" stroke-width="${sw}"/>${cells}</svg>`
 }
 const trayDir = path.join(outDir, 'tray')
 fs.mkdirSync(trayDir, { recursive: true })
 for (const [scale, suffix] of [[1, ''], [2, '@2x']]) {
-  await sharp(Buffer.from(traySvg(scale, '#000000', 'rgba(0,0,0,0.38)'))).png().toFile(path.join(trayDir, `trayTemplate${suffix}.png`))
-  await sharp(Buffer.from(traySvg(scale, '#3DDC84', 'rgba(148,163,184,0.75)'))).png().toFile(path.join(trayDir, `tray${suffix}.png`))
+  await sharp(Buffer.from(traySvg(scale, { frame: '#000000', fill: 'none', lit: '#000000', dim: 'rgba(0,0,0,0.45)' })))
+    .png().toFile(path.join(trayDir, `trayTemplate${suffix}.png`))
+  await sharp(Buffer.from(traySvg(scale, { frame: '#64748b', fill: '#05081A', lit: '#3DDC84', dim: 'rgba(148,163,184,0.7)' })))
+    .png().toFile(path.join(trayDir, `tray${suffix}.png`))
 }
 
 console.log('wrote electron/resources/icon-mac.png, icon.png and tray/')

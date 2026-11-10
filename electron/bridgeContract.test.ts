@@ -22,10 +22,13 @@ const preload = read('electron/preload.cts');
 const desktopTs = read('src/native/desktop.ts');
 const mainTs = read('electron/main.ts');
 // Every main-process module: handlers and events live beside main.ts too.
-const mainProcess = readdirSync(path.join(root, 'electron'))
-  .filter((f) => f.endsWith('.ts') && !f.endsWith('.test.ts'))
-  .map((f) => read(`electron/${f}`))
-  .join('\n');
+// Plus @glance-apps/billing's main half, which registers the billing channels.
+const mainProcess = [
+  ...readdirSync(path.join(root, 'electron'))
+    .filter((f) => f.endsWith('.ts') && !f.endsWith('.test.ts'))
+    .map((f) => read(`electron/${f}`)),
+  read('node_modules/@glance-apps/billing/dist/electron-main/index.js'),
+].join('\n');
 
 /** The exposed object literal's groups: { group: { key: isFunction } }. */
 function preloadGroups(): Record<string, Record<string, boolean>> {

@@ -6,7 +6,7 @@
 // release build with an error pointing at the wrong key).
 
 import { describe, expect, it } from 'vitest';
-import { existsSync, readdirSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { DEEP_LINK_SCHEME } from './deepLink';
@@ -53,8 +53,14 @@ describe('electron-builder.config.cjs', () => {
     }
   });
 
-  it('ships the renderer bundle and main, and no node_modules', () => {
+  it('ships the renderer bundle and main, and of node_modules only the billing main half', () => {
     expect(config.files).toEqual(expect.arrayContaining(['dist/**/*', 'dist-electron/**/*', '!**/*.map', '!node_modules/**/*']));
+    const shipped = config.files.filter((f: string) => f.startsWith('node_modules/'));
+    expect(shipped).toEqual(['node_modules/@glance-apps/billing/package.json', 'node_modules/@glance-apps/billing/dist/electron-main/**/*']);
+    // That half may import nothing that would then be missing from the package.
+    const src = readFileSync(path.join(root, 'node_modules/@glance-apps/billing/dist/electron-main/index.js'), 'utf-8');
+    const imports = [...src.matchAll(/^import .* from '([^']+)'/gm)].map((m) => m[1]);
+    expect(imports.every((m) => m === 'electron' || m.startsWith('node:'))).toBe(true);
   });
 
   it('points at icons that exist', () => {
@@ -79,6 +85,62 @@ describe('electron-builder.config.cjs', () => {
     for (const name of ['trayTemplate.png', 'trayTemplate@2x.png', 'tray.png', 'tray@2x.png']) {
       expect(existsSync(path.join(root, 'electron/resources/tray', name)), name).toBe(true);
     }
+  });
+
+  it('signs ad-hoc without a certificate, and notarizes through the afterSign hook', () => {
+    expect(config.mac.identity).toBeNull();
+    expect(config.mac.hardenedRuntime).toBe(false);
+    expect(config.mac.notarize).toBe(false);
+    expect(config.afterSign).toBe('./scripts/notarize.cjs');
+    expect(existsSync(path.join(root, 'scripts/notarize.cjs'))).toBe(true);
+    for (const f of [config.mac.entitlements, config.mas.entitlements, config.mas.entitlementsInherit]) {
+      expect(existsSync(path.join(root, f)), f).toBe(true);
+    }
+  });
+
+  it('with a Developer ID certificate, signs with Hardened Runtime', () => {
+    process.env.CSC_LINK = 'x';
+    try {
+      const signed = loadConfig();
+      expect(signed.mac.identity).toBeUndefined();
+      expect(signed.mac.hardenedRuntime).toBe(true);
+    } finally {
+      delete process.env.CSC_LINK;
+    }
+  });
+
+  it('the MAS build takes the iOS bundle id, a rising build number, and a keychain identity', () => {
+    process.env.LASTGLANCE_APP_ID = 'com.lastglance';
+    try {
+      const mas = loadConfig();
+      expect(mas.appId).toBe('com.lastglance');
+      expect(mas.mac.identity).toBeUndefined();
+      expect(mas.buildVersion).toMatch(/^\d{8}\.\d{4}$/);
+      expect(mas.mas.hardenedRuntime).toBe(false);
+      expect(mas.mas.provisioningProfile).toBe('electron/lastglance.mas.provisionprofile');
+    } finally {
+      delete process.env.LASTGLANCE_APP_ID;
+    }
+    expect(config.buildVersion).toBeUndefined();
+  });
+
+  it('gives the MAS app the sandbox, both iCloud containers, and nothing it does not use', () => {
+    const plist = readFileSync(path.join(root, 'electron/entitlements.mas.plist'), 'utf-8');
+    for (const key of [
+      'com.apple.security.app-sandbox', 'com.apple.security.network.client',
+      'com.apple.security.files.user-selected.read-write', 'com.apple.security.files.bookmarks.app-scope',
+      'iCloud.com.lastglance', 'iCloud.com.dayglance', 'CloudDocuments',
+    ]) expect(plist, key).toContain(key);
+    // No listener yet (MCP and Stream Deck come later), and Apple Pay's
+    // entitlement fails App Store validation on macOS.
+    expect(plist).not.toContain('<key>com.apple.security.network.server</key>');
+    expect(plist).not.toContain('<key>com.apple.security.in-app-payments</key>');
+    const inherit = readFileSync(path.join(root, 'electron/entitlements.mas.inherit.plist'), 'utf-8');
+    expect(inherit).toContain('com.apple.security.inherit');
+  });
+
+  it('keeps the provisioning profile out of git', () => {
+    expect(readFileSync(path.join(root, '.gitignore'), 'utf-8')).toContain('electron/*.provisionprofile');
   });
 
   it('registers the lastglance:// scheme the app handles', () => {

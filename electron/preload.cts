@@ -50,6 +50,7 @@ contextBridge.exposeInMainWorld('lastGlanceDesktop', {
     setBackgroundSettings: (patch: { keepRunning?: boolean; openAtLogin?: boolean }) => ipcRenderer.invoke('shell:set-background-settings', patch),
     onWake: (listener: (payload: unknown) => void) => subscribe('shell:wake', listener),
     systemFormats: () => ipcRenderer.invoke('shell:system-formats'),
+    latestRelease: () => ipcRenderer.invoke('shell:latest-release'),
   },
   http: {
     request: (method: string, url: string, headers: Record<string, string>, body: string | null) => ipcRenderer.invoke('http:request', method, url, headers, body),
@@ -103,6 +104,16 @@ contextBridge.exposeInMainWorld('lastGlanceDesktop', {
     open: (token: string | null) => ipcRenderer.send('tray:open', token),
     hide: () => ipcRenderer.send('tray:hide'),
     onState: (listener: (payload: unknown) => void) => subscribe('tray:state', listener),
+  },
+  // In-app purchases on the Mac App Store build: the ElectronBillingApi of
+  // @glance-apps/billing, whose main half registers these channels.
+  billing: {
+    subscriptionStatus: () => ipcRenderer.invoke('subscription:status'),
+    subscriptionPurchase: (productId: string) => ipcRenderer.invoke('subscription:purchase', productId),
+    subscriptionRestore: () => ipcRenderer.invoke('subscription:restore'),
+    subscriptionPrices: () => ipcRenderer.invoke('subscription:prices'),
+    onSubscriptionEvent: (listener: (payload: unknown) => void) => subscribe('subscription:event', listener),
+    onSubscriptionPricesReady: (listener: (payload: unknown) => void) => subscribe('subscription:prices-ready', listener),
   },
   commands: {
     take: () => ipcRenderer.invoke('commands:take'),

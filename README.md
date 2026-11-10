@@ -121,6 +121,37 @@ The Android app ships the full web app in a WebView with native enhancements tha
 
 ---
 
+## Desktop App (macOS, Windows, Linux)
+
+lastGLANCE runs as a desktop app on macOS, Windows and Linux. The direct
+downloads are free, with every feature on.
+
+[**Download for macOS, Windows or Linux from Releases →**](../../releases)
+
+| Platform | Download | Notes |
+|---|---|---|
+| macOS | `.dmg` (or `.zip`), Apple silicon and Intel | |
+| Windows | `Setup .exe` | Not code-signed yet, so SmartScreen may warn at first launch: **More info → Run anyway** |
+| Linux | `AppImage` or `.deb`, x64 and arm64 | `lastglance://` links work once the app is installed from the `.deb`, or the AppImage is integrated (appimaged, Gear Lever) |
+
+The desktop app adds what makes sense on a computer:
+
+| Feature | Details |
+|---|---|
+| ☁️ **iCloud sync on the Mac** | With your iPhone and iPad, through iCloud Drive, once the iOS app has turned it on for your Apple ID |
+| 📌 **Menu bar and tray** | What's due and who to reach out to, one click away, with **Done** right there (macOS menu bar, Windows tray; a menu on Linux) |
+| 🔔 **Reminders** | Overdue chores, birthdays and dates, and the daily catch-up, as system notifications; on macOS, **Mark done** from the notification |
+| 🌙 **Runs in the background** | Closing the window keeps reminders coming; optional **Open at login** |
+| 🔗 **`lastglance://` links** | Open a chore, People, search or the new-chore form from anywhere |
+| 📁 **Direct Access** | Sync through a folder Syncthing, Nextcloud or Dropbox keeps in step |
+| 🔑 **Secure storage** | Sync credentials in the macOS Keychain, the Windows credential store or the Linux keyring |
+
+The desktop app does not update itself: when a newer release is out, it says so
+and links to the download. Releasing is described in
+[docs/releasing-desktop.md](docs/releasing-desktop.md).
+
+---
+
 ## Features
 
 ### Chores
@@ -243,6 +274,19 @@ WebDAV/Nextcloud sync works without a CORS proxy in the apps thanks to the
 CapacitorHttp plugin. The native features are described in
 [docs/android-native-features-plan.md](docs/android-native-features-plan.md) and
 [docs/ios-native-features-plan.md](docs/ios-native-features-plan.md).
+
+### Desktop app (Electron)
+
+The desktop app is the same web build in an [Electron](https://www.electronjs.org/)
+shell. Its design is [docs/desktop-app.md](docs/desktop-app.md).
+
+```bash
+npm install
+npm run dev:electron            # the app with hot reload
+npm run build:electron          # installers for this OS -> dist-app/
+npm run build:electron:dir      # the unpacked app only
+npm run test:electron-smoke     # the packaged app's smoke test
+```
 
 ---
 

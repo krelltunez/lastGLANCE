@@ -220,8 +220,11 @@ try {
     const after = (await d.notifications.pending()).map((r) => r.id)
     const commands = await d.commands.take()
     const formats = await d.shell.systemFormats()
-    return { settings, pending, after, commands, formats }
+    const update = await d.shell.latestRelease()
+    return { settings, pending, after, commands, formats, update }
   })
+  // No network assumption: the check answers null or a release, never throws.
+  check(phase4.update === null || typeof phase4.update?.version === 'string', `the update check answers (${JSON.stringify(phase4.update)})`)
   check(phase4.formats && 'hour24' in phase4.formats && 'weekStart' in phase4.formats,
     `the OS clock and week reach the page (${JSON.stringify(phase4.formats)})`)
   check(phase4.settings?.keepRunning === true && phase4.settings?.openAtLogin === false,

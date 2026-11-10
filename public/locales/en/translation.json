@@ -1031,5 +1031,10 @@
     "nothingDue": "Nothing due right now.",
     "notReady": "Open lastGLANCE once to see what's due.",
     "open": "Open lastGLANCE"
+  },
+  "update": {
+    "available": "lastGLANCE {{version}} is available.",
+    "download": "Download",
+    "dismiss": "Dismiss"
   }
 }

@@ -1031,5 +1031,10 @@
     "nothingDue": "Gerade ist nichts fällig.",
     "notReady": "Öffne lastGLANCE einmal, um zu sehen, was fällig ist.",
     "open": "lastGLANCE öffnen"
+  },
+  "update": {
+    "available": "lastGLANCE {{version}} ist verfügbar.",
+    "download": "Herunterladen",
+    "dismiss": "Schließen"
   }
 }

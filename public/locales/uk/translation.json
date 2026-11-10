@@ -1079,5 +1079,10 @@
     "nothingDue": "Зараз нічого не чекає.",
     "notReady": "Відкрийте lastGLANCE один раз, щоб побачити, що на черзі.",
     "open": "Відкрити lastGLANCE"
+  },
+  "update": {
+    "available": "Доступна версія lastGLANCE {{version}}.",
+    "download": "Завантажити",
+    "dismiss": "Закрити"
   }
 }

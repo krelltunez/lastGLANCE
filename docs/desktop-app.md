@@ -1,7 +1,7 @@
 # Desktop app (Electron): design
 
 Status: design, approved 2026-11-09. The build follows the phases in section 12;
-Phases 1 (the scaffold), 2 (network and sync), 3 (iCloud Drive) and 4 (background mode) are built.
+All five phases are built: the scaffold, network and sync, iCloud Drive, background mode, and release. Releasing is [releasing-desktop.md](releasing-desktop.md).
 
 The desktop app is the existing web bundle in an Electron shell for macOS,
 Windows and Linux, after dayGLANCE's desktop app (`krelltunez/dayGLANCE`,
@@ -493,15 +493,16 @@ attributed to "electron.app.lastGLANCE". The People reminder fields in Settings
 
 ## 9. Billing
 
-- `billing.ts` gains a desktop branch:
-  `isGatedChannel = ... || (isDesktop() && info.isMAS)`.
+- `billing.ts` gains a desktop branch, gated on the MAS build only
+  (`billingChannels.test.ts` is the table of every channel).
   - `info.isMAS` is `process.mas`.
   - `@glance-apps/billing/electron-main` independently checks for the MAS
     receipt, and every other build answers `{ active: true }`. That makes two
     independent "free" signals for Developer ID, Windows and Linux.
 - The adapter is `createElectronRendererAdapter({ api: bridge.billing })`.
 - Main calls `registerElectronBilling(win, { rcApiKey, entitlementId,
-  products: PRODUCT_IDS })`. This is StoreKit through `inAppPurchase`, verified
+  products })` on the MAS build only (`process.mas`), with the iOS values in
+  `electron/billingConfig.ts`, held equal to the iOS sources by a test. This is StoreKit through `inAppPurchase`, verified
   by RevenueCat with the iOS app's App Store key, because the products are the
   same under Universal Purchase.
 - On MAS, `STORE_NAME` is "App Store" and `MANAGE_SUBSCRIPTION_URL` is Apple's.
@@ -572,14 +573,14 @@ path. The page applies commands with the GLANCElauncher's handlers and ledger
 | `electron-builder.config.cjs` | packaging config |
 | `tsconfig.electron.json` | main, ESM |
 | `tsconfig.electron.preload.json` | preload, CommonJS, emitted as `preload.cjs` because the package is `"type": "module"` |
-| `vite.config.ts`, `--mode electron` | the same config without `VitePWA`; the MAS build adds a `__MAS_BUILD__` define in Phase 5 |
+| `vite.config.ts`, `--mode electron` | the same config without `VitePWA`; the MAS build uses the same renderer bundle and tells itself apart at run time (`info.isMAS`), since nothing has to be compiled out of it until MCP arrives |
 
 The `tsconfig` files use `removeComments`. vitest's include gains `electron/`.
 
 ### Scripts
 
 `dev:electron`, `build:electron`, `build:electron:release` and
-`build:electron:mas`, as in dayGLANCE. `build:electron:mas` arrives in Phase 5.
+`build:electron:mas`, as in dayGLANCE.
 
 | Script | What it does |
 |---|---|
@@ -651,7 +652,9 @@ dayGLANCE's set, including the electron-builder lessons it learned:
 - A new `release-desktop.yml` mirrors dayGLANCE's:
   - a matrix of `macos-15` (pinned), `windows-latest` and `ubuntu-latest`;
   - it runs on a version tag or manual dispatch;
-  - it produces a draft GitHub release with the DMG, zip, exe, AppImage and deb.
+  - on a tag it adds the DMG, zip, exe, AppImage and deb to the tag's release:
+    uploaded to it if it exists (the Android release shares the tag), else a
+    new draft. A published release stays published. A manual run builds only.
 - MAS is built locally and uploaded with Transporter, as dayGLANCE's
   `RELEASING.md` describes.
 - Release notes follow CLAUDE.md: no em dashes.
@@ -659,9 +662,20 @@ dayGLANCE's set, including the electron-builder lessons it learned:
 ### No auto-update in this release
 
 Direct builds update by downloading the new release. They show a small "update
-available" notice, like dayGLANCE's `versionCheck.js`: the renderer asks the
-GitHub releases API every 6 h and links to the release. The notice is never
-shown on MAS, where the App Store updates the app.
+available" notice, like dayGLANCE's `versionCheck.js`: the page asks every 6 h
+and on return, main reads the GitHub releases API (the page's CSP allows no
+direct request), and the notice links to the release. Main reports only a
+published release that is newer and has a download for this OS, so an
+Android-only release is never announced on the desktop
+(`electron/updateCheck.ts`). The notice is never shown on MAS, where the App
+Store updates the app.
+
+### Runtime dependencies
+
+The package ships no `node_modules`: the renderer is one Vite bundle and main
+needs only Electron and Node. The one exception is
+`@glance-apps/billing/electron-main` (section 9), which imports nothing else;
+`builderConfig.test.ts` holds both facts.
 
 ## 12. Build phases
 
