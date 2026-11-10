@@ -178,6 +178,12 @@ try {
     rmSync(folder, { recursive: true, force: true })
   }
 
+  // iCloud Drive is macOS only: elsewhere the bridge answers, and says no.
+  const icloud = await page.evaluate(() => window.lastGlanceDesktop.icloud.available())
+  const expectICloud = mainPlatform === 'darwin'
+  check(typeof icloud?.available === 'boolean' && (expectICloud || icloud.available === false),
+    `iCloud ${expectICloud ? 'answers' : 'is off'} on ${mainPlatform} (${JSON.stringify(icloud)})`)
+
   // Exports: the native save dialog (answered with a temp path), and the
   // pre-restore copy written silently into the app's backups folder.
   const exportDir = mkdtempSync(path.join(os.tmpdir(), 'lastglance-smoke-export-'))

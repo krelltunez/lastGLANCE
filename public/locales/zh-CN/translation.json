@@ -312,7 +312,7 @@
     "icloudIntents": {
       "title": "iCloud 意图",
       "label": "通过 iCloud 传递意图",
-      "hint": "在此 iPhone 或 iPad 上通过 iCloud 与 dayGLANCE 交换意图，无需其他设置。dayGLANCE 中也需要开启 iCloud 意图。"
+      "hint": "在此设备上通过 iCloud 与 dayGLANCE 交换意图，无需其他设置。dayGLANCE 中也需要开启 iCloud 意图。"
     }
   },
   "journal": {
@@ -548,7 +548,7 @@
       "desc": "通过另一款应用已在您的设备间保持同步的文件夹进行同步（Nextcloud、Syncthing、FolderSync、Google 云端硬盘、Dropbox）。lastGLANCE 在其中读写一个文件，由那款应用负责传输。",
       "androidHint": "请选择同步应用所管理文件夹中的 GLANCE 文件夹。每台设备都必须选择同一个文件夹。",
       "iosHint": "在 iPhone 和 iPad 上，您在“文件”中选择同步文件本身：选择另一台设备已创建的文件，或在同步应用所管理的文件夹中创建它。",
-      "unsupported": "在 Android 和 iOS 应用中可用。",
+      "unsupported": "在 Android、iOS 和桌面应用中可用。",
       "notConnected": "尚未连接文件夹。",
       "notConnectedFile": "尚未连接同步文件。",
       "chooseFolder": "选择文件夹",
@@ -977,7 +977,7 @@
   "icloud": {
     "title": "iCloud",
     "switchLabel": "通过 iCloud 同步",
-    "onHint": "你的家务和联系人会在登录同一 Apple ID 的每台 iPhone 和 iPad 上保持同步，无需任何设置。",
+    "onHint": "你的家务和联系人会在登录同一 Apple ID 的每台 iPhone、iPad 和 Mac 上保持同步，无需任何设置。",
     "offHint": "已在此设备上关闭。iCloud 中的副本和你的其他设备不受影响。",
     "firstRun": {
       "title": "从 iCloud 恢复？",

@@ -1,5 +1,6 @@
 import { Capacitor, registerPlugin } from '@capacitor/core'
 import type { DirectAccessRead } from './directAccess'
+import { desktopBridge, type DesktopICloud } from './desktop'
 
 // Zero-config iCloud sync (docs/icloud-sync.md): the iOS plugin
 // (ios/App/App/plugins/ICloudPlugin.swift) and the bridge the transports use.
@@ -8,7 +9,9 @@ import type { DirectAccessRead } from './directAccess'
 // whose GLANCE/events/ carries the intents the two apps exchange. Reads answer
 // the classification every file shell answers (DirectAccessRead).
 //
-// iOS only: Android and the web have no plugin and isICloudAvailable() is false.
+// iOS, and the desktop app on macOS (electron/icloud.ts, the same contract over
+// the iCloud Drive folders). Android, the web and the desktop elsewhere have
+// none, and isICloudAvailable() is false.
 
 export type ICloudContainer = 'own' | 'dayglance'
 
@@ -24,9 +27,31 @@ export interface ICloudPluginType {
 
 export const ICloud = registerPlugin<ICloudPluginType>('ICloud')
 
-/** True only inside an iOS shell that registered the plugin. */
+/** True inside an iOS shell that registered the plugin, or the desktop app on macOS. */
 export function isICloudAvailable(): boolean {
-  return Capacitor.getPlatform() === 'ios' && Capacitor.isPluginAvailable('ICloud')
+  return (Capacitor.getPlatform() === 'ios' && Capacitor.isPluginAvailable('ICloud')) || desktopICloud() !== null
+}
+
+/** The desktop app's iCloud, on macOS only. */
+function desktopICloud(): DesktopICloud | null {
+  const desktop = desktopBridge()
+  return desktop?.info.platform === 'darwin' ? desktop.icloud : null
+}
+
+/** The desktop's iCloud as the plugin: the same calls, its change event as addListener. */
+export function desktopICloudPlugin(desktop: DesktopICloud): ICloudPluginType {
+  return {
+    available: () => desktop.available(),
+    readFile: (o) => desktop.readFile(o) as Promise<DirectAccessRead>,
+    writeFile: (o) => desktop.writeFile(o),
+    listFiles: (o) => desktop.listFiles(o),
+    deleteFile: (o) => desktop.deleteFile(o),
+    makeDir: (o) => desktop.makeDir(o),
+    addListener: async (_event, cb) => {
+      const unsubscribe = desktop.onChanged(cb)
+      return { remove: async () => unsubscribe() }
+    },
+  }
 }
 
 /** The calls the transports make, every failure answered rather than thrown. */
@@ -77,6 +102,9 @@ let shared: ICloudBridge | null = null
 /** The app's bridge, or null where there is no iCloud plugin. */
 export function icloudBridge(): ICloudBridge | null {
   if (!isICloudAvailable()) return null
-  shared ??= createICloudBridge()
+  if (!shared) {
+    const desktop = desktopICloud()
+    shared = desktop ? createICloudBridge(desktopICloudPlugin(desktop)) : createICloudBridge()
+  }
   return shared
 }

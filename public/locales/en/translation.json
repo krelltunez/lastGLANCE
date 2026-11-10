@@ -312,7 +312,7 @@
     "icloudIntents": {
       "title": "iCloud intents",
       "label": "Intents through iCloud",
-      "hint": "Exchange intents with dayGLANCE on this iPhone or iPad through iCloud, with nothing else to set up. dayGLANCE needs its iCloud intents turned on too."
+      "hint": "Exchange intents with dayGLANCE on this device through iCloud, with nothing else to set up. dayGLANCE needs its iCloud intents turned on too."
     }
   },
   "journal": {
@@ -548,7 +548,7 @@
       "desc": "Sync through a folder that another app already keeps in step across your devices (Nextcloud, Syncthing, FolderSync, Google Drive, Dropbox). lastGLANCE reads and writes one file there; that app moves it.",
       "androidHint": "Choose the GLANCE folder inside the folder your syncing app manages. It needs to be the same folder on every device.",
       "iosHint": "On iPhone and iPad you choose the sync file itself in Files: pick the one another device already created, or create it in the folder your syncing app manages.",
-      "unsupported": "Available in the Android and iOS apps.",
+      "unsupported": "Available in the Android, iOS and desktop apps.",
       "notConnected": "No folder is connected.",
       "notConnectedFile": "No sync file is connected.",
       "chooseFolder": "Choose folder",
@@ -977,7 +977,7 @@
   "icloud": {
     "title": "iCloud",
     "switchLabel": "Sync with iCloud",
-    "onHint": "Your chores and People stay in step on every iPhone and iPad signed in to your Apple ID. Nothing to set up.",
+    "onHint": "Your chores and People stay in step on every iPhone, iPad and Mac signed in to your Apple ID. Nothing to set up.",
     "offHint": "Off on this device. The copy in iCloud and your other devices are untouched.",
     "firstRun": {
       "title": "Restore from iCloud?",

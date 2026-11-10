@@ -231,6 +231,14 @@ const RULES = [
 // Whole-string replacements for the handful of sentences a word-level rule
 // cannot rebuild — passive reordering and the addressee pronoun.
 const OVERRIDES = {
+  // iCloud and Direct Access hints that name the Mac and desktop apps:
+  // seu without the article, ficar for manter-se, o app (masculine in Brazil).
+  'icloud.onHint':
+    "Suas tarefas e Pessoas ficam em dia em todo iPhone, iPad e Mac com seu ID Apple. Nada para configurar.",
+  'integration.icloudIntents.hint':
+    "Troque intents com o dayGLANCE neste dispositivo pelo iCloud, sem mais nada para configurar. No dayGLANCE, os intents do iCloud também precisam estar ativados.",
+  'sync.directAccess.unsupported':
+    "Disponível nos apps para Android, iOS e computador.",
   // Desktop private-address permission (sync.privateAddress), as dayGLANCE's
   // reviewed pt-BR has it: conectar (not ligar), acessar, em uma, você.
   'sync.privateAddress.needsPermission':
