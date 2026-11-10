@@ -31,7 +31,7 @@ import { loadWindowState, onScreen, saveWindowState, saveWindowTheme, windowBack
 import { createCommandQueue, type CommandSource } from './commandQueue.js';
 import { DEEP_LINK_SCHEME, deepLinkFromArgv, deepLinkToken } from './deepLink.js';
 import { createReminderScheduler, type ScheduledReminder } from './reminderScheduler.js';
-import { parseTraySnapshot, popupPosition, settledCompletions, trayMenuItems, trayState, type TraySnapshot } from './trayModel.js';
+import { parseTraySnapshot, popupPosition, settledCompletions, trayMenuItems, trayOpenToken, trayState, type TraySnapshot } from './trayModel.js';
 import { applyOpenAtLogin, closeAction, launchedHidden, loadDesktopSettings, saveDesktopSettings, type DesktopSettings } from './backgroundMode.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -266,7 +266,7 @@ let tray: Tray | null = null;
 let trayWindow: BrowserWindow | null = null;
 let traySnapshot: TraySnapshot | null = null;
 const doneHere = new Map<string, number>();
-const TRAY_POPUP_SIZE = { width: 340, height: 460 };
+const TRAY_POPUP_SIZE = { width: 380, height: 560 };
 const USE_TRAY_POPUP = process.platform !== 'linux';
 
 function isTrayWindowSender(sender: Electron.WebContents): boolean {
@@ -406,18 +406,12 @@ ipcMain.on('tray:complete', (event, syncId: unknown) => {
 ipcMain.on('tray:open', (event, token: unknown) => {
   if (!isTrayWindowSender(event.sender)) return;
   live(trayWindow)?.hide();
-  openToken(typeof token === 'string' ? deepLinkTokenFromTray(token) : null);
+  openToken(trayOpenToken(token, traySnapshot));
 });
 ipcMain.on('tray:hide', (event) => {
   if (isTrayWindowSender(event.sender)) live(trayWindow)?.hide();
 });
 
-/** The popup may open a chore it shows, or the app; nothing else. */
-function deepLinkTokenFromTray(token: string): string | null {
-  if (!token.startsWith('chore:')) return null;
-  const id = token.slice('chore:'.length);
-  return traySnapshot?.chores.some((c) => c.syncId === id) ? token : null;
-}
 
 // Hooks for the tray and reminders (section 7).
 function onShellLabels(): void { refreshTray(); }

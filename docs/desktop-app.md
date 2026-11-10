@@ -447,8 +447,12 @@ attributed to "electron.app.lastGLANCE". The People reminder fields in Settings
 - Main keeps the snapshot's due chores (`electron/trayModel.ts`). The popup
   loads `app://lastglance/?tray=1`, the same bundle with no App
   (`src/tray/TrayPopup.tsx`); main answers its calls only from the popup
-  window. It renders a compact due list, and "Mark done" queues a completion;
-  main hides that chore until a snapshot made after it shows it done.
+  window. It is drawn with the app's own pieces: the wordmark, the Chores and
+  People switch, the chore cards (cadence stripe, fill, icon, "Done"), and on
+  People the Reach out cards and Coming up tiles from the snapshot's `people`
+  block. "Done" queues a completion; main hides that chore until a snapshot
+  made after it shows it done. A person's "Log" opens the app's quick-log
+  sheet, which needs the window.
 - A chore turns due with no event, so the desktop re-pushes the snapshot every
   15 minutes.
 - The main renderer drains the queue (`usePendingCompletions`, which already
