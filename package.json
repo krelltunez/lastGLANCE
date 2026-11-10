@@ -32,6 +32,7 @@
     "build:electron:main": "tsc -p tsconfig.electron.json && tsc -p tsconfig.electron.preload.json",
     "build:electron": "npm run build:electron:renderer && npm run build:electron:main && electron-builder --config electron-builder.config.cjs",
     "build:electron:release": "npm run build:electron -- --publish never",
+    "build:electron:mas": "npm run build:electron:renderer && npm run build:electron:main && LASTGLANCE_APP_ID=com.lastglance electron-builder --config electron-builder.config.cjs --mac mas --universal --publish never",
     "build:electron:dir": "npm run build:electron:renderer && npm run build:electron:main && electron-builder --config electron-builder.config.cjs --dir --publish never",
     "test:electron-smoke": "node e2e/electron-smoke.mjs"
   },
@@ -60,6 +61,7 @@
   "devDependencies": {
     "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^8.4.0",
+    "@electron/notarize": "^3.1.2",
     "@eslint/js": "^9.39.4",
     "@types/node": "^25.6.0",
     "@types/react": "^19.1.2",

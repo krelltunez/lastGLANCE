@@ -2,10 +2,20 @@
 // section 11). After dayGLANCE's electron-builder.config.cjs
 // (krelltunez/dayGLANCE@8d72008), whose comments explain the lessons kept here.
 //
-// Signing is driven by the environment. With no CSC_LINK, macOS builds are
-// ad-hoc signed by the afterPack hook (an "unidentified developer" prompt
-// instead of a hard "damaged" block); Developer ID signing, notarization and
-// the Mac App Store build arrive in Phase 5 (section 12).
+// Signing is driven by the environment:
+//
+//   Developer ID (release-desktop.yml, or locally with these set):
+//     CSC_LINK, CSC_KEY_PASSWORD      the Developer ID Application .p12
+//     APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, APPLE_TEAM_ID  for notarization
+//   With no CSC_LINK, macOS builds are ad-hoc signed by the afterPack hook (an
+//   "unidentified developer" prompt instead of a hard "damaged" block).
+//
+//   Mac App Store (npm run build:electron:mas, built locally and uploaded with
+//   Transporter; docs/releasing-desktop.md): the "Apple Distribution" (or "3rd
+//   Party Mac Developer Application") and "Mac Installer Distribution"
+//   certificates in the login keychain, and the provisioning profile at
+//   electron/lastglance.mas.provisionprofile (git-ignored) or wherever
+//   MAC_PROVISIONING_PROFILE points.
 
 const { readdirSync } = require('node:fs');
 const path = require('node:path');
@@ -21,15 +31,33 @@ const SHIPPED_LANGUAGES = readdirSync(path.join(__dirname, 'public', 'locales'),
 const APPLE_LANGUAGE_IDS = { 'zh-CN': 'zh-Hans' };
 
 const hasCert = Boolean(process.env.CSC_LINK);
+// The MAS script is the only thing that sets LASTGLANCE_APP_ID, so it marks a
+// MAS build. Such a build signs from the keychain (no CSC_LINK) and must never
+// inherit the ad-hoc `identity: null` below, which would skip signing.
+const isMasBuild = process.env.LASTGLANCE_APP_ID === 'com.lastglance';
+
+// CFBundleVersion for App Store uploads, which must strictly increase:
+// YYYYMMDD.HHMM from the build time (BUILD_NUMBER overrides). The marketing
+// version stays package.json's. Set on MAS builds only.
+function masBuildVersion() {
+  if (process.env.BUILD_NUMBER) return process.env.BUILD_NUMBER;
+  const d = new Date();
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}.${p(d.getHours())}${p(d.getMinutes())}`;
+}
 
 /** @type {import('electron-builder').Configuration} */
 module.exports = {
-  // com.lastglance.app matches Android. The MAS build (Phase 5) switches to
-  // com.lastglance, the iOS bundle id, for Universal Purchase.
-  appId: 'com.lastglance.app',
+  // com.lastglance.app matches Android. The MAS build switches to
+  // com.lastglance, the iOS bundle id, for Universal Purchase. appId is global
+  // (there is no per-target override), hence the environment switch.
+  appId: process.env.LASTGLANCE_APP_ID || 'com.lastglance.app',
+  ...(isMasBuild ? { buildVersion: masBuildVersion() } : {}),
   productName: 'lastGLANCE',
   copyright: 'Copyright © 2026 GLANCE Apps',
   afterPack: './scripts/codesign-ad-hoc.cjs',
+  // Notarizes a Developer ID build; a no-op without CSC_LINK and for MAS.
+  afterSign: './scripts/notarize.cjs',
   // No native runtime dependency ships (see files), so there is nothing for
   // @electron/rebuild to compile.
   npmRebuild: false,
@@ -56,8 +84,12 @@ module.exports = {
   mac: {
     // null: ad-hoc (no certificate); undefined: electron-builder picks the
     // Developer ID identity when CSC_LINK is set.
-    identity: hasCert ? undefined : null,
+    identity: hasCert || isMasBuild ? undefined : null,
     hardenedRuntime: hasCert,
+    // Notarization is the afterSign hook's job (scripts/notarize.cjs).
+    notarize: false,
+    entitlements: 'electron/entitlements.mac.plist',
+    entitlementsInherit: 'electron/entitlements.mac.plist',
     category: 'public.app-category.productivity',
     icon: 'electron/resources/icon-mac.png',
     // Only the shipped languages' .lproj folders survive; Apple reads the
@@ -70,6 +102,16 @@ module.exports = {
       { target: 'dmg', arch: ['x64', 'arm64'] },
       { target: 'zip', arch: ['x64', 'arm64'] },
     ],
+  },
+  // The Mac App Store build: sandboxed, so no Hardened Runtime; a universal
+  // .pkg (the script passes --mac mas --universal).
+  mas: {
+    type: 'distribution',
+    hardenedRuntime: false,
+    entitlements: 'electron/entitlements.mas.plist',
+    entitlementsInherit: 'electron/entitlements.mas.inherit.plist',
+    provisioningProfile: process.env.MAC_PROVISIONING_PROFILE || 'electron/lastglance.mas.provisionprofile',
+    category: 'public.app-category.productivity',
   },
   win: {
     icon: 'electron/resources/icon.png',
