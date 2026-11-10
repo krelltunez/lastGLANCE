@@ -11,6 +11,7 @@
 //   - the desktop chrome classes are set and `native` is not;
 //   - requests go through the main process: a server on a private address is
 //     refused until granted, then reached, and the grant can be revoked;
+//   - the page's log lines reach the log file;
 //   - no uncaught page error.
 //
 // Usage: npm run build:electron:dir && npm run test:electron-smoke
@@ -204,6 +205,17 @@ try {
   } finally {
     rmSync(exportDir, { recursive: true, force: true })
   }
+
+  // The page's lines reach the log file in userData (shell.log).
+  const logLine = `smoke-log-${Date.now()}`
+  await page.evaluate((line) => window.lastGlanceDesktop.shell.log(line), logLine)
+  const logFile = path.join(await app.evaluate(({ app }) => app.getPath('userData')), 'lastglance-startup.log')
+  let logged = false
+  for (let i = 0; i < 20 && !logged; i++) {
+    logged = existsSync(logFile) && readFileSync(logFile, 'utf-8').includes(`page: ${logLine}`)
+    if (!logged) await new Promise((r) => setTimeout(r, 100))
+  }
+  check(logged, 'the page writes to the log file')
 
   if (process.env.SMOKE_SCREENSHOT) await page.screenshot({ path: process.env.SMOKE_SCREENSHOT })
   check(pageErrors.length === 0, `no uncaught page errors${pageErrors.length ? `: ${pageErrors.join(' | ')}` : ''}`)

@@ -37,6 +37,9 @@ function stamp(): string {
 export function initStartupLog(userDataDir: string): string | null {
   try {
     const target = path.join(userDataDir, STARTUP_LOG_FILENAME);
+    // A fresh install's first launch: Electron has not created userData yet
+    // when this runs, and without it the whole first session went unlogged.
+    fs.mkdirSync(userDataDir, { recursive: true });
     let prior = '';
     try {
       if (fs.statSync(target).size <= MAX_LOG_BYTES) {

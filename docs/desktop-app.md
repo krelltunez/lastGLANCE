@@ -261,7 +261,11 @@ Covered in section 7.
 - Sensitive handlers check that `event.sender` is the main window.
 - There is a single-instance lock.
 - dayGLANCE's `rendererRecovery.ts` handles renderer crashes (reload, then
-  recreate, then give up), and `startupLog.ts` keeps a bounded log in userData.
+  recreate, then give up), and `startupLog.ts` keeps a bounded log in userData
+  (`lastglance-startup.log`). The page adds lines to it through `shell.log`
+  (`desktopLog`): each sync file's outcome when it changes (merged, seeded,
+  waiting for a download), at most 500 lines a session. Packaged builds have no
+  DevTools, so this is what a report from a real machine can be traced with.
 - DevTools are off in packaged builds, the equivalent of the
   `CAP_WEBVIEW_DEBUG` gate.
 
@@ -328,10 +332,24 @@ two sync files, with a 1 s debounce and a 2 s self-write suppression, posts
 recreates it. The tier's 15 s poll remains the backstop; intents in the
 `dayglance` container keep their own 2-minute poll, as on iOS.
 
+**A first launch waits for iCloud's listing.** On a Mac that has never read
+a snapshot, a missing sync file is treated as one iCloud has not listed yet
+(`downloading`) for 10 minutes, the shared eviction window, before it is seeded
+(`ICloudBridge.absentMayBePending`, `src/sync/icloud.ts`). The container folder
+exists only once the iOS app has used iCloud on the Apple ID, and that app
+writes the file on its first cycle, so "missing" on a Mac's first launch almost
+always means "not downloaded yet". Without this, the first real Mac launch
+(2026-11-09) found the folder empty, seeded sample data under the file's name,
+and iCloud kept the iPhone's file as a `lastglance-sync 2.json` conflict copy;
+the data came back through the iPhone's next merge, minutes later. After the
+first read, a missing file follows the shared eviction rule as everywhere else.
+
 **Tested without a Mac.** `src/sync/icloudSync.scenarios.test.ts` runs its
 two-device scenarios (merging, the first-run question, "start fresh") twice:
 over an in-memory container, and over this store writing real files in a temp
-`~/Library/Mobile Documents`.
+`~/Library/Mobile Documents`. A Mac's first launch has its own scenarios there:
+an empty folder, the iPhone's files arriving later, and nothing written by the
+Mac in between.
 
 **Availability is the container folder existing.** With no native API call,
 the Mac cannot create the container itself. iCloud on the Mac therefore lights

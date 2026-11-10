@@ -41,6 +41,14 @@ describe('initStartupLog / logStartup', () => {
     expect(contents).toContain('main window ready-to-show');
   });
 
+  it('logs a fresh install\'s first launch, before userData exists', () => {
+    const userData = path.join(dir, 'not-yet', 'lastGLANCE');
+    const p = initStartupLog(userData);
+    expect(p).toBe(path.join(userData, STARTUP_LOG_FILENAME));
+    logStartup('first launch');
+    expect(fs.readFileSync(p!, 'utf-8')).toContain('first launch');
+  });
+
   it('preserves prior sessions across inits (appends a new session header)', () => {
     initStartupLog(dir);
     logStartup('first launch line');

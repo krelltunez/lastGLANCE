@@ -28,6 +28,8 @@ export interface DesktopShell {
   setTheme(dark: boolean): void
   /** Leave native fullscreen; a no-op when the window is not fullscreen. */
   exitFullscreen(): void
+  /** One line in the app's log file (lastglance-startup.log), for support. */
+  log(message: string): void
 }
 
 /** A response from the main process, or why no response came (refused, timeout, network). */
@@ -145,6 +147,7 @@ export const DESKTOP_BRIDGE_METHODS = [
   'shell.setMenuLabels',
   'shell.setTheme',
   'shell.exitFullscreen',
+  'shell.log',
   'http.request',
   'http.inspect',
   'http.grant',
@@ -206,4 +209,9 @@ export function isDesktop(): boolean {
 
 export function isDesktopMac(): boolean {
   return desktopBridge()?.info.platform === 'darwin'
+}
+
+/** A line in the desktop app's log file; a no-op anywhere else. Never throws. */
+export function desktopLog(message: string): void {
+  try { desktopBridge()?.shell.log?.(message) } catch { /* best-effort */ }
 }

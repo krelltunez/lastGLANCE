@@ -120,6 +120,18 @@ ipcMain.on('shell:exit-fullscreen', (event) => {
   w.setFullScreen(false);
 });
 
+// The page's lines for the log file (src/native/desktop.ts, desktopLog): what
+// a sync tier did, so a report from a real Mac can be traced. Capped per
+// session; a line is cut at 500 characters.
+const RENDERER_LOG_LINES_PER_SESSION = 500;
+let rendererLogLines = 0;
+ipcMain.on('shell:log', (event, message: unknown) => {
+  if (!isMainWindowSender(event.sender) || typeof message !== 'string') return;
+  if (rendererLogLines >= RENDERER_LOG_LINES_PER_SESSION) return;
+  rendererLogLines += 1;
+  logStartup(`page: ${message.replace(/\s+/g, ' ').slice(0, 500)}${rendererLogLines === RENDERER_LOG_LINES_PER_SESSION ? ' (page log limit reached for this session)' : ''}`);
+});
+
 // ── Network (docs/desktop-app.md, section 4) ────────────────────────────────
 // The renderer's only way out: WebDAV, GLANCEvault, intents and the roster all
 // arrive here as `http:request`. networkTrust.ts decides which servers may be
