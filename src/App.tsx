@@ -45,6 +45,7 @@ import { ICloudFirstRunModal } from '@/components/ICloudFirstRunModal/ICloudFirs
 import { useDirectAccessIntents } from '@/hooks/useDirectAccessIntents'
 import { useICloudIntents } from '@/hooks/useICloudIntents'
 import { useAndroidIntentBridge } from '@/hooks/useAndroidIntentBridge'
+import { useDesktopCommands } from '@/hooks/useDesktopCommands'
 import { runCappedRefreshCycle, type RefreshTier } from '@/intents/launcherRefreshCycle'
 import { useOutboxFlush } from '@/hooks/useOutboxFlush'
 import { useDayRollover } from '@/hooks/useDayRollover'
@@ -655,6 +656,7 @@ function AppInner() {
   // Android/Tasker intents transport — lets another Android app drive lastGLANCE
   // via app.lastglance.* intents. No-op off native Android.
   useAndroidIntentBridge(loadHeatmap, { runSyncCycle: runLauncherSyncCycle, touchHeartbeat: touchHeartbeatNow })
+  useDesktopCommands(loadHeatmap)
   // OUTBOUND: drain the durable intents outbox on mount, on focus, and on the
   // poll cadence (enqueue also triggers a flush). Guarantees queued intents are
   // delivered/retried and never lost across restarts.

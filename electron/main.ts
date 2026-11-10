@@ -6,6 +6,7 @@
 
 import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, net, Notification, powerMonitor, protocol, safeStorage, screen, session, shell } from 'electron';
 import dns from 'node:dns';
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import nodeNet from 'node:net';
 import path from 'node:path';
@@ -27,6 +28,7 @@ import { initStartupLog, logStartup } from './startupLog.js';
 import { shouldQuitOnAllWindowsClosed } from './startupQuit.js';
 import { DESKTOP_INFO_ARG, encodeDesktopInfo } from './desktopInfo.js';
 import { loadWindowState, onScreen, saveWindowState, saveWindowTheme, windowBackgroundColor } from './windowState.js';
+import { createCommandQueue, type CommandSource } from './commandQueue.js';
 import { applyOpenAtLogin, closeAction, launchedHidden, loadDesktopSettings, saveDesktopSettings, type DesktopSettings } from './backgroundMode.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -155,6 +157,26 @@ function noteFirstBackgroundHide(): void {
     body: label('backgroundBody', 'Reminders keep coming while the window is closed. Open lastGLANCE from the tray.'),
   }).show();
 }
+
+// ── The command queue (docs/desktop-app.md, section 10) ─────────────────────
+// The tray's and the notifications' writes, applied by the page through the
+// app's own handlers and acknowledged only once handled (commandQueue.ts).
+const commands = createCommandQueue({
+  file: path.join(app.getPath('userData'), 'commands.json'),
+  newId: () => crypto.randomUUID(),
+});
+
+function queueCommand(action: string, payload: Record<string, unknown>, source: CommandSource): void {
+  const command = commands.enqueue(action, payload, source);
+  if (!command) return;
+  logStartup(`command queued: ${action} from ${source}`);
+  live(mainWindow)?.webContents.send('commands:queued');
+}
+
+ipcMain.handle('commands:take', (event) => (isMainWindowSender(event.sender) ? commands.take() : []));
+ipcMain.handle('commands:ack', (event, ids: unknown) => {
+  if (isMainWindowSender(event.sender)) commands.ack(ids);
+});
 
 // The tray (section 7): refreshed when its labels or the settings change.
 function refreshTray(): void { /* the tray arrives with the tray popup */ }

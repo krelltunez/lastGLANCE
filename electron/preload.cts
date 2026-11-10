@@ -85,6 +85,11 @@ contextBridge.exposeInMainWorld('lastGlanceDesktop', {
     saveText: (options: { filename: string; text: string }) => ipcRenderer.invoke('files:save-text', options),
     stash: (options: { filename: string; text: string }) => ipcRenderer.invoke('files:stash', options),
   },
+  commands: {
+    take: () => ipcRenderer.invoke('commands:take'),
+    ack: (ids: string[]) => ipcRenderer.invoke('commands:ack', ids),
+    onQueued: (listener: (payload: unknown) => void) => subscribe('commands:queued', listener),
+  },
   icloud: {
     available: () => ipcRenderer.invoke('icloud:available'),
     readFile: (options: { path: string; container?: string; allowStale?: boolean }) => ipcRenderer.invoke('icloud:read-file', options),

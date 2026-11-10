@@ -137,6 +137,23 @@ export interface DesktopICloud {
   onChanged(listener: () => void): () => void
 }
 
+/** A write from outside the window (electron/commandQueue.ts): handleIntent's vocabulary. */
+export interface DesktopCommand {
+  clientId: string
+  action: string
+  payload: Record<string, unknown>
+  source: 'tray' | 'notification'
+  at: string
+}
+
+/** The command queue (docs/desktop-app.md, section 10): taken, applied, then acknowledged. */
+export interface DesktopCommands {
+  take(): Promise<DesktopCommand[]>
+  ack(ids: string[]): Promise<void>
+  /** A command was queued; returns the unsubscribe. */
+  onQueued(listener: () => void): () => void
+}
+
 export interface DesktopBridge {
   info: DesktopInfo
   shell: DesktopShell
@@ -146,6 +163,7 @@ export interface DesktopBridge {
   directAccess: DesktopDirectAccess
   files: DesktopFiles
   icloud: DesktopICloud
+  commands: DesktopCommands
 }
 
 /**
@@ -193,6 +211,9 @@ export const DESKTOP_BRIDGE_METHODS = [
   'icloud.deleteFile',
   'icloud.makeDir',
   'icloud.onChanged',
+  'commands.take',
+  'commands.ack',
+  'commands.onQueued',
 ] as const
 
 declare global {
