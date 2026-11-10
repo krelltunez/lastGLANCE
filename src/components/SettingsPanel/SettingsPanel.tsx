@@ -26,7 +26,8 @@ import { HelpContent } from '@/components/HelpModal/HelpModal'
 import { SubscriptionStatus } from '@/components/PaywallModal/SubscriptionStatus'
 import { LauncherPromoCard, LauncherPromoEntry } from '@/components/LauncherPromo/LauncherPromo'
 import { useLauncherPromo } from '@/hooks/useLauncherPromo'
-import { formatTimeSample, formatWeekdayShort, type TimeFormat, type WeekStartPref } from '@/utils/datetime'
+import { formatTime, formatTimeSample, formatWeekdayShort, type TimeFormat, type WeekStartPref } from '@/utils/datetime'
+import { ClockTimePicker } from '@/components/ClockTimePicker/ClockTimePicker'
 
 export type ThemePref = 'light' | 'dark' | 'system'
 
@@ -401,21 +402,35 @@ function Field({ label, htmlFor, children }: { label: string; htmlFor?: string; 
 }
 
 // A time of day as minutes after midnight. A cleared field changes nothing.
+// A time of day, set with the app's clock-face picker (ClockTimePicker), as
+// every other time in the app is, and shown on the user's clock.
 function TimeInput({ id, label, minutes, onChange }: {
   id: string; label?: string; minutes: number; onChange: (minutes: number) => void
 }) {
+  const [open, setOpen] = useState(false)
   const pad = (n: number) => String(n).padStart(2, '0')
+  const value = `${pad(Math.floor(minutes / 60))}:${pad(minutes % 60)}`
   const input = (
-    <input
-      id={id}
-      type="time"
-      value={`${pad(Math.floor(minutes / 60))}:${pad(minutes % 60)}`}
-      onChange={e => {
-        const [h, m] = e.target.value.split(':').map(Number)
-        if (Number.isInteger(h) && Number.isInteger(m)) onChange(h * 60 + m)
-      }}
-      className="bg-slate-100 dark:bg-slate-700 rounded-lg px-3 py-1.5 text-sm text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
-    />
+    <>
+      <button
+        id={id}
+        type="button"
+        onClick={() => setOpen(true)}
+        className="bg-slate-100 dark:bg-slate-700 rounded-lg px-3 py-1.5 text-sm tabular-nums text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-600 hover:border-slate-300 dark:hover:border-slate-500 focus:outline-none focus:ring-2 focus:ring-green-400"
+      >
+        {formatTime(`2000-01-01T${value}`)}
+      </button>
+      {open && (
+        <ClockTimePicker
+          value={value}
+          onChange={v => {
+            const [h, m] = v.split(':').map(Number)
+            if (Number.isInteger(h) && Number.isInteger(m)) onChange(h * 60 + m)
+          }}
+          onClose={() => setOpen(false)}
+        />
+      )}
+    </>
   )
   if (!label) return input
   return (

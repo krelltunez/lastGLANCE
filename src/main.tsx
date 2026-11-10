@@ -2,7 +2,7 @@ import { StrictMode, Suspense } from 'react'
 import { createRoot } from 'react-dom/client'
 import { Capacitor } from '@capacitor/core'
 import './index.css'
-import i18n from './i18n'
+import i18n, { systemClockRead } from './i18n'
 import { hydrateSecureConfig, installSecureConfigShim } from './sync/secureConfigShim'
 import { headlessBridge, headlessRequest } from './headless/headlessMode'
 import { initHardwareBackButton } from './native/backButton'
@@ -135,8 +135,10 @@ const boot = () => {
     // Settings (shown three days in). Android only, and never in a headless
     // run, which takes the branch above (recordFirstSeen checks for one too).
     recordFirstSeen({ platform: Capacitor.getPlatform(), now: Date.now() })
-    hydrateSecureConfig()
-      .catch(() => {})
+    // The OS clock is read before the first paint (bounded, so a shell that
+    // never answers cannot hold the app back).
+    const clockRead = Promise.race([systemClockRead, new Promise<void>(r => setTimeout(r, 500))])
+    Promise.all([hydrateSecureConfig().catch(() => {}), clockRead])
       .then(render)
   }
 }

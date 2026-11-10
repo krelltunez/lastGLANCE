@@ -24,6 +24,9 @@ export interface WidgetBridgePlugin {
   // It reflects the device region and any first-day override the user set,
   // which the WebView's language tag may not carry (issue #362).
   systemWeekStart(): Promise<{ weekStart: number }>
+  // Whether the operating system shows a 24-hour clock. The WebView formats
+  // with the app's language, which does not carry this setting.
+  systemClock(): Promise<{ hour24: boolean }>
 }
 
 const WidgetBridge = registerPlugin<WidgetBridgePlugin>('WidgetBridge')
@@ -87,12 +90,36 @@ export async function consumeSharedChore(): Promise<string | null> {
   }
 }
 
-// Null on web, or from a native shell that predates the method.
+// Null on web, or from a native shell that predates the method. The desktop
+// app reads its OS settings in main (electron/systemFormats.ts).
 export async function getSystemWeekStart(): Promise<number | null> {
+  const desktop = desktopBridge()
+  if (desktop) {
+    try { return (await desktop.shell.systemFormats())?.weekStart ?? null } catch { return null }
+  }
   if (!isNativeShell()) return null
   try {
     const res = await WidgetBridge.systemWeekStart()
     return typeof res?.weekStart === 'number' ? res.weekStart : null
+  } catch {
+    return null
+  }
+}
+
+// Whether the OS clock is 24-hour, for Automatic time format; null on web, or
+// from a native shell that predates the method.
+export async function getSystemClock(): Promise<boolean | null> {
+  const desktop = desktopBridge()
+  if (desktop) {
+    try {
+      const hour24 = (await desktop.shell.systemFormats())?.hour24
+      return typeof hour24 === 'boolean' ? hour24 : null
+    } catch { return null }
+  }
+  if (!isNativeShell()) return null
+  try {
+    const res = await WidgetBridge.systemClock()
+    return typeof res?.hour24 === 'boolean' ? res.hour24 : null
   } catch {
     return null
   }

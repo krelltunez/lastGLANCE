@@ -4,7 +4,7 @@
 // links, crash recovery and the startup log. The window, protocol and lifecycle
 // code follows dayGLANCE's electron/main.ts (krelltunez/dayGLANCE@8d72008).
 
-import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, nativeTheme, net, Notification, powerMonitor, protocol, safeStorage, screen, session, shell, Tray } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, nativeTheme, net, Notification, powerMonitor, protocol, safeStorage, screen, session, shell, systemPreferences, Tray } from 'electron';
 import dns from 'node:dns';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
@@ -31,7 +31,8 @@ import { loadWindowState, onScreen, saveWindowState, saveWindowTheme, windowBack
 import { createCommandQueue, type CommandSource } from './commandQueue.js';
 import { DEEP_LINK_SCHEME, deepLinkFromArgv, deepLinkToken } from './deepLink.js';
 import { createReminderScheduler, type ScheduledReminder } from './reminderScheduler.js';
-import { parseTraySnapshot, popupPosition, settledCompletions, trayMenuItems, trayState, type TraySnapshot } from './trayModel.js';
+import { parseTraySnapshot, popupPosition, settledCompletions, trayMenuItems, trayOpenToken, trayState, type TraySnapshot } from './trayModel.js';
+import { linuxFormats, macFormats, windowsFormats, type SystemFormats } from './systemFormats.js';
 import { applyOpenAtLogin, closeAction, launchedHidden, loadDesktopSettings, saveDesktopSettings, type DesktopSettings } from './backgroundMode.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -266,7 +267,7 @@ let tray: Tray | null = null;
 let trayWindow: BrowserWindow | null = null;
 let traySnapshot: TraySnapshot | null = null;
 const doneHere = new Map<string, number>();
-const TRAY_POPUP_SIZE = { width: 340, height: 460 };
+const TRAY_POPUP_SIZE = { width: 380, height: 560 };
 const USE_TRAY_POPUP = process.platform !== 'linux';
 
 function isTrayWindowSender(sender: Electron.WebContents): boolean {
@@ -406,22 +407,47 @@ ipcMain.on('tray:complete', (event, syncId: unknown) => {
 ipcMain.on('tray:open', (event, token: unknown) => {
   if (!isTrayWindowSender(event.sender)) return;
   live(trayWindow)?.hide();
-  openToken(typeof token === 'string' ? deepLinkTokenFromTray(token) : null);
+  openToken(trayOpenToken(token, traySnapshot));
 });
 ipcMain.on('tray:hide', (event) => {
   if (isTrayWindowSender(event.sender)) live(trayWindow)?.hide();
 });
 
-/** The popup may open a chore it shows, or the app; nothing else. */
-function deepLinkTokenFromTray(token: string): string | null {
-  if (!token.startsWith('chore:')) return null;
-  const id = token.slice('chore:'.length);
-  return traySnapshot?.chores.some((c) => c.syncId === id) ? token : null;
-}
 
 // Hooks for the tray and reminders (section 7).
 function onShellLabels(): void { refreshTray(); }
 function onBackgroundSettingsChanged(): void { refreshTray(); }
+
+// The OS clock and week settings, for the page's "Automatic" time format and
+// week start (systemFormats.ts). Read on each ask: the user can change them in
+// system settings while the app runs, and the page asks again on wake.
+async function readSystemFormats(): Promise<SystemFormats> {
+  try {
+    if (IS_MAC) {
+      const first = systemPreferences.getUserDefault('AppleFirstWeekday', 'dictionary') as Record<string, unknown> | undefined;
+      return macFormats({
+        force24: systemPreferences.getUserDefault('AppleICUForce24HourTime', 'boolean') === true,
+        force12: systemPreferences.getUserDefault('AppleICUForce12HourTime', 'boolean') === true,
+        firstWeekday: typeof first?.gregorian === 'number' ? first.gregorian : null,
+        locale: app.getSystemLocale() || null,
+      });
+    }
+    if (process.platform === 'win32') {
+      const output = await new Promise<string>((resolve) => {
+        execFile('reg', ['query', 'HKCU\\Control Panel\\International'], { timeout: 3000, windowsHide: true }, (err, stdout) => resolve(err ? '' : String(stdout)));
+      });
+      return windowsFormats(output, app.getSystemLocale() || null);
+    }
+    return linuxFormats(process.env);
+  } catch {
+    return { hour24: null, weekStart: null };
+  }
+}
+
+ipcMain.handle('shell:system-formats', async (event) => {
+  if (!isMainWindowSender(event.sender) && !isTrayWindowSender(event.sender)) return { hour24: null, weekStart: null };
+  return readSystemFormats();
+});
 
 // The page's foreground kicks never fire for a hidden window, or on a resume
 // with the window already up: tell it the machine woke or the window came back.

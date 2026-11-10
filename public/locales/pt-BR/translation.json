@@ -705,7 +705,7 @@
     "themeSystem": "Sistema",
     "timeFormat": "Formato de hora",
     "timeAuto": "Automático",
-    "timeAutoHint": "Automático usa o relógio do seu idioma ({{example}}).",
+    "timeAutoHint": "Automático segue a configuração de relógio do seu dispositivo ({{example}}).",
     "weekStart": "Início da semana",
     "weekStartHint": "Automático segue a região e as configurações do seu dispositivo.",
     "syncAttention": "Requer atenção",

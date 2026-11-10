@@ -35,6 +35,8 @@ export interface DesktopShell {
   setBackgroundSettings(patch: Partial<DesktopBackgroundSettings>): Promise<DesktopBackgroundSettings>
   /** The machine woke, the screen unlocked, or the window was shown; returns the unsubscribe. */
   onWake(listener: (why: unknown) => void): () => void
+  /** The OS clock (24-hour or not) and first day of the week (0 = Sunday); null where it cannot say. */
+  systemFormats(): Promise<{ hour24: boolean | null; weekStart: number | null }>
 }
 
 export interface DesktopBackgroundSettings {
@@ -170,16 +172,38 @@ export interface DesktopWidget {
 export interface DesktopTrayChore {
   syncId: string
   name: string
+  icon: string | null
   categoryName: string | null
   state: 'overdue' | 'soon'
+  lastCompletedAt: string | null
   elapsedDays: number | null
   targetCadenceDays: number | null
   ratio: number | null
+  color: string | null
+}
+
+/** The snapshot's Reach out row (src/native/peopleSnapshot.ts). */
+export interface DesktopTrayPerson {
+  syncId: string
+  name: string
+  ratio: number | null
+  color: string
+  detail: string
+}
+
+/** The snapshot's Coming up row; `on` is the local day, YYYY-MM-DD. */
+export interface DesktopTrayDate {
+  personSyncId: string
+  name: string
+  label: string
+  on: string
 }
 
 export interface DesktopTrayState {
   due: DesktopTrayChore[]
   counts: { overdue: number; soon: number }
+  reachOut: DesktopTrayPerson[]
+  comingUp: DesktopTrayDate[]
   ready: boolean
 }
 
@@ -187,7 +211,7 @@ export interface DesktopTrayState {
 export interface DesktopTray {
   state(): Promise<DesktopTrayState | null>
   complete(syncId: string): void
-  /** Show the app, on a chore when given `chore:<id>`. */
+  /** Show the app, at `chore:<id>`, `person:<id>`, `log:<id>` or `people` when given one it shows. */
   open(token: string | null): void
   hide(): void
   onState(listener: (state: unknown) => void): () => void
@@ -238,6 +262,7 @@ export const DESKTOP_BRIDGE_METHODS = [
   'shell.getBackgroundSettings',
   'shell.setBackgroundSettings',
   'shell.onWake',
+  'shell.systemFormats',
   'http.request',
   'http.inspect',
   'http.grant',

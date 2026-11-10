@@ -11,30 +11,78 @@
 export interface TrayChore {
   syncId: string;
   name: string;
+  /** A lucide icon name, as the app draws it. */
+  icon: string | null;
   categoryName: string | null;
   state: 'overdue' | 'soon';
+  lastCompletedAt: string | null;
   elapsedDays: number | null;
   targetCadenceDays: number | null;
   ratio: number | null;
+  color: string | null;
+}
+
+/** The snapshot's Reach out row (src/native/peopleSnapshot.ts), text already in the app's language. */
+export interface TrayPerson {
+  syncId: string;
+  name: string;
+  ratio: number | null;
+  color: string;
+  detail: string;
+}
+
+/** The snapshot's Coming up row: `on` is the local day, YYYY-MM-DD. */
+export interface TrayDate {
+  personSyncId: string;
+  name: string;
+  label: string;
+  on: string;
 }
 
 export interface TraySnapshot {
   generatedAt: number;
   chores: TrayChore[];
+  reachOut: TrayPerson[];
+  comingUp: TrayDate[];
 }
 
 export interface TrayState {
   due: TrayChore[];
   /** Overdue and soon, less the ones completed here and not yet in a snapshot. */
   counts: { overdue: number; soon: number };
+  reachOut: TrayPerson[];
+  comingUp: TrayDate[];
   /** False until the main window has pushed a snapshot. */
   ready: boolean;
 }
 
 export const TRAY_DUE_LIMIT = 8;
+export const TRAY_PEOPLE_LIMIT = 5;
 export const SNAPSHOT_MAX_BYTES = 4 * 1024 * 1024;
 
 const num = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null);
+const text = (v: unknown, max = 300): string | null => (typeof v === 'string' && v.length <= max ? v : null);
+const COLOR = /^#[0-9a-fA-F]{6}$/;
+const DAY = /^\d{4}-\d{2}-\d{2}$/;
+
+function parsePeople(raw: unknown): { reachOut: TrayPerson[]; comingUp: TrayDate[] } {
+  const p = raw && typeof raw === 'object' ? raw as Record<string, unknown> : {};
+  const reachOut: TrayPerson[] = [];
+  for (const item of Array.isArray(p.reachOut) ? p.reachOut : []) {
+    const r = item as Record<string, unknown> | null;
+    const syncId = text(r?.syncId, 128), name = text(r?.name);
+    if (!syncId || !name) continue;
+    reachOut.push({ syncId, name, ratio: num(r?.ratio), color: COLOR.test(String(r?.color)) ? String(r?.color) : '#64748b', detail: text(r?.detail) ?? '' });
+  }
+  const comingUp: TrayDate[] = [];
+  for (const item of Array.isArray(p.comingUp) ? p.comingUp : []) {
+    const d = item as Record<string, unknown> | null;
+    const personSyncId = text(d?.personSyncId, 128), name = text(d?.name), on = text(d?.on, 10);
+    if (!personSyncId || !name || !on || !DAY.test(on)) continue;
+    comingUp.push({ personSyncId, name, label: text(d?.label) ?? '', on });
+  }
+  return { reachOut, comingUp };
+}
 
 /** The tray's part of a widget snapshot, or null if it is not one. */
 export function parseTraySnapshot(json: unknown): TraySnapshot | null {
@@ -54,27 +102,47 @@ export function parseTraySnapshot(json: unknown): TraySnapshot | null {
     chores.push({
       syncId: c.syncId,
       name: c.name,
+      icon: text(c.icon, 64),
       categoryName: typeof c.categoryName === 'string' ? c.categoryName : null,
       state: c.state,
+      lastCompletedAt: text(c.lastCompletedAt, 40),
       elapsedDays: num(c.elapsedDays),
       targetCadenceDays: num(c.targetCadenceDays),
       ratio: num(c.ratio),
+      color: COLOR.test(String(c.color)) ? String(c.color) : null,
     });
   }
-  return { generatedAt, chores };
+  return { generatedAt, chores, ...parsePeople(s.people) };
 }
 
 /** Overdue first, then soon, each most overdue first; less the ones done here. */
 export function trayState(snapshot: TraySnapshot | null, doneHere: ReadonlyMap<string, number>, limit = TRAY_DUE_LIMIT): TrayState {
-  if (!snapshot) return { due: [], counts: { overdue: 0, soon: 0 }, ready: false };
+  if (!snapshot) return { due: [], counts: { overdue: 0, soon: 0 }, reachOut: [], comingUp: [], ready: false };
   const open = snapshot.chores.filter((c) => !doneHere.has(c.syncId));
   const rank = (c: TrayChore) => (c.state === 'overdue' ? 0 : 1);
   const sorted = [...open].sort((a, b) => rank(a) - rank(b) || (b.ratio ?? 0) - (a.ratio ?? 0) || a.name.localeCompare(b.name));
   return {
     due: sorted.slice(0, limit),
     counts: { overdue: open.filter((c) => c.state === 'overdue').length, soon: open.filter((c) => c.state === 'soon').length },
+    reachOut: snapshot.reachOut.slice(0, TRAY_PEOPLE_LIMIT),
+    comingUp: snapshot.comingUp.slice(0, TRAY_PEOPLE_LIMIT),
     ready: true,
   };
+}
+
+/**
+ * The deep-link token the popup may open: a chore or person it shows, the
+ * quick-log sheet for a person it shows, People, or (null) just the app.
+ */
+export function trayOpenToken(token: unknown, snapshot: TraySnapshot | null): string | null {
+  if (typeof token !== 'string' || !snapshot) return null;
+  if (token === 'people') return token;
+  const colon = token.indexOf(':');
+  const kind = token.slice(0, colon), id = token.slice(colon + 1);
+  if (kind === 'chore') return snapshot.chores.some((c) => c.syncId === id) ? token : null;
+  const shown = snapshot.reachOut.some((p) => p.syncId === id) || snapshot.comingUp.some((d) => d.personSyncId === id);
+  if ((kind === 'person' || kind === 'log') && shown) return token;
+  return null;
 }
 
 /** Completions made here that a snapshot generated after them now reflects. */

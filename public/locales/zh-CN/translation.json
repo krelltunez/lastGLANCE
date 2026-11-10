@@ -705,7 +705,7 @@
     "themeSystem": "跟随系统",
     "timeFormat": "时间格式",
     "timeAuto": "自动",
-    "timeAutoHint": "自动将使用你所选语言的时钟格式（{{example}}）。",
+    "timeAutoHint": "自动将跟随设备的时钟设置（{{example}}）。",
     "weekStart": "每周开始于",
     "weekStartHint": "自动将跟随设备的地区和设置。",
     "syncAttention": "需要处理",

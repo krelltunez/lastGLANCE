@@ -25,7 +25,9 @@ import {
   getWeekStartPref,
   setWeekStartPref,
   setSystemWeekStart,
+  setSystemClock,
   WEEK_START_CHANGED_EVENT,
+  TIME_FORMAT_CHANGED_EVENT,
 } from './datetime'
 
 // A Wednesday, deliberately in the afternoon so the 12-/24-hour split shows.
@@ -36,6 +38,7 @@ afterEach(() => {
   setTimeFormat('auto')
   setWeekStartPref('auto')
   setSystemWeekStart(null)
+  setSystemClock(null)
   applyDateLocale('en')
 })
 
@@ -170,6 +173,34 @@ describe('time format preference', () => {
     applyDateLocale('de')
     expect(uses24HourClock()).toBe(true)
     expect(formatTime(SAMPLE)).toBe('14:05')
+  })
+
+  it('on auto, follows the OS clock when the shell can say (an English app on a 24-hour Mac)', () => {
+    setSystemClock(true)
+    expect(uses24HourClock()).toBe(true)
+    expect(formatTime(SAMPLE)).toBe('14:05')
+    expect(formatTimeSample(SAMPLE, 'auto')).toBe('14:05')
+    applyDateLocale('de')
+    setSystemClock(false)
+    expect(formatTime(SAMPLE)).toMatch(/^2:05/)                // a 12-hour OS in a 24-hour language
+    setSystemClock(null)
+    expect(formatTime(SAMPLE)).toBe('14:05')                    // back to the language's clock
+  })
+
+  it('a pinned choice wins over the OS clock', () => {
+    setSystemClock(true)
+    setTimeFormat('12')
+    expect(uses24HourClock()).toBe(false)
+  })
+
+  it('says when the OS clock behind auto changes, and only then', () => {
+    const events: string[] = []
+    vi.stubGlobal('window', { dispatchEvent: (e: Event) => { events.push(e.type); return true } })
+    setSystemClock(true)
+    setSystemClock(true)
+    setTimeFormat('24')
+    setSystemClock(false)
+    expect(events.filter((t) => t === TIME_FORMAT_CHANGED_EVENT)).toHaveLength(1)
   })
 
   it('forces a 24-hour clock in English', () => {

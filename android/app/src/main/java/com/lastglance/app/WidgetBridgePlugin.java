@@ -74,6 +74,16 @@ public class WidgetBridgePlugin extends Plugin {
         call.resolve(ret);
     }
 
+    // Whether the system clock is 24-hour (Settings > System > Date & time),
+    // for Automatic time format in the web UI. The WebView formats times with
+    // the app's language, which does not carry this setting.
+    @PluginMethod
+    public void systemClock(PluginCall call) {
+        JSObject ret = new JSObject();
+        ret.put("hour24", android.text.format.DateFormat.is24HourFormat(getContext()));
+        call.resolve(ret);
+    }
+
     // Hand the pending shared text (for a new chore's name) to the web app, and
     // clear it.
     @PluginMethod
