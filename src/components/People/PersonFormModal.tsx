@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
 import { useIntents } from '@/intents/IntentsContext'
 import { requestNotificationPermission } from '@/hooks/useNotifications'
+import { isNativeShell } from '@/native/platform'
 import { getActiveLocale } from '@/utils/datetime'
 import {
   addPersonDate, createPerson, deletePersonDate, updatePerson, updatePersonDate,
@@ -250,7 +251,7 @@ export function PersonFormModal({ person, dates = [], circles, initialCircleId =
                 </button>
               </div>
               {notifyBlocked && (
-                <p className="text-xs text-amber-500 dark:text-amber-400">{t('choreForm.notifyBlocked')}</p>
+                <p className="text-xs text-amber-500 dark:text-amber-400">{t(isNativeShell() ? 'choreForm.notifyBlockedDevice' : 'choreForm.notifyBlocked')}</p>
               )}
               {intentsOn && (
                 <IntentSwitch
