@@ -737,7 +737,7 @@
     "themeSystem": "Systemowy",
     "timeFormat": "Format godziny",
     "timeAuto": "Automatyczny",
-    "timeAutoHint": "Automatyczny używa zegara Twojego języka ({{example}}).",
+    "timeAutoHint": "Automatyczny korzysta z ustawienia zegara Twojego urządzenia ({{example}}).",
     "weekStart": "Pierwszy dzień tygodnia",
     "weekStartHint": "Automatyczny korzysta z regionu i ustawień urządzenia.",
     "syncAttention": "Wymaga uwagi",

@@ -35,6 +35,8 @@ export interface DesktopShell {
   setBackgroundSettings(patch: Partial<DesktopBackgroundSettings>): Promise<DesktopBackgroundSettings>
   /** The machine woke, the screen unlocked, or the window was shown; returns the unsubscribe. */
   onWake(listener: (why: unknown) => void): () => void
+  /** The OS clock (24-hour or not) and first day of the week (0 = Sunday); null where it cannot say. */
+  systemFormats(): Promise<{ hour24: boolean | null; weekStart: number | null }>
 }
 
 export interface DesktopBackgroundSettings {
@@ -260,6 +262,7 @@ export const DESKTOP_BRIDGE_METHODS = [
   'shell.getBackgroundSettings',
   'shell.setBackgroundSettings',
   'shell.onWake',
+  'shell.systemFormats',
   'http.request',
   'http.inspect',
   'http.grant',

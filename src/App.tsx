@@ -21,7 +21,7 @@ import { ToastProvider, useToast } from '@/components/Toast/Toast'
 import { PaywallModal } from '@/components/PaywallModal/PaywallModal'
 import { SettingsPanel, type ThemePref, type SettingsSection } from '@/components/SettingsPanel/SettingsPanel'
 import {
-  getTimeFormat, setTimeFormat as applyTimeFormat, type TimeFormat,
+  getTimeFormat, setTimeFormat as applyTimeFormat, type TimeFormat, TIME_FORMAT_CHANGED_EVENT,
   getWeekStartPref, setWeekStartPref as applyWeekStartPref, type WeekStartPref, WEEK_START_CHANGED_EVENT,
 } from '@/utils/datetime'
 import { ReviewerBanner } from '@/components/ReviewerBanner/ReviewerBanner'
@@ -240,6 +240,8 @@ function AppInner() {
   // section it was opened from. Cleared when Settings itself closes.
   const [settingsReturn, setSettingsReturn] = useState<SettingsSection | null>(null)
   const [timeFormat, setTimeFormatState] = useState<TimeFormat>(getTimeFormat)
+  // Bumped when the OS clock behind 'auto' changes, to repaint every time.
+  const [, setClockTick] = useState(0)
   const [weekStartPref, setWeekStartPrefState] = useState<WeekStartPref>(getWeekStartPref)
   const [ribbonKey, setRibbonKey] = useState(0)
   const [heatmapWeeks, setHeatmapWeeks] = useState<HeatDay[][]>([])
@@ -664,6 +666,14 @@ function AppInner() {
 
   // Switching modes swaps what the heatmap counts, and replays the wave.
   useEffect(() => { loadHeatmap() }, [loadHeatmap, mode])
+
+  // The OS clock changed under an Automatic time format (system settings,
+  // read again on return): repaint every time on the new clock.
+  useEffect(() => {
+    const onClock = () => setClockTick(n => n + 1)
+    window.addEventListener(TIME_FORMAT_CHANGED_EVENT, onClock)
+    return () => window.removeEventListener(TIME_FORMAT_CHANGED_EVENT, onClock)
+  }, [])
 
   // A new week start (the setting, or the OS answering after the first paint)
   // reshapes every column, so rebuild the grid on it.

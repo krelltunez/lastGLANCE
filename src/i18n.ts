@@ -2,10 +2,10 @@ import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
 import LanguageDetector from 'i18next-browser-languagedetector'
 import HttpBackend from 'i18next-http-backend'
-import { applyDateLocale, loadTimeFormat, loadWeekStart, setSystemWeekStart } from '@/utils/datetime'
+import { applyDateLocale, loadTimeFormat, loadWeekStart, setSystemClock, setSystemWeekStart } from '@/utils/datetime'
 import { languages, resolveLanguage } from '@/locales'
 import { followIOSLanguageChanges, syncAppLanguageFromNative } from '@/native/appLocale'
-import { getSystemWeekStart } from '@/native/widgetBridge'
+import { getSystemClock, getSystemWeekStart } from '@/native/widgetBridge'
 
 // The user's 12/24-hour choice, read before the first date is formatted.
 loadTimeFormat()
@@ -65,9 +65,14 @@ followIOSLanguageChanges(i18n)
 // in system settings meanwhile. No-op on web.
 const readSystemWeekStart = () => { void getSystemWeekStart().then(setSystemWeekStart) }
 readSystemWeekStart()
+// Automatic time format follows the OS clock the same way (the phones and the
+// desktop app; the web keeps the language's clock). The first read is awaited
+// before the first paint (main.tsx), so times never paint on the wrong clock.
+const readSystemClock = () => getSystemClock().then(setSystemClock, () => {})
+export const systemClockRead: Promise<void> = readSystemClock()
 if (typeof document !== 'undefined') {
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') readSystemWeekStart()
+    if (document.visibilityState === 'visible') { readSystemWeekStart(); void readSystemClock() }
   })
 }
 

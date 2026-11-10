@@ -11,7 +11,7 @@ import WidgetKit
 // The JS interface is fixed by src/native/widgetBridge.ts and must stay
 // byte-identical to the Android plugin's, so widgetBridge.ts needs no per-platform
 // branching: updateSnapshot / drainPendingCompletions / consumeDeepLink /
-// consumeSharedChore / systemWeekStart.
+// consumeSharedChore / systemWeekStart / systemClock.
 //
 // Registration: app-local plugins are NOT auto-discovered on iOS (Capacitor 5+
 // removed runtime scanning); this plugin is registered explicitly in
@@ -28,6 +28,7 @@ public class WidgetBridgePlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "consumeDeepLink", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "consumeSharedChore", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "systemWeekStart", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "systemClock", returnType: CAPPluginReturnPromise),
     ]
 
     // The system's first day of the week, 0 = Sunday … 6 = Saturday, for
@@ -36,6 +37,15 @@ public class WidgetBridgePlugin: CAPPlugin, CAPBridgedPlugin {
     // WebView's language tag may not.
     @objc func systemWeekStart(_ call: CAPPluginCall) {
         call.resolve(["weekStart": (Calendar.current.firstWeekday - 1 + 7) % 7])
+    }
+
+    // Whether the device shows a 24-hour clock (Settings > General > Date &
+    // Time), for Automatic time format in the web UI. Locale.current carries
+    // the 24-Hour Time switch; the "j" template resolves to the hour field the
+    // user's clock uses, and only a 12-hour clock adds the "a" day period.
+    @objc func systemClock(_ call: CAPPluginCall) {
+        let pattern = DateFormatter.dateFormat(fromTemplate: "j", options: 0, locale: Locale.current) ?? ""
+        call.resolve(["hour24": !pattern.contains("a")])
     }
 
     @objc func updateSnapshot(_ call: CAPPluginCall) {

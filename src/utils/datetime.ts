@@ -59,15 +59,33 @@ const SUPPORTED = ['de', 'es', 'fr', 'it', 'pl', 'pt', 'pt-br', 'uk', 'zh-cn'] a
 let activeLocale = 'en'
 
 /**
- * The user's clock preference. 'auto' leaves the 12/24-hour choice to the
- * active locale (English is 12-hour, every other shipped language 24-hour);
- * '12' and '24' override it everywhere a time is shown. Device-local, like the
- * theme: it is a display preference, not data, so it is not synced.
+ * The user's clock preference. 'auto' follows the operating system's 12/24-hour
+ * setting where the shell can read it (setSystemClock: the phones, the desktop
+ * app), else the active locale (English is 12-hour, every other shipped
+ * language 24-hour); '12' and '24' override it everywhere a time is shown.
+ * Device-local, like the theme: it is a display preference, not data, so it is
+ * not synced.
  */
 export type TimeFormat = 'auto' | '12' | '24'
 
 const TIME_FORMAT_KEY = 'lg-time-format'
 let timeFormat: TimeFormat = 'auto'
+// The OS clock, when the shell can say: true for 24-hour.
+let systemHour24: boolean | null = null
+
+/** Fired when the clock an 'auto' preference resolves to changes. */
+export const TIME_FORMAT_CHANGED_EVENT = 'lg:time-format-changed'
+
+/** Record the operating system's clock (true = 24-hour), or null when the shell cannot say. */
+export function setSystemClock(value: boolean | null): void {
+  const next = typeof value === 'boolean' ? value : null
+  if (next === systemHour24) return
+  systemHour24 = next
+  formatterCache.clear()
+  if (timeFormat === 'auto' && typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+    window.dispatchEvent(new Event(TIME_FORMAT_CHANGED_EVENT))
+  }
+}
 
 function isTimeFormat(v: unknown): v is TimeFormat {
   return v === 'auto' || v === '12' || v === '24'
@@ -105,7 +123,8 @@ export function setTimeFormat(value: TimeFormat): void {
 // hourCycle rather than hour12: `hour12: false` resolves to h24 in some
 // engines for some locales, which renders midnight as "24:05".
 function hourCycleFor(pref: TimeFormat): Intl.DateTimeFormatOptions['hourCycle'] {
-  return pref === '24' ? 'h23' : pref === '12' ? 'h12' : undefined
+  const clock = pref === 'auto' ? (systemHour24 === null ? null : systemHour24 ? '24' : '12') : pref
+  return clock === '24' ? 'h23' : clock === '12' ? 'h12' : undefined
 }
 
 /**

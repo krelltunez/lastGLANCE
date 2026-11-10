@@ -219,8 +219,11 @@ try {
     await d.notifications.cancel([4242])
     const after = (await d.notifications.pending()).map((r) => r.id)
     const commands = await d.commands.take()
-    return { settings, pending, after, commands }
+    const formats = await d.shell.systemFormats()
+    return { settings, pending, after, commands, formats }
   })
+  check(phase4.formats && 'hour24' in phase4.formats && 'weekStart' in phase4.formats,
+    `the OS clock and week reach the page (${JSON.stringify(phase4.formats)})`)
   check(phase4.settings?.keepRunning === true && phase4.settings?.openAtLogin === false,
     `background settings default to keep running, not at login (${JSON.stringify(phase4.settings)})`)
   check(phase4.pending.includes(4242) && !phase4.after.includes(4242), 'reminders schedule and cancel through main')
