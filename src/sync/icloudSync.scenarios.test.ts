@@ -12,7 +12,12 @@ import { createICloudTransport, choresHaveRealData, getICloudSyncPref } from './
 import { LOCAL_EDIT_KEY } from './localEditStamp'
 import { SEED_TIMESTAMP, SEED_CHORE_SYNC_IDS } from '@/db/client'
 import { emptyPeoplePayload } from '@/people/sync/types'
-import type { ICloudBridge } from '@/native/icloud'
+import { createICloudBridge, desktopICloudPlugin, type ICloudBridge } from '@/native/icloud'
+import type { DesktopICloud } from '@/native/desktop'
+import { createICloudStore } from '../../electron/icloud'
+import fs from 'node:fs'
+import os from 'node:os'
+import nodePath from 'node:path'
 import type { DirectAccessRead } from '@/native/directAccess'
 import type { SyncChore, SyncPayload } from './types'
 import type { PeoplePayload, SyncPerson } from '@/people/sync/types'
@@ -23,6 +28,10 @@ import type { PeoplePayload, SyncPerson } from '@/people/sync/types'
 // being asked; a fresh install (sample chores only) facing iCloud data is asked
 // before anything is restored or written; the answer is kept, and "start fresh"
 // leaves iCloud alone.
+//
+// Every scenario runs twice: over an in-memory container, and over the desktop
+// app's iCloud store (electron/icloud.ts) writing real files in a temp
+// ~/Library/Mobile Documents, so the Mac's file handling meets the same cycles.
 
 const empty = (): SyncPayload => ({ chores: [], categories: [], completionEvents: [], users: [], settings: { multiUserEnabled: false }, tombstones: {} })
 const chore = (id: string, name: string, updatedAt: string): SyncChore => ({ id, name, categorySyncId: 'c', sortOrder: 0, targetCadenceDays: 7, notifyWhenOverdue: false, autoScheduleToDayglance: false, preferredScheduleBehavior: null, seasonalStart: null, seasonalEnd: null, details: null, icon: undefined, assignedUserSyncIds: [], createdAt: updatedAt, updatedAt })
@@ -38,7 +47,9 @@ const memStorage = () => {
   return { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => { m.set(k, v) }, removeItem: (k: string) => { m.delete(k) } }
 }
 
-function container() {
+type Container = { readonly files: Map<string, string>; bridge: ICloudBridge }
+
+function memoryContainer(): Container {
   const files = new Map<string, string>()
   const bridge: ICloudBridge = {
     available: async () => true,
@@ -52,7 +63,35 @@ function container() {
   return { files, bridge }
 }
 
-function device(name: string, icloud: ReturnType<typeof container>, start: SyncPayload, people: PeoplePayload = emptyPeoplePayload()) {
+const homes: string[] = []
+afterEach(() => { for (const h of homes.splice(0)) fs.rmSync(h, { recursive: true, force: true }) })
+
+// The desktop store over a temp home, through the same plugin adapter and
+// bridge the app builds on a Mac. `files` reads the container back from disk.
+function desktopContainer(): Container {
+  const home = fs.mkdtempSync(nodePath.join(os.tmpdir(), 'lastglance-icloud-scenario-'))
+  homes.push(home)
+  const docs = nodePath.join(home, 'Library', 'Mobile Documents', 'iCloud~com~lastglance', 'Documents')
+  fs.mkdirSync(docs, { recursive: true })
+  const store = createICloudStore({ home })
+  const desktop: DesktopICloud = {
+    available: async () => store.available(),
+    readFile: async (o) => store.readFile(o.path, o.container),
+    writeFile: async (o) => store.writeFile(o.path, o.text, o.container),
+    listFiles: async (o) => store.listFiles(o.path, o.container),
+    deleteFile: async (o) => store.deleteFile(o.path, o.container),
+    makeDir: async (o) => store.makeDir(o.path, o.container),
+    onChanged: () => () => {},
+  }
+  return {
+    get files() {
+      return new Map(fs.readdirSync(docs).map((name) => [name, fs.readFileSync(nodePath.join(docs, name), 'utf-8')] as [string, string]))
+    },
+    bridge: createICloudBridge(desktopICloudPlugin(desktop)),
+  }
+}
+
+function device(name: string, icloud: Container, start: SyncPayload, people: PeoplePayload = emptyPeoplePayload()) {
   const storage = memStorage()
   const transport = createICloudTransport({ bridge: () => icloud.bridge, storage: () => storage })
   let store = start
@@ -92,7 +131,10 @@ function device(name: string, icloud: ReturnType<typeof container>, start: SyncP
 
 afterEach(() => { vi.unstubAllGlobals() })
 
-describe('zero-config iCloud between two devices', () => {
+describe.each([
+  ['in memory', memoryContainer],
+  ['the desktop store over real files', desktopContainer],
+] as const)('zero-config iCloud between two devices (%s)', (_label, container) => {
   it('a device with its own data syncs without being asked, and a second such device merges', async () => {
     const icloud = container()
     const phone = device('phone', icloud, { ...empty(), chores: [chore('a', 'Water plants', '2026-10-24T09:00:00.000Z')] })

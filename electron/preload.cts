@@ -81,4 +81,13 @@ contextBridge.exposeInMainWorld('lastGlanceDesktop', {
     saveText: (options: { filename: string; text: string }) => ipcRenderer.invoke('files:save-text', options),
     stash: (options: { filename: string; text: string }) => ipcRenderer.invoke('files:stash', options),
   },
+  icloud: {
+    available: () => ipcRenderer.invoke('icloud:available'),
+    readFile: (options: { path: string; container?: string; allowStale?: boolean }) => ipcRenderer.invoke('icloud:read-file', options),
+    writeFile: (options: { path: string; text: string; container?: string; atomic?: boolean }) => ipcRenderer.invoke('icloud:write-file', options),
+    listFiles: (options: { path: string; container?: string }) => ipcRenderer.invoke('icloud:list-files', options),
+    deleteFile: (options: { path: string; container?: string }) => ipcRenderer.invoke('icloud:delete-file', options),
+    makeDir: (options: { path: string; container?: string }) => ipcRenderer.invoke('icloud:make-dir', options),
+    onChanged: (listener: (payload: unknown) => void) => subscribe('icloud:changed', listener),
+  },
 });

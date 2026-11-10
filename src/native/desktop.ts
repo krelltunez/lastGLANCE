@@ -110,6 +110,21 @@ export interface DesktopFiles {
   stash(options: { filename: string; text: string }): Promise<void>
 }
 
+/**
+ * iCloud Drive on macOS (electron/icloud.ts): the ICloudPluginType of
+ * src/native/icloud.ts, as the iOS shell implements it, with `onChanged` for
+ * its "changed" event. Off macOS `available` is false.
+ */
+export interface DesktopICloud {
+  available(): Promise<{ available: boolean }>
+  readFile(options: { path: string; container?: string; allowStale?: boolean }): Promise<DirectAccessReadResult>
+  writeFile(options: { path: string; text: string; container?: string; atomic?: boolean }): Promise<{ ok: boolean; error?: string }>
+  listFiles(options: { path: string; container?: string }): Promise<{ names: string[] | null }>
+  deleteFile(options: { path: string; container?: string }): Promise<{ ok: boolean }>
+  makeDir(options: { path: string; container?: string }): Promise<{ ok: boolean }>
+  onChanged(listener: () => void): () => void
+}
+
 export interface DesktopBridge {
   info: DesktopInfo
   shell: DesktopShell
@@ -118,6 +133,7 @@ export interface DesktopBridge {
   secureStore: DesktopSecureStore
   directAccess: DesktopDirectAccess
   files: DesktopFiles
+  icloud: DesktopICloud
 }
 
 /**
@@ -154,6 +170,13 @@ export const DESKTOP_BRIDGE_METHODS = [
   'directAccess.onChanged',
   'files.saveText',
   'files.stash',
+  'icloud.available',
+  'icloud.readFile',
+  'icloud.writeFile',
+  'icloud.listFiles',
+  'icloud.deleteFile',
+  'icloud.makeDir',
+  'icloud.onChanged',
 ] as const
 
 declare global {

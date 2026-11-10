@@ -21,6 +21,8 @@ import { createVaultSseReader } from './vaultSse.js';
 import { createSecureStore, secureStorageUsable } from './secureStore.js';
 import { registerDirectAccessHandlers } from './directAccess.js';
 import { registerFilesHandlers } from './files.js';
+import { createICloudStore } from './icloud.js';
+import { execFile } from 'node:child_process';
 import { initStartupLog, logStartup } from './startupLog.js';
 import { shouldQuitOnAllWindowsClosed } from './startupQuit.js';
 import { DESKTOP_INFO_ARG, encodeDesktopInfo } from './desktopInfo.js';
@@ -240,6 +242,54 @@ ipcMain.handle('secure-store:delete', (event, key: unknown) => {
 // Direct Access: a folder a sync tool keeps in step (directAccess.ts).
 registerDirectAccessHandlers({ app, dialog, ipcMain, getWindow: () => live(mainWindow), isMainWindowSender, log: logStartup });
 
+// ── iCloud Drive (docs/desktop-app.md, section 6) ───────────────────────────
+// macOS only: the containers live under ~/Library/Mobile Documents, which no
+// other platform has. Elsewhere every call answers "iCloud not available".
+const brctlAskedAt = new Map<string, number>();
+const icloud = process.platform === 'darwin'
+  ? createICloudStore({
+      home: app.getPath('home'),
+      // Ask the iCloud daemon to fetch a cloud-only file, at most once a minute
+      // per file. Best-effort: the Developer ID build only, since the MAS
+      // sandbox would not let brctl reach the container.
+      requestDownload: process.mas ? undefined : (abs) => {
+        const last = brctlAskedAt.get(abs) ?? 0;
+        if (Date.now() - last < 60_000) return;
+        brctlAskedAt.set(abs, Date.now());
+        execFile('/usr/bin/brctl', ['download', abs], () => { /* best-effort */ });
+      },
+    })
+  : null;
+const NO_ICLOUD = 'iCloud not available';
+
+const icloudArgs = (options: unknown) => (options ?? {}) as { path?: unknown; container?: unknown; text?: unknown };
+ipcMain.handle('icloud:available', (event) => (isMainWindowSender(event.sender) && icloud ? icloud.available() : { available: false }));
+ipcMain.handle('icloud:read-file', (event, options: unknown) => {
+  if (!isMainWindowSender(event.sender) || !icloud) return { kind: 'error', error: NO_ICLOUD };
+  const { path: rel, container } = icloudArgs(options);
+  return icloud.readFile(rel, container);
+});
+ipcMain.handle('icloud:write-file', (event, options: unknown) => {
+  if (!isMainWindowSender(event.sender) || !icloud) return { ok: false, error: NO_ICLOUD };
+  const { path: rel, container, text } = icloudArgs(options);
+  return icloud.writeFile(rel, text, container);
+});
+ipcMain.handle('icloud:list-files', (event, options: unknown) => {
+  if (!isMainWindowSender(event.sender) || !icloud) return { names: null };
+  const { path: rel, container } = icloudArgs(options);
+  return icloud.listFiles(rel, container);
+});
+ipcMain.handle('icloud:delete-file', (event, options: unknown) => {
+  if (!isMainWindowSender(event.sender) || !icloud) return { ok: false, error: NO_ICLOUD };
+  const { path: rel, container } = icloudArgs(options);
+  return icloud.deleteFile(rel, container);
+});
+ipcMain.handle('icloud:make-dir', (event, options: unknown) => {
+  if (!isMainWindowSender(event.sender) || !icloud) return { ok: false, error: NO_ICLOUD };
+  const { path: rel, container } = icloudArgs(options);
+  return icloud.makeDir(rel, container);
+});
+
 // Exports through the save dialog; the pre-restore copy into userData (files.ts).
 registerFilesHandlers({
   ipcMain,
@@ -447,6 +497,12 @@ app.whenReady().then(() => {
   });
 
   createWindow();
+
+  // A sync file changed in iCloud: run a cycle now rather than at the next poll.
+  if (icloud) {
+    const stopICloudWatch = icloud.watch(() => live(mainWindow)?.webContents.send('icloud:changed'));
+    app.on('will-quit', stopICloudWatch);
+  }
 
   app.on('activate', () => showMainWindow());
 });

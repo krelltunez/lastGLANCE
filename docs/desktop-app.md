@@ -1,7 +1,7 @@
 # Desktop app (Electron): design
 
 Status: design, approved 2026-11-09. The build follows the phases in section 12;
-Phases 1 (the scaffold) and 2 (network and sync) are built.
+Phases 1 (the scaffold), 2 (network and sync) and 3 (iCloud Drive) are built.
 
 The desktop app is the existing web bundle in an Electron shell for macOS,
 Windows and Linux, after dayGLANCE's desktop app (`krelltunez/dayGLANCE`,
@@ -292,13 +292,27 @@ darwin".
 - A Swift helper would not inherit the developer entitlement, which is why
   dayGLANCE's iCloud helper is vestigial.
 
-**The read classification** (absent, downloading, error, text) is kept,
-together with the tier's 2-minute download grace and `allowStale`:
-- A `.name.icloud` placeholder reads as `downloading`.
-- An `EDEADLK` or `ETIMEDOUT` while macOS materializes a dataless file also
-  reads as `downloading`. Since macOS 14, iCloud Drive evicts files in place as
-  dataless files, and a read faults them in.
-- `EINTR` and `EAGAIN` are retried (dayGLANCE's `fsRetry.ts`).
+**The read classification** (absent, downloading, error, text) is kept
+(`electron/icloud.ts`):
+- A `.name.icloud` placeholder reads as `downloading`, and `listFiles` names
+  it by its real name, so a caller waits for it rather than never seeing it.
+- An `EDEADLK`, `ETIMEDOUT` or `EAGAIN` while macOS materializes a dataless
+  file also reads as `downloading`. Since macOS 14, iCloud Drive evicts files in
+  place as dataless files, and a read faults them in.
+- While a read of a file has not returned (a slow fetch), another read of it
+  answers `downloading`, so the 15 s poll never piles reads up.
+- On the Developer ID build, a cloud-only file is also asked for with
+  `brctl download`, at most once a minute per file (best-effort; not under the
+  MAS sandbox).
+
+**Freshness.** iOS serves a file only once iCloud reports it current, an
+answer only Apple's API gives. The desktop serves the local bytes as they are,
+as dayGLANCE does, and `allowStale` changes nothing. That is safe for this
+data: every device keeps its own copy and the cycle merges row by row by edit
+stamp, so reading an older file only means this device catches up on its next
+cycle; it cannot erase another device's edits. If a real Mac shows otherwise,
+the fallback is a small native addon in the main process reading
+`NSURLUbiquitousItemDownloadingStatusKey` (section 14).
 
 **Writes.**
 - Snapshots are written in place, not by temp file and rename. A rename
@@ -308,9 +322,16 @@ together with the tier's 2-minute download grace and `allowStale`:
 - A write is a full rewrite with fsync. The cycle's seed guard and stamps
   already make a torn read retry instead of applying.
 
-**Changes.** `fs.watch` on each `Documents/` folder, with a 1 s debounce and a
-2 s self-write suppression, posts `changed`. The tier's 15 s poll remains the
-backstop.
+**Changes.** `fs.watch` on the `own` container's `Documents/` folder, for the
+two sync files, with a 1 s debounce and a 2 s self-write suppression, posts
+`changed`. It waits for the folder to appear and re-attaches when iCloud
+recreates it. The tier's 15 s poll remains the backstop; intents in the
+`dayglance` container keep their own 2-minute poll, as on iOS.
+
+**Tested without a Mac.** `src/sync/icloudSync.scenarios.test.ts` runs its
+two-device scenarios (merging, the first-run question, "start fresh") twice:
+over an in-memory container, and over this store writing real files in a temp
+`~/Library/Mobile Documents`.
 
 **Availability is the container folder existing.** With no native API call,
 the Mac cannot create the container itself. iCloud on the Mac therefore lights
