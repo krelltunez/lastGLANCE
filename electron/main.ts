@@ -31,6 +31,7 @@ import { loadWindowState, onScreen, saveWindowState, saveWindowTheme, windowBack
 import { createCommandQueue, type CommandSource } from './commandQueue.js';
 import { registerElectronBilling } from '@glance-apps/billing/electron-main';
 import { MAS_BILLING } from './billingConfig.js';
+import { availableUpdate, CHECK_CACHE_MS, RELEASES_API, type AvailableUpdate } from './updateCheck.js';
 import { DEEP_LINK_SCHEME, deepLinkFromArgv, deepLinkToken } from './deepLink.js';
 import { createReminderScheduler, type ScheduledReminder } from './reminderScheduler.js';
 import { parseTraySnapshot, popupPosition, settledCompletions, trayMenuItems, trayOpenToken, trayState, type TraySnapshot } from './trayModel.js';
@@ -449,6 +450,23 @@ async function readSystemFormats(): Promise<SystemFormats> {
 ipcMain.handle('shell:system-formats', async (event) => {
   if (!isMainWindowSender(event.sender) && !isTrayWindowSender(event.sender)) return { hour24: null, weekStart: null };
   return readSystemFormats();
+});
+
+// The "update available" notice (updateCheck.ts): direct builds only; the App
+// Store updates the MAS build. Answers from a cache within the hour, and never
+// throws: a failed check is simply no notice.
+let updateCache: { at: number; result: AvailableUpdate | null } | null = null;
+ipcMain.handle('shell:latest-release', async (event) => {
+  if (!isMainWindowSender(event.sender) || process.mas) return null;
+  if (updateCache && Date.now() - updateCache.at < CHECK_CACHE_MS) return updateCache.result;
+  try {
+    const res = await net.fetch(RELEASES_API, { headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'lastGLANCE-desktop' } });
+    const result = res.ok ? availableUpdate(await res.json(), app.getVersion(), process.platform) : null;
+    updateCache = { at: Date.now(), result };
+    return result;
+  } catch {
+    return null;
+  }
 });
 
 // The page's foreground kicks never fire for a hidden window, or on a resume

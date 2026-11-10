@@ -1031,5 +1031,10 @@
     "nothingDue": "Al momento non c'è niente in scadenza.",
     "notReady": "Apri lastGLANCE una volta per vedere cosa è in scadenza.",
     "open": "Apri lastGLANCE"
+  },
+  "update": {
+    "available": "lastGLANCE {{version}} è disponibile.",
+    "download": "Scarica",
+    "dismiss": "Ignora"
   }
 }

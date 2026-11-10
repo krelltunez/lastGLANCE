@@ -1079,5 +1079,10 @@
     "nothingDue": "Na razie nic do zrobienia.",
     "notReady": "Otwórz lastGLANCE raz, aby zobaczyć, co jest do zrobienia.",
     "open": "Otwórz lastGLANCE"
+  },
+  "update": {
+    "available": "lastGLANCE {{version}} jest dostępny.",
+    "download": "Pobierz",
+    "dismiss": "Zamknij"
   }
 }

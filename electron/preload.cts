@@ -50,6 +50,7 @@ contextBridge.exposeInMainWorld('lastGlanceDesktop', {
     setBackgroundSettings: (patch: { keepRunning?: boolean; openAtLogin?: boolean }) => ipcRenderer.invoke('shell:set-background-settings', patch),
     onWake: (listener: (payload: unknown) => void) => subscribe('shell:wake', listener),
     systemFormats: () => ipcRenderer.invoke('shell:system-formats'),
+    latestRelease: () => ipcRenderer.invoke('shell:latest-release'),
   },
   http: {
     request: (method: string, url: string, headers: Record<string, string>, body: string | null) => ipcRenderer.invoke('http:request', method, url, headers, body),

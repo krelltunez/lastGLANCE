@@ -25,6 +25,8 @@ import {
   getWeekStartPref, setWeekStartPref as applyWeekStartPref, type WeekStartPref, WEEK_START_CHANGED_EVENT,
 } from '@/utils/datetime'
 import { ReviewerBanner } from '@/components/ReviewerBanner/ReviewerBanner'
+import { UpdateNotice } from '@/components/UpdateNotice/UpdateNotice'
+import { useUpdateNotice } from '@/hooks/useUpdateNotice'
 import { useSubscription, exitReviewerMode } from '@/billing/billing'
 import { UsersContext } from '@/multiuser/UsersContext'
 import { useUsers } from '@/multiuser/useUsers'
@@ -185,6 +187,7 @@ function AppInner() {
   useReminders()
   usePeopleIntents()
   usePendingCompletions()
+  const updateNotice = useUpdateNotice()
   usePendingDeepLink()
   const { refreshConfig } = useIntents()
   const usersCtx = useUsers()
@@ -1167,6 +1170,9 @@ function AppInner() {
       {billing.isReviewerUnlocked && (
         <ReviewerBanner onExit={exitReviewerMode} />
       )}
+
+      {/* A newer desktop release to download (direct desktop builds only). */}
+      {updateNotice.update && <UpdateNotice update={updateNotice.update} onDismiss={updateNotice.dismiss} />}
 
       <TooltipHost />
 

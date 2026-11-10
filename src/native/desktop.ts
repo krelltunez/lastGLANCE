@@ -37,6 +37,8 @@ export interface DesktopShell {
   onWake(listener: (why: unknown) => void): () => void
   /** The OS clock (24-hour or not) and first day of the week (0 = Sunday); null where it cannot say. */
   systemFormats(): Promise<{ hour24: boolean | null; weekStart: number | null }>
+  /** A newer release with a download for this OS, or null (always null on the MAS build). */
+  latestRelease(): Promise<{ version: string; url: string } | null>
 }
 
 export interface DesktopBackgroundSettings {
@@ -278,6 +280,7 @@ export const DESKTOP_BRIDGE_METHODS = [
   'shell.setBackgroundSettings',
   'shell.onWake',
   'shell.systemFormats',
+  'shell.latestRelease',
   'http.request',
   'http.inspect',
   'http.grant',

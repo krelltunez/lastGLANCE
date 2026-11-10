@@ -1031,5 +1031,10 @@
     "nothingDue": "No hay nada pendiente ahora mismo.",
     "notReady": "Abre lastGLANCE una vez para ver lo pendiente.",
     "open": "Abrir lastGLANCE"
+  },
+  "update": {
+    "available": "lastGLANCE {{version}} está disponible.",
+    "download": "Descargar",
+    "dismiss": "Descartar"
   }
 }

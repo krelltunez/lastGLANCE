@@ -1031,5 +1031,10 @@
     "nothingDue": "目前没有到期事项。",
     "notReady": "先打开一次 lastGLANCE，即可在这里查看到期事项。",
     "open": "打开 lastGLANCE"
+  },
+  "update": {
+    "available": "lastGLANCE {{version}} 已推出。",
+    "download": "下载",
+    "dismiss": "关闭"
   }
 }
