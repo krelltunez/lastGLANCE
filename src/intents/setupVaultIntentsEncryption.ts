@@ -11,7 +11,7 @@
 import { deriveIntentsRootKey } from '@glance-apps/intents'
 import { createVaultClient } from '@glance-apps/sync'
 import { getConn } from './dbTransport'
-import { isNativePlatform, nativeHttpFetch } from '@/sync/nativeHttp'
+import { hasNativeHttp, nativeHttpFetch } from '@/sync/nativeHttp'
 import { storeVaultIntentsRootKey } from './vaultIntentsKeyStore'
 
 // Thrown when the GLANCEvault connection is not configured (no url/token/account).
@@ -40,7 +40,7 @@ export class VaultSaltMissingError extends Error {
 // vault server serves CORS). Typed as `typeof fetch`; only the subset
 // createVaultClient calls (ok/status/json) is exercised.
 function vaultFetchImpl(): typeof fetch | undefined {
-  if (!isNativePlatform) return undefined
+  if (!hasNativeHttp) return undefined
   return (async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = typeof input === 'string' ? input : input.toString()
     const r = await nativeHttpFetch(

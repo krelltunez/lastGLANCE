@@ -45,6 +45,7 @@
 //     until its reader ships): polling only, exactly today's behavior.
 
 import { isNativePlatform } from './nativeHttp'
+import { desktopBridge } from '@/native/desktop'
 import { isVaultSseNativeAvailable } from '@/native/vaultSse'
 
 // ─── SSE frame parsing ───────────────────────────────────────────────────────
@@ -116,6 +117,9 @@ export function detectSseTransport(): SseTransport {
   // Capacitor shell: the shell streams natively when it carries the VaultSse
   // plugin; an older shell degrades to polling (see header).
   if (isNativePlatform) return isVaultSseNativeAvailable() ? 'native-bridge' : 'native-unsupported'
+  // The desktop app: its CSP gives the renderer no network, so the main
+  // process reads the stream (electron/vaultSse.ts) and relays it like a shell.
+  if (desktopBridge()) return 'native-bridge'
   if (typeof fetch === 'function' && typeof ReadableStream !== 'undefined') return 'web'
   return 'none'
 }

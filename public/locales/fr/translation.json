@@ -580,6 +580,24 @@
       "fileCreate": "Créer le fichier",
       "fileChange": "Changer de fichier",
       "fileForget": "Oublier le fichier"
+    },
+    "privateAddress": {
+      "needsPermission": "{{origin}} se trouve sur un réseau privé : lastGLANCE a besoin de votre autorisation pour s’y connecter. Le serveur n’a pas encore été contacté.",
+      "refused": "{{origin}} est une adresse réservée à laquelle lastGLANCE ne se connectera pas.",
+      "allow": "Autoriser cette adresse…",
+      "allowHint": "lastGLANCE vous demandera de confirmer. N’autorisez que des adresses de votre propre réseau.",
+      "grantFailed": "Impossible d’autoriser cette adresse.",
+      "allowedTitle": "Adresses privées autorisées",
+      "remove": "Supprimer",
+      "consentTitle": "Autoriser une adresse de réseau privé ?",
+      "consentQuestion": "Autoriser lastGLANCE à se connecter à cette adresse ?",
+      "consentResolvesTo": "Elle pointe vers une adresse de réseau privé :",
+      "consentWarning": "N’autorisez ceci que s’il s’agit de votre propre serveur, sur votre propre réseau (un réseau domestique ou de bureau, un hôte Docker, ou un VPN tel que Tailscale). lastGLANCE pourra l’atteindre, et tout ce qu’il renvoie fera partie de vos données.",
+      "consentWarningLoopbackVault": "Cette adresse est un service qui tourne sur cet ordinateur. Ne l’autorisez que s’il s’agit de votre propre GLANCEvault et que le port est celui sur lequel il écoute. D’autres programmes de cette machine sont accessibles sur d’autres ports, et cette autorisation ne les couvre pas.",
+      "consentWarningLoopbackServer": "Cette adresse est un service qui tourne sur cet ordinateur. Ne l’autorisez que s’il s’agit de votre propre serveur de synchronisation et que le port est celui sur lequel il écoute. D’autres programmes de cette machine sont accessibles sur d’autres ports, et cette autorisation ne les couvre pas.",
+      "consentScope": "Ceci ne concerne que cette seule adresse. Vous pourrez la retirer plus tard dans les Réglages, sous Synchronisation cloud.",
+      "consentAllow": "Autoriser",
+      "consentCancel": "Annuler"
     }
   },
   "users": {

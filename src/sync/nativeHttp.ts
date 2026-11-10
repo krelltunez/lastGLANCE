@@ -1,6 +1,7 @@
 import { Capacitor, CapacitorHttp, registerPlugin } from '@capacitor/core'
 import { headlessBridge } from '@/headless/headlessMode'
 import { headlessHttpRequest } from '@/headless/headlessHttp'
+import { desktopBridge } from '@/native/desktop'
 
 // True when running inside the Capacitor native shell (Android/iOS), false in
 // the browser/PWA. Used to bypass the WebDAV CORS proxy: native HTTP requests
@@ -9,12 +10,19 @@ import { headlessHttpRequest } from '@/headless/headlessHttp'
 // shell's HeadlessBridge.
 export const isNativePlatform = Capacitor.isNativePlatform() || headlessBridge() !== null
 
+// True wherever requests leave through a native HTTP stack with no CORS: the
+// Capacitor shells, the headless refresh, and the Electron desktop app, whose
+// main process makes every request (docs/desktop-app.md, section 4). The
+// question every WebDAV and vault call site asks; `isNativePlatform` stays the
+// Capacitor-shell question for everything else.
+export const hasNativeHttp = isNativePlatform || desktopBridge() !== null
+
 // Opt-in browser/PWA setting: skip the WebDAV CORS proxy and talk to the target
 // server directly. Only meaningful off-native — native already connects
 // directly via CapacitorHttp. Enable with VITE_WEBDAV_DIRECT=true when the
 // WebDAV server sends permissive CORS headers or sits behind a reverse proxy
 // that does. Leaving it unset preserves the default same-origin proxy path.
-export const webdavDirect = !isNativePlatform && import.meta.env.VITE_WEBDAV_DIRECT === 'true'
+export const webdavDirect = !hasNativeHttp && import.meta.env.VITE_WEBDAV_DIRECT === 'true'
 
 export interface NativeHttpResult {
   status: number
@@ -81,6 +89,22 @@ export async function nativeHttpFetch(
   // normalizeEtag() below is the safety net for servers that ignore this.
   if (verb === 'GET' && !Object.keys(requestHeaders).some(h => h.toLowerCase() === 'accept-encoding')) {
     requestHeaders['Accept-Encoding'] = 'identity'
+  }
+
+  // The desktop app: the main process makes the request (electron/httpProxy.ts).
+  // A request that got no response throws, as CapacitorHttp does on the phones.
+  const desktop = desktopBridge()
+  if (desktop) {
+    const res = await desktop.http.request(method, url, requestHeaders, body)
+    if ('error' in res) throw new Error(res.error)
+    const etag = etagFromHeaders(res.headers)
+    return {
+      status: res.status,
+      ok: res.status >= 200 && res.status < 300,
+      statusText: res.statusText,
+      body: res.body,
+      headers: etag ? { etag } : undefined,
+    }
   }
 
   // A headless run sends every verb through the shell's OkHttp.

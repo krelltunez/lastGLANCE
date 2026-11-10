@@ -20,7 +20,7 @@
 
 import { createVaultClient } from '@glance-apps/sync'
 import type { SyncErrorCode } from '@glance-apps/sync'
-import { isNativePlatform, nativeHttpFetch } from '@/sync/nativeHttp'
+import { hasNativeHttp, nativeHttpFetch } from '@/sync/nativeHttp'
 
 export interface VaultTestInput {
   vaultUrl: string
@@ -47,7 +47,7 @@ export type VaultTestOutcome =
 // routes through CapacitorHttp and presents the { ok, status, json, text } subset
 // the vault client reads.
 function vaultFetchImpl(): typeof fetch | undefined {
-  if (!isNativePlatform) return undefined
+  if (!hasNativeHttp) return undefined
   return (async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = typeof input === 'string' ? input : input.toString()
     const r = await nativeHttpFetch(

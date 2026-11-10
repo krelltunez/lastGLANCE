@@ -18,7 +18,7 @@
 
 import { buildIntentRow, parseIntentRow } from '@glance-apps/intents'
 import type { OutboundIntentRow, IntentEventRow } from '@glance-apps/intents'
-import { isNativePlatform, nativeHttpFetch } from '@/sync/nativeHttp'
+import { hasNativeHttp, nativeHttpFetch } from '@/sync/nativeHttp'
 import { getVaultConfig } from '@/sync/vaultConfig'
 import type { ChoreWithLastCompletion } from '@/types'
 import { getIntentsConfig, addActivityEntry } from './config'
@@ -73,7 +73,7 @@ export async function vaultFetch(
   const body = opts.body !== undefined ? JSON.stringify(opts.body) : null
   if (body !== null) headers['Content-Type'] = 'application/json'
 
-  if (isNativePlatform) {
+  if (hasNativeHttp) {
     const r = await nativeHttpFetch(method, url, headers, body)
     return { status: r.status, ok: r.ok, text: async () => r.body }
   }

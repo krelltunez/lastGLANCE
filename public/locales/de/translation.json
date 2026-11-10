@@ -580,6 +580,24 @@
       "fileCreate": "Datei erstellen",
       "fileChange": "Datei ändern",
       "fileForget": "Datei vergessen"
+    },
+    "privateAddress": {
+      "needsPermission": "{{origin}} liegt in einem privaten Netzwerk, daher braucht lastGLANCE deine Erlaubnis, um sich damit zu verbinden. Der Server wurde noch nicht kontaktiert.",
+      "refused": "{{origin}} ist eine reservierte Adresse, mit der sich lastGLANCE nicht verbindet.",
+      "allow": "Diese Adresse zulassen…",
+      "allowHint": "lastGLANCE bittet dich um eine Bestätigung. Lasse nur Adressen in deinem eigenen Netzwerk zu.",
+      "grantFailed": "Diese Adresse konnte nicht zugelassen werden.",
+      "allowedTitle": "Zugelassene private Adressen",
+      "remove": "Entfernen",
+      "consentTitle": "Private Netzwerkadresse zulassen?",
+      "consentQuestion": "Soll lastGLANCE sich mit dieser Adresse verbinden dürfen?",
+      "consentResolvesTo": "Sie verweist auf eine private Netzwerkadresse:",
+      "consentWarning": "Lasse dies nur zu, wenn es dein eigener Server in deinem eigenen Netzwerk ist (ein Heim- oder Büronetzwerk, ein Docker-Host oder ein VPN wie Tailscale). lastGLANCE kann ihn dann erreichen, und alles, was er zurückgibt, wird Teil deiner Daten.",
+      "consentWarningLoopbackVault": "Diese Adresse ist ein Dienst auf diesem Computer. Lasse sie nur zu, wenn es dein eigener GLANCEvault ist und der Port derjenige ist, auf dem er lauscht. Andere Programme auf diesem Rechner sind über andere Ports erreichbar; diese Berechtigung gilt nicht für sie.",
+      "consentWarningLoopbackServer": "Diese Adresse ist ein Dienst auf diesem Computer. Lasse sie nur zu, wenn es dein eigener Sync-Server ist und der Port derjenige ist, auf dem er lauscht. Andere Programme auf diesem Rechner sind über andere Ports erreichbar; diese Berechtigung gilt nicht für sie.",
+      "consentScope": "Dies gilt nur für diese eine Adresse. Du kannst sie später in den Einstellungen unter Cloud-Synchronisierung entfernen.",
+      "consentAllow": "Zulassen",
+      "consentCancel": "Abbrechen"
     }
   },
   "users": {

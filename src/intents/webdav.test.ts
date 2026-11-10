@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 // webdavFetch picks its transport from two module-level consts in
-// @/sync/nativeHttp (isNativePlatform, webdavDirect). Those are evaluated at
+// @/sync/nativeHttp (hasNativeHttp, webdavDirect). Those are evaluated at
 // import time, so each test resets the module registry and re-imports webdav.ts
 // under a fresh mock to exercise a specific transport.
-async function loadWebdav(mock: { isNativePlatform: boolean; webdavDirect: boolean }) {
+async function loadWebdav(mock: { hasNativeHttp: boolean; webdavDirect: boolean }) {
   vi.resetModules()
   vi.doMock('@/sync/nativeHttp', () => ({
-    isNativePlatform: mock.isNativePlatform,
+    hasNativeHttp: mock.hasNativeHttp,
     webdavDirect: mock.webdavDirect,
     nativeHttpFetch: vi.fn(),
     browserDirectFetch: vi.fn(),
@@ -36,7 +36,7 @@ afterEach(() => {
 
 describe('webdavFetch transport selection (browser)', () => {
   it('default (proxy) mode: routes through the same-origin proxy with X-WebDAV-Auth', async () => {
-    const { testConnection } = await loadWebdav({ isNativePlatform: false, webdavDirect: false })
+    const { testConnection } = await loadWebdav({ hasNativeHttp: false, webdavDirect: false })
     await testConnection('https://dav.example.com', 'chores', 'user', 'pass')
 
     const [url, init] = (fetch as unknown as ReturnType<typeof vi.fn>).mock.calls[0]
@@ -47,7 +47,7 @@ describe('webdavFetch transport selection (browser)', () => {
   })
 
   it('direct mode: hits the target URL directly with a standard Authorization header', async () => {
-    const { testConnection } = await loadWebdav({ isNativePlatform: false, webdavDirect: true })
+    const { testConnection } = await loadWebdav({ hasNativeHttp: false, webdavDirect: true })
     await testConnection('https://dav.example.com', 'chores', 'user', 'pass')
 
     const [url, init] = (fetch as unknown as ReturnType<typeof vi.fn>).mock.calls[0]
@@ -61,7 +61,7 @@ describe('webdavFetch transport selection (browser)', () => {
 describe('testConnection proxy reachability (issue #196)', () => {
   it('proxy 404 WITHOUT the marker (missing sidecar / static host) -> failure, not success', async () => {
     stubFetch(404) // no marker header — this is a plain static-host 404
-    const { testConnection } = await loadWebdav({ isNativePlatform: false, webdavDirect: false })
+    const { testConnection } = await loadWebdav({ hasNativeHttp: false, webdavDirect: false })
     const r = await testConnection('https://dav.example.com', 'chores', 'user', 'pass')
     expect(r.success).toBe(false)
     expect(r.error).toMatch(/proxy not reachable/i)
@@ -69,7 +69,7 @@ describe('testConnection proxy reachability (issue #196)', () => {
 
   it('SPA fallback 200 WITHOUT the marker (static host serves index.html) -> failure', async () => {
     stubFetch(200) // no marker — index.html fallback masquerading as success
-    const { testConnection } = await loadWebdav({ isNativePlatform: false, webdavDirect: false })
+    const { testConnection } = await loadWebdav({ hasNativeHttp: false, webdavDirect: false })
     const r = await testConnection('https://dav.example.com', 'chores', 'user', 'pass')
     expect(r.success).toBe(false)
     expect(r.error).toMatch(/proxy not reachable/i)
@@ -77,28 +77,28 @@ describe('testConnection proxy reachability (issue #196)', () => {
 
   it('proxy 404 WITH the marker (server reachable, folder not created yet) -> success', async () => {
     stubFetch(404, PROXY_MARKER)
-    const { testConnection } = await loadWebdav({ isNativePlatform: false, webdavDirect: false })
+    const { testConnection } = await loadWebdav({ hasNativeHttp: false, webdavDirect: false })
     const r = await testConnection('https://dav.example.com', 'chores', 'user', 'pass')
     expect(r).toEqual({ success: true })
   })
 
   it('proxy 207 WITH the marker -> success', async () => {
     stubFetch(207, PROXY_MARKER)
-    const { testConnection } = await loadWebdav({ isNativePlatform: false, webdavDirect: false })
+    const { testConnection } = await loadWebdav({ hasNativeHttp: false, webdavDirect: false })
     const r = await testConnection('https://dav.example.com', 'chores', 'user', 'pass')
     expect(r).toEqual({ success: true })
   })
 
   it('proxy 401 WITH the marker -> auth failure (marker check does not mask real statuses)', async () => {
     stubFetch(401, PROXY_MARKER)
-    const { testConnection } = await loadWebdav({ isNativePlatform: false, webdavDirect: false })
+    const { testConnection } = await loadWebdav({ hasNativeHttp: false, webdavDirect: false })
     const r = await testConnection('https://dav.example.com', 'chores', 'user', 'pass')
     expect(r).toEqual({ success: false, error: 'Authentication failed' })
   })
 
   it('direct mode 404 -> success without needing any marker', async () => {
     stubFetch(404) // direct transport, no proxy marker expected
-    const { testConnection } = await loadWebdav({ isNativePlatform: false, webdavDirect: true })
+    const { testConnection } = await loadWebdav({ hasNativeHttp: false, webdavDirect: true })
     const r = await testConnection('https://dav.example.com', 'chores', 'user', 'pass')
     expect(r).toEqual({ success: true })
   })
@@ -141,7 +141,7 @@ describe('ensureFolder (issue #201: no MKCOL when the folder already exists)', (
       PROPFIND: () => new Response('<multistatus/>', { status: 207 }),
       MKCOL: () => new Response('', { status: 201 }),
     })
-    const { ensureFolder } = await loadWebdav({ isNativePlatform: false, webdavDirect: true })
+    const { ensureFolder } = await loadWebdav({ hasNativeHttp: false, webdavDirect: true })
     await ensureFolder('https://dav.example.com', 'GLANCE/lastglance', 'auth')
     const methods = calls.map(c => c.method)
     expect(methods).toContain('PROPFIND')
@@ -154,7 +154,7 @@ describe('ensureFolder (issue #201: no MKCOL when the folder already exists)', (
       PROPFIND: () => new Response('', { status: 404 }),
       MKCOL: () => new Response('', { status: 201 }),
     })
-    const { ensureFolder } = await loadWebdav({ isNativePlatform: false, webdavDirect: true })
+    const { ensureFolder } = await loadWebdav({ hasNativeHttp: false, webdavDirect: true })
     await ensureFolder('https://dav.example.com', 'GLANCE/lastglance', 'auth')
     const mkcols = calls.filter(c => c.method === 'MKCOL').map(c => c.url)
     expect(mkcols).toEqual([
@@ -169,7 +169,7 @@ describe('ensureFolder (issue #201: no MKCOL when the folder already exists)', (
       PROPFIND: () => new Response('<multistatus/>', { status: 207 }),
       MKCOL: () => new Response('', { status: 201 }),
     })
-    const { ensureFolder } = await loadWebdav({ isNativePlatform: false, webdavDirect: true })
+    const { ensureFolder } = await loadWebdav({ hasNativeHttp: false, webdavDirect: true })
     await ensureFolder('https://dav.example.com', 'GLANCE/lastglance', 'auth')
     const afterFirst = calls.length
     await ensureFolder('https://dav.example.com', 'GLANCE/lastglance', 'auth')
@@ -183,7 +183,7 @@ describe('ensureFolder (issue #201: no MKCOL when the folder already exists)', (
       MKCOL: () => new Response('', { status: 403 }),
     })
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    const { ensureFolder } = await loadWebdav({ isNativePlatform: false, webdavDirect: true })
+    const { ensureFolder } = await loadWebdav({ hasNativeHttp: false, webdavDirect: true })
     await expect(ensureFolder('https://dav.example.com', 'GLANCE', 'auth')).resolves.toBeUndefined()
     expect(warn).toHaveBeenCalled()
     warn.mockRestore()
@@ -196,7 +196,7 @@ describe('ensureFolder (issue #201: no MKCOL when the folder already exists)', (
       MKCOL: () => new Response('', { status: 405 }),
     })
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    const { ensureFolder } = await loadWebdav({ isNativePlatform: false, webdavDirect: true })
+    const { ensureFolder } = await loadWebdav({ hasNativeHttp: false, webdavDirect: true })
     await ensureFolder('https://dav.example.com', 'GLANCE', 'auth')
     expect(warn).not.toHaveBeenCalled()
     warn.mockRestore()
@@ -208,7 +208,7 @@ describe('ensureFolder (issue #201: no MKCOL when the folder already exists)', (
       PROPFIND: () => new Response('<multistatus/>', { status: 207 }),
       MKCOL: () => new Response('', { status: 201 }),
     })
-    const { ensureFolder, forgetEnsuredFolders } = await loadWebdav({ isNativePlatform: false, webdavDirect: true })
+    const { ensureFolder, forgetEnsuredFolders } = await loadWebdav({ hasNativeHttp: false, webdavDirect: true })
     await ensureFolder('https://dav.example.com', 'GLANCE/lastglance', 'auth')
     const afterFirst = calls.length
     forgetEnsuredFolders()

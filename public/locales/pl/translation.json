@@ -602,6 +602,24 @@
       "fileCreate": "Utwórz plik",
       "fileChange": "Zmień plik",
       "fileForget": "Zapomnij plik"
+    },
+    "privateAddress": {
+      "needsPermission": "{{origin}} znajduje się w sieci prywatnej, więc lastGLANCE potrzebuje Twojej zgody, aby się z nim połączyć. Serwer nie został jeszcze odpytany.",
+      "refused": "{{origin}} to adres zastrzeżony, z którym lastGLANCE się nie połączy.",
+      "allow": "Zezwól na ten adres…",
+      "allowHint": "lastGLANCE poprosi o potwierdzenie. Zezwalaj tylko na adresy we własnej sieci.",
+      "grantFailed": "Nie udało się zezwolić na ten adres.",
+      "allowedTitle": "Dozwolone adresy prywatne",
+      "remove": "Usuń",
+      "consentTitle": "Zezwolić na adres z sieci prywatnej?",
+      "consentQuestion": "Zezwolić lastGLANCE na połączenie z tym adresem?",
+      "consentResolvesTo": "Adres ten odpowiada adresowi w sieci prywatnej:",
+      "consentWarning": "Zezwalaj tylko wtedy, gdy to własny serwer we własnej sieci (domowa lub biurowa sieć LAN, host Dockera albo VPN, np. Tailscale). lastGLANCE będzie mógł się z nim łączyć, a wszystko, co zwróci, stanie się częścią Twoich danych.",
+      "consentWarningLoopbackVault": "Ten adres to usługa działająca na tym komputerze. Zezwalaj tylko wtedy, gdy to Twój własny GLANCEvault, a podany port jest tym, na którym nasłuchuje. Inne programy na tym komputerze działają na innych portach, a to zezwolenie ich nie obejmuje.",
+      "consentWarningLoopbackServer": "Ten adres to usługa działająca na tym komputerze. Zezwalaj tylko wtedy, gdy to Twój własny serwer synchronizacji, a podany port jest tym, na którym nasłuchuje. Inne programy na tym komputerze działają na innych portach, a to zezwolenie ich nie obejmuje.",
+      "consentScope": "Dotyczy tylko tego jednego adresu. Możesz to później usunąć w Ustawieniach, w sekcji synchronizacji w chmurze.",
+      "consentAllow": "Zezwól",
+      "consentCancel": "Anuluj"
     }
   },
   "users": {

@@ -4,15 +4,23 @@
 // links, crash recovery and the startup log. The window, protocol and lifecycle
 // code follows dayGLANCE's electron/main.ts (krelltunez/dayGLANCE@8d72008).
 
-import { app, BrowserWindow, ipcMain, Menu, nativeTheme, protocol, screen, session, shell } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, net, protocol, safeStorage, screen, session, shell } from 'electron';
+import dns from 'node:dns';
 import fs from 'node:fs';
+import nodeNet from 'node:net';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { APP_BASE_URL, APP_HOST, APP_SCHEME, resolveAppRequest } from './appProtocol.js';
 import { buildApplicationMenuTemplate, isApplicationMenuLabels, supportsCustomApplicationMenu, type ApplicationMenuLabels } from './applicationMenu.js';
 import { CONTENT_SECURITY_POLICY } from './csp.js';
 import { isAllowedExternalUrl } from './externalLinks.js';
+import { createHttpProxy } from './httpProxy.js';
+import { createNetworkTrust, type NetworkTrust } from './networkTrust.js';
 import { decideRecovery } from './rendererRecovery.js';
+import { createVaultSseReader } from './vaultSse.js';
+import { createSecureStore, secureStorageUsable } from './secureStore.js';
+import { registerDirectAccessHandlers } from './directAccess.js';
+import { registerFilesHandlers } from './files.js';
 import { initStartupLog, logStartup } from './startupLog.js';
 import { shouldQuitOnAllWindowsClosed } from './startupQuit.js';
 import { DESKTOP_INFO_ARG, encodeDesktopInfo } from './desktopInfo.js';
@@ -110,6 +118,139 @@ ipcMain.on('shell:exit-fullscreen', (event) => {
   w.setFullScreen(false);
 });
 
+// ── Network (docs/desktop-app.md, section 4) ────────────────────────────────
+// The renderer's only way out: WebDAV, GLANCEvault, intents and the roster all
+// arrive here as `http:request`. networkTrust.ts decides which servers may be
+// reached (a private address only once the user grants it); httpProxy.ts makes
+// the request.
+
+// Every A/AAAA record, so a public name with a private record is caught.
+// dns.lookup goes through the OS resolver, which is what resolves Tailscale
+// MagicDNS names (host.tailnet.ts.net).
+async function resolveHostAddresses(host: string): Promise<string[]> {
+  const bare = host.replace(/^\[|\]$/g, '');
+  if (nodeNet.isIP(bare)) return [bare];
+  return (await dns.promises.lookup(bare, { all: true })).map(({ address }) => address);
+}
+
+let networkTrust: NetworkTrust | null = null;
+function trust(): NetworkTrust {
+  networkTrust ??= createNetworkTrust({
+    grantsFile: path.join(app.getPath('userData'), 'proxy-trusted-hosts.json'),
+    resolve: resolveHostAddresses,
+    confirm: async ({ title, message, detail, allow, cancel }) => {
+      const options: Electron.MessageBoxOptions = {
+        type: 'warning', buttons: [cancel, allow], defaultId: 0, cancelId: 0, title, message, detail,
+      };
+      const parent = live(mainWindow);
+      const { response } = parent ? await dialog.showMessageBox(parent, options) : await dialog.showMessageBox(options);
+      return response === 1;
+    },
+    log: logStartup,
+  });
+  return networkTrust;
+}
+
+const httpRequest = createHttpProxy({
+  send: (url, init) => net.fetch(url, init),
+  validate: (url, isRedirect) => trust().validate(url, isRedirect),
+});
+
+ipcMain.handle('http:request', (event, method: unknown, url: unknown, headers: unknown, body: unknown) => {
+  if (!isMainWindowSender(event.sender)) return { error: 'Not allowed from this window' };
+  return httpRequest(method, url, headers, body);
+});
+
+ipcMain.handle('http:inspect', (event, url: unknown) => {
+  if (!isMainWindowSender(event.sender) || typeof url !== 'string') return { blocked: false };
+  return trust().inspect(url);
+});
+
+// The only path to the permission dialog, called from the "Allow this
+// address" button in Cloud Sync.
+ipcMain.handle('http:grant', (event, url: unknown, labels: unknown) => {
+  if (!isMainWindowSender(event.sender) || typeof url !== 'string') return { ok: false, reason: 'Invalid URL' };
+  return trust().request(url, labels);
+});
+
+ipcMain.handle('http:grants', (event) => (isMainWindowSender(event.sender) ? trust().list() : []));
+
+ipcMain.handle('http:revoke', (event, origin: unknown) => {
+  if (!isMainWindowSender(event.sender) || typeof origin !== 'string') return { ok: false };
+  return trust().revoke(origin);
+});
+
+// GLANCEvault's real-time push, read here and relayed to the renderer, which
+// takes the same 'native-bridge' road as the phone shells (vaultSse.ts).
+const vaultSse = createVaultSseReader({
+  fetch: (url, init) => net.fetch(url, init),
+  validate: (url) => trust().validate(url, false),
+  push: (message) => {
+    if (message.type === 'error') logStartup(`vault SSE: ${message.code ?? 'error'}: ${message.message}`);
+    live(mainWindow)?.webContents.send('vault-sse:message', message);
+  },
+});
+
+ipcMain.handle('vault-sse:start', (event, options: unknown) => {
+  if (!isMainWindowSender(event.sender) || !options || typeof options !== 'object') return;
+  const { vaultUrl, vaultToken, accountId } = options as Record<string, unknown>;
+  if (typeof vaultUrl !== 'string' || typeof vaultToken !== 'string' || typeof accountId !== 'string') return;
+  vaultSse.start({ vaultUrl, vaultToken, accountId });
+});
+
+ipcMain.handle('vault-sse:stop', (event) => {
+  if (isMainWindowSender(event.sender)) vaultSse.stop();
+});
+
+// ── Secure storage (docs/desktop-app.md, section 5) ─────────────────────────
+// The SecureStore contract over safeStorage. Asked only after ready, when
+// safeStorage can answer; unusable (a Linux machine without a keyring) means
+// the renderer keeps its web storage, as the phones' web build does.
+function isSecureStorageUsable(): boolean {
+  return secureStorageUsable(
+    process.platform,
+    safeStorage.isEncryptionAvailable(),
+    process.platform === 'linux' ? safeStorage.getSelectedStorageBackend() : undefined,
+  );
+}
+
+let secureStore: ReturnType<typeof createSecureStore> | null = null;
+function store() {
+  if (!isSecureStorageUsable()) throw new Error('Secure storage is not available');
+  secureStore ??= createSecureStore({
+    file: path.join(app.getPath('userData'), 'secure-store.json'),
+    cipher: { encrypt: (plain) => safeStorage.encryptString(plain), decrypt: (cipher) => safeStorage.decryptString(cipher) },
+  });
+  return secureStore;
+}
+
+ipcMain.handle('secure-store:get', (event, key: unknown) => {
+  if (!isMainWindowSender(event.sender)) return { value: null };
+  return store().get(key);
+});
+ipcMain.handle('secure-store:set', (event, key: unknown, value: unknown) => {
+  if (!isMainWindowSender(event.sender)) throw new Error('Not allowed from this window');
+  store().set(key, value);
+});
+ipcMain.handle('secure-store:delete', (event, key: unknown) => {
+  if (!isMainWindowSender(event.sender)) return;
+  store().delete(key);
+});
+
+// Direct Access: a folder a sync tool keeps in step (directAccess.ts).
+registerDirectAccessHandlers({ app, dialog, ipcMain, getWindow: () => live(mainWindow), isMainWindowSender, log: logStartup });
+
+// Exports through the save dialog; the pre-restore copy into userData (files.ts).
+registerFilesHandlers({
+  ipcMain,
+  dialog,
+  getWindow: () => live(mainWindow),
+  isMainWindowSender,
+  downloadsDir: () => app.getPath('downloads'),
+  backupsDir: () => path.join(app.getPath('userData'), 'backups'),
+  log: logStartup,
+});
+
 function createWindow(): BrowserWindow {
   const userData = app.getPath('userData');
   const saved = onScreen(loadWindowState(userData), screen.getAllDisplays().map((d) => d.workArea));
@@ -136,7 +277,7 @@ function createWindow(): BrowserWindow {
       devTools: DEV,
       // The facts the preload exposes as bridge.info (desktopInfo.ts).
       additionalArguments: [
-        `${DESKTOP_INFO_ARG}${encodeDesktopInfo({ version: app.getVersion(), isMAS: process.mas === true })}`,
+        `${DESKTOP_INFO_ARG}${encodeDesktopInfo({ version: app.getVersion(), isMAS: process.mas === true, secureStorage: isSecureStorageUsable() })}`,
       ],
     },
   });
@@ -310,7 +451,10 @@ app.whenReady().then(() => {
   app.on('activate', () => showMainWindow());
 });
 
-app.on('before-quit', () => { isQuitting = true; });
+app.on('before-quit', () => {
+  isQuitting = true;
+  vaultSse.stop();
+});
 
 app.on('window-all-closed', () => {
   if (shouldQuitOnAllWindowsClosed(process.platform, didCreateMainWindow)) {

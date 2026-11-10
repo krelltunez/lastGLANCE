@@ -580,6 +580,24 @@
       "fileCreate": "Criar ficheiro",
       "fileChange": "Mudar de ficheiro",
       "fileForget": "Esquecer ficheiro"
+    },
+    "privateAddress": {
+      "needsPermission": "{{origin}} está numa rede privada, por isso o lastGLANCE precisa da sua permissão para se ligar. O servidor ainda não foi contactado.",
+      "refused": "{{origin}} é um endereço reservado ao qual o lastGLANCE não se liga.",
+      "allow": "Permitir este endereço…",
+      "allowHint": "O lastGLANCE pedirá a sua confirmação. Permita apenas endereços da sua própria rede.",
+      "grantFailed": "Não foi possível permitir este endereço.",
+      "allowedTitle": "Endereços privados permitidos",
+      "remove": "Remover",
+      "consentTitle": "Permitir um endereço de rede privada?",
+      "consentQuestion": "Permitir que o lastGLANCE se ligue a este endereço?",
+      "consentResolvesTo": "Aponta para um endereço de rede privada:",
+      "consentWarning": "Só permita se for o seu próprio servidor, na sua própria rede (uma rede doméstica ou de escritório, um anfitrião Docker ou uma VPN como o Tailscale). O lastGLANCE poderá aceder-lhe, e tudo o que devolver passará a fazer parte dos seus dados.",
+      "consentWarningLoopbackVault": "Este endereço é um serviço em execução neste computador. Só permita se for o seu próprio GLANCEvault e a porta for aquela em que este escuta. Outros programas nesta máquina ficam acessíveis noutras portas, e esta permissão não os abrange.",
+      "consentWarningLoopbackServer": "Este endereço é um serviço em execução neste computador. Só permita se for o seu próprio servidor de sincronização e a porta for aquela em que este escuta. Outros programas nesta máquina ficam acessíveis noutras portas, e esta permissão não os abrange.",
+      "consentScope": "Isto aplica-se apenas a este endereço. Pode removê-lo mais tarde nas Definições, em Sincronização na nuvem.",
+      "consentAllow": "Permitir",
+      "consentCancel": "Cancelar"
     }
   },
   "users": {

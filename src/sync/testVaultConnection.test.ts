@@ -18,9 +18,9 @@ const nativeHttpFetchMock = vi.fn(
     body: JSON.stringify({ salt: 'AAAA', request: { method, url, headers, body } }),
   }),
 )
-// isNativePlatform is a const binding; mock the module so the probe sees `true`.
+// hasNativeHttp is a const binding; mock the module so the probe sees `true`.
 vi.mock('@/sync/nativeHttp', () => ({
-  isNativePlatform: true,
+  hasNativeHttp: true,
   nativeHttpFetch: (...args: Parameters<typeof nativeHttpFetchMock>) => nativeHttpFetchMock(...args),
 }))
 

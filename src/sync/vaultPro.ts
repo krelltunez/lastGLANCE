@@ -13,7 +13,7 @@
 // sync passphrase is still required (end-to-end encryption): after the reload
 // the app asks for it, as it does for any new vault connection.
 
-import { isNativePlatform, nativeHttpFetch } from './nativeHttp'
+import { hasNativeHttp, nativeHttpFetch } from './nativeHttp'
 import { getDeviceId } from './deviceId'
 import { clearCachedVaultKeys } from './vaultKeys'
 import {
@@ -52,7 +52,7 @@ const ENROLL_TIMEOUT_MS = 20_000
 
 const defaultPost: EnrollPost = async (url, body) => {
   const headers = { 'Content-Type': 'application/json' }
-  if (isNativePlatform) {
+  if (hasNativeHttp) {
     const r = await nativeHttpFetch('POST', url, headers, body)
     return { status: r.status, body: r.body }
   }
