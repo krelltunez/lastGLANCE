@@ -240,9 +240,8 @@ link. The rules are in `src/native/launcherPromo.ts`; `useLauncherPromo` feeds
 
 - the Android app, not a headless run (never web, PWA or iOS);
 - a link for the build channel: `github` opens the launcher's latest release;
-  `play` uses `LAUNCHER_PLAY_URL`, which is empty until the launcher is
-  approved on Google Play, so the Play build shows neither until then; any
-  other channel shows nothing;
+  `play` opens its Google Play listing (`LAUNCHER_PLAY_URL`); any other
+  channel shows nothing;
 - Android 12 or later, the `knownSigner` minimum above;
 - the launcher not installed. `LauncherBridge.promoInfo` answers
   `{ sdk, installed }`, looking the package up through the manifest's

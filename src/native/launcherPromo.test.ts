@@ -34,13 +34,17 @@ describe('the build channel link', () => {
     expect(LAUNCHER_GITHUB_URL).toBe('https://github.com/krelltunez/GLANCElauncher/releases/latest')
   })
 
-  // The launcher is not on Play yet: the constant ships empty, and the Play
-  // build shows nothing until the owner fills it in.
-  it('has no Play link until the launcher is approved on Google Play', () => {
-    expect(LAUNCHER_PLAY_URL).toBe('')
-    expect(promoLink('play')).toBeNull()
-    expect(promoEntry({ ...shown(), channel: 'play' })).toBeNull()
-    expect(showPromoCard({ ...shown(), channel: 'play' })).toBe(false)
+  it('links the Play build to the launcher on Google Play', () => {
+    expect(LAUNCHER_PLAY_URL).toBe(PLAY)
+    expect(promoLink('play')).toEqual({ url: PLAY, store: 'play' })
+    expect(promoEntry({ ...shown(), channel: 'play' })).not.toBeNull()
+    expect(showPromoCard({ ...shown(), channel: 'play' })).toBe(true)
+  })
+
+  it('shows nothing in the Play build if its link is emptied', () => {
+    const urls = { github: LAUNCHER_GITHUB_URL, play: '' }
+    expect(promoLink('play', urls)).toBeNull()
+    expect(showPromoCard({ ...shown(), channel: 'play', urls })).toBe(false)
   })
 
   it('uses the Play link, with Play wording, once it is set', () => {
