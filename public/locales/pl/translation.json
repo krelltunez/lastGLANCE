@@ -320,7 +320,7 @@
     "icloudIntents": {
       "title": "Intencje iCloud",
       "label": "Intencje przez iCloud",
-      "hint": "Wymieniaj intencje z dayGLANCE na tym iPhonie lub iPadzie przez iCloud, bez dodatkowej konfiguracji. W dayGLANCE też muszą być włączone intencje iCloud."
+      "hint": "Wymieniaj intencje z dayGLANCE na tym urządzeniu przez iCloud, bez dodatkowej konfiguracji. W dayGLANCE też muszą być włączone intencje iCloud."
     }
   },
   "journal": {
@@ -570,7 +570,7 @@
       "desc": "Synchronizuj przez folder, który inna aplikacja już utrzymuje w zgodzie między Twoimi urządzeniami (Nextcloud, Syncthing, FolderSync, Dysk Google, Dropbox). lastGLANCE czyta i zapisuje tam jeden plik; tamta aplikacja go przenosi.",
       "androidHint": "Wybierz folder GLANCE w folderze zarządzanym przez Twoją aplikację synchronizującą. Na każdym urządzeniu musi to być ten sam folder.",
       "iosHint": "Na iPhonie i iPadzie wybierasz sam plik synchronizacji w aplikacji Pliki: ten, który inne urządzenie już utworzyło, albo utwórz go w folderze zarządzanym przez Twoją aplikację synchronizującą.",
-      "unsupported": "Dostępne w aplikacjach na Androida i iOS.",
+      "unsupported": "Dostępne w aplikacjach na Androida, iOS i komputery.",
       "notConnected": "Nie połączono żadnego folderu.",
       "notConnectedFile": "Nie połączono żadnego pliku synchronizacji.",
       "chooseFolder": "Wybierz folder",
@@ -1025,7 +1025,7 @@
   "icloud": {
     "title": "iCloud",
     "switchLabel": "Synchronizuj z iCloud",
-    "onHint": "Twoje obowiązki i Ludzie są aktualne na każdym iPhonie i iPadzie zalogowanym na Twój Apple ID. Nic nie trzeba konfigurować.",
+    "onHint": "Twoje obowiązki i Ludzie są aktualne na każdym iPhonie, iPadzie i Macu zalogowanym na Twój Apple ID. Nic nie trzeba konfigurować.",
     "offHint": "Wyłączone na tym urządzeniu. Kopia w iCloud i inne urządzenia pozostają bez zmian.",
     "firstRun": {
       "title": "Przywrócić z iCloud?",

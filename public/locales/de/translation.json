@@ -312,7 +312,7 @@
     "icloudIntents": {
       "title": "iCloud-Intents",
       "label": "Intents über iCloud",
-      "hint": "Tausche auf diesem iPhone oder iPad Intents mit dayGLANCE über iCloud aus, ohne weitere Einrichtung. In dayGLANCE müssen die iCloud-Intents ebenfalls eingeschaltet sein."
+      "hint": "Tausche auf diesem Gerät Intents mit dayGLANCE über iCloud aus, ohne weitere Einrichtung. In dayGLANCE müssen die iCloud-Intents ebenfalls eingeschaltet sein."
     }
   },
   "journal": {
@@ -548,7 +548,7 @@
       "desc": "Synchronisiere über einen Ordner, den eine andere App bereits zwischen deinen Geräten abgleicht (Nextcloud, Syncthing, FolderSync, Google Drive, Dropbox). lastGLANCE liest und schreibt dort eine Datei; diese App überträgt sie.",
       "androidHint": "Wähle den Ordner GLANCE innerhalb des Ordners, den deine Sync-App verwaltet. Es muss auf jedem Gerät derselbe Ordner sein.",
       "iosHint": "Auf iPhone und iPad wählst du die Sync-Datei selbst in „Dateien“: die, die ein anderes Gerät bereits angelegt hat, oder du erstellst sie im Ordner deiner Sync-App.",
-      "unsupported": "Verfügbar in den Android- und iOS-Apps.",
+      "unsupported": "Verfügbar in den Android-, iOS- und Desktop-Apps.",
       "notConnected": "Kein Ordner verbunden.",
       "notConnectedFile": "Keine Sync-Datei verbunden.",
       "chooseFolder": "Ordner wählen",
@@ -977,7 +977,7 @@
   "icloud": {
     "title": "iCloud",
     "switchLabel": "Mit iCloud synchronisieren",
-    "onHint": "Deine Aufgaben und Menschen bleiben auf jedem iPhone und iPad mit deiner Apple-ID abgeglichen. Keine Einrichtung nötig.",
+    "onHint": "Deine Aufgaben und Menschen bleiben auf jedem iPhone, iPad und Mac mit deiner Apple-ID abgeglichen. Keine Einrichtung nötig.",
     "offHint": "Auf diesem Gerät aus. Die Kopie in iCloud und deine anderen Geräte bleiben unberührt.",
     "firstRun": {
       "title": "Aus iCloud wiederherstellen?",

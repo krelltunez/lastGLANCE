@@ -312,7 +312,7 @@
     "icloudIntents": {
       "title": "Intent iCloud",
       "label": "Intent tramite iCloud",
-      "hint": "Scambia intent con dayGLANCE su questo iPhone o iPad tramite iCloud, senza altro da configurare. Anche in dayGLANCE devono essere attivati gli intent iCloud."
+      "hint": "Scambia intent con dayGLANCE su questo dispositivo tramite iCloud, senza altro da configurare. Anche in dayGLANCE devono essere attivati gli intent iCloud."
     }
   },
   "journal": {
@@ -548,7 +548,7 @@
       "desc": "Sincronizza tramite una cartella che un'altra app tiene già allineata tra i tuoi dispositivi (Nextcloud, Syncthing, FolderSync, Google Drive, Dropbox). lastGLANCE vi legge e scrive un file; quell'app lo trasporta.",
       "androidHint": "Scegli la cartella GLANCE all'interno della cartella gestita dalla tua app di sincronizzazione. Deve essere la stessa cartella su ogni dispositivo.",
       "iosHint": "Su iPhone e iPad scegli il file di sincronizzazione stesso in File: quello che un altro dispositivo ha già creato, oppure crealo nella cartella gestita dalla tua app di sincronizzazione.",
-      "unsupported": "Disponibile nelle app Android e iOS.",
+      "unsupported": "Disponibile nelle app Android, iOS e desktop.",
       "notConnected": "Nessuna cartella collegata.",
       "notConnectedFile": "Nessun file di sincronizzazione collegato.",
       "chooseFolder": "Scegli cartella",
@@ -977,7 +977,7 @@
   "icloud": {
     "title": "iCloud",
     "switchLabel": "Sincronizza con iCloud",
-    "onHint": "Le tue faccende e le tue Persone restano allineate su ogni iPhone e iPad con il tuo ID Apple. Niente da configurare.",
+    "onHint": "Le tue faccende e le tue Persone restano allineate su ogni iPhone, iPad e Mac con il tuo ID Apple. Niente da configurare.",
     "offHint": "Disattivato su questo dispositivo. La copia in iCloud e gli altri dispositivi restano invariati.",
     "firstRun": {
       "title": "Ripristinare da iCloud?",
