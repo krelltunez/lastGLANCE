@@ -12,9 +12,10 @@ const chore = (syncId: string, state: string, ratio: number, name = syncId) =>
   ({ syncId, name, icon: null, categoryName: 'Home', lastCompletedAt: null, elapsedDays: 9, targetCadenceDays: 7, ratio, color: null, state, pinned: false });
 
 describe('the tray model', () => {
-  it('keeps only due chores from the widget snapshot', () => {
-    const s = parseTraySnapshot(snapshotJson([chore('a', 'overdue', 1.3), chore('b', 'fresh', 0.2), chore('c', 'soon', 0.9), { syncId: 1 }]));
-    expect(s?.chores.map((c) => c.syncId)).toEqual(['a', 'c']);
+  it('keeps every chore from the widget snapshot, and lists the due ones', () => {
+    const s = parseTraySnapshot(snapshotJson([chore('a', 'overdue', 1.3), chore('b', 'fresh', 0.2), chore('c', 'soon', 0.9), chore('d', 'bogus', 0), { syncId: 1 }]));
+    expect(s?.chores.map((c) => c.syncId)).toEqual(['a', 'b', 'c']);       // every chore, for search
+    expect(trayState(s, new Map()).due.map((c) => c.syncId)).toEqual(['a', 'c']);
     expect(s?.generatedAt).toBe(Date.parse('2026-11-10T12:00:00.000Z'));
     expect(parseTraySnapshot('{oops')).toBeNull();
     expect(parseTraySnapshot(JSON.stringify({ chores: [] }))).toBeNull();
@@ -42,10 +43,11 @@ describe('the tray model', () => {
   it('orders overdue first, most overdue first, and hides what was done here', () => {
     const s = parseTraySnapshot(snapshotJson([chore('soon1', 'soon', 0.95), chore('od1', 'overdue', 1.2), chore('od2', 'overdue', 2.0)]))!;
     expect(trayState(s, new Map()).due.map((c) => c.syncId)).toEqual(['od2', 'od1', 'soon1']);
+    expect(trayState(s, new Map([['od2', 1]])).chores.map((c) => c.syncId)).not.toContain('od2');
     const after = trayState(s, new Map([['od2', Date.now()]]));
     expect(after.due.map((c) => c.syncId)).toEqual(['od1', 'soon1']);
     expect(after.counts).toEqual({ overdue: 1, soon: 1 });
-    expect(trayState(null, new Map())).toEqual({ due: [], counts: { overdue: 0, soon: 0 }, reachOut: [], comingUp: [], ready: false });
+    expect(trayState(null, new Map())).toEqual({ due: [], chores: [], counts: { overdue: 0, soon: 0 }, reachOut: [], comingUp: [], ready: false });
   });
 
   it('settles a completion once a snapshot made after it arrives', () => {

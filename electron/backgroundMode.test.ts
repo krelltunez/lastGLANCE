@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {
-  applyOpenAtLogin, autostartEntry, closeAction, DEFAULT_DESKTOP_SETTINGS, HIDDEN_ARG, launchedHidden,
+  applyOpenAtLogin, autostartEntry, closeAction, DEFAULT_DESKTOP_SETTINGS, HIDDEN_ARG, isAcceleratorText, launchedHidden,
   loadDesktopSettings, parseDesktopSettings, saveDesktopSettings,
 } from './backgroundMode';
 
@@ -26,16 +26,25 @@ describe('closing the window', () => {
 
 describe('the settings', () => {
   it('default to keep running on and open at login off', () => {
-    expect(DEFAULT_DESKTOP_SETTINGS).toEqual({ keepRunning: true, openAtLogin: false, backgroundNoticeShown: false });
+    expect(DEFAULT_DESKTOP_SETTINGS).toEqual({ keepRunning: true, openAtLogin: false, backgroundNoticeShown: false, popupShortcut: '', windowShortcut: '' });
     expect(loadDesktopSettings(temp())).toEqual(DEFAULT_DESKTOP_SETTINGS);
   });
   it('round-trip, and a malformed field falls back to its default', () => {
     const d = temp();
-    saveDesktopSettings(d, { keepRunning: false, openAtLogin: true, backgroundNoticeShown: true });
-    expect(loadDesktopSettings(d)).toEqual({ keepRunning: false, openAtLogin: true, backgroundNoticeShown: true });
+    const saved = { keepRunning: false, openAtLogin: true, backgroundNoticeShown: true, popupShortcut: 'Ctrl+Shift+L', windowShortcut: 'Cmd+Alt+Space' };
+    saveDesktopSettings(d, saved);
+    expect(loadDesktopSettings(d)).toEqual(saved);
+    expect(parseDesktopSettings({ popupShortcut: 'rm -rf /', windowShortcut: 42 })).toMatchObject({ popupShortcut: '', windowShortcut: '' });
     expect(parseDesktopSettings({ keepRunning: 'no', openAtLogin: true })).toEqual({ ...DEFAULT_DESKTOP_SETTINGS, openAtLogin: true });
     fs.writeFileSync(path.join(d, 'desktop-settings.json'), '{not json');
     expect(loadDesktopSettings(d)).toEqual(DEFAULT_DESKTOP_SETTINGS);
+  });
+});
+
+describe('shortcut text', () => {
+  it('accepts accelerators and refuses anything else', () => {
+    for (const ok of ['Ctrl+Shift+L', 'Cmd+Alt+Space', 'F9', 'Ctrl+Shift+1', 'Ctrl+=', 'Alt+/', 'Ctrl++']) expect(isAcceleratorText(ok), ok).toBe(true);
+    for (const bad of ['', 'Ctrl+Shift+', 'Ctrl Shift L', 'x'.repeat(65), 7]) expect(isAcceleratorText(bad), String(bad)).toBe(false);
   });
 });
 

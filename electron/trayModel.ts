@@ -8,13 +8,16 @@
 // Pure functions, tested without Electron; main.ts owns the Tray, the popup
 // window and the Linux menu.
 
+export type ChoreState = 'overdue' | 'soon' | 'fresh' | 'none';
+const CHORE_STATES: ReadonlySet<string> = new Set(['overdue', 'soon', 'fresh', 'none']);
+
 export interface TrayChore {
   syncId: string;
   name: string;
   /** A lucide icon name, as the app draws it. */
   icon: string | null;
   categoryName: string | null;
-  state: 'overdue' | 'soon';
+  state: ChoreState;
   lastCompletedAt: string | null;
   elapsedDays: number | null;
   targetCadenceDays: number | null;
@@ -48,6 +51,8 @@ export interface TraySnapshot {
 
 export interface TrayState {
   due: TrayChore[];
+  /** Every chore, for the popup's search (TRAY_CHORE_LIMIT at most), less the ones done here. */
+  chores: TrayChore[];
   /** Overdue and soon, less the ones completed here and not yet in a snapshot. */
   counts: { overdue: number; soon: number };
   reachOut: TrayPerson[];
@@ -58,6 +63,7 @@ export interface TrayState {
 
 export const TRAY_DUE_LIMIT = 8;
 export const TRAY_PEOPLE_LIMIT = 5;
+export const TRAY_CHORE_LIMIT = 2000;
 export const SNAPSHOT_MAX_BYTES = 4 * 1024 * 1024;
 
 const num = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null);
@@ -97,14 +103,14 @@ export function parseTraySnapshot(json: unknown): TraySnapshot | null {
   for (const item of s.chores) {
     if (!item || typeof item !== 'object') continue;
     const c = item as Record<string, unknown>;
-    if (c.state !== 'overdue' && c.state !== 'soon') continue;
+    if (typeof c.state !== 'string' || !CHORE_STATES.has(c.state)) continue;
     if (typeof c.syncId !== 'string' || typeof c.name !== 'string') continue;
     chores.push({
       syncId: c.syncId,
       name: c.name,
       icon: text(c.icon, 64),
       categoryName: typeof c.categoryName === 'string' ? c.categoryName : null,
-      state: c.state,
+      state: c.state as ChoreState,
       lastCompletedAt: text(c.lastCompletedAt, 40),
       elapsedDays: num(c.elapsedDays),
       targetCadenceDays: num(c.targetCadenceDays),
@@ -112,17 +118,19 @@ export function parseTraySnapshot(json: unknown): TraySnapshot | null {
       color: COLOR.test(String(c.color)) ? String(c.color) : null,
     });
   }
-  return { generatedAt, chores, ...parsePeople(s.people) };
+  return { generatedAt, chores: chores.slice(0, TRAY_CHORE_LIMIT), ...parsePeople(s.people) };
 }
 
 /** Overdue first, then soon, each most overdue first; less the ones done here. */
 export function trayState(snapshot: TraySnapshot | null, doneHere: ReadonlyMap<string, number>, limit = TRAY_DUE_LIMIT): TrayState {
-  if (!snapshot) return { due: [], counts: { overdue: 0, soon: 0 }, reachOut: [], comingUp: [], ready: false };
+  if (!snapshot) return { due: [], chores: [], counts: { overdue: 0, soon: 0 }, reachOut: [], comingUp: [], ready: false };
   const open = snapshot.chores.filter((c) => !doneHere.has(c.syncId));
   const rank = (c: TrayChore) => (c.state === 'overdue' ? 0 : 1);
-  const sorted = [...open].sort((a, b) => rank(a) - rank(b) || (b.ratio ?? 0) - (a.ratio ?? 0) || a.name.localeCompare(b.name));
+  const due = open.filter((c) => c.state === 'overdue' || c.state === 'soon');
+  const sorted = [...due].sort((a, b) => rank(a) - rank(b) || (b.ratio ?? 0) - (a.ratio ?? 0) || a.name.localeCompare(b.name));
   return {
     due: sorted.slice(0, limit),
+    chores: open,
     counts: { overdue: open.filter((c) => c.state === 'overdue').length, soon: open.filter((c) => c.state === 'soon').length },
     reachOut: snapshot.reachOut.slice(0, TRAY_PEOPLE_LIMIT),
     comingUp: snapshot.comingUp.slice(0, TRAY_PEOPLE_LIMIT),

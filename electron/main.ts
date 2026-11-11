@@ -4,7 +4,7 @@
 // links, crash recovery and the startup log. The window, protocol and lifecycle
 // code follows dayGLANCE's electron/main.ts (krelltunez/dayGLANCE@8d72008).
 
-import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, nativeTheme, net, Notification, powerMonitor, protocol, safeStorage, screen, session, shell, systemPreferences, Tray } from 'electron';
+import { app, BrowserWindow, dialog, globalShortcut, ipcMain, Menu, nativeImage, nativeTheme, net, Notification, powerMonitor, protocol, safeStorage, screen, session, shell, systemPreferences, Tray } from 'electron';
 import dns from 'node:dns';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
@@ -36,7 +36,7 @@ import { DEEP_LINK_SCHEME, deepLinkFromArgv, deepLinkToken } from './deepLink.js
 import { createReminderScheduler, type ScheduledReminder } from './reminderScheduler.js';
 import { parseTraySnapshot, popupPosition, settledCompletions, trayMenuItems, trayOpenToken, trayState, type TraySnapshot } from './trayModel.js';
 import { linuxFormats, macFormats, windowsFormats, type SystemFormats } from './systemFormats.js';
-import { applyOpenAtLogin, closeAction, launchedHidden, loadDesktopSettings, saveDesktopSettings, type DesktopSettings } from './backgroundMode.js';
+import { applyOpenAtLogin, closeAction, isAcceleratorText, launchedHidden, loadDesktopSettings, saveDesktopSettings, type DesktopSettings } from './backgroundMode.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -376,6 +376,8 @@ function toggleTrayPopup(): void {
   w.webContents.send('tray:state', currentTrayState());
   w.show();
   w.focus();
+  // The popup puts the cursor in its search field (src/tray/TrayPopup.tsx).
+  w.webContents.send('tray:shown');
 }
 
 function createTray(): void {
@@ -391,6 +393,51 @@ function createTray(): void {
   }
   refreshTray();
 }
+
+// ── Global shortcuts (docs/desktop-app.md, section 7) ──────────────────────
+// Two, both off until the user records one in Settings: open the popup (to
+// search and log a chore) and show the window. Kept in desktop-settings.json
+// and registered here at launch, so they work before the page has loaded. The
+// popup exists on macOS and Windows; Linux has the window shortcut only. A
+// shortcut another app already holds cannot be registered, and the page says so.
+type ShortcutKind = 'popup' | 'window';
+const shortcutHandlers: Record<ShortcutKind, () => void> = {
+  popup: () => toggleTrayPopup(),
+  window: () => showMainWindow(),
+};
+const registeredShortcuts: Record<ShortcutKind, string> = { popup: '', window: '' };
+
+/** Register (or clear, with '') one shortcut. The old one stays if the new one cannot be had. */
+function applyShortcut(kind: ShortcutKind, accelerator: string): boolean {
+  if (kind === 'popup' && !USE_TRAY_POPUP && accelerator) return false;
+  if (accelerator === registeredShortcuts[kind]) return true;
+  if (accelerator) {
+    let ok = false;
+    try { ok = globalShortcut.register(accelerator, shortcutHandlers[kind]); } catch { ok = false; }
+    if (!ok) { logStartup(`global shortcut ${accelerator} (${kind}) could not be registered`); return false; }
+  }
+  if (registeredShortcuts[kind]) {
+    try { globalShortcut.unregister(registeredShortcuts[kind]); } catch { /* already gone */ }
+  }
+  registeredShortcuts[kind] = accelerator;
+  return true;
+}
+
+function shortcutsView() {
+  return { popup: registeredShortcuts.popup, window: registeredShortcuts.window, popupSupported: USE_TRAY_POPUP };
+}
+
+ipcMain.handle('shell:get-shortcuts', (event) => (isMainWindowSender(event.sender) ? shortcutsView() : null));
+ipcMain.handle('shell:set-shortcut', (event, kind: unknown, accelerator: unknown) => {
+  if (!isMainWindowSender(event.sender) || (kind !== 'popup' && kind !== 'window')) return { ok: false, ...shortcutsView() };
+  if (accelerator !== '' && !isAcceleratorText(accelerator)) return { ok: false, ...shortcutsView() };
+  const ok = applyShortcut(kind, accelerator as string);
+  if (ok) {
+    desktopSettings = { ...desktopSettings, [kind === 'popup' ? 'popupShortcut' : 'windowShortcut']: accelerator as string };
+    saveDesktopSettings(app.getPath('userData'), desktopSettings);
+  }
+  return { ok, ...shortcutsView() };
+});
 
 // The main window's widget snapshot (src/native/widgetBridge.ts).
 ipcMain.on('widget:update-snapshot', (event, json: unknown) => {
@@ -908,6 +955,13 @@ app.whenReady().then(() => {
   if (process.mas) registerElectronBilling(firstWindow, { ...MAS_BILLING, products: { ...MAS_BILLING.products } });
 
   createTray();
+
+  // The global shortcuts saved last time.
+  if (desktopSettings.popupShortcut) applyShortcut('popup', desktopSettings.popupShortcut);
+  if (desktopSettings.windowShortcut) applyShortcut('window', desktopSettings.windowShortcut);
+  // globalShortcut throws before ready, and will-quit can fire then (dayGLANCE
+  // issue #1352); before ready nothing is registered, so there is nothing to free.
+  app.on('will-quit', () => { if (app.isReady()) globalShortcut.unregisterAll(); });
 
   // Reminders due while the app was not running: within 12 hours fire once.
   reminders.rearm();

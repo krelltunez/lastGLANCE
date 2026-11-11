@@ -455,6 +455,18 @@ attributed to "electron.app.lastGLANCE". The People reminder fields in Settings
   sheet, which needs the window.
 - A chore turns due with no event, so the desktop re-pushes the snapshot every
   15 minutes.
+- **Search.** A field above the cards searches every chore the snapshot
+  carries, live as you type: each word must appear in the name or the
+  category, ignoring case and accents, due chores first (`src/tray/search.ts`).
+  The field has the cursor whenever the popup opens; Enter moves to the first
+  result's Done, so Space logs it; Escape clears the search, then closes the
+  popup.
+- **Global shortcuts.** Settings, Desktop app records two, both off until set:
+  open the popup (macOS and Windows) and show the window (every platform).
+  Main keeps them in `desktop-settings.json` and registers them at launch, and
+  a shortcut another app holds is reported rather than silently dropped. With
+  the popup shortcut, a chore is logged from anywhere without the mouse:
+  shortcut, a few letters, Enter, Space.
 - The main renderer drains the queue (`usePendingCompletions`, which already
   handles widget completions on the phones). Main nudges it with an event, so
   this happens at once rather than on the next foreground.

@@ -772,7 +772,14 @@
     "keepRunning": "Działaj w tle",
     "keepRunningHint": "Po zamknięciu okna lastGLANCE zostaje w zasobniku systemowym, więc przypomnienia dalej przychodzą.",
     "openAtLogin": "Otwieraj po zalogowaniu",
-    "openAtLoginHint": "Uruchamiaj lastGLANCE po zalogowaniu się na tym komputerze."
+    "openAtLoginHint": "Uruchamiaj lastGLANCE po zalogowaniu się na tym komputerze.",
+    "globalShortcuts": "Skróty globalne",
+    "shortcutPopupHint": "Otwieraj okienko z dowolnego miejsca, aby znaleźć i odhaczyć obowiązek.",
+    "shortcutWindowHint": "Pokazuj okno lastGLANCE z dowolnego miejsca.",
+    "shortcutPlaceholder": "Kliknij, a potem naciśnij skrót…",
+    "shortcutClear": "Wyczyść",
+    "shortcutNeedsModifier": "Dodaj Ctrl, Alt lub Cmd, aby skrót nie przeszkadzał w pisaniu.",
+    "shortcutTaken": "Nie udało się ustawić tego skrótu. Może używa go już inna aplikacja."
   },
   "people": {
     "close": "Zamknij",
@@ -1078,7 +1085,10 @@
     "soon": "Wkrótce: {{count}}",
     "nothingDue": "Na razie nic do zrobienia.",
     "notReady": "Otwórz lastGLANCE raz, aby zobaczyć, co jest do zrobienia.",
-    "open": "Otwórz lastGLANCE"
+    "open": "Otwórz lastGLANCE",
+    "searchPlaceholder": "Szukaj obowiązków",
+    "searchClear": "Wyczyść wyszukiwanie",
+    "noMatches": "Brak pasujących obowiązków."
   },
   "update": {
     "available": "lastGLANCE {{version}} jest dostępny.",

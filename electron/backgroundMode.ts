@@ -30,14 +30,29 @@ export interface DesktopSettings {
   openAtLogin: boolean;
   /** The "still running" notice has been shown once. */
   backgroundNoticeShown: boolean;
+  /** Global shortcuts (Electron accelerators); '' for none. */
+  popupShortcut: string;
+  windowShortcut: string;
 }
 
-export const DEFAULT_DESKTOP_SETTINGS: DesktopSettings = { keepRunning: true, openAtLogin: false, backgroundNoticeShown: false };
+export const DEFAULT_DESKTOP_SETTINGS: DesktopSettings = {
+  keepRunning: true, openAtLogin: false, backgroundNoticeShown: false, popupShortcut: '', windowShortcut: '',
+};
+
+/** A plausible accelerator: modifiers and one key joined by "+", nothing else. */
+export function isAcceleratorText(value: unknown): value is string {
+  return typeof value === 'string' && value.length <= 64 && /^([A-Za-z]+\+)*[^+\s]+$|^([A-Za-z]+\+)*\+$/.test(value);
+}
 
 export function parseDesktopSettings(raw: unknown): DesktopSettings {
   const s = raw && typeof raw === 'object' ? raw as Record<string, unknown> : {};
-  const bool = (key: keyof DesktopSettings) => (typeof s[key] === 'boolean' ? s[key] as boolean : DEFAULT_DESKTOP_SETTINGS[key]);
-  return { keepRunning: bool('keepRunning'), openAtLogin: bool('openAtLogin'), backgroundNoticeShown: bool('backgroundNoticeShown') };
+  const bool = (key: 'keepRunning' | 'openAtLogin' | 'backgroundNoticeShown') =>
+    (typeof s[key] === 'boolean' ? s[key] as boolean : DEFAULT_DESKTOP_SETTINGS[key]);
+  const shortcut = (key: 'popupShortcut' | 'windowShortcut') => (isAcceleratorText(s[key]) ? s[key] as string : '');
+  return {
+    keepRunning: bool('keepRunning'), openAtLogin: bool('openAtLogin'), backgroundNoticeShown: bool('backgroundNoticeShown'),
+    popupShortcut: shortcut('popupShortcut'), windowShortcut: shortcut('windowShortcut'),
+  };
 }
 
 export function loadDesktopSettings(userData: string): DesktopSettings {

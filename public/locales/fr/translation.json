@@ -740,7 +740,14 @@
     "keepRunning": "Continuer en arrière-plan",
     "keepRunningHint": "Fermer la fenêtre laisse lastGLANCE dans la zone de notification, et les rappels continuent d'arriver.",
     "openAtLogin": "Ouvrir à la connexion",
-    "openAtLoginHint": "Lancer lastGLANCE quand vous ouvrez une session sur cet ordinateur."
+    "openAtLoginHint": "Lancer lastGLANCE quand vous ouvrez une session sur cet ordinateur.",
+    "globalShortcuts": "Raccourcis globaux",
+    "shortcutPopupHint": "Ouvrir la fenêtre surgissante de n'importe où, pour chercher et noter une tâche.",
+    "shortcutWindowHint": "Afficher la fenêtre de lastGLANCE de n'importe où.",
+    "shortcutPlaceholder": "Cliquez, puis appuyez sur un raccourci…",
+    "shortcutClear": "Effacer",
+    "shortcutNeedsModifier": "Incluez Ctrl, Alt ou Cmd, pour que le raccourci ne gêne pas la saisie.",
+    "shortcutTaken": "Impossible d'attribuer ce raccourci. Une autre app l'utilise peut-être déjà."
   },
   "people": {
     "close": "Fermer",
@@ -1030,7 +1037,10 @@
     "soon": "Bientôt : {{count}}",
     "nothingDue": "Rien à faire pour le moment.",
     "notReady": "Ouvrez lastGLANCE une fois pour voir ce qui est à faire.",
-    "open": "Ouvrir lastGLANCE"
+    "open": "Ouvrir lastGLANCE",
+    "searchPlaceholder": "Rechercher des tâches",
+    "searchClear": "Effacer la recherche",
+    "noMatches": "Aucune tâche ne correspond."
   },
   "update": {
     "available": "lastGLANCE {{version}} est disponible.",

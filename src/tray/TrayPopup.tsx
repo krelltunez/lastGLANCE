@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
-import { Check, ChevronRight, Plus } from 'lucide-react'
+import { Check, ChevronRight, Plus, Search, X } from 'lucide-react'
 import dayjs from 'dayjs'
 import type { DesktopTray, DesktopTrayChore, DesktopTrayDate, DesktopTrayPerson, DesktopTrayState } from '@/native/desktop'
 import { ICON_REGISTRY } from '@/icons/registry'
 import { formatElapsed, formatNextDue } from '@/utils/cadence'
 import { formatMonthShort } from '@/utils/datetime'
 import { daysUntilLabel } from '@/components/People/labels'
+import { searchChores } from './search'
 
 // The desktop tray popup (docs/desktop-app.md, section 7): a widget, drawn
 // with the app's own cards. It renders what main derives from the widget
@@ -15,6 +16,11 @@ import { daysUntilLabel } from '@/components/People/labels'
 // (electron/commandQueue.ts); main hides the chore once the next snapshot
 // shows it. People's Log opens the app's quick-log sheet, which needs the
 // window.
+//
+// The search field searches every chore, live as you type (./search.ts). It
+// has the focus whenever the popup opens, so the global shortcut, a few
+// letters, Enter (to the first result's Done) and Space log a chore without
+// the mouse. Escape clears the search, then closes the popup.
 
 type Mode = 'chores' | 'people'
 const MODE_KEY = 'lg_tray_mode'
@@ -34,19 +40,41 @@ export function TrayPopup({ tray }: { tray: DesktopTray }) {
     try { localStorage.setItem(MODE_KEY, m) } catch { /* per-window convenience */ }
   }
 
+  const [query, setQuery] = useState('')
+  const queryRef = useRef('')
+  queryRef.current = query
+  const searchRef = useRef<HTMLInputElement | null>(null)
+  const results = state?.ready && query.trim() ? searchChores(state.chores ?? [], query) : null
+
   useEffect(() => {
     let live = true
     tray.state().then((s) => { if (live && s) setState(s) }).catch(() => {})
     const off = tray.onState((s) => setState(s as DesktopTrayState))
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') tray.hide() }
+    // Each opening starts on an empty search with the cursor in it.
+    const offShown = tray.onShown(() => {
+      setQuery('')
+      searchRef.current?.focus()
+    })
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      if (queryRef.current) { setQuery(''); searchRef.current?.focus(); return }
+      tray.hide()
+    }
     // Nothing stays focused while the popup is hidden. Chromium restores focus
     // when the window comes back, and after an Escape (keyboard input) it drew
     // its keyboard focus ring around the restored element, the tab clicked last.
     const onBlur = () => { (document.activeElement as HTMLElement | null)?.blur?.() }
     window.addEventListener('keydown', onKey)
     window.addEventListener('blur', onBlur)
-    return () => { live = false; off(); window.removeEventListener('keydown', onKey); window.removeEventListener('blur', onBlur) }
+    return () => { live = false; off(); offShown(); window.removeEventListener('keydown', onKey); window.removeEventListener('blur', onBlur) }
   }, [tray])
+
+  // Enter jumps to the first card's Done, so Space (or Enter) logs it.
+  const onSearchKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key !== 'Enter') return
+    e.preventDefault()
+    document.querySelector<HTMLButtonElement>('[data-first-done]')?.focus()
+  }
 
   return (
     <div className="h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 select-none">
@@ -76,10 +104,40 @@ export function TrayPopup({ tray }: { tray: DesktopTray }) {
         </div>
       </header>
 
+      <div className="shrink-0 px-3 pt-3">
+        <div className="relative">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          <input
+            ref={searchRef}
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={onSearchKey}
+            placeholder={t('tray.searchPlaceholder')}
+            aria-label={t('tray.searchPlaceholder')}
+            spellCheck={false}
+            autoComplete="off"
+            className="w-full pl-8 pr-8 py-2 rounded-xl text-sm bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/40 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 outline-none focus:border-green-400/60 focus:ring-2 focus:ring-green-400/30 [&::-webkit-search-cancel-button]:hidden"
+          />
+          {query && (
+            <button
+              onClick={() => { setQuery(''); searchRef.current?.focus() }}
+              aria-label={t('tray.searchClear')}
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 outline-none focus-visible:ring-2 focus-visible:ring-green-400/60"
+            >
+              <X size={13} />
+            </button>
+          )}
+        </div>
+      </div>
+
       <main className="flex-1 min-h-0 overflow-y-auto px-3 py-3">
         {state && !state.ready && <Empty text={t('tray.notReady')} />}
-        {state?.ready && mode === 'chores' && <ChoresPane state={state} tray={tray} />}
-        {state?.ready && mode === 'people' && <PeoplePane state={state} tray={tray} />}
+        {results && (results.length
+          ? <div className="space-y-2">{results.map((c, i) => <ChoreCard key={c.syncId} chore={c} tray={tray} first={i === 0} />)}</div>
+          : <Empty text={t('tray.noMatches')} />)}
+        {!results && state?.ready && mode === 'chores' && <ChoresPane state={state} tray={tray} />}
+        {!results && state?.ready && mode === 'people' && <PeoplePane state={state} tray={tray} />}
       </main>
 
       <button
@@ -106,14 +164,14 @@ function ChoresPane({ state, tray }: { state: DesktopTrayState; tray: DesktopTra
   if (state.due.length === 0) return <Empty text={t('tray.nothingDue')} />
   return (
     <div className="space-y-2">
-      {state.due.map((c) => <ChoreCard key={c.syncId} chore={c} tray={tray} />)}
+      {state.due.map((c, i) => <ChoreCard key={c.syncId} chore={c} tray={tray} first={i === 0} />)}
     </div>
   )
 }
 
 // The app's chore card (src/components/ChoreRow/ChoreRow.tsx), read-only:
 // the cadence stripe and fill, the icon in the cadence colour, and Done.
-function ChoreCard({ chore, tray }: { chore: DesktopTrayChore; tray: DesktopTray }) {
+function ChoreCard({ chore, tray, first = false }: { chore: DesktopTrayChore; tray: DesktopTray; first?: boolean }) {
   const { t } = useTranslation()
   const [done, setDone] = useState(false)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -154,6 +212,7 @@ function ChoreCard({ chore, tray }: { chore: DesktopTrayChore; tray: DesktopTray
         </div>
         <button
           onClick={markDone}
+          data-first-done={first || undefined}
           aria-label={t('choreRow.quickLogAriaLabel', { name: chore.name })}
           className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 border outline-none focus-visible:ring-2 focus-visible:ring-green-400/60 ${
             done

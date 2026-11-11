@@ -772,7 +772,14 @@
     "keepRunning": "Працювати у фоні",
     "keepRunningHint": "Після закриття вікна lastGLANCE лишається в системному лотку, тож нагадування й далі надходять.",
     "openAtLogin": "Відкривати під час входу",
-    "openAtLoginHint": "Запускати lastGLANCE, коли ви входите в систему на цьому комп’ютері."
+    "openAtLoginHint": "Запускати lastGLANCE, коли ви входите в систему на цьому комп’ютері.",
+    "globalShortcuts": "Глобальні скорочення",
+    "shortcutPopupHint": "Відкривати спливне вікно звідусіль, щоб знайти й позначити справу.",
+    "shortcutWindowHint": "Показувати вікно lastGLANCE звідусіль.",
+    "shortcutPlaceholder": "Клацніть, потім натисніть скорочення…",
+    "shortcutClear": "Очистити",
+    "shortcutNeedsModifier": "Додайте Ctrl, Alt або Cmd, щоб скорочення не заважало набору тексту.",
+    "shortcutTaken": "Не вдалося призначити це скорочення. Можливо, його вже використовує інший застосунок."
   },
   "people": {
     "close": "Закрити",
@@ -1078,7 +1085,10 @@
     "soon": "Незабаром: {{count}}",
     "nothingDue": "Зараз нічого не чекає.",
     "notReady": "Відкрийте lastGLANCE один раз, щоб побачити, що на черзі.",
-    "open": "Відкрити lastGLANCE"
+    "open": "Відкрити lastGLANCE",
+    "searchPlaceholder": "Пошук справ",
+    "searchClear": "Очистити пошук",
+    "noMatches": "Немає відповідних справ."
   },
   "update": {
     "available": "Доступна версія lastGLANCE {{version}}.",
