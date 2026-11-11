@@ -2,7 +2,7 @@
   "name": "lastglance",
   "private": true,
   "license": "MIT",
-  "version": "3.0.1",
+  "version": "3.1.0",
   "description": "When did you last...? A last-done tracker for the things that matter.",
   "homepage": "https://www.glance-apps.com/lastglance",
   "main": "dist-electron/main.js",
