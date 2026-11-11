@@ -18,6 +18,8 @@ import { contactsSupported } from '@/native/contacts'
 import { hasNativeReminders } from '@/native/platform'
 import { desktopBridge } from '@/native/desktop'
 import { useDesktopBackgroundSettings } from '@/hooks/useDesktopBackgroundSettings'
+import { useDesktopShortcuts } from '@/hooks/useDesktopShortcuts'
+import { recordShortcut } from '@/native/shortcutRecorder'
 import { ContactsModal } from '@/components/People/ContactsModal'
 import { LanguagePicker } from '@/components/LanguagePicker/LanguagePicker'
 import { UsersPanel } from '@/components/UsersPanel/UsersPanel'
@@ -94,6 +96,7 @@ export function SettingsPanel(props: Props) {
   // The desktop app's background settings; macOS always keeps running.
   const desktop = desktopBridge()
   const background = useDesktopBackgroundSettings()
+  const shortcuts = useDesktopShortcuts()
 
   const toggle = (id: SectionId) => setOpen(o => (o === id ? null : id))
 
@@ -322,6 +325,26 @@ export function SettingsPanel(props: Props) {
                 />
                 <p className="mt-1.5 text-xs text-slate-400 dark:text-slate-500">{t('settings.openAtLoginHint')}</p>
               </Field>
+              {shortcuts.shortcuts && (
+                <Field label={t('settings.globalShortcuts')}>
+                  {shortcuts.shortcuts.popupSupported && (
+                    <ShortcutField
+                      hint={t('settings.shortcutPopupHint')}
+                      value={shortcuts.shortcuts.popup}
+                      failed={shortcuts.failed === 'popup'}
+                      platform={desktop.info.platform}
+                      onChange={acc => shortcuts.set('popup', acc)}
+                    />
+                  )}
+                  <ShortcutField
+                    hint={t('settings.shortcutWindowHint')}
+                    value={shortcuts.shortcuts.window}
+                    failed={shortcuts.failed === 'window'}
+                    platform={desktop.info.platform}
+                    onChange={acc => shortcuts.set('window', acc)}
+                  />
+                </Field>
+              )}
             </Section>
           )}
 
@@ -402,6 +425,51 @@ function Field({ label, htmlFor, children }: { label: string; htmlFor?: string; 
 }
 
 // A time of day as minutes after midnight. A cleared field changes nothing.
+// A global shortcut, recorded from the next key press (src/native/shortcutRecorder.ts),
+// as dayGLANCE's Settings record them: click the field, press the keys.
+function ShortcutField({ hint, value, failed, platform, onChange }: {
+  hint: string; value: string; failed: boolean; platform: string; onChange: (accelerator: string) => void
+}) {
+  const { t } = useTranslation()
+  const [needsModifier, setNeedsModifier] = useState(false)
+  return (
+    <div className="mt-2 first:mt-0">
+      <p className="mb-1.5 text-xs text-slate-500 dark:text-slate-400">{hint}</p>
+      <div className="flex items-center gap-2">
+        <input
+          readOnly
+          value={value}
+          placeholder={t('settings.shortcutPlaceholder')}
+          aria-label={hint}
+          onKeyDown={e => {
+            if (e.key === 'Tab') return
+            e.preventDefault()
+            const r = recordShortcut(e.nativeEvent, platform)
+            if (r.kind === 'needs-modifier') { setNeedsModifier(true); return }
+            if (r.kind !== 'accelerator') return
+            setNeedsModifier(false)
+            onChange(r.accelerator)
+            e.currentTarget.blur()
+          }}
+          onBlur={() => setNeedsModifier(false)}
+          className="flex-1 min-w-0 bg-slate-100 dark:bg-slate-700 rounded-lg px-3 py-1.5 text-sm font-mono text-slate-800 dark:text-slate-100 placeholder:font-sans placeholder:text-slate-400 border border-slate-200 dark:border-slate-600 cursor-pointer focus:outline-none focus:ring-2 focus:ring-green-400"
+        />
+        {value && (
+          <button
+            type="button"
+            onClick={() => onChange('')}
+            className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+          >
+            {t('settings.shortcutClear')}
+          </button>
+        )}
+      </div>
+      {needsModifier && <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">{t('settings.shortcutNeedsModifier')}</p>}
+      {failed && <p className="mt-1 text-xs text-red-500 dark:text-red-400">{t('settings.shortcutTaken')}</p>}
+    </div>
+  )
+}
+
 // A time of day, set with the app's clock-face picker (ClockTimePicker), as
 // every other time in the app is, and shown on the user's clock.
 function TimeInput({ id, label, minutes, onChange }: {

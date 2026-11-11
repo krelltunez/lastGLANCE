@@ -231,6 +231,15 @@ const RULES = [
 // Whole-string replacements for the handful of sentences a word-level rule
 // cannot rebuild — passive reordering and the addressee pronoun.
 const OVERRIDES = {
+  // The tray search and global shortcuts: buscar, registrar, de qualquer
+  // lugar, pressione, digitação, o app (masculine in Brazil).
+  'tray.searchPlaceholder': "Buscar tarefas",
+  'tray.searchClear': "Limpar busca",
+  'settings.shortcutPopupHint': "Abrir o popup de qualquer lugar, para buscar e registrar uma tarefa.",
+  'settings.shortcutWindowHint': "Mostrar a janela do lastGLANCE de qualquer lugar.",
+  'settings.shortcutPlaceholder': "Clique e pressione um atalho…",
+  'settings.shortcutNeedsModifier': "Inclua Ctrl, Alt ou Cmd, para que o atalho não atrapalhe a digitação.",
+  'settings.shortcutTaken': "Não foi possível definir esse atalho. Talvez outro app já o use.",
   // The desktop update notice: Baixar (Transferir is European).
   'update.download': "Baixar",
   // Automatic time format: configuração (definição is European).

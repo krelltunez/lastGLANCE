@@ -740,7 +740,14 @@
     "keepRunning": "Keep running in the background",
     "keepRunningHint": "Closing the window leaves lastGLANCE in the tray, so reminders keep coming.",
     "openAtLogin": "Open at login",
-    "openAtLoginHint": "Start lastGLANCE when you sign in to this computer."
+    "openAtLoginHint": "Start lastGLANCE when you sign in to this computer.",
+    "globalShortcuts": "Global shortcuts",
+    "shortcutPopupHint": "Open the popup from anywhere, to search and log a chore.",
+    "shortcutWindowHint": "Show the lastGLANCE window from anywhere.",
+    "shortcutPlaceholder": "Click, then press a shortcut…",
+    "shortcutClear": "Clear",
+    "shortcutNeedsModifier": "Include Ctrl, Alt or Cmd, so the shortcut doesn't get in the way of typing.",
+    "shortcutTaken": "That shortcut couldn't be set. Another app may already use it."
   },
   "people": {
     "close": "Close",
@@ -1030,7 +1037,10 @@
     "soon": "Due soon: {{count}}",
     "nothingDue": "Nothing due right now.",
     "notReady": "Open lastGLANCE once to see what's due.",
-    "open": "Open lastGLANCE"
+    "open": "Open lastGLANCE",
+    "searchPlaceholder": "Search chores",
+    "searchClear": "Clear search",
+    "noMatches": "No chores match."
   },
   "update": {
     "available": "lastGLANCE {{version}} is available.",

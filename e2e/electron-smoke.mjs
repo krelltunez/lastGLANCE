@@ -221,8 +221,16 @@ try {
     const commands = await d.commands.take()
     const formats = await d.shell.systemFormats()
     const update = await d.shell.latestRelease()
-    return { settings, pending, after, commands, formats, update }
+    // Global shortcuts: the popup one exists on macOS and Windows only.
+    const shortcuts = await d.shell.getShortcuts()
+    const popupSet = await d.shell.setShortcut('popup', 'Ctrl+Alt+F12')
+    return { settings, pending, after, commands, formats, update, shortcuts, popupSet }
   })
+  const popupExpected = mainPlatform !== 'linux'
+  check(phase4.shortcuts?.popup === '' && phase4.shortcuts?.window === '' && phase4.shortcuts?.popupSupported === popupExpected
+    && (popupExpected || phase4.popupSet?.ok === false),
+    `global shortcuts answer, none set, popup one ${popupExpected ? 'offered' : 'refused'} here (${JSON.stringify(phase4.shortcuts)})`)
+  if (phase4.popupSet?.ok) await page.evaluate(() => window.lastGlanceDesktop.shell.setShortcut('popup', ''))
   // No network assumption: the check answers null or a release, never throws.
   check(phase4.update === null || typeof phase4.update?.version === 'string', `the update check answers (${JSON.stringify(phase4.update)})`)
   check(phase4.formats && 'hour24' in phase4.formats && 'weekStart' in phase4.formats,

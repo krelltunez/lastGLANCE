@@ -39,6 +39,16 @@ export interface DesktopShell {
   systemFormats(): Promise<{ hour24: boolean | null; weekStart: number | null }>
   /** A newer release with a download for this OS, or null (always null on the MAS build). */
   latestRelease(): Promise<{ version: string; url: string } | null>
+  /** The global shortcuts ('' for none); the popup one exists on macOS and Windows only. */
+  getShortcuts(): Promise<DesktopShortcuts | null>
+  /** Register (or clear, with '') one; `ok` is false when another app holds it. */
+  setShortcut(kind: 'popup' | 'window', accelerator: string): Promise<DesktopShortcuts & { ok: boolean }>
+}
+
+export interface DesktopShortcuts {
+  popup: string
+  window: string
+  popupSupported: boolean
 }
 
 export interface DesktopBackgroundSettings {
@@ -176,7 +186,7 @@ export interface DesktopTrayChore {
   name: string
   icon: string | null
   categoryName: string | null
-  state: 'overdue' | 'soon'
+  state: 'overdue' | 'soon' | 'fresh' | 'none'
   lastCompletedAt: string | null
   elapsedDays: number | null
   targetCadenceDays: number | null
@@ -203,6 +213,8 @@ export interface DesktopTrayDate {
 
 export interface DesktopTrayState {
   due: DesktopTrayChore[]
+  /** Every chore, for the popup's search. */
+  chores: DesktopTrayChore[]
   counts: { overdue: number; soon: number }
   reachOut: DesktopTrayPerson[]
   comingUp: DesktopTrayDate[]
@@ -217,6 +229,8 @@ export interface DesktopTray {
   open(token: string | null): void
   hide(): void
   onState(listener: (state: unknown) => void): () => void
+  /** The popup was just shown; returns the unsubscribe. */
+  onShown(listener: () => void): () => void
 }
 
 /** A write from outside the window (electron/commandQueue.ts): handleIntent's vocabulary. */
@@ -281,6 +295,8 @@ export const DESKTOP_BRIDGE_METHODS = [
   'shell.onWake',
   'shell.systemFormats',
   'shell.latestRelease',
+  'shell.getShortcuts',
+  'shell.setShortcut',
   'http.request',
   'http.inspect',
   'http.grant',
@@ -328,6 +344,7 @@ export const DESKTOP_BRIDGE_METHODS = [
   'tray.open',
   'tray.hide',
   'tray.onState',
+  'tray.onShown',
   'billing.subscriptionStatus',
   'billing.subscriptionPurchase',
   'billing.subscriptionRestore',

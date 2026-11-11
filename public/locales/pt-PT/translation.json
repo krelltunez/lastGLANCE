@@ -740,7 +740,14 @@
     "keepRunning": "Continuar em segundo plano",
     "keepRunningHint": "Ao fechar a janela, o lastGLANCE fica na área de notificação e os lembretes continuam a chegar.",
     "openAtLogin": "Abrir ao iniciar sessão",
-    "openAtLoginHint": "Iniciar o lastGLANCE quando inicia sessão neste computador."
+    "openAtLoginHint": "Iniciar o lastGLANCE quando inicia sessão neste computador.",
+    "globalShortcuts": "Atalhos globais",
+    "shortcutPopupHint": "Abrir o popup a partir de qualquer lado, para procurar e registar uma tarefa.",
+    "shortcutWindowHint": "Mostrar a janela do lastGLANCE a partir de qualquer lado.",
+    "shortcutPlaceholder": "Clique e prima um atalho…",
+    "shortcutClear": "Limpar",
+    "shortcutNeedsModifier": "Inclua Ctrl, Alt ou Cmd, para que o atalho não atrapalhe a escrita.",
+    "shortcutTaken": "Não foi possível definir esse atalho. Talvez outra app já o use."
   },
   "people": {
     "close": "Fechar",
@@ -1030,7 +1037,10 @@
     "soon": "Em breve: {{count}}",
     "nothingDue": "Nada pendente de momento.",
     "notReady": "Abra o lastGLANCE uma vez para ver o que está pendente.",
-    "open": "Abrir o lastGLANCE"
+    "open": "Abrir o lastGLANCE",
+    "searchPlaceholder": "Procurar tarefas",
+    "searchClear": "Limpar pesquisa",
+    "noMatches": "Nenhuma tarefa corresponde."
   },
   "update": {
     "available": "O lastGLANCE {{version}} está disponível.",

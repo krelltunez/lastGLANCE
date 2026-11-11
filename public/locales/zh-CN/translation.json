@@ -740,7 +740,14 @@
     "keepRunning": "在后台继续运行",
     "keepRunningHint": "关闭窗口后，lastGLANCE 会留在系统托盘中，提醒照常送达。",
     "openAtLogin": "登录时打开",
-    "openAtLoginHint": "登录这台电脑时启动 lastGLANCE。"
+    "openAtLoginHint": "登录这台电脑时启动 lastGLANCE。",
+    "globalShortcuts": "全局快捷键",
+    "shortcutPopupHint": "随时打开弹出窗口，搜索并记录一项家务。",
+    "shortcutWindowHint": "随时显示 lastGLANCE 窗口。",
+    "shortcutPlaceholder": "点击后按下快捷键…",
+    "shortcutClear": "清除",
+    "shortcutNeedsModifier": "请包含 Ctrl、Alt 或 Cmd，以免快捷键妨碍打字。",
+    "shortcutTaken": "无法设置该快捷键，可能已有其他应用在使用。"
   },
   "people": {
     "close": "关闭",
@@ -1030,7 +1037,10 @@
     "soon": "即将到期：{{count}}",
     "nothingDue": "目前没有到期事项。",
     "notReady": "先打开一次 lastGLANCE，即可在这里查看到期事项。",
-    "open": "打开 lastGLANCE"
+    "open": "打开 lastGLANCE",
+    "searchPlaceholder": "搜索家务",
+    "searchClear": "清除搜索",
+    "noMatches": "没有匹配的家务。"
   },
   "update": {
     "available": "lastGLANCE {{version}} 已推出。",

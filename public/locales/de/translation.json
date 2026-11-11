@@ -740,7 +740,14 @@
     "keepRunning": "Im Hintergrund weiterlaufen",
     "keepRunningHint": "Wenn du das Fenster schließt, bleibt lastGLANCE im Infobereich, damit Erinnerungen weiter ankommen.",
     "openAtLogin": "Bei der Anmeldung öffnen",
-    "openAtLoginHint": "lastGLANCE starten, wenn du dich an diesem Computer anmeldest."
+    "openAtLoginHint": "lastGLANCE starten, wenn du dich an diesem Computer anmeldest.",
+    "globalShortcuts": "Globale Tastenkürzel",
+    "shortcutPopupHint": "Das Pop-up von überall öffnen, um eine Aufgabe zu suchen und abzuhaken.",
+    "shortcutWindowHint": "Das lastGLANCE-Fenster von überall anzeigen.",
+    "shortcutPlaceholder": "Klicken, dann Tastenkürzel drücken…",
+    "shortcutClear": "Löschen",
+    "shortcutNeedsModifier": "Nimm Strg, Alt oder Cmd dazu, damit das Kürzel beim Tippen nicht stört.",
+    "shortcutTaken": "Dieses Kürzel ließ sich nicht festlegen. Vielleicht nutzt es schon eine andere App."
   },
   "people": {
     "close": "Schließen",
@@ -1030,7 +1037,10 @@
     "soon": "Bald fällig: {{count}}",
     "nothingDue": "Gerade ist nichts fällig.",
     "notReady": "Öffne lastGLANCE einmal, um zu sehen, was fällig ist.",
-    "open": "lastGLANCE öffnen"
+    "open": "lastGLANCE öffnen",
+    "searchPlaceholder": "Aufgaben suchen",
+    "searchClear": "Suche löschen",
+    "noMatches": "Keine passenden Aufgaben."
   },
   "update": {
     "available": "lastGLANCE {{version}} ist verfügbar.",

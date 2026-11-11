@@ -740,7 +740,14 @@
     "keepRunning": "Continua in background",
     "keepRunningHint": "Chiudendo la finestra, lastGLANCE resta nell'area di notifica e i promemoria continuano ad arrivare.",
     "openAtLogin": "Apri all'accesso",
-    "openAtLoginHint": "Avvia lastGLANCE quando accedi a questo computer."
+    "openAtLoginHint": "Avvia lastGLANCE quando accedi a questo computer.",
+    "globalShortcuts": "Scorciatoie globali",
+    "shortcutPopupHint": "Apri il popup da qualsiasi punto, per cercare e registrare una faccenda.",
+    "shortcutWindowHint": "Mostra la finestra di lastGLANCE da qualsiasi punto.",
+    "shortcutPlaceholder": "Fai clic, poi premi una scorciatoia…",
+    "shortcutClear": "Cancella",
+    "shortcutNeedsModifier": "Includi Ctrl, Alt o Cmd, così la scorciatoia non intralcia la scrittura.",
+    "shortcutTaken": "Impossibile impostare la scorciatoia. Forse la usa già un'altra app."
   },
   "people": {
     "close": "Chiudi",
@@ -1030,7 +1037,10 @@
     "soon": "In scadenza: {{count}}",
     "nothingDue": "Al momento non c'è niente in scadenza.",
     "notReady": "Apri lastGLANCE una volta per vedere cosa è in scadenza.",
-    "open": "Apri lastGLANCE"
+    "open": "Apri lastGLANCE",
+    "searchPlaceholder": "Cerca faccende",
+    "searchClear": "Cancella ricerca",
+    "noMatches": "Nessuna faccenda corrisponde."
   },
   "update": {
     "available": "lastGLANCE {{version}} è disponibile.",
