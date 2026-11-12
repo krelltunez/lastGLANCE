@@ -36,6 +36,10 @@ import { DEEP_LINK_SCHEME, deepLinkFromArgv, deepLinkToken } from './deepLink.js
 import { createReminderScheduler, type ScheduledReminder } from './reminderScheduler.js';
 import { isClickAfterBlurHide, parseTraySnapshot, popupPosition, settledCompletions, trayMenuItems, trayOpenToken, trayState, type TraySnapshot } from './trayModel.js';
 import { linuxFormats, macFormats, windowsFormats, type SystemFormats } from './systemFormats.js';
+import {
+  applyTransition, DEFAULT_LOCAL_INTEGRATIONS, integrationsView, listenerEffects, loadLocalIntegrations, saveLocalIntegrations,
+  type ListenerStatus, type LocalIntegrationsConfig, type McpEffect, type StreamDeckEffect,
+} from './localIntegrations.js';
 import { applyOpenAtLogin, closeAction, isAcceleratorText, launchedHidden, loadDesktopSettings, saveDesktopSettings, type DesktopSettings } from './backgroundMode.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -445,6 +449,65 @@ ipcMain.handle('shell:set-shortcut', (event, kind: unknown, accelerator: unknown
     saveDesktopSettings(app.getPath('userData'), desktopSettings);
   }
   return { ok, ...shortcutsView() };
+});
+
+// ── Local integrations (docs/mcp-and-stream-deck.md, section 3) ────────────
+// The MCP server and the Stream Deck listener, both off until turned on in
+// Settings. localIntegrations.ts decides; this applies. The listeners
+// themselves arrive in later phases (MCP in phase 2, Stream Deck in phase 5):
+// until then an effect only records that it would have run, and neither
+// status ever reads as running.
+let integrationsConfig: LocalIntegrationsConfig = DEFAULT_LOCAL_INTEGRATIONS;
+const integrationsStatus: { mcp: ListenerStatus; streamDeck: ListenerStatus } = {
+  mcp: { running: false, error: null },
+  streamDeck: { running: false, error: null },
+};
+
+function currentIntegrationsView() {
+  return integrationsView(integrationsConfig, integrationsStatus);
+}
+
+function pushIntegrationsStatus(): void {
+  live(mainWindow)?.webContents.send('local-integrations:status', currentIntegrationsView());
+}
+
+function applyMcpEffect(effect: McpEffect): void {
+  if (effect === 'none') return;
+  logStartup(`mcp listener: ${effect} (not built yet)`);
+}
+
+function applyStreamDeckEffect(effect: StreamDeckEffect): void {
+  if (effect === 'none') return;
+  logStartup(`stream deck listener: ${effect} (not built yet)`);
+}
+
+function applyListenerEffects(effects: { mcp: McpEffect; streamDeck: StreamDeckEffect }): void {
+  applyMcpEffect(effects.mcp);
+  applyStreamDeckEffect(effects.streamDeck);
+}
+
+/** Read the file and start whatever it turns on. Once, at ready. */
+function startLocalIntegrations(): void {
+  const { config, recovered } = loadLocalIntegrations(app.getPath('userData'));
+  if (recovered) logStartup('local-integrations.json was unreadable: set aside as .corrupt, everything off');
+  integrationsConfig = config;
+  applyListenerEffects(listenerEffects(DEFAULT_LOCAL_INTEGRATIONS, config));
+}
+
+ipcMain.handle('local-integrations:get', (event) => (isMainWindowSender(event.sender) ? currentIntegrationsView() : null));
+ipcMain.handle('local-integrations:transition', (event, action: unknown) => {
+  if (!isMainWindowSender(event.sender)) return { ok: false, error: 'invalid_action', view: null };
+  const result = applyTransition(integrationsConfig, action, {
+    now: () => new Date().toISOString(),
+    newToken: () => crypto.randomBytes(32).toString('hex'),
+  });
+  if (!result.ok) return { ok: false, error: result.error, view: currentIntegrationsView() };
+  const before = integrationsConfig;
+  integrationsConfig = result.config;
+  if (!saveLocalIntegrations(app.getPath('userData'), integrationsConfig)) logStartup('local-integrations.json could not be written; this session follows the change');
+  applyListenerEffects(listenerEffects(before, integrationsConfig));
+  pushIntegrationsStatus();
+  return { ok: true, view: currentIntegrationsView() };
 });
 
 // The main window's widget snapshot (src/native/widgetBridge.ts).
@@ -970,6 +1033,9 @@ app.whenReady().then(() => {
   // globalShortcut throws before ready, and will-quit can fire then (dayGLANCE
   // issue #1352); before ready nothing is registered, so there is nothing to free.
   app.on('will-quit', () => { if (app.isReady()) globalShortcut.unregisterAll(); });
+
+  // The MCP server and Stream Deck listener, when Settings turned them on.
+  startLocalIntegrations();
 
   // Reminders due while the app was not running: within 12 hours fire once.
   reminders.rearm();

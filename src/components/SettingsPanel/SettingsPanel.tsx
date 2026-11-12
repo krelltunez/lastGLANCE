@@ -30,6 +30,9 @@ import { LauncherPromoCard, LauncherPromoEntry } from '@/components/LauncherProm
 import { useLauncherPromo } from '@/hooks/useLauncherPromo'
 import { formatTime, formatTimeSample, formatWeekdayShort, type TimeFormat, type WeekStartPref } from '@/utils/datetime'
 import { ClockTimePicker } from '@/components/ClockTimePicker/ClockTimePicker'
+import { Description, Field, Segmented } from './controls'
+import { LocalIntegrationsPanel } from '@/components/LocalIntegrations/LocalIntegrationsPanel'
+import { LOCAL_INTEGRATIONS_UI } from '@/native/localIntegrations'
 
 export type ThemePref = 'light' | 'dark' | 'system'
 
@@ -276,6 +279,8 @@ export function SettingsPanel(props: Props) {
             <Description>{t('settings.integrationsDesc')}</Description>
             <LinkRow icon={<Plug size={15} />} label={t('app.dayglanceIntegration')} onClick={props.onOpenIntegration} />
             {launcherPromo.entry && <LauncherPromoEntry link={launcherPromo.entry} />}
+            {/* The MCP server and Stream Deck (docs/mcp-and-stream-deck.md): off until it ships. */}
+            {desktop && LOCAL_INTEGRATIONS_UI && <LocalIntegrationsPanel />}
           </Section>
 
           <Section
@@ -412,18 +417,6 @@ function Section({ id, open, onToggle, icon, title, summary, warn, children }: {
   )
 }
 
-function Field({ label, htmlFor, children }: { label: string; htmlFor?: string; children: ReactNode }) {
-  const cls = 'block mb-1.5 text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500'
-  return (
-    <div>
-      {htmlFor
-        ? <label htmlFor={htmlFor} className={cls}>{label}</label>
-        : <div className={cls}>{label}</div>}
-      {children}
-    </div>
-  )
-}
-
 // A time of day as minutes after midnight. A cleared field changes nothing.
 // A global shortcut, recorded from the next key press (src/native/shortcutRecorder.ts),
 // as dayGLANCE's Settings record them: click the field, press the keys.
@@ -509,10 +502,6 @@ function TimeInput({ id, label, minutes, onChange }: {
   )
 }
 
-function Description({ children }: { children: ReactNode }) {
-  return <p className="text-sm text-slate-500 dark:text-slate-400">{children}</p>
-}
-
 function LinkRow({ icon, label, onClick }: { icon: ReactNode; label: string; onClick: () => void }) {
   return (
     <button
@@ -523,36 +512,5 @@ function LinkRow({ icon, label, onClick }: { icon: ReactNode; label: string; onC
       <span className="flex-1 min-w-0">{label}</span>
       <ChevronRight size={15} className="shrink-0 text-slate-400" />
     </button>
-  )
-}
-
-function Segmented<T extends string>({ label, value, onChange, options }: {
-  label: string
-  value: T
-  onChange: (value: T) => void
-  options: { value: T; label: string; icon?: ReactNode }[]
-}) {
-  return (
-    <div role="radiogroup" aria-label={label} className="flex rounded-lg border border-slate-200 dark:border-slate-700 p-0.5 gap-0.5">
-      {options.map(o => {
-        const selected = o.value === value
-        return (
-          <button
-            key={o.value}
-            role="radio"
-            aria-checked={selected}
-            onClick={() => onChange(o.value)}
-            className={`flex-1 min-w-0 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md text-sm transition-colors ${
-              selected
-                ? 'bg-green-400/15 text-green-500 dark:text-green-400 font-medium'
-                : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
-            }`}
-          >
-            {o.icon}
-            <span className="truncate">{o.label}</span>
-          </button>
-        )
-      })}
-    </div>
   )
 }

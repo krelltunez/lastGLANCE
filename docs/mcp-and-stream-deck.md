@@ -28,7 +28,7 @@ releasable throughout:
 
 - The Settings section that turns either feature on is not mounted until the
   phase that ships it (a single `LOCAL_INTEGRATIONS_UI` constant in
-  `src/native/desktop.ts`, flipped in the last PR). With the section unmounted,
+  `src/native/localIntegrations.ts`, flipped in the last PR). With the section unmounted,
   nothing can enable a listener, so an in-between `main` behaves like 3.1.0.
 - A fix for 3.1.x lands on `main` and ships as 3.1.1. If `main` ever holds
   something not ready to ship, a `release/3.1.x` branch is cut from the `v3.1.0`
