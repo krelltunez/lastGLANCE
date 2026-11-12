@@ -174,6 +174,19 @@ export function popupPosition(icon: Rect, size: { width: number; height: number 
   return { x, y };
 }
 
+/**
+ * On Windows a click on the tray icon while the popup is open first takes
+ * focus from the popup (blur hides it) and only then delivers the click, which
+ * would find the popup hidden and show it again: the icon could rarely close
+ * its own popup. A click this soon after a blur-hide is that same click, so it
+ * leaves the popup closed. After dayGLANCE's electron/trayPopup.ts.
+ */
+export const BLUR_CLICK_WINDOW_MS = 300;
+
+export function isClickAfterBlurHide(now: number, lastBlurHideAt: number | null): boolean {
+  return lastBlurHideAt != null && now - lastBlurHideAt >= 0 && now - lastBlurHideAt < BLUR_CLICK_WINDOW_MS;
+}
+
 export interface TrayMenuLabels {
   open: string;
   quit: string;

@@ -34,7 +34,7 @@ import { MAS_BILLING } from './billingConfig.js';
 import { availableUpdate, CHECK_CACHE_MS, RELEASES_API, type AvailableUpdate } from './updateCheck.js';
 import { DEEP_LINK_SCHEME, deepLinkFromArgv, deepLinkToken } from './deepLink.js';
 import { createReminderScheduler, type ScheduledReminder } from './reminderScheduler.js';
-import { parseTraySnapshot, popupPosition, settledCompletions, trayMenuItems, trayOpenToken, trayState, type TraySnapshot } from './trayModel.js';
+import { isClickAfterBlurHide, parseTraySnapshot, popupPosition, settledCompletions, trayMenuItems, trayOpenToken, trayState, type TraySnapshot } from './trayModel.js';
 import { linuxFormats, macFormats, windowsFormats, type SystemFormats } from './systemFormats.js';
 import { applyOpenAtLogin, closeAction, isAcceleratorText, launchedHidden, loadDesktopSettings, saveDesktopSettings, type DesktopSettings } from './backgroundMode.js';
 
@@ -270,6 +270,8 @@ let tray: Tray | null = null;
 let trayWindow: BrowserWindow | null = null;
 let traySnapshot: TraySnapshot | null = null;
 const doneHere = new Map<string, number>();
+// When blur last hid the popup (the Windows click race, isClickAfterBlurHide).
+let lastTrayBlurHideAt: number | null = null;
 const TRAY_POPUP_SIZE = { width: 380, height: 560 };
 const USE_TRAY_POPUP = process.platform !== 'linux';
 
@@ -355,7 +357,11 @@ function createTrayWindow(): BrowserWindow {
     },
   });
   trayWindow = w;
-  w.on('blur', () => { if (!DEV || !w.webContents.isDevToolsOpened()) w.hide(); });
+  w.on('blur', () => {
+    if (DEV && w.webContents.isDevToolsOpened()) return;
+    if (w.isVisible()) lastTrayBlurHideAt = Date.now();
+    w.hide();
+  });
   w.webContents.setWindowOpenHandler(({ url }) => { openExternalSafe(url); return { action: 'deny' }; });
   w.webContents.on('will-navigate', (event) => event.preventDefault());
   w.webContents.on('render-process-gone', (_e, details) => {
@@ -366,10 +372,12 @@ function createTrayWindow(): BrowserWindow {
   return w;
 }
 
-function toggleTrayPopup(): void {
+function toggleTrayPopup(fromIconClick = false): void {
   if (!tray) return;
   const w = live(trayWindow) ?? createTrayWindow();
   if (w.isVisible()) { w.hide(); return; }
+  // Windows: the click that just blurred the popup closed is this click.
+  if (fromIconClick && process.platform === 'win32' && isClickAfterBlurHide(Date.now(), lastTrayBlurHideAt)) return;
   const icon = tray.getBounds();
   const display = screen.getDisplayNearestPoint({ x: icon.x, y: icon.y });
   w.setPosition(...Object.values(popupPosition(icon, TRAY_POPUP_SIZE, display.workArea)) as [number, number]);
@@ -388,7 +396,7 @@ function createTray(): void {
   tray = new Tray(image);
   tray.setToolTip('lastGLANCE');
   if (USE_TRAY_POPUP) {
-    tray.on('click', () => toggleTrayPopup());
+    tray.on('click', () => toggleTrayPopup(true));
     tray.on('right-click', () => tray?.popUpContextMenu(trayMenu(false)));
   }
   refreshTray();
