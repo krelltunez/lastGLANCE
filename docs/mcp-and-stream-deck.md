@@ -1,6 +1,6 @@
 # MCP and Stream Deck for the desktop app
 
-Status: plan, for review. Follows `docs/desktop-app.md`, section 10 ("Commands
+Status: plan, reviewed 2026-11-12 (section 9). Follows `docs/desktop-app.md`, section 10 ("Commands
 from outside the window, and the road to MCP and Stream Deck"), which reserved
 the ports and built the seams this plan uses. dayGLANCE is the reference
 (`docs/mcp-server-spec.md`, `docs/mcp-tools-reference.md`, `electron/ws-server.ts`
@@ -151,14 +151,27 @@ provider and leaves lastGLANCE's guarantees.
 
 ### 4.5 Writes
 
-Proposed write tools, all additive, none destructive:
+Write tools, none destructive. **Every field the app's own screens let you
+change is changeable through MCP** (decided in review): if a form can edit it,
+a tool can; nothing a form cannot edit is exposed.
 
 | Tool | Does |
 |---|---|
 | `lastglance_complete_chore` | marks a chore done, now or at a given time, with an optional note |
-| `lastglance_create_chore` | adds a chore (name, category, cadence, icon); new chores take the category's assignees as everywhere else |
-| `lastglance_update_chore` | renames, changes cadence, category, icon or pinned |
-| `lastglance_log_interaction` | logs an interaction with a person (People tier) |
+| `lastglance_update_completion` | edits a completion's note |
+| `lastglance_create_chore` | adds a chore; new chores take the category's assignees as everywhere else |
+| `lastglance_update_chore` | every field the chore form edits (name, category, cadence, icon, pinned, and the rest) |
+| `lastglance_create_category`, `lastglance_update_category` | every field the category form edits (name, icon, parent, assignees) |
+| `lastglance_log_interaction` | logs a contact with a person (People tier) |
+| `lastglance_update_interaction` | every field the interaction form edits (People tier) |
+| `lastglance_create_person` | adds a person, with their dates (People tier) |
+| `lastglance_update_person` | every field the person form edits: name, nickname, circle, cadence, preferred channel, details, snooze, archive, the per-person notification switches, and their birthday and dates (People tier) |
+
+Phase 3 starts with an audit of every edit form (chore, category, completion,
+person, date, interaction) and writes the field list into
+`docs/mcp-tools-reference.md`, so "every field" is a written list that review
+can check, not a promise. Archive counts as an edit: it is reversible in the
+app and undoable here. Deleting anything stays out.
 
 Every write takes an `idempotency_key`. The pipeline is mcp-host's, as
 dayGLANCE uses it: consent gate, replay (a repeated key returns the stored
@@ -172,16 +185,20 @@ for presses that must survive a crash and need no reply; an MCP write needs its
 result (the chore it created, the completion it added) and has its own retry
 story in the idempotency key. So writes ride the request bridge, and the page
 applies them **with the same handlers and ledger as the launcher's writes**
-(`drainLauncherQueue` over `handleIntent`), the idempotency key becoming the
+(`drainLauncherQueue` over `handleIntent`) wherever `handleIntent` has the verb
+(complete, create, log interaction), the idempotency key becoming the
 ledger's `clientId`. That keeps one write path into the data, keeps a replay
 after a store reset harmless, and gets the vault push for free: the main window
 has its engines registered (CLAUDE.md, "Launcher writes are applied, then
-pushed"). `update_chore` is the one write `handleIntent` has no verb for; it gets
-a handler beside the others, not a side path.
+pushed"). The edits (`update_*`) and `create_person` have no intent verb; they
+call the same query functions the forms call (`src/db/queries.ts`,
+`src/people/queries.ts`), which mark the dirty trackers as a form's save does,
+behind a ledger keyed the same way.
 
 **Undo.** Each write returns an undo op from the page (it alone has the
-before-state): `remove_completion`, `remove_created_chore` (to the recycle bin,
-with a tombstone), `restore_chore_fields`, `remove_interaction`. The journal is
+before-state): `remove_completion`, `remove_created` (a chore, category or person, removed
+with a tombstone), `remove_interaction`, and `restore_fields` (the before-values
+of whatever an edit changed). The journal is
 mcp-host's, held in main for the session only. Undo is per item and all at once,
 from Settings and from the tray popup's menu, which also carries the kill switch
 ("Turn off MCP"), so the server can be stopped without opening the window.
@@ -200,14 +217,32 @@ deletes, a rate limit and undo instead.
   `claude mcp add --transport http lastglance ... --header "Authorization: Bearer ..."`
   line.
 - **Claude Desktop** only speaks stdio from its config file, so it needs the
-  stdio bridge. `@glance-apps/mcp-bridge` 0.1.2 hard-codes dayGLANCE (its
-  discovery paths, port 7893, the `DAYGLANCE_MCP_*` variables, its error text).
-  Proposed: generalise it in `glance-apps/mcp-bridge` (an app profile, picked by
-  `--app lastglance` or by a second bin) and publish 0.2.0; dayGLANCE keeps
-  working unchanged on the default profile. lastGLANCE then ships it in
-  `extraResources` on macOS and Windows and gets dayGLANCE's "Set up Claude
-  Desktop" button (`mcpDesktopConfig.ts`, the MSIX path handling, a backup
-  before writing, never overwriting a file it cannot parse).
+  stdio bridge: a stateless pipe from stdio to the app's HTTP listener, with no
+  tools or data of its own (every tool comes from the app it connects to).
+  `@glance-apps/mcp-bridge` 0.1.2 hard-codes dayGLANCE in four places: the
+  discovery paths, port 7893, the `DAYGLANCE_MCP_*` variables, and the error
+  text. Proposed, in `glance-apps/mcp-bridge`, released as 0.2.0:
+  - **App profiles.** A small table (`src/apps.js`) holds what differs per app:
+    display name, default port, discovery folder names, environment prefix, and
+    where in the app's Settings to enable the server. `--app lastglance` selects
+    lastGLANCE's; with no `--app`, dayGLANCE's, so every existing dayGLANCE setup
+    keeps working unchanged.
+  - **One bin and one Claude Desktop extension (`.mcpb`) per app**, built from
+    the same source: `lastglance-mcp-bridge` and `lastglance-mcp-bridge.mcpb`,
+    with lastGLANCE's name and icon, beside dayGLANCE's.
+  - **What a user of one app sees.** Only that app. Each app's setup button
+    writes only its own entry (`mcpServers.lastglance`) into Claude Desktop's
+    config and bundles its own copy of the bridge inside its own app; Claude
+    lists only the tools of the apps you connected; every message the bridge
+    prints names the app it was started for ("Could not reach lastGLANCE on
+    127.0.0.1:7900"). The one place both appear is the package's README on
+    npm and GitHub, which becomes the GLANCE apps' bridge with a section per
+    app. The package name is already neutral.
+
+  lastGLANCE then ships the bridge in `extraResources` on macOS and Windows and
+  gets dayGLANCE's "Set up Claude Desktop" button (`mcpDesktopConfig.ts`, the
+  MSIX path handling, a backup before writing, never overwriting a file it
+  cannot parse).
 - **Discovery file** `lastGLANCE/mcp.json` (mode 0600) beside the app's data on
   direct builds, so the bridge finds the port and token itself. Not on the Mac
   App Store build: reading another app's sandbox container prompts the user
@@ -315,17 +350,15 @@ until phase 7.
 7. **Ship.** Mount the Settings section, strings in all 10 languages (pt-BR
    through `scripts/gen-pt-br.mjs`), README, `docs/releasing-desktop.md`.
 
-## 9. Decisions for review
+## 9. Decisions (review, 2026-11-12)
 
 1. **MCP read tiers:** Chores / Chores and People, People behind its own consent
-   (4.4).
-2. **The v1 write tools:** complete, create, update chore, log interaction; no
-   deletes (4.5).
-3. **The bridge:** generalise `glance-apps/mcp-bridge` with an app profile, so
-   both apps share one bridge (5). Until it lands, Claude Code works and Claude
-   Desktop does not.
-4. **Stream Deck trust:** keep dayGLANCE's model (6.1).
-5. **Stream Deck actions:** the six in 6.3.
-6. **Order:** MCP first, then Stream Deck, as `docs/desktop-app.md` planned.
-   Stream Deck's desktop side is the smaller piece and could go first if you
-   would rather have it sooner.
+   (4.4). Agreed.
+2. **Writes:** complete, create and edit chores, and the same for People (log a
+   contact, add a person, edit a person). Every field the app's screens can
+   change is exposed (4.5). No deletes.
+3. **The bridge:** generalise `glance-apps/mcp-bridge` with app profiles (5),
+   pending your go-ahead. A user of one app must never see the other.
+4. **Stream Deck trust:** dayGLANCE's model (6.1). Agreed.
+5. **Stream Deck actions:** the six in 6.3, to start.
+6. **Order:** MCP first, then Stream Deck.
