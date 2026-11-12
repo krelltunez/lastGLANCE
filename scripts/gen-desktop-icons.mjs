@@ -14,7 +14,9 @@
 //                 around a 3x3 grid with its lit middle column: a 20pt
 //                 mark in the menu bar's 22pt image (dayGLANCE's is 19pt).
 //                 trayTemplate.png and @2x for the macOS menu bar (black and
-//                 alpha only; macOS tints it), tray.png and @2x in the brand
+//                 alpha only; macOS tints it), set 1pt below centre so it
+//                 lines up with dayGLANCE's beside it (TEMPLATE_DROP_PT),
+//                 tray.png and @2x in the brand
 //                 colors on the icon's dark ground for Windows and Linux.
 //                 Shipped as extraResources.
 //
@@ -65,7 +67,13 @@ await sharp(Buffer.from(brand('icon-primary.svg')), { density: 72 * (CANVAS / 51
 // on any menu bar and still shows when macOS dims an inactive one. The colour
 // version (Windows, Linux) fills the square with the icon's dark ground, so it
 // shows on light and dark taskbars alike.
-function traySvg(scale, { frame, fill, lit, dim }) {
+// The menu bar mark's drop below centre, in points. Centred, its top edge sat
+// 1pt above dayGLANCE's mark beside it (whose art leaves room under the
+// calendar); 1pt is all the 22pt image allows, the frame's bottom edge then
+// meeting the image's. The colour tray (Windows, Linux) stays centred.
+const TEMPLATE_DROP_PT = 1
+
+function traySvg(scale, { frame, fill, lit, dim }, dropPt = 0) {
   const u = (n) => n * scale
   const size = u(22)
   // The visible mark is 20pt square, centred in the menu bar's 22pt image.
@@ -79,13 +87,13 @@ function traySvg(scale, { frame, fill, lit, dim }) {
     }
   }
   const sw = u(1.7), inset = pad + sw / 2
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
-    <rect x="${inset}" y="${inset}" width="${size - 2 * inset}" height="${size - 2 * inset}" rx="${u(4.6)}" fill="${fill}" stroke="${frame}" stroke-width="${sw}"/>${cells}</svg>`
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><g transform="translate(0 ${u(dropPt)})">
+    <rect x="${inset}" y="${inset}" width="${size - 2 * inset}" height="${size - 2 * inset}" rx="${u(4.6)}" fill="${fill}" stroke="${frame}" stroke-width="${sw}"/>${cells}</g></svg>`
 }
 const trayDir = path.join(outDir, 'tray')
 fs.mkdirSync(trayDir, { recursive: true })
 for (const [scale, suffix] of [[1, ''], [2, '@2x']]) {
-  await sharp(Buffer.from(traySvg(scale, { frame: '#000000', fill: 'none', lit: '#000000', dim: 'rgba(0,0,0,0.45)' })))
+  await sharp(Buffer.from(traySvg(scale, { frame: '#000000', fill: 'none', lit: '#000000', dim: 'rgba(0,0,0,0.45)' }, TEMPLATE_DROP_PT)))
     .png().toFile(path.join(trayDir, `trayTemplate${suffix}.png`))
   await sharp(Buffer.from(traySvg(scale, { frame: '#64748b', fill: '#05081A', lit: '#3DDC84', dim: 'rgba(148,163,184,0.7)' })))
     .png().toFile(path.join(trayDir, `tray${suffix}.png`))
