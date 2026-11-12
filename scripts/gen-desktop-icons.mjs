@@ -61,22 +61,29 @@ await sharp(Buffer.from(brand('icon-primary.svg')), { density: 72 * (CANVAS / 51
   .toFile(path.join(outDir, 'icon.png'))
 
 // The tray mark: the app icon's rounded square around a 3x3 grid whose middle
-// column is lit, as the brand mark's bar. A 20pt mark centred in the menu
-// bar's 22pt image, sized by eye beside dayGLANCE's 19pt icon;
-// `scale` is 1 or 2. The template draws the frame as an outline, so it reads
-// on any menu bar and still shows when macOS dims an inactive one. The colour
-// version (Windows, Linux) fills the square with the icon's dark ground, so it
-// shows on light and dark taskbars alike.
-// The menu bar mark's drop below centre, in points. Centred, its top edge sat
-// 1pt above dayGLANCE's mark beside it (whose art leaves room under the
-// calendar); 1pt is all the 22pt image allows, the frame's bottom edge then
-// meeting the image's. The colour tray (Windows, Linux) stays centred.
-const TEMPLATE_DROP_PT = 1
+// column is lit, as the brand mark's bar, drawn as a 20pt mark in a 22pt
+// image and then scaled and placed by `place`; `scale` is 1 or 2. The
+// template draws the frame as an outline, so it reads on any menu bar and
+// still shows when macOS dims an inactive one. The colour version (Windows,
+// Linux) fills the square with the icon's dark ground, so it shows on light
+// and dark taskbars alike.
+//
+// The menu bar template is TEMPLATE_GLYPH_PT square, centred across and
+// TEMPLATE_TOP_PT from the top: sized and placed by eye beside dayGLANCE's
+// mark, whose calendar art is about 16.5pt tall with its top 2.5pt down the
+// image. At 20pt and centred it read larger than dayGLANCE's and sat higher.
+// Both are whole points, so the edges stay on the pixel grid at 1x and 2x.
+// The colour tray (Windows, Linux) stays 20pt and centred.
+const TEMPLATE_GLYPH_PT = 18
+const TEMPLATE_TOP_PT = 2
 
-function traySvg(scale, { frame, fill, lit, dim }, dropPt = 0) {
+function traySvg(scale, { frame, fill, lit, dim }, place = { glyphPt: 20, topPt: 1 }) {
   const u = (n) => n * scale
   const size = u(22)
-  // The visible mark is 20pt square, centred in the menu bar's 22pt image.
+  // Drawn as a 20pt square centred in the 22pt image, then scaled to
+  // place.glyphPt and moved so its top sits place.topPt down, centred across.
+  const k = place.glyphPt / 20
+  const left = (22 - place.glyphPt) / 2
   const glyph = u(20), pad = (size - glyph) / 2
   const cell = u(2.95), gap = u(1.15), grid = 3 * cell + 2 * gap
   const o = (size - grid) / 2
@@ -87,13 +94,13 @@ function traySvg(scale, { frame, fill, lit, dim }, dropPt = 0) {
     }
   }
   const sw = u(1.7), inset = pad + sw / 2
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><g transform="translate(0 ${u(dropPt)})">
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><g transform="translate(${u(left)} ${u(place.topPt)}) scale(${k}) translate(${-pad} ${-pad})">
     <rect x="${inset}" y="${inset}" width="${size - 2 * inset}" height="${size - 2 * inset}" rx="${u(4.6)}" fill="${fill}" stroke="${frame}" stroke-width="${sw}"/>${cells}</g></svg>`
 }
 const trayDir = path.join(outDir, 'tray')
 fs.mkdirSync(trayDir, { recursive: true })
 for (const [scale, suffix] of [[1, ''], [2, '@2x']]) {
-  await sharp(Buffer.from(traySvg(scale, { frame: '#000000', fill: 'none', lit: '#000000', dim: 'rgba(0,0,0,0.45)' }, TEMPLATE_DROP_PT)))
+  await sharp(Buffer.from(traySvg(scale, { frame: '#000000', fill: 'none', lit: '#000000', dim: 'rgba(0,0,0,0.45)' }, { glyphPt: TEMPLATE_GLYPH_PT, topPt: TEMPLATE_TOP_PT })))
     .png().toFile(path.join(trayDir, `trayTemplate${suffix}.png`))
   await sharp(Buffer.from(traySvg(scale, { frame: '#64748b', fill: '#05081A', lit: '#3DDC84', dim: 'rgba(148,163,184,0.7)' })))
     .png().toFile(path.join(trayDir, `tray${suffix}.png`))

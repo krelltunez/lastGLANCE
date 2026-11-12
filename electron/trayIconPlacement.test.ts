@@ -1,7 +1,8 @@
 // Where the tray mark sits in its image (scripts/gen-desktop-icons.mjs). The
-// macOS template is 1pt below centre, to line up with dayGLANCE's mark beside
-// it in the menu bar; 1pt is all the 22pt image allows, so the frame's bottom
-// edge meets the image's. The colour tray (Windows, Linux) stays centred.
+// macOS template is 18pt, centred across with its top 2pt down, sized and
+// placed beside dayGLANCE's mark in the menu bar (its calendar art is about
+// 16.5pt tall, 2.5pt down). The colour tray (Windows, Linux) stays 20pt and
+// centred.
 
 import { describe, it, expect } from 'vitest';
 import path from 'node:path';
@@ -25,8 +26,8 @@ async function inkBox(name: string) {
 }
 
 describe('the tray mark placement', () => {
-  it.each([['trayTemplate.png', 1], ['trayTemplate@2x.png', 2]])('%s: 20pt, 1pt below centre, flush with the bottom', async (name, scale) => {
-    expect(await inkBox(name)).toEqual({ size: 22 * scale, top: 2 * scale, bottom: 22 * scale, left: scale, right: 21 * scale });
+  it.each([['trayTemplate.png', 1], ['trayTemplate@2x.png', 2]])('%s: 18pt, centred across, top 2pt down', async (name, scale) => {
+    expect(await inkBox(name)).toEqual({ size: 22 * scale, top: 2 * scale, bottom: 20 * scale, left: 2 * scale, right: 20 * scale });
   });
 
   it.each([['tray.png', 1], ['tray@2x.png', 2]])('%s: 20pt, centred', async (name, scale) => {
