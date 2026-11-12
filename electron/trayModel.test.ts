@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseTraySnapshot, popupPosition, settledCompletions, trayMenuItems, trayOpenToken, trayState } from './trayModel';
+import { BLUR_CLICK_WINDOW_MS, isClickAfterBlurHide, parseTraySnapshot, popupPosition, settledCompletions, trayMenuItems, trayOpenToken, trayState } from './trayModel';
 
 const PEOPLE = {
   reachOut: [{ syncId: 'p1', name: 'Maya Chen', ratio: 1.4, color: '#ef4444', detail: 'Last contact 3 weeks ago' }, { syncId: 'bad' }],
@@ -61,6 +61,14 @@ describe('the tray model', () => {
     expect(popupPosition({ x: 1200, y: 0, width: 24, height: 24 }, { width: 340, height: 460 }, work)).toEqual({ x: 1042, y: 31 });
     const taskbar = { x: 0, y: 0, width: 1920, height: 1040 };
     expect(popupPosition({ x: 1880, y: 1045, width: 24, height: 30 }, { width: 340, height: 460 }, taskbar)).toEqual({ x: 1574, y: 574 });
+  });
+
+  it('treats an icon click right after a blur-hide as the click that closed the popup', () => {
+    expect(isClickAfterBlurHide(1000, null)).toBe(false);                          // never hidden by blur
+    expect(isClickAfterBlurHide(1050, 1000)).toBe(true);                           // the same click
+    expect(isClickAfterBlurHide(1000 + BLUR_CLICK_WINDOW_MS - 1, 1000)).toBe(true);
+    expect(isClickAfterBlurHide(1000 + BLUR_CLICK_WINDOW_MS, 1000)).toBe(false);   // a fresh click reopens
+    expect(isClickAfterBlurHide(900, 1000)).toBe(false);                           // the clock went back
   });
 
   it('builds the Linux menu with the due chores, or says nothing is due', () => {
