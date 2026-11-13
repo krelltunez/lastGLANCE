@@ -1030,7 +1030,9 @@
     "trayOpen": "打开 lastGLANCE",
     "trayQuit": "退出 lastGLANCE",
     "trayMarkDone": "标记为完成",
-    "trayNothingDue": "暂无到期事项"
+    "trayNothingDue": "暂无到期事项",
+    "trayMcpUndo": "撤销助手的修改",
+    "trayMcpOff": "关闭助手访问"
   },
   "tray": {
     "overdue": "已逾期：{{count}}",
@@ -1084,6 +1086,13 @@
     "cancel": "取消",
     "errorPortInUse": "端口 {{port}} 已被其他应用占用。",
     "errorPortDenied": "这台电脑不允许使用端口 {{port}}。请选择 1024 以上的端口。",
-    "errorBindFailed": "无法在端口 {{port}} 上启动。"
+    "errorBindFailed": "无法在端口 {{port}} 上启动。",
+    "writesPaused": "连续修改过多，修改已暂停。重新启动 lastGLANCE 即可再次允许。",
+    "changesTitle": "助手所做的修改",
+    "changesHint": "仅限本次会话。撤销会保留你之后做的修改。",
+    "undo": "撤销",
+    "undoAll": "全部撤销",
+    "undoResult": "已撤销：{{undone}}。因之后有改动而保留：{{kept}}。",
+    "undoFailed": "暂时无法撤销，请重试。"
   }
 }

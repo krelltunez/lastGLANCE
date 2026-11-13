@@ -246,6 +246,11 @@ const OVERRIDES = {
     "Os assistentes conectados precisam deste token. Um novo token os desconecta até que eles o recebam.",
   'localIntegrations.portHint':
     "Mude a porta apenas se outro programa já a usar. Deixe em branco para usar a porta padrão.",
+  'localIntegrations.writesPaused':
+    "As alterações foram pausadas depois de muitas seguidas. Reinicie o lastGLANCE para permiti-las de novo.",
+  'localIntegrations.changesHint': "Só nesta sessão. Desfazer mantém o que você alterou desde então.",
+  'localIntegrations.undoResult': "Desfeitas: {{undone}}. Mantidas porque mudaram desde então: {{kept}}.",
+  'menu.trayMcpOff': "Desativar o acesso de assistentes",
   'localIntegrations.errorPortInUse': "A porta {{port}} já está sendo usada por outro programa.",
   'localIntegrations.claudeCodeHint': "Execute isto no terminal para conectar o Claude Code.",
   'localIntegrations.consentBase':

@@ -5,10 +5,11 @@ import type http from 'node:http';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
-import { generateMcpToken, type BridgeResult, type HostBridge } from '@glance-apps/mcp-host';
+import { createIdempotencyStore, createWriteGate, generateMcpToken, type BridgeResult, type HostBridge } from '@glance-apps/mcp-host';
 import { MCP_ENDPOINT_PATH, startMcpServer } from './mcpServer.js';
 import { HISTORY_TIMEOUT_MS, UNAVAILABLE } from './mcpRendererBridge.js';
 import type { ReadToolDeps } from './mcpReadTools.js';
+import { createJournal } from './mcpJournal.js';
 import { handleMcpRequest } from '../src/mcp/readModel';
 import { fixtureData } from '../src/mcp/readModel.fixture';
 
@@ -74,6 +75,10 @@ async function start(bridge: HostBridge, over: Partial<ReadToolDeps> = {}, token
     token,
     portOverride: port,
     readDeps: { bridge, now: () => NOW, timeZone: () => TZ, includePeople: () => false, ...over },
+    writeDeps: {
+      bridge, gate: createWriteGate(), store: createIdempotencyStore(), token: () => TOKEN, includeWrites: () => true,
+      onWritesDisabled: () => {}, journal: createJournal(),
+    },
     log: quiet,
     logError: quiet,
   });
@@ -200,10 +205,20 @@ describe('reads', () => {
 describe('an unavailable window', () => {
   it('is a typed error for every tool and resource, never an empty result', async () => {
     const client = await (await start(modelBridge(() => UNAVAILABLE).bridge, { includePeople: () => true })).connect();
-    for (const tool of documentedTools.filter((t) => t !== 'lastglance_ping')) {
-      const args = tool === 'lastglance_get_activity' ? { from: '2026-11-01', to: '2026-11-13' }
-        : tool === 'lastglance_get_chore' ? { chore_id: 'ch-water' }
-          : tool === 'lastglance_get_person' ? { person_id: 'p-maya' } : {};
+    // Every tool that asks the page, writes included; the ping and the journal never do.
+    const ARGS: Record<string, Record<string, unknown>> = {
+      lastglance_get_activity: { from: '2026-11-01', to: '2026-11-13' },
+      lastglance_get_chore: { chore_id: 'ch-water' },
+      lastglance_get_person: { person_id: 'p-maya' },
+      lastglance_complete_chore: { chore_id: 'ch-water' },
+      lastglance_update_completion: { completion_id: 'e-1', note: null },
+      lastglance_create_chore: { name: 'Dust' },
+      lastglance_update_chore: { chore_id: 'ch-water', name: 'Water' },
+      lastglance_create_category: { name: 'Garage' },
+      lastglance_update_category: { category_id: 'c-home', name: 'House' },
+    };
+    for (const tool of documentedTools.filter((t) => t !== 'lastglance_ping' && t !== 'lastglance_list_mcp_writes')) {
+      const args = ARGS[tool] ?? {};
       const r = await call(client, tool, args);
       expect(r.isError, tool).toBe(true);
       expect(body(r).error.code, tool).toBe('renderer_unavailable');

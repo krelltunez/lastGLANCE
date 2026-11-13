@@ -132,6 +132,11 @@ contextBridge.exposeInMainWorld('lastGlanceDesktop', {
     onRequest: (listener: (payload: unknown) => void) => subscribe('mcp:request', listener),
     respond: (response: Record<string, unknown>) => ipcRenderer.send('mcp:response', response),
   },
+  mcpJournal: {
+    get: () => ipcRenderer.invoke('mcp-journal:get'),
+    undo: (groupKey: string | null) => ipcRenderer.invoke('mcp-journal:undo', groupKey),
+    onChanged: (listener: (payload: unknown) => void) => subscribe('mcp-journal:changed', listener),
+  },
   icloud: {
     available: () => ipcRenderer.invoke('icloud:available'),
     readFile: (options: { path: string; container?: string; allowStale?: boolean }) => ipcRenderer.invoke('icloud:read-file', options),

@@ -663,8 +663,8 @@ function AppInner() {
   // via app.lastglance.* intents. No-op off native Android.
   useAndroidIntentBridge(loadHeatmap, { runSyncCycle: runLauncherSyncCycle, touchHeartbeat: touchHeartbeatNow })
   useDesktopCommands(loadHeatmap)
-  // The MCP server's reads, answered from the database (src/mcp/). No-op off the desktop.
-  useMcpBridge()
+  // The MCP server's reads and writes, answered from the database (src/mcp/). No-op off the desktop.
+  useMcpBridge(loadHeatmap)
   // OUTBOUND: drain the durable intents outbox on mount, on focus, and on the
   // poll cadence (enqueue also triggers a flush). Guarantees queued intents are
   // delivered/retried and never lost across restarts.

@@ -1078,7 +1078,9 @@
     "trayOpen": "Otwórz lastGLANCE",
     "trayQuit": "Zakończ lastGLANCE",
     "trayMarkDone": "Oznacz jako zrobione",
-    "trayNothingDue": "Nic do zrobienia"
+    "trayNothingDue": "Nic do zrobienia",
+    "trayMcpUndo": "Cofnij zmiany asystentów",
+    "trayMcpOff": "Wyłącz dostęp asystentów"
   },
   "tray": {
     "overdue": "Po terminie: {{count}}",
@@ -1132,6 +1134,13 @@
     "cancel": "Anuluj",
     "errorPortInUse": "Port {{port}} jest już używany przez inną aplikację.",
     "errorPortDenied": "Ten komputer nie zezwolił na port {{port}}. Wybierz port powyżej 1024.",
-    "errorBindFailed": "Nie udało się uruchomić na porcie {{port}}."
+    "errorBindFailed": "Nie udało się uruchomić na porcie {{port}}.",
+    "writesPaused": "Zmiany są wstrzymane po zbyt wielu z rzędu. Uruchom ponownie lastGLANCE, aby znów na nie pozwolić.",
+    "changesTitle": "Zmiany wprowadzone przez asystentów",
+    "changesHint": "Tylko w tej sesji. Cofnięcie zachowuje to, co zmieniłeś od tego czasu.",
+    "undo": "Cofnij",
+    "undoAll": "Cofnij wszystko",
+    "undoResult": "Cofnięto: {{undone}}. Zachowano, bo zmieniły się od tego czasu: {{kept}}.",
+    "undoFailed": "Nie udało się teraz cofnąć. Spróbuj ponownie."
   }
 }

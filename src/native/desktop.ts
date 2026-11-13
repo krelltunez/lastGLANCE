@@ -284,6 +284,8 @@ export interface DesktopLocalIntegrationsView {
     portOverride: number | null
     endpoint: string
     status: DesktopListenerStatus
+    /** Repeated overruns of the write rate limit turned changes off until restart. */
+    writesPaused: boolean
   }
 }
 
@@ -318,6 +320,29 @@ export interface DesktopMcp {
   respond(response: Record<string, unknown>): void
 }
 
+/** What assistants changed this session (electron/mcpJournal.ts): one group per item. */
+export interface DesktopMcpJournalSnapshot {
+  total: number
+  groups: { key: string; label: string; count: number; latestSeq: number }[]
+  entries: { seq: number; at: string; tool: string; summary: string; groupKey: string }[]
+}
+
+export interface DesktopMcpUndoResult {
+  ok: boolean
+  undone?: number
+  skipped?: { kind: string; reason: string }[]
+  error?: string
+}
+
+/** The MCP write journal, and undo (docs/mcp-and-stream-deck.md, 4.5). Main answers the main window only. */
+export interface DesktopMcpJournal {
+  get(): Promise<DesktopMcpJournalSnapshot | null>
+  /** Undo one item's changes (a group key), or every change with null. */
+  undo(groupKey: string | null): Promise<DesktopMcpUndoResult>
+  /** Returns the unsubscribe. */
+  onChanged(listener: (snapshot: unknown) => void): () => void
+}
+
 export interface DesktopBridge {
   info: DesktopInfo
   shell: DesktopShell
@@ -334,6 +359,7 @@ export interface DesktopBridge {
   billing: DesktopBilling
   localIntegrations: DesktopLocalIntegrations
   mcp: DesktopMcp
+  mcpJournal: DesktopMcpJournal
 }
 
 /**
@@ -412,6 +438,9 @@ export const DESKTOP_BRIDGE_METHODS = [
   'localIntegrations.onStatus',
   'mcp.onRequest',
   'mcp.respond',
+  'mcpJournal.get',
+  'mcpJournal.undo',
+  'mcpJournal.onChanged',
 ] as const
 
 declare global {

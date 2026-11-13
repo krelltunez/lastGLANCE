@@ -34,6 +34,8 @@ export async function createCategory(
   icon?: string,
   parent_category_id?: number,
   assigned_user_sync_ids: string[] = [],
+  // A given sync id, for a caller that must find its own row on a retry (an MCP create).
+  givenSyncId?: string,
 ): Promise<number> {
   const order = sort_order ?? (await db.categories.count())
   let parent_sync_id: string | null = null
@@ -41,7 +43,7 @@ export async function createCategory(
     const parent = await db.categories.get(parent_category_id)
     parent_sync_id = parent?.sync_id ?? null
   }
-  const sync_id = crypto.randomUUID()
+  const sync_id = givenSyncId ?? crypto.randomUUID()
   const id = await db.categories.add({
     name,
     sort_order: order,
@@ -216,14 +218,17 @@ export async function getChoresForCategory(categoryId: number): Promise<ChoreWit
   )
 }
 
+// `sync_id` is for a caller that must find its own row again on a retry (an
+// MCP create, keyed on its idempotency key); everyone else gets a fresh one.
 export async function createChore(
-  data: Omit<Chore, 'id' | 'sort_order' | 'created_at' | 'updated_at' | 'sync_id' | 'category_sync_id' | 'pinned'> & { pinned?: boolean }
+  input: Omit<Chore, 'id' | 'sort_order' | 'created_at' | 'updated_at' | 'sync_id' | 'category_sync_id' | 'pinned'> & { pinned?: boolean; sync_id?: string }
 ): Promise<number> {
+  const { sync_id: givenSyncId, ...data } = input
   const now = dayjs().toISOString()
   const count = await db.chores.where('category_id').equals(data.category_id).count()
   const cat = await db.categories.get(data.category_id)
   const category_sync_id = cat?.sync_id ?? null
-  const sync_id = crypto.randomUUID()
+  const sync_id = givenSyncId ?? crypto.randomUUID()
   const id = await db.chores.add({
     pinned: false,
     ...data,

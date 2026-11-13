@@ -34,7 +34,10 @@ suite fails.
   | `renderer_unavailable` | The lastGLANCE window is not answering (starting, restarting or closed). NOT an empty result: retry shortly. |
   | `not_found` | No chore, category, user, person or circle with that id. |
   | `validation` | A malformed argument, with what was expected. |
-  | `internal` | The read failed inside the app. |
+  | `internal` | The read or write failed inside the app. |
+  | `read_only_mode` | A write while "Allow changes" is off in Settings. |
+  | `rate_limited` | More than 30 writes in a minute. Wait; repeated overruns turn writes off. |
+  | `writes_disabled` | Writes were turned off after repeated overruns, until lastGLANCE restarts. |
 
   A resource read that fails throws, with the same code first: `[renderer_unavailable] ...`.
 
@@ -42,6 +45,14 @@ suite fails.
   tools and `lastglance://chores/due`. "Chores and People" adds the People
   tools, People in `lastglance_get_overview`, and `lastglance://people/coming-up`.
   The tier is read on every request, so a change shows on the next one.
+- **Writes.** Every write tool exists while the server runs, and each call
+  checks "Allow changes" itself. A write takes an optional `idempotency_key`
+  (1-128 characters of `[A-Za-z0-9_.:-]`): the same key again returns the first
+  result with `replayed: true` and changes nothing, and a create keyed the same
+  way finds its own row even after a restart. A write returns the entity as the
+  read tools show it. Nothing is ever deleted. Each change is in the session's
+  journal (`lastglance_list_mcp_writes`), and the user can undo it from
+  Settings or the tray menu; an undo keeps anything the user changed since.
 - **People scoping.** With multi-user mode on, only this device's user's People
   are returned, exactly as the People screens show them. Chores are household
   data: every chore is returned, with its assignees.
@@ -159,6 +170,103 @@ is known).
 ### `lastglance_list_circles`
 
 No arguments. `id`, `name`, `icon`, `people_count`, in the app's order.
+
+## What the tools change
+
+The rule (decided in review): every field the app's own forms let the user
+change can be changed over MCP, and nothing a form cannot change. This table
+is the audit of the forms, and the write tools follow it.
+
+| Entity | Field | Where the app edits it | Over MCP | Rules, as the form applies them |
+|---|---|---|---|---|
+| Chore | `name` | Chore form | create, update | Trimmed, required, at most 500 |
+| Chore | `category_id` | Chore form, drag to a category | create, update | No category on create means the Inbox; a move keeps the assignees |
+| Chore | `cadence_days` | Chore form | create, update | Whole days, 1 or more, or null |
+| Chore | `icon` | Chore form | create, update | A Lucide name the app knows, or null; on create, the category's icon by default |
+| Chore | `details` | Chore form | create, update | At most 2000 characters, or null |
+| Chore | `pinned` | Chore form, the log sheet's pin | create, update | |
+| Chore | `notify_when_overdue` | Chore form | create, update | Meaningful with a cadence |
+| Chore | `auto_schedule_to_dayglance` | Chore form | create, update | Meaningful with a cadence and the dayGLANCE integration |
+| Chore | `season` | Chore form | create, update | `MM-DD` start and end, real days, or null |
+| Chore | `assignee_ids` | Chore form (multi-user) | create, update | Known users; on create, the category's by default |
+| Chore | `position` | Drag within a category | create, update | Among the category's chores, 0 first |
+| Completion | (a new one) | Log sheet, quick log | `lastglance_complete_chore` | By this device's Me; now, or backdated, never in the future |
+| Completion | `note` | Completion row | `lastglance_update_completion` | The only field of a completion the app edits |
+| Category | `name` | Category form | create, update | Trimmed, required, at most 500 |
+| Category | `icon` | Category form, the inline icon | create, update | A subcategory takes its parent's icon by default |
+| Category | `parent_id` | Category form | create, update | A top-level category, or null; nesting lifts its own subcategories beside it |
+| Category | `assignee_ids` | Category form (multi-user) | create, update | Not inherited from the parent |
+| Category | `position` | Drag, up and down | create, update | Among its siblings, 0 first |
+
+Not changed over MCP, on purpose:
+
+- **Deleting** anything: chores, completions, categories. A delete is done in
+  the app. An undo of an MCP create is the one removal, and it declines when
+  the user has added to the item since (a chore done since, a category with
+  chores in it).
+- **A completion's time, completer and source**: no form edits them.
+- **`preferred_schedule_behavior`**: no form edits it.
+- **Household members and this device's settings** (multi-user mode, who is
+  Me): edited in Settings, about the device rather than the household's data.
+- **People, dates, contacts and circles**: the People write tools come next,
+  under the same rules.
+
+## Write tools
+
+### `lastglance_complete_chore`
+
+| Argument | |
+|---|---|
+| `chore_id` | Required. |
+| `completed_at` | Optional ISO 8601 time with a zone, e.g. `2026-11-12T18:30:00-07:00`. Default now. Never in the future. |
+| `note` | Optional. |
+| `idempotency_key` | Optional. |
+
+Returns `completion` (`id`, `completed_at`, `note`) and `chore`, as
+`lastglance_get_chore` shows it.
+
+### `lastglance_update_completion`
+
+`completion_id`, `note` (text, or null to clear), `idempotency_key`. Returns
+`completion` and `chore`.
+
+### `lastglance_create_chore`
+
+`name` (required), and optionally `category_id`, `cadence_days`, `icon`,
+`details`, `pinned`, `notify_when_overdue`, `auto_schedule_to_dayglance`,
+`season` (`{ start, end }` or null), `assignee_ids`, `position`,
+`idempotency_key`. Returns `chore`. A chore with the same name already in the
+category is returned instead, with `already_existed: true`.
+
+### `lastglance_update_chore`
+
+`chore_id`, and any of the create fields. Only the fields given change; null
+clears one. Returns `chore`.
+
+### `lastglance_create_category`
+
+`name` (required), and optionally `icon`, `parent_id`, `assignee_ids`,
+`position`, `idempotency_key`. Returns `category`, as
+`lastglance_list_categories` shows it.
+
+### `lastglance_update_category`
+
+`category_id`, and any of `name`, `icon` (null for none), `parent_id` (null
+for top level), `assignee_ids`, `position`. Returns `category`.
+
+## The write journal
+
+### `lastglance_list_mcp_writes`
+
+| Argument | |
+|---|---|
+| `chore_id`, `category_id` | Optional filters. |
+| `limit`, `cursor` | Pagination. |
+
+What assistants changed this session, newest first: `at`, `tool`, `summary`,
+the ids, and `changes` (each changed field's value `before`). Never the
+idempotency key. Under the read tiers, whatever "Allow changes" says. Cleared
+by a restart, and as the user undoes changes.
 
 ## Resources
 

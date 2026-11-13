@@ -291,6 +291,8 @@ export interface LocalIntegrationsView {
     portOverride: number | null;
     endpoint: string;
     status: ListenerStatus;
+    /** Repeated overruns of the write rate limit turned changes off until restart. */
+    writesPaused: boolean;
   };
 }
 
@@ -299,6 +301,7 @@ export const MCP_ENDPOINT_PATH = '/mcp';
 export function integrationsView(
   config: LocalIntegrationsConfig,
   status: { mcp: ListenerStatus; streamDeck: ListenerStatus },
+  extras: { writesPaused?: boolean } = {},
 ): LocalIntegrationsView {
   const port = mcpPort(config);
   return {
@@ -311,6 +314,7 @@ export function integrationsView(
       portOverride: config.mcp.portOverride,
       endpoint: `http://127.0.0.1:${port}${MCP_ENDPOINT_PATH}`,
       status: { ...status.mcp },
+      writesPaused: extras.writesPaused === true,
     },
   };
 }

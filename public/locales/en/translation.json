@@ -1030,7 +1030,9 @@
     "trayOpen": "Open lastGLANCE",
     "trayQuit": "Quit lastGLANCE",
     "trayMarkDone": "Mark done",
-    "trayNothingDue": "Nothing due"
+    "trayNothingDue": "Nothing due",
+    "trayMcpUndo": "Undo assistant changes",
+    "trayMcpOff": "Turn off assistant access"
   },
   "tray": {
     "overdue": "Overdue: {{count}}",
@@ -1084,6 +1086,13 @@
     "cancel": "Cancel",
     "errorPortInUse": "Port {{port}} is already used by another app.",
     "errorPortDenied": "This computer did not allow port {{port}}. Choose a port above 1024.",
-    "errorBindFailed": "Could not start on port {{port}}."
+    "errorBindFailed": "Could not start on port {{port}}.",
+    "writesPaused": "Changes are paused after too many in a row. Restart lastGLANCE to allow them again.",
+    "changesTitle": "Changes by assistants",
+    "changesHint": "This session only. An undo keeps anything you changed since.",
+    "undo": "Undo",
+    "undoAll": "Undo all",
+    "undoResult": "Undone: {{undone}}. Kept because they changed since: {{kept}}.",
+    "undoFailed": "Could not undo just now. Try again."
   }
 }

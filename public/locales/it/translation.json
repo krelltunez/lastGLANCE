@@ -1030,7 +1030,9 @@
     "trayOpen": "Apri lastGLANCE",
     "trayQuit": "Esci da lastGLANCE",
     "trayMarkDone": "Segna come fatta",
-    "trayNothingDue": "Niente in scadenza"
+    "trayNothingDue": "Niente in scadenza",
+    "trayMcpUndo": "Annulla le modifiche degli assistenti",
+    "trayMcpOff": "Disattiva l'accesso degli assistenti"
   },
   "tray": {
     "overdue": "In ritardo: {{count}}",
@@ -1084,6 +1086,13 @@
     "cancel": "Annulla",
     "errorPortInUse": "La porta {{port}} è già usata da un'altra app.",
     "errorPortDenied": "Questo computer non ha consentito la porta {{port}}. Scegli una porta sopra 1024.",
-    "errorBindFailed": "Impossibile avviare sulla porta {{port}}."
+    "errorBindFailed": "Impossibile avviare sulla porta {{port}}.",
+    "writesPaused": "Le modifiche sono in pausa dopo troppe di fila. Riavvia lastGLANCE per consentirle di nuovo.",
+    "changesTitle": "Modifiche degli assistenti",
+    "changesHint": "Solo in questa sessione. Annullare mantiene ciò che hai modificato nel frattempo.",
+    "undo": "Annulla",
+    "undoAll": "Annulla tutto",
+    "undoResult": "Annullate: {{undone}}. Mantenute perché cambiate nel frattempo: {{kept}}.",
+    "undoFailed": "Impossibile annullare ora. Riprova."
   }
 }
