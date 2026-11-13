@@ -3,8 +3,16 @@
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
-    <path android:strokeColor="#FF000000" android:strokeWidth="2" android:strokeLineCap="round" android:strokeLineJoin="round"
-        android:pathData="M4 13a1 1 0 0 1-0.72-1.7l7.26-7.66a2 2 0 0 1 2.92 0l7.26 7.66A1 1 0 0 1 20 13z"/>
-    <path android:strokeColor="#FF000000" android:strokeWidth="2" android:strokeLineCap="round" android:strokeLineJoin="round"
-        android:pathData="M3 18c0-0.55 0.45-1 1-1h16c0.55 0 1 0.45 1 1v2c0 0.55-0.45 1-1 1h-16c-0.55 0-1-0.45-1-1z"/>
+    <path
+        android:pathData="M4 13a1 1 0 0 1 -.72-1.69l7.26-7.67a2 2 0 0 1 2.92 0l7.26 7.67A1 1 0 0 1 20 13z"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M4,17h16a1,1 0 0 1 1,1v2a1,1 0 0 1 -1,1h-16a1,1 0 0 1 -1,-1v-2a1,1 0 0 1 1,-1z"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
 </vector>

@@ -5,7 +5,8 @@
 //
 // Each drawable is named ic_lucide_<snake(PascalName)> using the SAME transform
 // the widget applies at runtime (see lucideResName below + SingleChoreWidget.kt).
-// Stroke color is forced opaque so the widget can tint it to the recency color.
+// Icons are rendered with an opaque black stroke so the widget can tint it to the
+// recency color.
 //
 // lucide exports each icon under several names, and chore.icon can hold any of
 // them (ICON_REGISTRY resolves them all). Each icon gets one file, under the name
@@ -18,7 +19,7 @@
 
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import svg2vectordrawable from 'svg2vectordrawable'
+import { convert } from 'svg-vectordrawable'
 import { mkdir, writeFile, readdir, rm } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
@@ -44,21 +45,6 @@ function lucideResName(pascal) {
   return 'ic_lucide_' + out
 }
 
-// Lucide carries stroke styling on the <svg> root (stroke, width 2, round caps,
-// fill none), which the converter doesn't propagate to the per-path output — so
-// the paths come out with no stroke and render invisible. Every Lucide glyph
-// uses the same styling, so inject it onto each <path>. Opaque black so the
-// widget's runtime tint (to the chore's recency color) has something to recolor.
-function applyLucideStroke(vectorXml) {
-  return vectorXml
-    .replace(/currentColor/g, '#FF000000')
-    .replace(
-      /<path\b/g,
-      '<path android:strokeColor="#FF000000" android:strokeWidth="2"' +
-        ' android:strokeLineCap="round" android:strokeLineJoin="round"',
-    )
-}
-
 async function main() {
   const limit = process.argv[2] ? Number(process.argv[2]) : Infinity
   await mkdir(OUT_DIR, { recursive: true })
@@ -80,8 +66,10 @@ async function main() {
       const svg = renderToStaticMarkup(
         createElement(Icon, { color: '#000000', size: 24, strokeWidth: 2 }),
       )
-      let xml = await svg2vectordrawable(svg, { floatPrecision: 2 })
-      xml = applyLucideStroke(xml)
+      // Lucide puts its stroke styling (width 2, round caps, fill none) on the
+      // <svg> root; svg-vectordrawable propagates it to every path.
+      const { xml, warnings } = convert(svg, { floatPrecision: 2 })
+      for (const w of warnings) console.warn(`WARN ${name}: [${w.code}] ${w.message}`)
       await writeFile(join(OUT_DIR, `${lucideResName(name)}.xml`), xml)
       for (const other of names) {
         const res = lucideResName(other)
