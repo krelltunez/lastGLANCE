@@ -6,8 +6,13 @@ import {
 } from '@/db/queries'
 import { ICON_REGISTRY } from '@/icons/registry'
 import type { Category, Chore } from '@/types'
-import { handleMcpRequest, type McpError } from './readModel'
+import { handleMcpRequest } from './readModel'
+import {
+  bool, checkName, checkPosition, fail as failShared, has, obj, ok as okShared, placed, quote, Refusal, refuse,
+  type UndoRecord as SharedUndoRecord, type WriteContext, type WriteResult as SharedWriteResult,
+} from './writeShared'
 import { loadMcpReadData } from './readData'
+import { handlePeopleWrite, PEOPLE_UNDO_KINDS, PEOPLE_WRITE_METHODS, undoPeopleOp, type PeopleUndoOp } from './peopleWriteModel'
 
 // The MCP write model, the page's half (docs/mcp-and-stream-deck.md, 4.5; the
 // tools are electron/mcpWriteTools.ts, which validates the arguments' shape
@@ -27,7 +32,9 @@ import { loadMcpReadData } from './readData'
 // Creates take the id main derives from the idempotency key: a create that
 // finds its id already stored is a replay and changes nothing.
 
-export type UndoOp =
+export type UndoOp = ChoreUndoOp | PeopleUndoOp
+
+export type ChoreUndoOp =
   | { kind: 'remove_completion'; completionId: string; choreId: string }
   | { kind: 'restore_completion_note'; completionId: string; choreId: string; before: string | null }
   | { kind: 'remove_created_chore'; choreId: string }
@@ -35,40 +42,21 @@ export type UndoOp =
   | { kind: 'remove_created_category'; categoryId: string }
   | { kind: 'restore_category_fields'; categoryId: string; before: Record<string, unknown>; liftedChildren?: string[]; orderBefore?: string[] }
 
-export interface UndoRecord { summary: string; op: UndoOp }
-export type WriteResult =
-  | { ok: true; data: Record<string, unknown>; undo?: UndoRecord }
-  | { ok: false; error: McpError }
-
-export interface WriteContext {
-  /** The device's Me, who a completion is by, as in the app. */
-  meUserSyncId: string | null
-  now: () => Date
-  /** After a change: what the app's screens and widgets listen for. */
-  changed: () => void
-  /** A line in the activity log. */
-  activity: (message: string) => void
-}
+export type UndoRecord = SharedUndoRecord<UndoOp>
+export type WriteResult = SharedWriteResult<UndoOp>
+export type { WriteContext }
 
 export const WRITE_METHODS = [
-  'complete_chore', 'update_completion', 'create_chore', 'update_chore', 'create_category', 'update_category', 'undo_mcp_writes',
+  'complete_chore', 'update_completion', 'create_chore', 'update_chore', 'create_category', 'update_category',
+  ...PEOPLE_WRITE_METHODS, 'undo_mcp_writes',
 ] as const
 
 export const CHORE_DETAILS_MAX = 2000
-export const NAME_MAX = 500
 
-const ok = (data: Record<string, unknown>, undo?: UndoRecord): WriteResult => ({ ok: true, data, ...(undo && { undo }) })
-const fail = (code: McpError['code'], message: string): WriteResult => ({ ok: false, error: { code, message } })
-const obj = (v: unknown): Record<string, unknown> => (v && typeof v === 'object' && !Array.isArray(v) ? v as Record<string, unknown> : {})
-const has = (o: Record<string, unknown>, k: string) => Object.prototype.hasOwnProperty.call(o, k)
-const quote = (name: string) => `“${name}”`
+const ok = (data: Record<string, unknown>, undo?: UndoRecord): WriteResult => okShared<UndoOp>(data, undo)
+const fail = failShared
 const SEASON_RE = /^(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/
 const DAYS_IN_MONTH = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
-
-class Refusal extends Error {
-  constructor(readonly code: McpError['code'], message: string) { super(message) }
-}
-const refuse = (code: McpError['code'], message: string): never => { throw new Refusal(code, message) }
 
 // ── Lookups ─────────────────────────────────────────────────────────────────
 
@@ -96,13 +84,6 @@ function checkIcon(icon: unknown): string | undefined {
   return icon as string
 }
 
-function checkName(name: unknown): string {
-  const n = typeof name === 'string' ? name.trim() : ''
-  if (!n) refuse('validation', 'name is required.')
-  if (n.length > NAME_MAX) refuse('validation', `name is at most ${NAME_MAX} characters.`)
-  return n
-}
-
 function checkSeason(v: unknown): { seasonal_start: string | null; seasonal_end: string | null } {
   if (v === null) return { seasonal_start: null, seasonal_end: null }
   const s = obj(v)
@@ -126,7 +107,6 @@ function checkDetails(v: unknown): string | null {
   return t || null
 }
 
-const bool = (v: unknown, name: string): boolean => (typeof v === 'boolean' ? v : refuse('validation', `${name} must be true or false.`))
 
 // ── Results, as the read tools show them ────────────────────────────────────
 
@@ -148,18 +128,6 @@ const sortedChores = async (categoryId: number) => (await db.chores.where('categ
 const siblingCategories = async (parentId: number | undefined) => (await db.categories.toArray())
   .filter(c => (c.parent_category_id ?? undefined) === (parentId ?? undefined))
   .sort((a, b) => a.sort_order - b.sort_order || a.id - b.id)
-
-function checkPosition(v: unknown): number {
-  if (typeof v !== 'number' || !Number.isInteger(v) || v < 0) refuse('validation', 'position must be a whole number, 0 for first.')
-  return v as number
-}
-
-/** Move one row to `position` among its siblings (past the end means last). */
-function placed<T extends { id: number }>(rows: T[], id: number, position: number): number[] {
-  const rest = rows.map(r => r.id).filter(x => x !== id)
-  rest.splice(Math.min(position, rest.length), 0, id)
-  return rest
-}
 
 // ── Chores and completions ──────────────────────────────────────────────────
 
@@ -370,7 +338,9 @@ async function restoreOrder<T extends { id: number; sync_id: string }>(rows: T[]
 }
 
 /** Reverse one op. Returns why it was skipped, or null when it was undone. */
-async function undoOne(op: UndoOp): Promise<string | null> {
+async function undoOne(anyOp: UndoOp, ctx: WriteContext): Promise<string | null> {
+  if ((PEOPLE_UNDO_KINDS as readonly string[]).includes(anyOp.kind)) return undoPeopleOp(anyOp as PeopleUndoOp, ctx)
+  const op = anyOp as ChoreUndoOp
   switch (op.kind) {
     case 'remove_completion': {
       const e = await db.completionEvents.where('sync_id').equals(op.completionId).first()
@@ -439,7 +409,7 @@ async function undoWrites(p: Record<string, unknown>, ctx: WriteContext): Promis
   const skipped: { kind: string; reason: string }[] = []
   for (const op of p.ops as UndoOp[]) {
     try {
-      const reason = await undoOne(op)
+      const reason = await undoOne(op, ctx)
       if (reason) skipped.push({ kind: op.kind, reason })
       else undone++
     } catch (e) {
@@ -462,7 +432,7 @@ export async function handleMcpWrite(method: string, params: unknown, ctx: Write
       case 'create_category': return await createCategoryWrite(p, ctx)
       case 'update_category': return await updateCategoryWrite(p, ctx)
       case 'undo_mcp_writes': return await undoWrites(p, ctx)
-      default: return fail('validation', `Unknown write method ${JSON.stringify(method)}.`)
+      default: return (await handlePeopleWrite(method, p, ctx)) ?? fail('validation', `Unknown write method ${JSON.stringify(method)}.`)
     }
   } catch (e) {
     if (e instanceof Refusal) return fail(e.code, e.message)

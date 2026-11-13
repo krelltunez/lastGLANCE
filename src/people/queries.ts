@@ -50,12 +50,14 @@ export interface PersonInput {
   notify_when_overdue?: boolean
   add_to_dayglance_when_overdue?: boolean
   send_to_lifeglance?: boolean
+  // A given id, for a caller that must find its own row on a retry (an MCP create).
+  sync_id?: string
 }
 
 export async function createPerson(input: PersonInput): Promise<Person> {
   const ts = now()
   const person: Person = {
-    sync_id: crypto.randomUUID(),
+    sync_id: input.sync_id ?? crypto.randomUUID(),
     name: requireName(input.name),
     nickname: input.nickname ?? null,
     circle_sync_id: input.circle_sync_id ?? null,
@@ -266,6 +268,8 @@ export interface PersonDateInput {
   year?: number | null
   label?: string | null
   remind_days_before?: number
+  // A given id, for a caller that must find its own row on a retry (an MCP create).
+  sync_id?: string
 }
 
 const DAYS_IN_MONTH = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
@@ -280,7 +284,7 @@ export async function addPersonDate(input: PersonDateInput): Promise<PersonDate>
   const year = input.year ?? null
   validateDate(input.month, input.day, year)
   const row: PersonDate = {
-    sync_id: crypto.randomUUID(),
+    sync_id: input.sync_id ?? crypto.randomUUID(),
     person_sync_id: input.person_sync_id,
     kind: input.kind,
     label: input.label ?? null,
@@ -328,10 +332,11 @@ export async function getDatesForPerson(personSyncId: string): Promise<PersonDat
 
 // ── Circles ──────────────────────────────────────────────────────────────────
 
-export async function createCircle(name: string, icon: string | null = null): Promise<PersonCircle> {
+// `syncId` is for a caller that must find its own row on a retry (an MCP create).
+export async function createCircle(name: string, icon: string | null = null, syncId?: string): Promise<PersonCircle> {
   const count = await db.personCircles.count()
   const row: PersonCircle = {
-    sync_id: crypto.randomUUID(),
+    sync_id: syncId ?? crypto.randomUUID(),
     name: requireName(name),
     icon,
     sort_order: count,

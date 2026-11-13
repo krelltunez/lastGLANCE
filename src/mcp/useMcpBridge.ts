@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { desktopBridge } from '@/native/desktop'
 import { addActivityEntry } from '@/intents/config'
-import { getMeUserSyncId } from '@/multiuser/settings'
+import { getMeUserSyncId, getMultiUserEnabled } from '@/multiuser/settings'
 import { loadMcpReadData } from './readData'
 import { handleMcpRequest, readsPeople, type McpResult } from './readModel'
 import { handleMcpWrite, isWriteMethod, type WriteContext, type WriteResult } from './writeModel'
@@ -40,6 +40,7 @@ export async function answerMcpRequest(raw: unknown, deps: AnswerDeps = {}): Pro
 export function appWriteContext(onChanged?: () => void): WriteContext {
   return {
     meUserSyncId: getMeUserSyncId(),
+    multiUserEnabled: getMultiUserEnabled(),
     now: () => new Date(),
     changed: () => {
       // What the Ribbon, Journal, widgets, launcher snapshot and reminders listen for.

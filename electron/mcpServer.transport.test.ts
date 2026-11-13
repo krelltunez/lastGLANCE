@@ -29,7 +29,9 @@ const TZ = 'UTC';
 const reference = readFileSync(path.resolve(__dirname, '../docs/mcp-tools-reference.md'), 'utf-8');
 const documentedTools = [...reference.matchAll(/^### `(lastglance_[a-z_]+)`/gm)].map((m) => m[1]);
 const documentedResources = [...reference.matchAll(/^\| `(lastglance:\/\/[a-z/-]+)` \|/gm)].map((m) => m[1]);
-const PEOPLE_TOOLS = ['lastglance_list_people', 'lastglance_get_person', 'lastglance_list_upcoming_dates', 'lastglance_list_circles'];
+// The People tools are the ones documented under a "People" section heading.
+const PEOPLE_TOOLS = reference.split(/^## /m).filter((section) => /^[^\n]*People/.test(section))
+  .flatMap((section) => [...section.matchAll(/^### `(lastglance_[a-z_]+)`/gm)].map((m) => m[1]));
 const PEOPLE_RESOURCES = ['lastglance://people/coming-up'];
 
 type Call = { method: string; params: unknown; timeoutMs: number | undefined };
@@ -76,7 +78,7 @@ async function start(bridge: HostBridge, over: Partial<ReadToolDeps> = {}, token
     portOverride: port,
     readDeps: { bridge, now: () => NOW, timeZone: () => TZ, includePeople: () => false, ...over },
     writeDeps: {
-      bridge, gate: createWriteGate(), store: createIdempotencyStore(), token: () => TOKEN, includeWrites: () => true,
+      bridge, gate: createWriteGate(), store: createIdempotencyStore(), token: () => TOKEN, includeWrites: () => true, includePeople: () => over.includePeople?.() ?? false,
       onWritesDisabled: () => {}, journal: createJournal(),
     },
     log: quiet,
@@ -114,6 +116,7 @@ const body = (r: ToolResult) => JSON.parse(r.content[0].text);
 describe('the registered surface', () => {
   it('serves exactly the documented tools and resources, People only under the People tier', async () => {
     expect(documentedTools.length).toBeGreaterThan(0);
+    expect(PEOPLE_TOOLS).toEqual(expect.arrayContaining(['lastglance_list_people', 'lastglance_log_interaction', 'lastglance_update_circle']));
     const chores = await (await start(modelBridge().bridge)).connect();
     const choreTools = (await chores.listTools()).tools.map((t) => t.name).sort();
     expect(choreTools).toEqual(documentedTools.filter((t) => !PEOPLE_TOOLS.includes(t)).sort());
@@ -216,6 +219,14 @@ describe('an unavailable window', () => {
       lastglance_update_chore: { chore_id: 'ch-water', name: 'Water' },
       lastglance_create_category: { name: 'Garage' },
       lastglance_update_category: { category_id: 'c-home', name: 'House' },
+      lastglance_create_person: { name: 'Ann' },
+      lastglance_update_person: { person_id: 'p-maya', nickname: 'M' },
+      lastglance_add_person_date: { person_id: 'p-maya', month: 1, day: 2 },
+      lastglance_update_person_date: { date_id: 'd-maya-bday', day: 21 },
+      lastglance_log_interaction: { person_ids: ['p-maya'] },
+      lastglance_update_interaction: { interaction_id: 'i-1', note: 'x' },
+      lastglance_create_circle: { name: 'Work' },
+      lastglance_update_circle: { circle_id: 'k-friends', name: 'Pals' },
     };
     for (const tool of documentedTools.filter((t) => t !== 'lastglance_ping' && t !== 'lastglance_list_mcp_writes')) {
       const args = ARGS[tool] ?? {};

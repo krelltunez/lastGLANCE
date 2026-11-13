@@ -18,6 +18,8 @@ import {
 export const UNDO_KINDS = [
   'remove_completion', 'restore_completion_note', 'remove_created_chore', 'restore_chore_fields',
   'remove_created_category', 'restore_category_fields',
+  'remove_created_person', 'restore_person_fields', 'remove_created_date', 'restore_date_fields',
+  'remove_interaction', 'restore_interaction_fields', 'remove_created_circle', 'restore_circle_fields',
 ] as const;
 export type UndoKind = (typeof UNDO_KINDS)[number];
 
@@ -26,6 +28,10 @@ export interface UndoOp {
   choreId?: string;
   completionId?: string;
   categoryId?: string;
+  personId?: string;
+  dateId?: string;
+  interactionId?: string;
+  circleId?: string;
   before?: Record<string, unknown> | string | null;
   [key: string]: unknown;
 }
@@ -37,7 +43,11 @@ export function isUndoOp(v: unknown): v is UndoOp {
   return !!v && typeof v === 'object' && (UNDO_KINDS as readonly string[]).includes((v as { kind?: unknown }).kind as string);
 }
 
-/** The one item an op reverses: a completion goes with its chore. Throws on a kind it does not know. */
+/**
+ * The one item an op reverses: a completion goes with its chore, a date with
+ * its person; a contact, which can cover several people, is its own item.
+ * Throws on a kind it does not know.
+ */
 export function undoGroupKey(op: UndoOp): string {
   switch (op.kind) {
     case 'remove_completion':
@@ -48,6 +58,17 @@ export function undoGroupKey(op: UndoOp): string {
     case 'remove_created_category':
     case 'restore_category_fields':
       return `category:${op.categoryId}`;
+    case 'remove_created_person':
+    case 'restore_person_fields':
+    case 'remove_created_date':
+    case 'restore_date_fields':
+      return `person:${op.personId}`;
+    case 'remove_interaction':
+    case 'restore_interaction_fields':
+      return `interaction:${op.interactionId}`;
+    case 'remove_created_circle':
+    case 'restore_circle_fields':
+      return `circle:${op.circleId}`;
     default:
       throw new Error(`unknown undo op kind ${JSON.stringify((op as { kind?: unknown }).kind)}`);
   }
@@ -61,8 +82,12 @@ export function describeUndoOp(op: UndoOp): JournalDescription {
   if (op.choreId) ids.chore_id = op.choreId;
   if (op.completionId) ids.completion_id = op.completionId;
   if (op.categoryId) ids.category_id = op.categoryId;
+  if (op.personId) ids.person_id = op.personId;
+  if (op.dateId) ids.date_id = op.dateId;
+  if (op.interactionId) ids.interaction_id = op.interactionId;
+  if (op.circleId) ids.circle_id = op.circleId;
   if (op.kind === 'restore_completion_note') return { ids, changes: [{ field: 'note', before: op.before ?? null }] };
-  if ((op.kind === 'restore_chore_fields' || op.kind === 'restore_category_fields') && op.before && typeof op.before === 'object') {
+  if (op.kind.startsWith('restore_') && op.before && typeof op.before === 'object') {
     const changes = Object.entries(op.before).map(([field, before]) => ({ field, before }));
     if (op.orderBefore) changes.push({ field: 'position', before: null });
     return { ids, changes };

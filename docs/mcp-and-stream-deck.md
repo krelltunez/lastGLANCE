@@ -349,7 +349,10 @@ until phase 7.
      audit in `docs/mcp-tools-reference.md`, chores, completions and
      categories, the session journal with undo from Settings and the tray
      menu, and the tray menu's off switch.
-   - **3b, People:** people, dates, contacts and circles on the same pipeline.
+   - **3b, People (done):** people (with archive and snooze), dates,
+     contacts and circles on the same pipeline, under the People tier, for
+     this user's People only; the audit rows and tools in
+     `docs/mcp-tools-reference.md`.
    The indicator (4.6) comes with the Settings mount in phase 7.
 4. **Connecting Claude.** The Claude Code line, the discovery file, the Claude
    Desktop setup (needs the generalised bridge), the MAS compile-out and its
