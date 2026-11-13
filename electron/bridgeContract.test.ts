@@ -97,6 +97,8 @@ describe('desktop bridge contract', () => {
       ...[...mainProcess.matchAll(/ipcMain\.(?:on|handle)\('([^']+)'/g)].map((m) => m[1]),
       // A module that registers through a helper names the channel as its first argument.
       ...[...mainProcess.matchAll(/\bhandle\('([a-z-]+:[a-z-]+)'/g)].map((m) => m[1]),
+      // A module given ipcMain as an injectable `ipc` (mcpRendererBridge.ts) listens through it.
+      ...[...mainProcess.matchAll(/\bipc\.on\('([a-z-]+:[a-z-]+)'/g)].map((m) => m[1]),
     ]);
     expect([...sent].sort()).toEqual([...handled].sort());
   });

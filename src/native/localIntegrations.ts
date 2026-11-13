@@ -55,6 +55,15 @@ export function claudeCodeCommand(endpoint: string, token: string): string {
   return `claude mcp add --transport http lastglance ${endpoint} --header "Authorization: Bearer ${token}"`
 }
 
+/** The translation key for a listener that could not start (electron/mcpServer.ts, bindErrorCode). */
+export function statusErrorKey(code: string): string {
+  switch (code) {
+    case 'port_in_use': return 'localIntegrations.errorPortInUse'
+    case 'permission_denied': return 'localIntegrations.errorPortDenied'
+    default: return 'localIntegrations.errorBindFailed'
+  }
+}
+
 /** The translation key for a refused transition. */
 export function transitionErrorKey(error: string): string {
   switch (error) {

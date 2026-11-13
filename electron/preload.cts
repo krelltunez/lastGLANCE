@@ -128,6 +128,10 @@ contextBridge.exposeInMainWorld('lastGlanceDesktop', {
     transition: (action: Record<string, unknown>) => ipcRenderer.invoke('local-integrations:transition', action),
     onStatus: (listener: (payload: unknown) => void) => subscribe('local-integrations:status', listener),
   },
+  mcp: {
+    onRequest: (listener: (payload: unknown) => void) => subscribe('mcp:request', listener),
+    respond: (response: Record<string, unknown>) => ipcRenderer.send('mcp:response', response),
+  },
   icloud: {
     available: () => ipcRenderer.invoke('icloud:available'),
     readFile: (options: { path: string; container?: string; allowStale?: boolean }) => ipcRenderer.invoke('icloud:read-file', options),

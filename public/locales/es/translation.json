@@ -1081,6 +1081,9 @@
     "consentPeople": "Personas contiene información sobre otras personas: sus nombres, cumpleaños, las notas que guardas sobre ellas y cuándo hablasteis por última vez. No han aceptado compartirla con un asistente de IA. Incluye Personas solo si te parece bien.",
     "consentWrites": "El asistente podrá cambiar tus datos sin preguntarte cada vez. Puede hacer como mucho 30 cambios por minuto, nunca puede borrar nada y puedes deshacer sus cambios desde aquí.",
     "accept": "Activar",
-    "cancel": "Cancelar"
+    "cancel": "Cancelar",
+    "errorPortInUse": "Otra app ya usa el puerto {{port}}.",
+    "errorPortDenied": "Este ordenador no permitió el puerto {{port}}. Elige un puerto por encima de 1024.",
+    "errorBindFailed": "No se pudo iniciar en el puerto {{port}}."
   }
 }

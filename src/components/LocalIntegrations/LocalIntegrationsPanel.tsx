@@ -4,7 +4,7 @@ import { ShieldCheck } from 'lucide-react'
 import { useLocalIntegrations } from '@/hooks/useLocalIntegrations'
 import type { DesktopMcpReadTier } from '@/native/desktop'
 import {
-  claudeCodeCommand, consentsForTier, maskToken, parsePortInput, tierAction, transitionErrorKey, writesAction,
+  claudeCodeCommand, consentsForTier, maskToken, statusErrorKey, parsePortInput, tierAction, transitionErrorKey, writesAction,
   type ConsentKind,
 } from '@/native/localIntegrations'
 import { Description, Field, Segmented } from '@/components/SettingsPanel/controls'
@@ -67,7 +67,7 @@ export function LocalIntegrationsPanel() {
 
   const status = (s: { running: boolean; error: string | null }, port: number) => (
     s.error
-      ? <p className="mt-1.5 text-xs text-red-500 dark:text-red-400">{s.error}</p>
+      ? <p className="mt-1.5 text-xs text-red-500 dark:text-red-400">{t(statusErrorKey(s.error), { port })}</p>
       : <p className={hint}>{s.running ? t('localIntegrations.statusRunning', { port }) : t('localIntegrations.statusStopped')}</p>
   )
 

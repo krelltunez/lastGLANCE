@@ -13,6 +13,8 @@
 //     refused until granted, then reached, and the grant can be revoked;
 //   - background settings, reminders through main, the command queue and the
 //     tray popup's page (Phase 4);
+//   - the MCP server: turned on through the bridge, it answers the official
+//     client from the page's database, and turning it off frees the port;
 //   - the page's log lines reach the log file;
 //   - no uncaught page error.
 //
@@ -24,6 +26,7 @@ import os from 'node:os'
 import http from 'node:http'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client'
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 const { version } = JSON.parse(readFileSync(path.join(root, 'package.json'), 'utf-8'))
@@ -254,6 +257,50 @@ try {
     return text
   })
   check(trayRendered.includes('lastGLANCE'), `the tray popup page renders (${JSON.stringify(trayRendered.slice(0, 60))})`)
+
+  // The MCP server (docs/mcp-and-stream-deck.md, section 4): on through the
+  // same transition Settings sends, then the real client over real HTTP. The
+  // page answers from its database, so the tools see the chores the app has.
+  const mcpOn = await page.evaluate(() => window.lastGlanceDesktop.localIntegrations.transition({
+    type: 'set-mcp-read-tier', tier: 'chores_people', consentConfirmed: true, peopleConsentConfirmed: true,
+  }))
+  check(mcpOn?.ok === true && typeof mcpOn.view?.mcp?.token === 'string', 'MCP turns on through the bridge, with a token')
+  let mcpView = mcpOn?.view
+  for (let i = 0; i < 50 && !mcpView?.mcp?.status?.running && !mcpView?.mcp?.status?.error; i++) {
+    await new Promise((r) => setTimeout(r, 100))
+    mcpView = await page.evaluate(() => window.lastGlanceDesktop.localIntegrations.get())
+  }
+  check(mcpView?.mcp?.status?.running === true, `the MCP listener runs (${JSON.stringify(mcpView?.mcp?.status)})`)
+  if (mcpView?.mcp?.status?.running) {
+    const client = new Client({ name: 'lastglance-smoke', version: '0.0.0' })
+    await client.connect(new StreamableHTTPClientTransport(new URL(mcpView.mcp.endpoint), {
+      requestInit: { headers: { Authorization: `Bearer ${mcpView.mcp.token}` } },
+    }))
+    const tools = (await client.listTools()).tools.map((t) => t.name)
+    check(tools.includes('lastglance_get_overview') && tools.includes('lastglance_list_people'), `MCP lists the chore and People tools (${tools.length})`)
+    const overview = await client.callTool({ name: 'lastglance_get_overview', arguments: {} })
+    check(!overview.isError && typeof overview.structuredContent?.counts?.chores === 'number',
+      `the overview is answered by the page (${overview.isError ? overview.content?.[0]?.text : `${overview.structuredContent?.counts?.chores} chores`})`)
+    const pageChores = await page.evaluate(() => new Promise((resolve) => {
+      const req = indexedDB.open('lastglance')
+      req.onsuccess = () => {
+        const tx = req.result.transaction('chores', 'readonly')
+        const count = tx.objectStore('chores').count()
+        count.onsuccess = () => { resolve(count.result); req.result.close() }
+      }
+      req.onerror = () => resolve(-1)
+    }))
+    check(overview.structuredContent?.counts?.chores === pageChores, `MCP sees the page's chores (${overview.structuredContent?.counts?.chores} vs ${pageChores})`)
+    const people = await client.callTool({ name: 'lastglance_list_people', arguments: {} })
+    check(!people.isError && Array.isArray(people.structuredContent?.items), 'MCP lists People')
+    await client.close()
+  }
+  const mcpOff = await page.evaluate(() => window.lastGlanceDesktop.localIntegrations.transition({ type: 'set-mcp-read-tier', tier: 'off' }))
+  check(mcpOff?.ok === true && mcpOff.view?.mcp?.status?.running === false, 'MCP turns off')
+  if (mcpView?.mcp?.endpoint) {
+    const refused = await fetch(mcpView.mcp.endpoint, { method: 'POST' }).then(() => false, () => true)
+    check(refused, 'turning MCP off frees the port')
+  }
 
   // The page's lines reach the log file in userData (shell.log).
   const logLine = `smoke-log-${Date.now()}`

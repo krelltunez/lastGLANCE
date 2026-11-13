@@ -14,6 +14,34 @@ import { DEEP_LINK_SCHEME } from './deepLink';
 const require = createRequire(import.meta.url);
 const root = path.resolve(__dirname, '..');
 
+/** A bare specifier's package name: '@scope/name' or 'name'. */
+const packageOf = (spec: string) => spec.split('/').slice(0, spec.startsWith('@') ? 2 : 1).join('/');
+
+/**
+ * The packages main loads at run time: every value import (not `import type`)
+ * in electron/*.ts outside the tests, other than electron, node builtins and
+ * billing (shipped in part, checked on its own), with their dependencies and
+ * peer dependencies followed transitively.
+ */
+function mainRuntimeClosure(): Set<string> {
+  const seeds = readdirSync(path.join(root, 'electron'))
+    .filter((f) => f.endsWith('.ts') && !f.endsWith('.test.ts'))
+    .flatMap((f) => [...readFileSync(path.join(root, 'electron', f), 'utf-8').matchAll(/^import (?!type )[^'"]*from '([^'.][^']*)'/gm)].map((m) => m[1]))
+    .filter((spec) => spec !== 'electron' && !spec.startsWith('node:'))
+    .map(packageOf)
+    .filter((name) => name !== '@glance-apps/billing');
+  const closure = new Set<string>();
+  const queue = [...seeds];
+  while (queue.length) {
+    const name = queue.shift()!;
+    if (closure.has(name)) continue;
+    closure.add(name);
+    const pkg = JSON.parse(readFileSync(path.join(root, 'node_modules', name, 'package.json'), 'utf-8'));
+    queue.push(...Object.keys({ ...pkg.dependencies, ...pkg.peerDependencies }));
+  }
+  return closure;
+}
+
 function loadConfig() {
   delete require.cache[require.resolve('../electron-builder.config.cjs')];
   return require('../electron-builder.config.cjs');
@@ -53,14 +81,23 @@ describe('electron-builder.config.cjs', () => {
     }
   });
 
-  it('ships the renderer bundle and main, and of node_modules only the billing main half', () => {
+  it('ships the renderer bundle and main, and of node_modules only what main imports at run time', () => {
     expect(config.files).toEqual(expect.arrayContaining(['dist/**/*', 'dist-electron/**/*', '!**/*.map', '!node_modules/**/*']));
     const shipped = config.files.filter((f: string) => f.startsWith('node_modules/'));
-    expect(shipped).toEqual(['node_modules/@glance-apps/billing/package.json', 'node_modules/@glance-apps/billing/dist/electron-main/**/*']);
-    // That half may import nothing that would then be missing from the package.
+    // @glance-apps/billing ships only its main half, which may import nothing
+    // that would then be missing from the package.
+    expect(shipped).toEqual(expect.arrayContaining(['node_modules/@glance-apps/billing/package.json', 'node_modules/@glance-apps/billing/dist/electron-main/**/*']));
     const src = readFileSync(path.join(root, 'node_modules/@glance-apps/billing/dist/electron-main/index.js'), 'utf-8');
     const imports = [...src.matchAll(/^import .* from '([^']+)'/gm)].map((m) => m[1]);
     expect(imports.every((m) => m === 'electron' || m.startsWith('node:'))).toBe(true);
+
+    // Every other package main imports ships whole, with everything it imports
+    // in turn (dependencies, and peer dependencies, which npm installs): a
+    // package left out is a crash at run time that no test before packaging sees.
+    const whole = shipped
+      .filter((f: string) => !f.startsWith('node_modules/@glance-apps/billing/'))
+      .map((f: string) => /^node_modules\/((?:@[^/]+\/)?[^/]+)\/\*\*\/\*$/.exec(f)?.[1] ?? f);
+    expect([...whole].sort()).toEqual([...mainRuntimeClosure()].sort());
   });
 
   it('points at icons that exist', () => {

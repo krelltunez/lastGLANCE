@@ -123,11 +123,14 @@ request bridge (`electron/mcpRendererBridge.ts`):
 | `lastglance_get_chore` | one chore with its cadence, assignees and recent completions (with notes) |
 | `lastglance_list_categories` | the category tree with assignees |
 | `lastglance_get_activity` | completions between two local dates, by day |
-| `lastglance_list_users` | household members (only when there is more than one) |
+| `lastglance_list_users` | household members, whether multi-user mode is on, and who this device is |
 | `lastglance_list_people` | People with circle, cadence and last interaction (People tier) |
 | `lastglance_get_person` | one person: dates, recent interactions with notes, details (People tier) |
 | `lastglance_list_upcoming_dates` | birthdays and dates in a window (People tier) |
-| `lastglance_list_mcp_writes` | what MCP changed this session, for undo context |
+| `lastglance_list_circles` | the circles People are grouped in (People tier) |
+| `lastglance_list_mcp_writes` | what MCP changed this session, for undo context (phase 3, with the writes) |
+
+Also `lastglance_ping`, a connectivity check that reads nothing.
 
 Resources: `lastglance://chores/due` and `lastglance://people/coming-up`.
 

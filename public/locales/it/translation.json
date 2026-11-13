@@ -1081,6 +1081,9 @@
     "consentPeople": "Persone contiene informazioni su altre persone: nomi, compleanni, le note che tieni su di loro e quando vi siete sentiti l’ultima volta. Non hanno acconsentito a condividerle con un assistente IA. Includi Persone solo se ti va bene.",
     "consentWrites": "L’assistente potrà modificare i tuoi dati senza chiedertelo ogni volta. Può fare al massimo 30 modifiche al minuto, non può mai eliminare nulla e puoi annullare le sue modifiche da qui.",
     "accept": "Attiva",
-    "cancel": "Annulla"
+    "cancel": "Annulla",
+    "errorPortInUse": "La porta {{port}} è già usata da un'altra app.",
+    "errorPortDenied": "Questo computer non ha consentito la porta {{port}}. Scegli una porta sopra 1024.",
+    "errorBindFailed": "Impossibile avviare sulla porta {{port}}."
   }
 }

@@ -47,7 +47,10 @@
     "@capacitor/status-bar": "^8.0.2",
     "@glance-apps/billing": "0.2.2",
     "@glance-apps/intents": "1.4.0",
+    "@glance-apps/mcp-host": "0.2.0",
     "@glance-apps/sync": "2.4.0",
+    "@modelcontextprotocol/node": "2.1.1",
+    "@modelcontextprotocol/server": "2.3.1",
     "dayjs": "^1.11.13",
     "dexie": "^4.4.2",
     "i18next": "^26.3.1",
@@ -56,13 +59,15 @@
     "lucide-react": "1.31.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "react-i18next": "^17.0.8"
+    "react-i18next": "^17.0.8",
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^8.4.0",
     "@electron/notarize": "^3.1.2",
     "@eslint/js": "^9.39.4",
+    "@modelcontextprotocol/client": "2.3.1",
     "@types/node": "^25.6.0",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
