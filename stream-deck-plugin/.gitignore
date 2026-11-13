@@ -1,0 +1,6 @@
+node_modules/
+dist/
+# Built by npm run build (rollup, scripts/gen-assets.mjs).
+com.lastglance.streamdeck.sdPlugin/bin/
+com.lastglance.streamdeck.sdPlugin/imgs/
+src/generated/

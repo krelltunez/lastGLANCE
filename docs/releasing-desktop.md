@@ -89,6 +89,21 @@ within a few hours: the app checks for the latest published release that has a
 download for their OS. A release without desktop files is never announced to
 them.
 
+### The Stream Deck plugin
+
+The same workflow packs the Stream Deck plugin and adds
+`com.lastglance.streamdeck.streamDeckPlugin` to the release. Its version is its
+own, not the app's: when the plugin changed, bump `Version` in
+`stream-deck-plugin/com.lastglance.streamdeck.sdPlugin/manifest.json` (four
+parts, `1.0.1.0`) and `version` in `stream-deck-plugin/package.json` before
+tagging. To publish it on the Elgato Marketplace, a manual step:
+
+1. Download the `.streamDeckPlugin` from the release and install it on a Mac or
+   PC with Stream Deck 6.5 or later; check a Chore key against the running app.
+2. Submit it at the Elgato Marketplace's maker portal as a new version of
+   lastGLANCE, with the release notes (no em dashes) and, for a new action,
+   screenshots of its keys.
+
 ## 4. Mac App Store build
 
 On a Mac with the certificates and the provisioning profile from section 1:

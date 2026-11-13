@@ -296,26 +296,48 @@ rollup imports it, as dayGLANCE's does), version 1:
 
 ### 6.3 The plugin
 
-`stream-deck-plugin/` in this repo, `@elgato/streamdeck` v2, UUID
-`com.lastglance.streamdeck`, keys drawn as SVG (144×144; 200×100 on the dials'
-touch strip). Proposed actions:
+`stream-deck-plugin/` in this repo, `@elgato/streamdeck` v2 (SDK 2, Node 20),
+UUID `com.lastglance.streamdeck`, its own `package.json` and lockfile. Keys are
+drawn as SVG, 144×144 on a key and 200×100 on the Stream Deck + touch strip
+(`src/render.ts`); what each key shows is a pure function of the app's
+`lg:state` and the clock (`src/keys.ts`), so it is tested without Stream Deck.
 
 | Action | Shows | Press |
 |---|---|---|
-| Chore | one chosen chore: icon, fill ring in its state colour, "3d ago" | marks it done |
-| Due | the due chores, one at a time (dial or tap to move) | hold marks the shown chore done |
-| Overview | overdue and soon counts | opens lastGLANCE |
-| Reach out | the person most overdue for contact | opens their log in the app |
-| Coming up | the next birthday or date | opens the person |
+| Chore | one chosen chore: its icon in its cadence colour, "3d", the fill bar | marks it done |
+| Due | the due chores, most overdue first, "2/5 · 3d" | tap shows the next; hold (half a second) marks the shown one done. On a dial: turn to move, push or tap the strip to mark done |
+| Overview | the overdue count (or the soon count), big | opens the app filtered to due soon |
+| Reach out | the person at the top of Reach out | opens their contact log |
+| Coming up | the next birthday or date, "Birthday, in 3d" | opens the person |
 | Add chore | a plus | opens Add chore |
 
-Chore icons are lucide names; the plugin bundles lucide's icon nodes so a key
-draws the same icon the app shows.
-
-**Build and release:** unlike dayGLANCE's hand-packed plugin, CI builds it,
-packs it with `@elgato/cli` and attaches `com.lastglance.streamdeck.streamDeckPlugin`
-to the GitHub release (`release-desktop.yml`); the Elgato Marketplace submission
-is a manual step in `docs/releasing-desktop.md`.
+- **The connection** (`src/connection.ts`): one socket to 127.0.0.1:7901 with
+  no Origin, so the app trusts it as a native client; reconnects with backoff
+  from 1 to 30 seconds; every command carries a `clientId` and waits up to five
+  seconds for its `lg:result`. Not connected reads as "Not running" on every
+  key, and connected before the first snapshot as "Open the app", never as
+  "nothing due". A press shows the app's answer: a tick for done (and for a
+  second press the guard refused, since the chore is done), an alert otherwise.
+- **The Chore key's picker** asks the plugin backend for the chore list over
+  Stream Deck's own property inspector channel (`sendToPlugin`), not over a
+  second socket, so the session token (`lg:token`) is unused by this plugin.
+- **Icons:** `scripts/gen-assets.mjs` generates the icon table from the app's
+  own `lucide-react` with the widgets' name rules (`scripts/lucide-names.mjs`),
+  so every name a chore can store (Sprout, LucideSprout, SproutIcon, an old
+  alias) draws the icon the app shows. It runs from the root install, so the
+  plugin always draws the app's version. The plugin and action icons are made
+  by the same script from the app icon and Lucide glyphs.
+- **Words on the keys are English only.** Stream Deck gives the plugin no
+  language of the app's, and the keys carry little text (a name, "3d").
+- **Tests** run with the app's (`npx vitest run stream-deck-plugin`), including
+  one that drives the real connection against the app's real listener and deck
+  model over a socket.
+- **Build and release:** unlike dayGLANCE's hand-packed plugin, CI builds,
+  typechecks, validates and packs it (`ci.yml`), and `release-desktop.yml`
+  attaches `com.lastglance.streamdeck.streamDeckPlugin` to the tag's release.
+  The Elgato Marketplace submission is a manual step in
+  `docs/releasing-desktop.md`. The manifest has no `URL`: `streamdeck validate`
+  fetches it, which would tie CI to the website being up.
 
 ## 7. Mac App Store
 
@@ -381,8 +403,10 @@ until phase 7.
    tray's "done here" record alone forgot a press as soon as a snapshot
    settled it. The widget snapshot is now stamped before its data is read,
    which also stops the tray from briefly showing a chore it just completed.
-6. **Stream Deck plugin.** The actions, the property inspectors, the renderer,
-   CI packing.
+6. **Stream Deck plugin (done).** `stream-deck-plugin/`: the six actions,
+   the Chore key's picker over Stream Deck's channel, the key renderer with the
+   app's own Lucide icons, the connection with backoff, CI building and packing
+   it and the release attaching it (6.3).
 7. **Ship.** Mount the Settings section, strings in all 10 languages (pt-BR
    through `scripts/gen-pt-br.mjs`), README, `docs/releasing-desktop.md`.
 

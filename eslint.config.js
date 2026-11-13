@@ -10,7 +10,7 @@ import tseslint from 'typescript-eslint'
 // shells, and generated assets are ignored.
 export default tseslint.config(
   {
-    ignores: ['dist', 'dev-dist', 'dist-electron', 'dist-app', 'android', 'ios', 'public', 'coverage'],
+    ignores: ['dist', 'dev-dist', 'dist-electron', 'dist-app', 'android', 'ios', 'public', 'coverage', 'stream-deck-plugin/node_modules', 'stream-deck-plugin/dist', 'stream-deck-plugin/com.lastglance.streamdeck.sdPlugin/bin'],
   },
   {
     files: ['**/*.{ts,tsx,cts}'],
