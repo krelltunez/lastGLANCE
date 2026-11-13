@@ -31,6 +31,7 @@ import { loadWindowState, onScreen, saveWindowState, saveWindowTheme, windowBack
 import { createCommandQueue, type CommandSource } from './commandQueue.js';
 import { bindErrorCode, startMcpServer } from './mcpServer.js';
 import { createRendererBridge } from './mcpRendererBridge.js';
+import { createJournal } from './mcpJournal.js';
 import { registerElectronBilling } from '@glance-apps/billing/electron-main';
 import { MAS_BILLING } from './billingConfig.js';
 import { availableUpdate, CHECK_CACHE_MS, RELEASES_API, type AvailableUpdate } from './updateCheck.js';
@@ -39,7 +40,7 @@ import { createReminderScheduler, type ScheduledReminder } from './reminderSched
 import { isClickAfterBlurHide, parseTraySnapshot, popupPosition, settledCompletions, trayMenuItems, trayOpenToken, trayState, type TraySnapshot } from './trayModel.js';
 import { linuxFormats, macFormats, windowsFormats, type SystemFormats } from './systemFormats.js';
 import type http from 'node:http';
-import type { HostBridge } from '@glance-apps/mcp-host';
+import { createIdempotencyStore, createWriteGate, type HostBridge } from '@glance-apps/mcp-host';
 import {
   applyTransition, DEFAULT_LOCAL_INTEGRATIONS, integrationsView, listenerEffects, loadLocalIntegrations, mcpGates, saveLocalIntegrations,
   type ListenerStatus, type LocalIntegrationsConfig, type McpEffect, type StreamDeckEffect,
@@ -306,9 +307,25 @@ function trayMenuLabels() {
   };
 }
 
+/**
+ * The assistant's items, while the MCP server is on or there is something to
+ * undo: undo everything assistants changed this session, and turn the server
+ * off, without opening the window (docs/mcp-and-stream-deck.md, 4.5).
+ */
+function mcpTrayItems(): Electron.MenuItemConstructorOptions[] {
+  const changes = mcpJournal.entries().length;
+  const bound = mcpGates(integrationsConfig).bound;
+  if (!bound && changes === 0) return [];
+  return [
+    ...(changes > 0 ? [{ label: `${label('trayMcpUndo', 'Undo assistant changes')} (${changes})`, click: () => { void undoMcpWrites(); } }] : []),
+    ...(bound ? [{ label: label('trayMcpOff', 'Turn off assistant access'), click: () => { runIntegrationsTransition({ type: 'set-mcp-read-tier', tier: 'off' }); } }] : []),
+    { type: 'separator' },
+  ];
+}
+
 function trayMenu(withChores: boolean): Menu {
   const items = trayMenuItems(currentTrayState(), trayMenuLabels(), withChores);
-  return Menu.buildFromTemplate(items.map((item): Electron.MenuItemConstructorOptions => {
+  return Menu.buildFromTemplate([...mcpTrayItems(), ...items.map((item): Electron.MenuItemConstructorOptions => {
     switch (item.kind) {
       case 'open': return { label: item.label, click: () => showMainWindow() };
       case 'quit': return { label: item.label, click: () => app.quit() };
@@ -322,7 +339,7 @@ function trayMenu(withChores: boolean): Menu {
       };
       default: return { type: 'separator' };
     }
-  }));
+  })]);
 }
 
 function refreshTray(): void {
@@ -466,7 +483,7 @@ const integrationsStatus: { mcp: ListenerStatus; streamDeck: ListenerStatus } = 
 };
 
 function currentIntegrationsView() {
-  return integrationsView(integrationsConfig, integrationsStatus);
+  return integrationsView(integrationsConfig, integrationsStatus, { writesPaused: mcpGate.writesDisabled() });
 }
 
 function pushIntegrationsStatus(): void {
@@ -478,6 +495,31 @@ function pushIntegrationsStatus(): void {
 // every request, so neither needs a restart.
 let mcpServerHandle: http.Server | null = null;
 let mcpBridge: HostBridge | null = null;
+// Writes (4.5): made once and kept across stops and starts, so turning the
+// server off and on cannot reset the rate limit or the replay window. The
+// journal is the session's: a restart clears it.
+const mcpGate = createWriteGate();
+const mcpStore = createIdempotencyStore<Record<string, unknown>>();
+const mcpJournal = createJournal();
+
+function pushJournal(): void {
+  live(mainWindow)?.webContents.send('mcp-journal:changed', mcpJournal.snapshot());
+  refreshTray();
+}
+
+/** Undo one item's changes, or all of them, newest first, through the page. */
+async function undoMcpWrites(groupKey?: string): Promise<{ ok: boolean; undone?: number; skipped?: unknown[]; error?: string }> {
+  const { ops, seqs } = mcpJournal.plan(groupKey);
+  if (ops.length === 0) return { ok: true, undone: 0, skipped: [] };
+  mcpBridge ??= createRendererBridge(() => live(mainWindow));
+  const r = await mcpBridge.request('undo_mcp_writes', { ops }, 10_000);
+  if (!r.ok) return { ok: false, error: r.error.code };
+  mcpJournal.remove(seqs);
+  pushJournal();
+  const data = (r.data ?? {}) as { undone?: number; skipped?: unknown[] };
+  logStartup(`mcp undo: ${data.undone ?? 0} undone, ${data.skipped?.length ?? 0} kept`);
+  return { ok: true, undone: data.undone ?? 0, skipped: data.skipped ?? [] };
+}
 
 function setMcpStatus(status: ListenerStatus): void {
   integrationsStatus.mcp = status;
@@ -496,6 +538,19 @@ function startMcpListener(): void {
       now: () => Date.now(),
       timeZone: () => Intl.DateTimeFormat().resolvedOptions().timeZone,
       includePeople: () => mcpGates(integrationsConfig).includePeople,
+    },
+    writeDeps: {
+      bridge: mcpBridge,
+      gate: mcpGate,
+      store: mcpStore,
+      token: () => integrationsConfig.mcp.token ?? '',
+      includeWrites: () => mcpGates(integrationsConfig).includeWrites,
+      onWritesDisabled: () => {
+        logStartup('mcp: writes turned off after repeated rate-limit overruns, until restart');
+        pushIntegrationsStatus();
+      },
+      journal: mcpJournal,
+      onWrite: pushJournal,
     },
     log: logStartup,
     logError: logStartup,
@@ -545,9 +600,8 @@ function startLocalIntegrations(): void {
   applyListenerEffects(listenerEffects(DEFAULT_LOCAL_INTEGRATIONS, config));
 }
 
-ipcMain.handle('local-integrations:get', (event) => (isMainWindowSender(event.sender) ? currentIntegrationsView() : null));
-ipcMain.handle('local-integrations:transition', (event, action: unknown) => {
-  if (!isMainWindowSender(event.sender)) return { ok: false, error: 'invalid_action', view: null };
+/** Apply one Settings change: save it, start or stop what it says, and tell the page. */
+function runIntegrationsTransition(action: unknown) {
   const result = applyTransition(integrationsConfig, action, {
     now: () => new Date().toISOString(),
     newToken: () => crypto.randomBytes(32).toString('hex'),
@@ -558,7 +612,19 @@ ipcMain.handle('local-integrations:transition', (event, action: unknown) => {
   if (!saveLocalIntegrations(app.getPath('userData'), integrationsConfig)) logStartup('local-integrations.json could not be written; this session follows the change');
   applyListenerEffects(listenerEffects(before, integrationsConfig));
   pushIntegrationsStatus();
+  refreshTray();
   return { ok: true, view: currentIntegrationsView() };
+}
+
+ipcMain.handle('local-integrations:get', (event) => (isMainWindowSender(event.sender) ? currentIntegrationsView() : null));
+ipcMain.handle('local-integrations:transition', (event, action: unknown) =>
+  (isMainWindowSender(event.sender) ? runIntegrationsTransition(action) : { ok: false, error: 'invalid_action', view: null }));
+
+// The MCP write journal, for Settings: what assistants changed, and undo.
+ipcMain.handle('mcp-journal:get', (event) => (isMainWindowSender(event.sender) ? mcpJournal.snapshot() : null));
+ipcMain.handle('mcp-journal:undo', (event, groupKey: unknown) => {
+  if (!isMainWindowSender(event.sender)) return { ok: false, error: 'invalid_sender' };
+  return undoMcpWrites(typeof groupKey === 'string' ? groupKey : undefined);
 });
 
 // The main window's widget snapshot (src/native/widgetBridge.ts).

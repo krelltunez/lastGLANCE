@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ShieldCheck } from 'lucide-react'
-import { useLocalIntegrations } from '@/hooks/useLocalIntegrations'
+import { useLocalIntegrations, useMcpJournal } from '@/hooks/useLocalIntegrations'
 import type { DesktopMcpReadTier } from '@/native/desktop'
 import {
   claudeCodeCommand, consentsForTier, maskToken, statusErrorKey, parsePortInput, tierAction, transitionErrorKey, writesAction,
@@ -27,6 +27,7 @@ interface PendingConsent {
 export function LocalIntegrationsPanel() {
   const { t } = useTranslation()
   const { view, error, apply } = useLocalIntegrations()
+  const { journal, result: undoResult, undo } = useMcpJournal()
   const [pending, setPending] = useState<PendingConsent | null>(null)
   const [revealed, setRevealed] = useState(false)
   const [copied, setCopied] = useState<'token' | 'command' | null>(null)
@@ -170,6 +171,31 @@ export function LocalIntegrationsPanel() {
           )}
         </>
       )}
+
+      {mcp.writesPaused && mcp.writesEnabled && (
+        <p className="text-xs text-amber-600 dark:text-amber-400">{t('localIntegrations.writesPaused')}</p>
+      )}
+
+      {journal && journal.total > 0 && (
+        <Field label={t('localIntegrations.changesTitle')}>
+          <ul className="space-y-1.5">
+            {journal.groups.map(g => (
+              <li key={g.key} className="flex items-center gap-2">
+                <span className="flex-1 min-w-0 truncate text-sm text-slate-600 dark:text-slate-300">{g.label}</span>
+                <span className="text-xs text-slate-400 dark:text-slate-500">{g.count}</span>
+                <button type="button" className={button} onClick={() => { void undo(g.key) }}>{t('localIntegrations.undo')}</button>
+              </li>
+            ))}
+          </ul>
+          <div className="mt-2 flex justify-end">
+            <button type="button" className={button} onClick={() => { void undo(null) }}>{t('localIntegrations.undoAll')}</button>
+          </div>
+          <p className={hint}>{t('localIntegrations.changesHint')}</p>
+        </Field>
+      )}
+      {undoResult && (undoResult.ok
+        ? <p className={hint}>{t('localIntegrations.undoResult', { undone: undoResult.undone ?? 0, kept: undoResult.skipped?.length ?? 0 })}</p>
+        : <p className="text-xs text-red-500 dark:text-red-400">{t('localIntegrations.undoFailed')}</p>)}
 
       {error && <p className="text-xs text-red-500 dark:text-red-400">{t(transitionErrorKey(error))}</p>}
 

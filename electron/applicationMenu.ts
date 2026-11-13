@@ -44,6 +44,8 @@ export const SHELL_LABEL_KEYS = [
   'trayQuit',
   'trayMarkDone',
   'trayNothingDue',
+  'trayMcpUndo',
+  'trayMcpOff',
 ] as const;
 
 export type ApplicationMenuLabelKey = typeof APPLICATION_MENU_LABEL_KEYS[number];

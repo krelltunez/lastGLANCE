@@ -1030,7 +1030,9 @@
     "trayOpen": "Ouvrir lastGLANCE",
     "trayQuit": "Quitter lastGLANCE",
     "trayMarkDone": "Marquer comme fait",
-    "trayNothingDue": "Rien à faire"
+    "trayNothingDue": "Rien à faire",
+    "trayMcpUndo": "Annuler les modifications des assistants",
+    "trayMcpOff": "Couper l'accès des assistants"
   },
   "tray": {
     "overdue": "En retard : {{count}}",
@@ -1084,6 +1086,13 @@
     "cancel": "Annuler",
     "errorPortInUse": "Le port {{port}} est déjà utilisé par une autre app.",
     "errorPortDenied": "Cet ordinateur n'a pas autorisé le port {{port}}. Choisissez un port au-dessus de 1024.",
-    "errorBindFailed": "Impossible de démarrer sur le port {{port}}."
+    "errorBindFailed": "Impossible de démarrer sur le port {{port}}.",
+    "writesPaused": "Les modifications sont en pause après trop de modifications d'affilée. Redémarrez lastGLANCE pour les autoriser à nouveau.",
+    "changesTitle": "Modifications par des assistants",
+    "changesHint": "Pour cette session uniquement. Annuler conserve ce que vous avez modifié depuis.",
+    "undo": "Annuler",
+    "undoAll": "Tout annuler",
+    "undoResult": "Annulées : {{undone}}. Conservées car modifiées depuis : {{kept}}.",
+    "undoFailed": "Impossible d'annuler pour le moment. Réessayez."
   }
 }

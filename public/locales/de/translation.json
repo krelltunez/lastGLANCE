@@ -1030,7 +1030,9 @@
     "trayOpen": "lastGLANCE öffnen",
     "trayQuit": "lastGLANCE beenden",
     "trayMarkDone": "Als erledigt markieren",
-    "trayNothingDue": "Nichts fällig"
+    "trayNothingDue": "Nichts fällig",
+    "trayMcpUndo": "Änderungen durch Assistenten rückgängig machen",
+    "trayMcpOff": "Zugriff für Assistenten ausschalten"
   },
   "tray": {
     "overdue": "Überfällig: {{count}}",
@@ -1084,6 +1086,13 @@
     "cancel": "Abbrechen",
     "errorPortInUse": "Port {{port}} wird schon von einer anderen App genutzt.",
     "errorPortDenied": "Dieser Computer hat Port {{port}} nicht erlaubt. Wähle einen Port über 1024.",
-    "errorBindFailed": "Konnte auf Port {{port}} nicht starten."
+    "errorBindFailed": "Konnte auf Port {{port}} nicht starten.",
+    "writesPaused": "Änderungen sind pausiert, weil zu viele kurz nacheinander kamen. Starte lastGLANCE neu, um sie wieder zu erlauben.",
+    "changesTitle": "Änderungen durch Assistenten",
+    "changesHint": "Nur in dieser Sitzung. Rückgängig machen behält alles, was du seitdem geändert hast.",
+    "undo": "Rückgängig",
+    "undoAll": "Alle rückgängig",
+    "undoResult": "Rückgängig gemacht: {{undone}}. Behalten, weil seitdem geändert: {{kept}}.",
+    "undoFailed": "Rückgängig machen war gerade nicht möglich. Versuche es erneut."
   }
 }

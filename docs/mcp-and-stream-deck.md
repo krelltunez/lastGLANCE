@@ -185,18 +185,19 @@ the SDK's generic one.
 
 **How a write reaches the data.** Not through `commands.json`. The queue exists
 for presses that must survive a crash and need no reply; an MCP write needs its
-result (the chore it created, the completion it added) and has its own retry
-story in the idempotency key. So writes ride the request bridge, and the page
-applies them **with the same handlers and ledger as the launcher's writes**
-(`drainLauncherQueue` over `handleIntent`) wherever `handleIntent` has the verb
-(complete, create, log interaction), the idempotency key becoming the
-ledger's `clientId`. That keeps one write path into the data, keeps a replay
-after a store reset harmless, and gets the vault push for free: the main window
-has its engines registered (CLAUDE.md, "Launcher writes are applied, then
-pushed"). The edits (`update_*`) and `create_person` have no intent verb; they
-call the same query functions the forms call (`src/db/queries.ts`,
-`src/people/queries.ts`), which mark the dirty trackers as a form's save does,
-behind a ledger keyed the same way.
+result and has its own retry story in the idempotency key. So writes ride the
+request bridge, and the page applies them in `src/mcp/writeModel.ts` through
+the same data-layer calls the app's forms make (`createChore`, `updateChore`,
+`logCompletion`, ...), with the forms' rules (the category's icon and assignees
+on a new chore, the device's Me as the completer, no future completions). That
+marks each change dirty and gets it pushed as a form's save is, and fires the
+same `lg:chore-logged` the intents path fires, so the screens, widgets and
+reminders refresh. A create's id is derived from its idempotency key, so a
+retry finds its own row even after the replay store has forgotten it; a chore
+with the same name in the same category is returned rather than duplicated, as
+the intents path does. (Decided while building 3a: the launcher's ledger
+answers "was this delivered" with an id, but a write here needs the entity and
+an undo record, which the data layer gives directly.)
 
 **Undo.** Each write returns an undo op from the page (it alone has the
 before-state): `remove_completion`, `remove_created` (a chore, category or person, removed
@@ -208,7 +209,10 @@ from Settings and from the tray popup's menu, which also carries the kill switch
 
 ### 4.6 Visible state
 
-A small indicator in the tray popup's header and in Settings: green while the
+Built in phase 3a: the changes list with Undo and Undo all in Settings, a
+notice there when the rate gate has paused writes, and the tray menu's "Undo
+assistant changes (N)" and "Turn off assistant access". Still to come, with the
+Settings mount (phase 7): a small indicator in the tray popup's header and in Settings: green while the
 server is on, blue while there are undoable MCP writes, red when writes were
 auto-disabled. No per-write modal (dayGLANCE spec, 4.3): read-only by default, no
 deletes, a rate limit and undo instead.
@@ -339,9 +343,14 @@ until phase 7.
 2. **MCP reads.** The request bridge, the read model, the read tools and
    resources, `docs/mcp-tools-reference.md`, and the transport suite over a real
    loopback listener and the official client.
-3. **MCP writes.** The write tools and planners, the page's write path through
-   the launcher handlers and ledger, the undo ops, the journal, undo from
-   Settings and the tray, the kill switch, the indicator.
+3. **MCP writes**, in two PRs.
+   - **3a, chores (done):** the write pipeline (consent, replay, rate gate),
+     the page's write model through the data layer the forms use, the field
+     audit in `docs/mcp-tools-reference.md`, chores, completions and
+     categories, the session journal with undo from Settings and the tray
+     menu, and the tray menu's off switch.
+   - **3b, People:** people, dates, contacts and circles on the same pipeline.
+   The indicator (4.6) comes with the Settings mount in phase 7.
 4. **Connecting Claude.** The Claude Code line, the discovery file, the Claude
    Desktop setup (needs the generalised bridge), the MAS compile-out and its
    verify script.

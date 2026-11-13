@@ -12,6 +12,7 @@ import { McpServer } from '@modelcontextprotocol/server';
 import { startMcpListener } from '@glance-apps/mcp-host';
 import { DEFAULT_MCP_PORT, MCP_ENDPOINT_PATH } from './localIntegrations.js';
 import { registerReadTools, registerResources, type ReadToolDeps } from './mcpReadTools.js';
+import { registerJournalReadTool, registerWriteTools, type WriteToolDeps } from './mcpWriteTools.js';
 
 export { MCP_ENDPOINT_PATH };
 
@@ -20,6 +21,8 @@ export interface McpServerOptions {
   token: string | (() => string);
   portOverride?: number | null;
   readDeps: ReadToolDeps;
+  /** The write tools. They are registered whenever the server runs; each call checks "Allow changes" itself. */
+  writeDeps?: WriteToolDeps;
   version?: string;
   log?: (msg: string) => void;
   logError?: (msg: string) => void;
@@ -39,6 +42,10 @@ export function startMcpServer(opts: McpServerOptions): http.Server | null {
       const server = new McpServer({ name: 'lastGLANCE', version: opts.version || '0.0.0' });
       registerReadTools(server, opts.readDeps);
       registerResources(server, opts.readDeps);
+      if (opts.writeDeps) {
+        registerWriteTools(server, opts.writeDeps);
+        if (opts.writeDeps.journal) registerJournalReadTool(server, opts.writeDeps.journal);
+      }
       return server;
     },
   });

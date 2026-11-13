@@ -1030,7 +1030,9 @@
     "trayOpen": "Abrir o lastGLANCE",
     "trayQuit": "Sair do lastGLANCE",
     "trayMarkDone": "Marcar como concluída",
-    "trayNothingDue": "Nada pendente"
+    "trayNothingDue": "Nada pendente",
+    "trayMcpUndo": "Desfazer alterações de assistentes",
+    "trayMcpOff": "Desligar o acesso de assistentes"
   },
   "tray": {
     "overdue": "Em atraso: {{count}}",
@@ -1084,6 +1086,13 @@
     "cancel": "Cancelar",
     "errorPortInUse": "A porta {{port}} já está a ser usada por outro programa.",
     "errorPortDenied": "Este computador não permitiu a porta {{port}}. Escolha uma porta acima de 1024.",
-    "errorBindFailed": "Não foi possível iniciar na porta {{port}}."
+    "errorBindFailed": "Não foi possível iniciar na porta {{port}}.",
+    "writesPaused": "As alterações estão em pausa depois de demasiadas seguidas. Reinicie o lastGLANCE para as permitir novamente.",
+    "changesTitle": "Alterações feitas por assistentes",
+    "changesHint": "Apenas nesta sessão. Desfazer mantém o que alterou entretanto.",
+    "undo": "Desfazer",
+    "undoAll": "Desfazer tudo",
+    "undoResult": "Desfeitas: {{undone}}. Mantidas porque mudaram entretanto: {{kept}}.",
+    "undoFailed": "Não foi possível desfazer agora. Tente novamente."
   }
 }

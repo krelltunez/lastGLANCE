@@ -1030,7 +1030,9 @@
     "trayOpen": "Abrir lastGLANCE",
     "trayQuit": "Salir de lastGLANCE",
     "trayMarkDone": "Marcar como hecha",
-    "trayNothingDue": "Nada pendiente"
+    "trayNothingDue": "Nada pendiente",
+    "trayMcpUndo": "Deshacer cambios de asistentes",
+    "trayMcpOff": "Desactivar el acceso de asistentes"
   },
   "tray": {
     "overdue": "Atrasadas: {{count}}",
@@ -1084,6 +1086,13 @@
     "cancel": "Cancelar",
     "errorPortInUse": "Otra app ya usa el puerto {{port}}.",
     "errorPortDenied": "Este ordenador no permitió el puerto {{port}}. Elige un puerto por encima de 1024.",
-    "errorBindFailed": "No se pudo iniciar en el puerto {{port}}."
+    "errorBindFailed": "No se pudo iniciar en el puerto {{port}}.",
+    "writesPaused": "Los cambios están en pausa tras demasiados seguidos. Reinicia lastGLANCE para volver a permitirlos.",
+    "changesTitle": "Cambios de asistentes",
+    "changesHint": "Solo en esta sesión. Deshacer conserva lo que hayas cambiado desde entonces.",
+    "undo": "Deshacer",
+    "undoAll": "Deshacer todo",
+    "undoResult": "Deshechos: {{undone}}. Conservados porque cambiaron después: {{kept}}.",
+    "undoFailed": "No se pudo deshacer ahora. Inténtalo de nuevo."
   }
 }

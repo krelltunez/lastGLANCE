@@ -14,7 +14,9 @@
 //   - background settings, reminders through main, the command queue and the
 //     tray popup's page (Phase 4);
 //   - the MCP server: turned on through the bridge, it answers the official
-//     client from the page's database, and turning it off frees the port;
+//     client from the page's database; with "Allow changes" a write lands in
+//     the database and the journal, and Settings' undo takes it back out;
+//     turning it off frees the port;
 //   - the page's log lines reach the log file;
 //   - no uncaught page error.
 //
@@ -83,7 +85,14 @@ try {
     check(info?.secureStorage === false, `secure storage reported unavailable here (${info?.secureStorage})`)
   }
 
-  const dbs = await page.evaluate(async () => (await indexedDB.databases()).map((d) => d.name))
+  // The header can render before Dexie's first open on a fresh profile has
+  // committed, and indexedDB.databases() lists a database only once it has:
+  // wait for it (CI starts from an empty profile every run) rather than read once.
+  let dbs = []
+  for (let i = 0; i < 100 && !dbs.includes('lastglance'); i++) {
+    if (i) await new Promise((r) => setTimeout(r, 100))
+    dbs = await page.evaluate(async () => (await indexedDB.databases()).map((d) => d.name))
+  }
   check(dbs.includes('lastglance'), `Dexie opened the lastglance database (${dbs.join(', ')})`)
 
   // app:// is not registered with allowServiceWorkers, so Chromium refuses the
@@ -293,6 +302,29 @@ try {
     check(overview.structuredContent?.counts?.chores === pageChores, `MCP sees the page's chores (${overview.structuredContent?.counts?.chores} vs ${pageChores})`)
     const people = await client.callTool({ name: 'lastglance_list_people', arguments: {} })
     check(!people.isError && Array.isArray(people.structuredContent?.items), 'MCP lists People')
+
+    // Writes: refused until "Allow changes", then a create lands in the page's
+    // database and the journal, and the undo Settings offers takes it out.
+    const readOnly = await client.callTool({ name: 'lastglance_create_chore', arguments: { name: 'Smoke chore' } })
+    check(readOnly.isError && readOnly.content?.[0]?.text?.includes('read_only_mode'), 'a write is refused until changes are allowed')
+    const writesOn = await page.evaluate(() => window.lastGlanceDesktop.localIntegrations.transition({ type: 'set-mcp-writes', enabled: true, writesConsentConfirmed: true }))
+    check(writesOn?.ok === true && writesOn.view?.mcp?.writesEnabled === true, 'changes are allowed through the bridge')
+    const created = await client.callTool({ name: 'lastglance_create_chore', arguments: { name: 'Smoke chore', cadence_days: 3, idempotency_key: 'smoke-1' } })
+    check(!created.isError && created.structuredContent?.chore?.name === 'Smoke chore', `MCP creates a chore (${created.isError ? created.content?.[0]?.text : created.structuredContent?.chore?.category_path})`)
+    const choreCount = () => page.evaluate(() => new Promise((resolve) => {
+      const req = indexedDB.open('lastglance')
+      req.onsuccess = () => {
+        const count = req.result.transaction('chores', 'readonly').objectStore('chores').count()
+        count.onsuccess = () => { resolve(count.result); req.result.close() }
+      }
+      req.onerror = () => resolve(-1)
+    }))
+    check(await choreCount() === pageChores + 1, 'the new chore is in the page\'s database')
+    const journal = await page.evaluate(() => window.lastGlanceDesktop.mcpJournal.get())
+    check(journal?.total === 1 && journal.entries[0]?.summary === 'Created “Smoke chore”', `the change is in the journal (${journal?.total})`)
+    const undone = await page.evaluate(() => window.lastGlanceDesktop.mcpJournal.undo(null))
+    check(undone?.ok === true && undone.undone === 1, `Settings' undo takes it back (${JSON.stringify(undone)})`)
+    check(await choreCount() === pageChores, 'the chore is gone from the database again')
     await client.close()
   }
   const mcpOff = await page.evaluate(() => window.lastGlanceDesktop.localIntegrations.transition({ type: 'set-mcp-read-tier', tier: 'off' }))
