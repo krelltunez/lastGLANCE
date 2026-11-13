@@ -32,7 +32,7 @@
     "build:electron:main": "tsc -p tsconfig.electron.json && tsc -p tsconfig.electron.preload.json",
     "build:electron": "npm run build:electron:renderer && npm run build:electron:main && electron-builder --config electron-builder.config.cjs",
     "build:electron:release": "npm run build:electron -- --publish never",
-    "build:electron:mas": "npm run build:electron:renderer && npm run build:electron:main && LASTGLANCE_APP_ID=com.lastglance electron-builder --config electron-builder.config.cjs --mac mas --universal --publish never",
+    "build:electron:mas": "LASTGLANCE_MAS_BUILD=1 npm run build:electron:renderer && npm run build:electron:main && LASTGLANCE_APP_ID=com.lastglance electron-builder --config electron-builder.config.cjs --mac mas --universal --publish never",
     "build:electron:dir": "npm run build:electron:renderer && npm run build:electron:main && electron-builder --config electron-builder.config.cjs --dir --publish never",
     "test:electron-smoke": "node e2e/electron-smoke.mjs"
   },

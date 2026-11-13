@@ -104,7 +104,15 @@ npm run build:electron:mas
 This builds the universal `.pkg` in `dist-app/mas-universal/`, as
 `com.lastglance`, sandboxed, with both iCloud containers and in-app purchases.
 Its build number is `YYYYMMDD.HHMM`, so every upload is higher than the last
-(`BUILD_NUMBER` overrides). Then:
+(`BUILD_NUMBER` overrides). Before uploading, check it carries nothing the
+store build must not (the Claude Desktop setup, docs/mcp-and-stream-deck.md,
+section 7):
+
+```bash
+node scripts/verify-mas-compileout.mjs --mas dist-app/mas-universal/lastGLANCE.app
+```
+
+Then:
 
 1. Upload the `.pkg` with **Transporter**.
 2. In App Store Connect, add the build to the macOS version, with the release

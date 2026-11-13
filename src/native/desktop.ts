@@ -343,6 +343,16 @@ export interface DesktopMcpJournal {
   onChanged(listener: (snapshot: unknown) => void): () => void
 }
 
+/** What "Set up Claude Desktop" did (electron/mcpDesktopSetup.ts). */
+export type DesktopClaudeSetupResult =
+  | { ok: true; action: 'created' | 'merged'; path: string; backupPath: string | null }
+  | { ok: false; reason: 'unsupported_platform' | 'bridge_missing' | 'unreadable' | 'unparseable' | 'write_failed' | 'invalid_sender'; path?: string; manualEntry?: string; error?: string }
+
+/** The Claude Desktop setup (docs/mcp-and-stream-deck.md, section 5). Not on the Mac App Store build. */
+export interface DesktopMcpSetup {
+  claudeDesktop(): Promise<DesktopClaudeSetupResult>
+}
+
 export interface DesktopBridge {
   info: DesktopInfo
   shell: DesktopShell
@@ -360,6 +370,7 @@ export interface DesktopBridge {
   localIntegrations: DesktopLocalIntegrations
   mcp: DesktopMcp
   mcpJournal: DesktopMcpJournal
+  mcpSetup: DesktopMcpSetup
 }
 
 /**
@@ -441,6 +452,7 @@ export const DESKTOP_BRIDGE_METHODS = [
   'mcpJournal.get',
   'mcpJournal.undo',
   'mcpJournal.onChanged',
+  'mcpSetup.claudeDesktop',
 ] as const
 
 declare global {

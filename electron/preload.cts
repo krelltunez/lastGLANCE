@@ -137,6 +137,9 @@ contextBridge.exposeInMainWorld('lastGlanceDesktop', {
     undo: (groupKey: string | null) => ipcRenderer.invoke('mcp-journal:undo', groupKey),
     onChanged: (listener: (payload: unknown) => void) => subscribe('mcp-journal:changed', listener),
   },
+  mcpSetup: {
+    claudeDesktop: () => ipcRenderer.invoke('mcp-setup:claude-desktop'),
+  },
   icloud: {
     available: () => ipcRenderer.invoke('icloud:available'),
     readFile: (options: { path: string; container?: string; allowStale?: boolean }) => ipcRenderer.invoke('icloud:read-file', options),

@@ -354,9 +354,19 @@ until phase 7.
      this user's People only; the audit rows and tools in
      `docs/mcp-tools-reference.md`.
    The indicator (4.6) comes with the Settings mount in phase 7.
-4. **Connecting Claude.** The Claude Code line, the discovery file, the Claude
-   Desktop setup (needs the generalised bridge), the MAS compile-out and its
-   verify script.
+4. **Connecting Claude**, in two steps.
+   - **The bridge:** app profiles in `glance-apps/mcp-bridge` (0.2.0): one
+     bridge, a profile per app, `--app lastglance`, its own `.mcpb`; dayGLANCE
+     unchanged with no `--app`.
+   - **4a (done):** the discovery file, the Claude Desktop config writer and
+     its button (`mcpDesktopConfig.ts`, `mcpDesktopSetup.ts`), the MAS
+     compile-out (`__MAS_BUILD__`, the package exclusions,
+     `scripts/verify-mas-compileout.mjs`, run on direct builds in CI) and the
+     MAS `network.server` entitlement. The Claude Code line was built in
+     phase 1.
+   - **4b, once 0.2.0 is on npm:** the bridge as a dependency, shipped in
+     `extraResources` on macOS and Windows direct builds (never MAS), so the
+     button's entry points at a file that exists; the verify script checks it.
 5. **Stream Deck, desktop side.** The WebSocket server, the protocol, the deck
    model from the snapshot, `streamdeck` commands and the double-completion
    guard.

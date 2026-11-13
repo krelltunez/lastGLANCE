@@ -1093,6 +1093,15 @@
     "undo": "Desfazer",
     "undoAll": "Desfazer tudo",
     "undoResult": "Desfeitas: {{undone}}. Mantidas porque mudaram entretanto: {{kept}}.",
-    "undoFailed": "Não foi possível desfazer agora. Tente novamente."
+    "undoFailed": "Não foi possível desfazer agora. Tente novamente.",
+    "claudeDesktop": "Claude Desktop",
+    "claudeDesktopSetup": "Configurar o Claude Desktop",
+    "claudeDesktopHint": "Adiciona o lastGLANCE às definições do Claude Desktop sem mexer nas outras ligações.",
+    "claudeDesktopDone": "Adicionado. Reinicie o Claude Desktop para ligar.",
+    "claudeDesktopDoneBackup": "Adicionado, e as definições anteriores do Claude Desktop foram guardadas ao lado. Reinicie o Claude Desktop para ligar.",
+    "claudeDesktopBridgeMissing": "A esta versão do lastGLANCE falta o conector do Claude Desktop. Use antes a extensão do lastGLANCE do guia de configuração.",
+    "claudeDesktopManual": "Não foi possível atualizar as definições do Claude Desktop. Adicione isto à mão:",
+    "claudeDesktopGuide": "Ligue o Claude Desktop com a extensão do lastGLANCE e cole nela o token.",
+    "setupGuide": "Guia de configuração"
   }
 }

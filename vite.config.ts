@@ -106,6 +106,10 @@ function webdavProxyPlugin(): Plugin {
 export default defineConfig(({ mode }) => ({
   define: {
     __APP_VERSION__: JSON.stringify(version),
+    // The Mac App Store build (docs/mcp-and-stream-deck.md, section 7): set by
+    // build:electron:mas, so what that build must not carry (the Claude
+    // Desktop setup button) is compiled out of its bundle rather than hidden.
+    __MAS_BUILD__: JSON.stringify(process.env.LASTGLANCE_MAS_BUILD === '1'),
     __BUILD_TIME__: JSON.stringify(buildTime),
   },
   plugins: [

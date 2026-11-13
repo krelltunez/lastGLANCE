@@ -1093,6 +1093,15 @@
     "undo": "Rückgängig",
     "undoAll": "Alle rückgängig",
     "undoResult": "Rückgängig gemacht: {{undone}}. Behalten, weil seitdem geändert: {{kept}}.",
-    "undoFailed": "Rückgängig machen war gerade nicht möglich. Versuche es erneut."
+    "undoFailed": "Rückgängig machen war gerade nicht möglich. Versuche es erneut.",
+    "claudeDesktop": "Claude Desktop",
+    "claudeDesktopSetup": "Claude Desktop einrichten",
+    "claudeDesktopHint": "Fügt lastGLANCE zu den Einstellungen von Claude Desktop hinzu und lässt die anderen Verbindungen unverändert.",
+    "claudeDesktopDone": "Hinzugefügt. Starte Claude Desktop neu, um die Verbindung herzustellen.",
+    "claudeDesktopDoneBackup": "Hinzugefügt, und deine bisherigen Einstellungen von Claude Desktop wurden daneben gesichert. Starte Claude Desktop neu, um die Verbindung herzustellen.",
+    "claudeDesktopBridgeMissing": "Diesem Build von lastGLANCE fehlt die Verbindung zu Claude Desktop. Nutze stattdessen die lastGLANCE-Erweiterung aus der Einrichtungsanleitung.",
+    "claudeDesktopManual": "Die Einstellungen von Claude Desktop konnten nicht geändert werden. Füge das von Hand hinzu:",
+    "claudeDesktopGuide": "Verbinde Claude Desktop mit der lastGLANCE-Erweiterung und füge das Token dort ein.",
+    "setupGuide": "Einrichtungsanleitung"
   }
 }

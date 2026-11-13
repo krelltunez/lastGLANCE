@@ -32,6 +32,7 @@ import { createCommandQueue, type CommandSource } from './commandQueue.js';
 import { bindErrorCode, startMcpServer } from './mcpServer.js';
 import { createRendererBridge } from './mcpRendererBridge.js';
 import { createJournal } from './mcpJournal.js';
+import { discoveryFilePath, syncDiscoveryFile } from './mcpDiscovery.js';
 import { registerElectronBilling } from '@glance-apps/billing/electron-main';
 import { MAS_BILLING } from './billingConfig.js';
 import { availableUpdate, CHECK_CACHE_MS, RELEASES_API, type AvailableUpdate } from './updateCheck.js';
@@ -42,7 +43,7 @@ import { linuxFormats, macFormats, windowsFormats, type SystemFormats } from './
 import type http from 'node:http';
 import { createIdempotencyStore, createWriteGate, type HostBridge } from '@glance-apps/mcp-host';
 import {
-  applyTransition, DEFAULT_LOCAL_INTEGRATIONS, integrationsView, listenerEffects, loadLocalIntegrations, mcpGates, saveLocalIntegrations,
+  applyTransition, DEFAULT_LOCAL_INTEGRATIONS, integrationsView, listenerEffects, loadLocalIntegrations, mcpGates, mcpPort, saveLocalIntegrations,
   type ListenerStatus, type LocalIntegrationsConfig, type McpEffect, type StreamDeckEffect,
 } from './localIntegrations.js';
 import { applyOpenAtLogin, closeAction, isAcceleratorText, launchedHidden, loadDesktopSettings, saveDesktopSettings, type DesktopSettings } from './backgroundMode.js';
@@ -521,8 +522,20 @@ async function undoMcpWrites(groupKey?: string): Promise<{ ok: boolean; undone?:
   return { ok: true, undone: data.undone ?? 0, skipped: data.skipped ?? [] };
 }
 
+// The discovery file (mcpDiscovery.ts): where the bridge finds the port and
+// token. Written while the server runs, kept current, removed when it stops;
+// never on the Mac App Store build.
+const MCP_DISCOVERY_FILE = discoveryFilePath(process.platform, process.env, app.getPath('home'), process.mas === true);
+
+function updateDiscoveryFile(): void {
+  const running = integrationsStatus.mcp.running && mcpGates(integrationsConfig).bound;
+  const failure = syncDiscoveryFile(MCP_DISCOVERY_FILE, running ? { port: mcpPort(integrationsConfig), token: integrationsConfig.mcp.token ?? '' } : null);
+  if (failure) logStartup(`mcp discovery file not updated: ${failure}`);
+}
+
 function setMcpStatus(status: ListenerStatus): void {
   integrationsStatus.mcp = status;
+  updateDiscoveryFile();
   pushIntegrationsStatus();
 }
 
@@ -572,6 +585,7 @@ function stopMcpListener(onClosed?: () => void): void {
   const srv = mcpServerHandle;
   mcpServerHandle = null;
   integrationsStatus.mcp = { running: false, error: null };
+  updateDiscoveryFile();
   if (!srv) { onClosed?.(); return; }
   srv.close(() => onClosed?.());
   srv.closeAllConnections();
@@ -612,6 +626,8 @@ function runIntegrationsTransition(action: unknown) {
   integrationsConfig = result.config;
   if (!saveLocalIntegrations(app.getPath('userData'), integrationsConfig)) logStartup('local-integrations.json could not be written; this session follows the change');
   applyListenerEffects(listenerEffects(before, integrationsConfig));
+  // A new token reaches the file at once; a start or a port change does when the listener binds.
+  updateDiscoveryFile();
   pushIntegrationsStatus();
   refreshTray();
   return { ok: true, view: currentIntegrationsView() };
@@ -1154,6 +1170,17 @@ app.whenReady().then(() => {
 
   // The MCP server and Stream Deck listener, when Settings turned them on.
   startLocalIntegrations();
+  // The "Set up Claude Desktop" button's handler. Direct builds only: the Mac
+  // App Store package does not carry the module (electron-builder.config.cjs),
+  // so it is loaded dynamically and its absence there is a no-op.
+  if (!process.mas) {
+    import('./mcpDesktopSetup.js')
+      .then(({ registerMcpDesktopSetup }) => registerMcpDesktopSetup(
+        () => (mcpGates(integrationsConfig).bound ? { port: mcpPort(integrationsConfig), token: integrationsConfig.mcp.token ?? '' } : null),
+        isMainWindowSender,
+      ))
+      .catch((err) => logStartup(`claude desktop setup not available: ${err instanceof Error ? err.message : err}`));
+  }
   app.on('will-quit', () => stopMcpListener());
 
   // Reminders due while the app was not running: within 12 hours fire once.

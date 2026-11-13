@@ -251,6 +251,12 @@ const OVERRIDES = {
   'localIntegrations.changesHint': "Só nesta sessão. Desfazer mantém o que você alterou desde então.",
   'localIntegrations.undoResult': "Desfeitas: {{undone}}. Mantidas porque mudaram desde então: {{kept}}.",
   'menu.trayMcpOff': "Desativar o acesso de assistentes",
+  'localIntegrations.claudeDesktopDone': "Adicionado. Reinicie o Claude Desktop para conectar.",
+  'localIntegrations.claudeDesktopDoneBackup':
+    "Adicionado, e as configurações anteriores do Claude Desktop foram salvas ao lado. Reinicie o Claude Desktop para conectar.",
+  'localIntegrations.claudeDesktopBridgeMissing':
+    "Esta versão do lastGLANCE está sem o conector do Claude Desktop. Em vez disso, use a extensão do lastGLANCE do guia de configuração.",
+  'localIntegrations.claudeDesktopGuide': "Conecte o Claude Desktop com a extensão do lastGLANCE e cole o token nela.",
   'localIntegrations.errorPortInUse': "A porta {{port}} já está sendo usada por outro programa.",
   'localIntegrations.claudeCodeHint': "Execute isto no terminal para conectar o Claude Code.",
   'localIntegrations.consentBase':

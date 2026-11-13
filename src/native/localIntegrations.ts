@@ -1,4 +1,4 @@
-import type { DesktopIntegrationsAction, DesktopMcpReadTier } from './desktop'
+import type { DesktopClaudeSetupResult, DesktopIntegrationsAction, DesktopMcpReadTier } from './desktop'
 
 // The Settings panel's decisions for the local integrations
 // (docs/mcp-and-stream-deck.md, section 3), pure so they are tested without a
@@ -70,5 +70,27 @@ export function transitionErrorKey(error: string): string {
     case 'invalid_port': return 'localIntegrations.errorInvalidPort'
     case 'port_reserved': return 'localIntegrations.errorPortReserved'
     default: return 'localIntegrations.errorGeneric'
+  }
+}
+
+/** The page that explains connecting each kind of client (the bridge's README). */
+export const SETUP_GUIDE_URL = 'https://github.com/glance-apps/mcp-bridge#lastglance'
+
+/** Whether this build offers "Set up Claude Desktop": direct builds on the platforms Claude Desktop runs on. */
+export function offersClaudeDesktopSetup(platform: string, masBuild: boolean): boolean {
+  return !masBuild && (platform === 'darwin' || platform === 'win32')
+}
+
+/** What the panel says after "Set up Claude Desktop", and whether it shows the snippet to paste. */
+export function claudeSetupMessage(result: DesktopClaudeSetupResult): { key: string; manual: string | null; error: boolean } {
+  if (result.ok) return { key: result.backupPath ? 'localIntegrations.claudeDesktopDoneBackup' : 'localIntegrations.claudeDesktopDone', manual: null, error: false }
+  switch (result.reason) {
+    case 'bridge_missing': return { key: 'localIntegrations.claudeDesktopBridgeMissing', manual: null, error: true }
+    case 'unreadable':
+    case 'unparseable':
+    case 'write_failed':
+    case 'unsupported_platform':
+      return { key: 'localIntegrations.claudeDesktopManual', manual: result.manualEntry ?? null, error: true }
+    default: return { key: 'localIntegrations.errorGeneric', manual: null, error: true }
   }
 }

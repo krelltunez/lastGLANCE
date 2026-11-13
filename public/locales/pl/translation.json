@@ -1141,6 +1141,15 @@
     "undo": "Cofnij",
     "undoAll": "Cofnij wszystko",
     "undoResult": "Cofnięto: {{undone}}. Zachowano, bo zmieniły się od tego czasu: {{kept}}.",
-    "undoFailed": "Nie udało się teraz cofnąć. Spróbuj ponownie."
+    "undoFailed": "Nie udało się teraz cofnąć. Spróbuj ponownie.",
+    "claudeDesktop": "Claude Desktop",
+    "claudeDesktopSetup": "Skonfiguruj Claude Desktop",
+    "claudeDesktopHint": "Dodaje lastGLANCE do ustawień Claude Desktop, nie ruszając jego innych połączeń.",
+    "claudeDesktopDone": "Dodano. Uruchom ponownie Claude Desktop, aby się połączyć.",
+    "claudeDesktopDoneBackup": "Dodano, a poprzednie ustawienia Claude Desktop zapisano obok. Uruchom ponownie Claude Desktop, aby się połączyć.",
+    "claudeDesktopBridgeMissing": "W tej wersji lastGLANCE brakuje łącznika dla Claude Desktop. Użyj zamiast tego rozszerzenia lastGLANCE z przewodnika konfiguracji.",
+    "claudeDesktopManual": "Nie udało się zaktualizować ustawień Claude Desktop. Dodaj to ręcznie:",
+    "claudeDesktopGuide": "Połącz Claude Desktop za pomocą rozszerzenia lastGLANCE i wklej do niego token.",
+    "setupGuide": "Przewodnik konfiguracji"
   }
 }

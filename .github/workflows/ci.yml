@@ -74,6 +74,12 @@ jobs:
           done
           exit 1
 
+      # The Claude Desktop setup ships in direct builds and not in the Mac App
+      # Store one (docs/mcp-and-stream-deck.md, section 7). The MAS build is
+      # made on a Mac (npm run build:electron:mas) and checked there with --mas.
+      - name: Check the direct build carries the Claude Desktop setup
+        run: node scripts/verify-mas-compileout.mjs --direct dist-app/linux-unpacked/resources
+
       - name: Smoke test
         env:
           SMOKE_SCREENSHOT: desktop-smoke.png

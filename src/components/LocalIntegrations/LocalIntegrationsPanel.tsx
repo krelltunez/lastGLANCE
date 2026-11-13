@@ -2,9 +2,10 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ShieldCheck } from 'lucide-react'
 import { useLocalIntegrations, useMcpJournal } from '@/hooks/useLocalIntegrations'
+import { desktopBridge, type DesktopClaudeSetupResult } from '@/native/desktop'
 import type { DesktopMcpReadTier } from '@/native/desktop'
 import {
-  claudeCodeCommand, consentsForTier, maskToken, statusErrorKey, parsePortInput, tierAction, transitionErrorKey, writesAction,
+  claudeCodeCommand, claudeSetupMessage, consentsForTier, maskToken, offersClaudeDesktopSetup, SETUP_GUIDE_URL, statusErrorKey, parsePortInput, tierAction, transitionErrorKey, writesAction,
   type ConsentKind,
 } from '@/native/localIntegrations'
 import { Description, Field, Segmented } from '@/components/SettingsPanel/controls'
@@ -33,6 +34,8 @@ export function LocalIntegrationsPanel() {
   const [copied, setCopied] = useState<'token' | 'command' | null>(null)
   const [portText, setPortText] = useState<string | null>(null)
   const [portInvalid, setPortInvalid] = useState(false)
+  const [setup, setSetup] = useState<DesktopClaudeSetupResult | null>(null)
+  const platform = desktopBridge()?.info.platform ?? ''
   if (!view) return null
   const { mcp, streamDeck } = view
 
@@ -169,6 +172,36 @@ export function LocalIntegrationsPanel() {
               <p className={hint}>{t('localIntegrations.claudeCodeHint')}</p>
             </Field>
           )}
+
+          <Field label={t('localIntegrations.claudeDesktop')}>
+            {/* Compiled out of the Mac App Store build, which may not install or run code (section 7). */}
+            {!__MAS_BUILD__ && offersClaudeDesktopSetup(platform, false) ? (
+              <>
+                <button
+                  type="button"
+                  className={button}
+                  onClick={() => { desktopBridge()?.mcpSetup.claudeDesktop().then(setSetup).catch(() => setSetup({ ok: false, reason: 'write_failed' })) }}
+                >
+                  {t('localIntegrations.claudeDesktopSetup')}
+                </button>
+                <p className={hint}>{t('localIntegrations.claudeDesktopHint')}</p>
+                {setup && (() => {
+                  const m = claudeSetupMessage(setup)
+                  return (
+                    <>
+                      <p className={m.error ? 'mt-1.5 text-xs text-red-500 dark:text-red-400' : hint}>{t(m.key)}</p>
+                      {m.manual && <pre className={`${code} mt-2 whitespace-pre-wrap`}>{m.manual}</pre>}
+                    </>
+                  )
+                })()}
+              </>
+            ) : (
+              <p className={hint}>
+                {t('localIntegrations.claudeDesktopGuide')}{' '}
+                <a href={SETUP_GUIDE_URL} target="_blank" rel="noreferrer" className="underline">{t('localIntegrations.setupGuide')}</a>
+              </p>
+            )}
+          </Field>
         </>
       )}
 
