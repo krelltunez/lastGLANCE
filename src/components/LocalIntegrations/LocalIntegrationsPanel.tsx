@@ -5,10 +5,11 @@ import { useLocalIntegrations, useMcpJournal } from '@/hooks/useLocalIntegration
 import { desktopBridge, type DesktopClaudeSetupResult } from '@/native/desktop'
 import type { DesktopMcpReadTier } from '@/native/desktop'
 import {
-  claudeCodeCommand, claudeSetupMessage, consentsForTier, maskToken, offersClaudeDesktopSetup, SETUP_GUIDE_URL, statusErrorKey, parsePortInput, tierAction, transitionErrorKey, writesAction,
+  assistantLabelKey, claudeCodeCommand, claudeSetupMessage, consentsForTier, maskToken, offersClaudeDesktopSetup, SETUP_GUIDE_URL, statusErrorKey, parsePortInput, tierAction, transitionErrorKey, writesAction,
   type ConsentKind,
 } from '@/native/localIntegrations'
 import { Description, Field, Segmented } from '@/components/SettingsPanel/controls'
+import { AssistantDot } from './AssistantDot'
 
 // Settings → Integrations, desktop only: the Stream Deck listener and the MCP
 // server (docs/mcp-and-stream-deck.md, section 3). Mounted only while
@@ -76,7 +77,7 @@ export function LocalIntegrationsPanel() {
   )
 
   return (
-    <div className="space-y-4 border-t border-slate-100 dark:border-slate-700/40 pt-4">
+    <div data-local-integrations className="space-y-4 border-t border-slate-100 dark:border-slate-700/40 pt-4">
       <div>
         <div className="text-sm font-medium text-slate-700 dark:text-slate-200">{t('localIntegrations.title')}</div>
         <Description>{t('localIntegrations.intro')}</Description>
@@ -106,6 +107,12 @@ export function LocalIntegrationsPanel() {
         />
         <p className={hint}>{t('localIntegrations.mcpHint')}</p>
         {mcp.readTier !== 'off' && status(mcp.status, mcp.port)}
+        {assistantLabelKey(view.assistant) && (
+          <p className={`${hint} flex items-center gap-1.5`}>
+            <AssistantDot indicator={view.assistant} />
+            {t(assistantLabelKey(view.assistant)!)}
+          </p>
+        )}
       </Field>
 
       {mcp.readTier !== 'off' && (

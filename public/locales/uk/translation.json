@@ -1150,6 +1150,9 @@
     "claudeDesktopBridgeMissing": "У цій збірці lastGLANCE бракує з’єднувача для Claude Desktop. Скористайтеся натомість розширенням lastGLANCE з посібника з налаштування.",
     "claudeDesktopManual": "Не вдалося оновити налаштування Claude Desktop. Додайте це вручну:",
     "claudeDesktopGuide": "Підключіть Claude Desktop за допомогою розширення lastGLANCE і вставте в нього токен.",
-    "setupGuide": "Посібник з налаштування"
+    "setupGuide": "Посібник з налаштування",
+    "assistantOn": "Доступ асистентів увімкнено",
+    "assistantUndo": "Зміни від асистентів, які можна скасувати",
+    "assistantPaused": "Зміни від асистентів призупинено"
   }
 }

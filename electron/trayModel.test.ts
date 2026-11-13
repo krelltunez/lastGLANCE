@@ -38,6 +38,10 @@ describe('the tray model', () => {
     expect(trayOpenToken('chore:zzz', s)).toBeNull();
     expect(trayOpenToken('action:add', s)).toBeNull();
     expect(trayOpenToken('chore:a', null)).toBeNull();
+    // The assistant indicator opens Settings, with or without a snapshot; no other section.
+    expect(trayOpenToken('settings:integrations', s)).toBe('settings:integrations');
+    expect(trayOpenToken('settings:integrations', null)).toBe('settings:integrations');
+    expect(trayOpenToken('settings:data', s)).toBeNull();
   });
 
   it('orders overdue first, most overdue first, and hides what was done here', () => {

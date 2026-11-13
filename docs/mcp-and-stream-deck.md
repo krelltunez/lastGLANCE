@@ -1,6 +1,6 @@
 # MCP and Stream Deck for the desktop app
 
-Status: plan, reviewed 2026-11-12 (section 9). Follows `docs/desktop-app.md`, section 10 ("Commands
+Status: built, phases 1 to 7 (section 8); the plan was reviewed 2026-11-12 (section 9). Follows `docs/desktop-app.md`, section 10 ("Commands
 from outside the window, and the road to MCP and Stream Deck"), which reserved
 the ports and built the seams this plan uses. dayGLANCE is the reference
 (`docs/mcp-server-spec.md`, `docs/mcp-tools-reference.md`, `electron/ws-server.ts`
@@ -209,13 +209,18 @@ from Settings and from the tray popup's menu, which also carries the kill switch
 
 ### 4.6 Visible state
 
-Built in phase 3a: the changes list with Undo and Undo all in Settings, a
-notice there when the rate gate has paused writes, and the tray menu's "Undo
-assistant changes (N)" and "Turn off assistant access". Still to come, with the
-Settings mount (phase 7): a small indicator in the tray popup's header and in Settings: green while the
-server is on, blue while there are undoable MCP writes, red when writes were
-auto-disabled. No per-write modal (dayGLANCE spec, 4.3): read-only by default, no
-deletes, a rate limit and undo instead.
+The changes list with Undo and Undo all in Settings, a notice there when the
+rate gate has paused writes, and the tray menu's "Undo assistant changes (N)"
+and "Turn off assistant access" (phase 3a). With the Settings mount (phase 7),
+the indicator: a dot in the tray popup's header and beside the MCP setting,
+green while the server is running, blue while there are changes from this
+session to undo (also after the server is turned off), red while writes are
+paused. Main decides it (`assistantIndicator` in
+`electron/localIntegrations.ts`) and sends it with the Settings view and the
+tray state, so the two cannot disagree; the popup's dot opens Settings at
+Integrations (the `settings:integrations` token, accepted from the popup only,
+not from `lastglance://` links). No per-write modal (dayGLANCE spec, 4.3):
+read-only by default, no deletes, a rate limit and undo instead.
 
 ## 5. Connecting Claude
 
@@ -341,19 +346,18 @@ drawn as SVG, 144×144 on a key and 200×100 on the Stream Deck + touch strip
 
 ## 7. Mac App Store
 
-The MAS build has not shipped yet. When it does:
-
-- Both listeners need `com.apple.security.network.server`.
-  `electron/builderConfig.test.ts` currently asserts it is absent; that test
-  changes with the entitlement. dayGLANCE passed review with both (Guideline
-  2.4.5(i), answered with a demo video).
+- Both listeners need `com.apple.security.network.server`, in
+  `entitlements.mas.plist` since phase 4a (`electron/builderConfig.test.ts`
+  holds it). dayGLANCE passed review with both (Guideline 2.4.5(i), answered
+  with a demo video); expect to need the same for the first MAS build with the
+  section mounted.
 - The Claude Desktop setup and the bundled bridge are compiled out (Guideline
   2.5.2: the app must not install or run code), with dayGLANCE's two mechanisms:
   a vite define (`__MAS_BUILD__`) that removes the button, and top-level `files`
   negations that keep `mcpDesktopSetup*` and `mcpDesktopConfig*` out of the
-  asar. A `scripts/verify-mas-compileout.mjs` checks the built app. MAS users
+  asar. `scripts/verify-mas-compileout.mjs` checks the built app. MAS users
   connect Claude Desktop through the bridge's own install with the token pasted
-  in.
+  in; Settings shows them the setup guide instead of the button.
 
 ## 8. Phases
 
@@ -407,8 +411,12 @@ until phase 7.
    the Chore key's picker over Stream Deck's channel, the key renderer with the
    app's own Lucide icons, the connection with backoff, CI building and packing
    it and the release attaching it (6.3).
-7. **Ship.** Mount the Settings section, strings in all 10 languages (pt-BR
-   through `scripts/gen-pt-br.mjs`), README, `docs/releasing-desktop.md`.
+7. **Ship (done).** `LOCAL_INTEGRATIONS_UI` on, so Settings → Integrations
+   shows "On this computer"; the indicator (4.6) in Settings and the tray
+   popup, its strings in all 10 languages (the section's own were written in
+   phase 1); the README; the release checks in `docs/releasing-desktop.md`.
+   The smoke test opens Settings the way the popup's dot does and follows the
+   indicator through a write and its undo.
 
 ## 9. Decisions (review, 2026-11-12)
 

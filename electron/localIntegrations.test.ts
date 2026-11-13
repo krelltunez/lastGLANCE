@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {
-  applyTransition, DEFAULT_LOCAL_INTEGRATIONS, DEFAULT_MCP_PORT, integrationsView, listenerEffects, loadLocalIntegrations,
+  applyTransition, assistantIndicator, DEFAULT_LOCAL_INTEGRATIONS, DEFAULT_MCP_PORT, integrationsView, listenerEffects, loadLocalIntegrations,
   LOCAL_INTEGRATIONS_FILE, mcpGates, normalizeConfig, saveLocalIntegrations, STREAM_DECK_PORT,
   type LocalIntegrationsConfig, type TransitionResult,
 } from './localIntegrations';
@@ -177,5 +177,39 @@ describe('the Settings view', () => {
     expect(v.mcp).toMatchObject({ readTier: 'chores', port: 8123, portOverride: 8123, endpoint: 'http://127.0.0.1:8123/mcp', status: { running: true, error: null } });
     expect(v.streamDeck).toEqual({ enabled: false, port: STREAM_DECK_PORT, status: idle });
     expect(integrationsView(off(), { mcp: idle, streamDeck: idle }).mcp.endpoint).toBe('http://127.0.0.1:7900/mcp');
+  });
+});
+
+describe('the assistant indicator (4.6)', () => {
+  const running = { running: true, error: null };
+  const stopped = { running: false, error: null };
+  const mcp = (over: Partial<Parameters<typeof assistantIndicator>[0]> = {}) =>
+    ({ readTier: 'chores' as const, writesEnabled: true, writesPaused: false, status: running, ...over });
+
+  it('is green while the server runs, and nothing when it is off or could not start', () => {
+    expect(assistantIndicator(mcp(), 0)).toBe('on');
+    expect(assistantIndicator(mcp({ readTier: 'off', status: stopped }), 0)).toBe('off');
+    expect(assistantIndicator(mcp({ status: { running: false, error: 'port_in_use' } }), 0)).toBe('off');
+  });
+
+  it('is blue while there are changes to undo, even with the server turned off since', () => {
+    expect(assistantIndicator(mcp(), 2)).toBe('undo');
+    expect(assistantIndicator(mcp({ readTier: 'off', status: stopped }), 2)).toBe('undo');
+  });
+
+  it('is red while changes are paused, over the other two', () => {
+    expect(assistantIndicator(mcp({ writesPaused: true }), 2)).toBe('paused');
+    // Paused but no longer allowed, or the server off: nothing is paused that could run.
+    expect(assistantIndicator(mcp({ writesPaused: true, writesEnabled: false }), 0)).toBe('on');
+    expect(assistantIndicator(mcp({ writesPaused: true, readTier: 'off', status: stopped }), 0)).toBe('off');
+  });
+
+  it('comes with the Settings view', () => {
+    const idle = { running: false, error: null };
+    const cfg = ok(applyTransition(on(), { type: 'set-mcp-writes', enabled: true, writesConsentConfirmed: true }, deps));
+    expect(integrationsView(cfg, { mcp: running, streamDeck: idle }).assistant).toBe('on');
+    expect(integrationsView(cfg, { mcp: running, streamDeck: idle }, { undoable: 1 }).assistant).toBe('undo');
+    expect(integrationsView(cfg, { mcp: running, streamDeck: idle }, { undoable: 1, writesPaused: true }).assistant).toBe('paused');
+    expect(integrationsView(off(), { mcp: idle, streamDeck: idle }).assistant).toBe('off');
   });
 });

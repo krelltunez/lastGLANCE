@@ -62,6 +62,7 @@ import { PeopleHome, PEOPLE_ADD_EVENT, PEOPLE_CIRCLES_EVENT } from '@/components
 import { hasOpenSurface } from '@/utils/dismissStack'
 import { peekPendingOpenChore } from '@/native/pendingOpenChore'
 import { OPEN_PERSON_PENDING_EVENT, peekPendingOpenPerson } from '@/native/pendingOpenPerson'
+import { OPEN_SETTINGS_EVENT } from '@/native/pendingDeepLink'
 import { createPeopleFileEngine } from '@/people/sync/fileEngine'
 import { createPeopleDbEngine } from '@/people/sync/dbEngine'
 import { registerPeopleDbEngine } from '@/people/sync/dirtyTracker'
@@ -243,6 +244,16 @@ function AppInner() {
   // Shortcuts): closing it, by Back, Escape or its X, reopens Settings on the
   // section it was opened from. Cleared when Settings itself closes.
   const [settingsReturn, setSettingsReturn] = useState<SettingsSection | null>(null)
+  // The desktop tray popup's assistant indicator opens Settings at Integrations.
+  useEffect(() => {
+    const open = (e: Event) => {
+      if ((e as CustomEvent).detail !== 'integrations') return
+      setSettingsReturn('integrations')
+      setShowSettings(true)
+    }
+    window.addEventListener(OPEN_SETTINGS_EVENT, open)
+    return () => window.removeEventListener(OPEN_SETTINGS_EVENT, open)
+  }, [])
   const [timeFormat, setTimeFormatState] = useState<TimeFormat>(getTimeFormat)
   // Bumped when the OS clock behind 'auto' changes, to repaint every time.
   const [, setClockTick] = useState(0)
@@ -1144,6 +1155,8 @@ function AppInner() {
 
       {showSettings && (
         <SettingsPanel
+          // Opening at a section while already open starts it again there.
+          key={settingsReturn ?? 'settings'}
           initialSection={settingsReturn ?? undefined}
           onClose={() => { setShowSettings(false); setSettingsReturn(null); usersCtx.reload() }}
           themePref={themePref}

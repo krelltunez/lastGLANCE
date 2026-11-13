@@ -1150,6 +1150,9 @@
     "claudeDesktopBridgeMissing": "W tej wersji lastGLANCE brakuje łącznika dla Claude Desktop. Użyj zamiast tego rozszerzenia lastGLANCE z przewodnika konfiguracji.",
     "claudeDesktopManual": "Nie udało się zaktualizować ustawień Claude Desktop. Dodaj to ręcznie:",
     "claudeDesktopGuide": "Połącz Claude Desktop za pomocą rozszerzenia lastGLANCE i wklej do niego token.",
-    "setupGuide": "Przewodnik konfiguracji"
+    "setupGuide": "Przewodnik konfiguracji",
+    "assistantOn": "Dostęp asystentów jest włączony",
+    "assistantUndo": "Zmiany asystentów, które możesz cofnąć",
+    "assistantPaused": "Zmiany asystentów są wstrzymane"
   }
 }

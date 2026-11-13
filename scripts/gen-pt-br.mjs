@@ -249,6 +249,7 @@ const OVERRIDES = {
   'localIntegrations.writesPaused':
     "As alterações foram pausadas depois de muitas seguidas. Reinicie o lastGLANCE para permiti-las de novo.",
   'localIntegrations.changesHint': "Só nesta sessão. Desfazer mantém o que você alterou desde então.",
+  'localIntegrations.assistantUndo': "Alterações feitas por assistentes que você pode desfazer",
   'localIntegrations.undoResult': "Desfeitas: {{undone}}. Mantidas porque mudaram desde então: {{kept}}.",
   'menu.trayMcpOff': "Desativar o acesso de assistentes",
   'localIntegrations.claudeDesktopDone': "Adicionado. Reinicie o Claude Desktop para conectar.",

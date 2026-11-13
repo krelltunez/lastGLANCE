@@ -18,6 +18,8 @@
 //     file and lists its tools over stdio; turned on through the bridge, it answers the official
 //     client from the page's database; with "Allow changes" a write lands in
 //     the database and the journal, and Settings' undo takes it back out;
+//     Settings opens at Integrations (the tray indicator's route) with the
+//     section mounted, and the indicator follows the server and the journal;
 //     turning it off frees the port;
 //   - Stream Deck: turned on, the listener hands the plugin a token and the
 //     state; a press marks the chore done in the page's database, once, and a
@@ -287,6 +289,12 @@ try {
     mcpView = await page.evaluate(() => window.lastGlanceDesktop.localIntegrations.get())
   }
   check(mcpView?.mcp?.status?.running === true, `the MCP listener runs (${JSON.stringify(mcpView?.mcp?.status)})`)
+  check(mcpView?.assistant === 'on', `the assistant indicator is green (${mcpView?.assistant})`)
+  // Settings, as the tray popup's indicator opens it: at Integrations, with
+  // the section mounted and showing the same indicator.
+  await page.evaluate(() => window.dispatchEvent(new CustomEvent('lg:open-settings', { detail: 'integrations' })))
+  const settingsDot = await page.waitForSelector('[data-local-integrations] [data-assistant-indicator]', { state: 'attached', timeout: 10_000 }).catch(() => null)
+  check((await settingsDot?.getAttribute('data-assistant-indicator')) === 'on', 'Settings opens at Integrations, with the MCP section and its indicator')
   // The discovery file the bridge reads: in the app's data folder (userData on
   // every desktop platform), the port and token, while the server runs.
   const discoveryFile = path.join(await app.evaluate(({ app }) => app.getPath('userData')), 'mcp.json')
@@ -353,9 +361,13 @@ try {
     check(await choreCount() === pageChores + 1, 'the new chore is in the page\'s database')
     const journal = await page.evaluate(() => window.lastGlanceDesktop.mcpJournal.get())
     check(journal?.total === 1 && journal.entries[0]?.summary === 'Created “Smoke chore”', `the change is in the journal (${journal?.total})`)
+    const withChange = await page.evaluate(() => window.lastGlanceDesktop.localIntegrations.get())
+    check(withChange?.assistant === 'undo', `the indicator turns blue while there is a change to undo (${withChange?.assistant})`)
     const undone = await page.evaluate(() => window.lastGlanceDesktop.mcpJournal.undo(null))
     check(undone?.ok === true && undone.undone === 1, `Settings' undo takes it back (${JSON.stringify(undone)})`)
     check(await choreCount() === pageChores, 'the chore is gone from the database again')
+    const afterUndo = await page.evaluate(() => window.lastGlanceDesktop.localIntegrations.get())
+    check(afterUndo?.assistant === 'on', `and green again once undone (${afterUndo?.assistant})`)
 
     // A People write the same way: a person added, then Settings' undo.
     const added = await client.callTool({ name: 'lastglance_create_person', arguments: { name: 'Smoke Person', dates: [{ month: 2, day: 29 }] } })

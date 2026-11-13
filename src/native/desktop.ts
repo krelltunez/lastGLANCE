@@ -219,13 +219,15 @@ export interface DesktopTrayState {
   reachOut: DesktopTrayPerson[]
   comingUp: DesktopTrayDate[]
   ready: boolean
+  /** The assistant indicator, as in Settings. */
+  assistant?: DesktopAssistantIndicator
 }
 
 /** The tray popup's calls (src/tray/); main answers them only from the popup window. */
 export interface DesktopTray {
   state(): Promise<DesktopTrayState | null>
   complete(syncId: string): void
-  /** Show the app, at `chore:<id>`, `person:<id>`, `log:<id>` or `people` when given one it shows. */
+  /** Show the app, at `chore:<id>`, `person:<id>`, `log:<id>` or `people` when given one it shows, or at `settings:integrations`. */
   open(token: string | null): void
   hide(): void
   onState(listener: (state: unknown) => void): () => void
@@ -287,7 +289,12 @@ export interface DesktopLocalIntegrationsView {
     /** Repeated overruns of the write rate limit turned changes off until restart. */
     writesPaused: boolean
   }
+  /** The assistant indicator (electron/localIntegrations.ts, assistantIndicator). */
+  assistant: DesktopAssistantIndicator
 }
+
+/** Red, blue, green, or none: changes paused, changes to undo, server running, off. */
+export type DesktopAssistantIndicator = 'off' | 'on' | 'undo' | 'paused'
 
 /** A Settings change; the consent flags are set only by a consent dialog's Accept. */
 export type DesktopIntegrationsAction =

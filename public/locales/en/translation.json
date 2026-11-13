@@ -1102,6 +1102,9 @@
     "claudeDesktopBridgeMissing": "This build of lastGLANCE is missing its Claude Desktop connector. Use the lastGLANCE extension from the setup guide instead.",
     "claudeDesktopManual": "Claude Desktop's settings could not be updated. Add this to them by hand:",
     "claudeDesktopGuide": "Connect Claude Desktop with the lastGLANCE extension, and paste the token into it.",
-    "setupGuide": "Setup guide"
+    "setupGuide": "Setup guide",
+    "assistantOn": "Assistant access is on",
+    "assistantUndo": "Assistant changes you can undo",
+    "assistantPaused": "Assistant changes are paused"
   }
 }
