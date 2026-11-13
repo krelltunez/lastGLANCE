@@ -23,6 +23,8 @@ export interface TrayChore {
   targetCadenceDays: number | null;
   ratio: number | null;
   color: string | null;
+  /** Pinned and in season, as the snapshot says (src/native/snapshot.ts). */
+  pinned: boolean;
 }
 
 /** The snapshot's Reach out row (src/native/peopleSnapshot.ts), text already in the app's language. */
@@ -116,6 +118,7 @@ export function parseTraySnapshot(json: unknown): TraySnapshot | null {
       targetCadenceDays: num(c.targetCadenceDays),
       ratio: num(c.ratio),
       color: COLOR.test(String(c.color)) ? String(c.color) : null,
+      pinned: c.pinned === true,
     });
   }
   return { generatedAt, chores: chores.slice(0, TRAY_CHORE_LIMIT), ...parsePeople(s.people) };

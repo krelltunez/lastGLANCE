@@ -58,7 +58,12 @@ describe('the command queue', () => {
     const { file, q } = queue();
     fs.writeFileSync(file, '{oops');
     expect(q.take()).toEqual([]);
-    fs.writeFileSync(file, JSON.stringify([{ clientId: 'ok', action: 'complete', payload: {}, source: 'tray', at: 'x' }, { clientId: 'bad' }, null]));
-    expect(q.take().map((c) => c.clientId)).toEqual(['ok']);
+    fs.writeFileSync(file, JSON.stringify([
+      { clientId: 'ok', action: 'complete', payload: {}, source: 'tray', at: 'x' },
+      { clientId: 'deck', action: 'complete', payload: {}, source: 'streamdeck', at: 'x' },
+      { clientId: 'stranger', action: 'complete', payload: {}, source: 'webpage', at: 'x' },
+      { clientId: 'bad' }, null,
+    ]));
+    expect(q.take().map((c) => c.clientId)).toEqual(['ok', 'deck']);
   });
 });

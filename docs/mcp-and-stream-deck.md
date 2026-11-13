@@ -370,9 +370,17 @@ until phase 7.
      script checks it, and the smoke test runs the entry's exact command (the
      build's binary as Node on the bridge, `--app lastglance`) against the live
      server over stdio.
-5. **Stream Deck, desktop side.** The WebSocket server, the protocol, the deck
-   model from the snapshot, `streamdeck` commands and the double-completion
-   guard.
+5. **Stream Deck, desktop side (done).** `electron/streamDeckServer.ts` on
+   127.0.0.1:7901 (dayGLANCE's trust model, plus a loopback Host check, a
+   16 KB frame limit, every frame parsed by `electron/deckProtocol.ts`, and an
+   `lg:result` answer per command); `electron/deckModel.ts` (the tray's
+   snapshot aged by the clock, with the app's thresholds and colours);
+   presses through the command queue as `streamdeck`. The double-completion
+   guard keeps the deck's own presses for the full minute and also reads the
+   snapshot's last completion: the smoke test showed that relying on the
+   tray's "done here" record alone forgot a press as soon as a snapshot
+   settled it. The widget snapshot is now stamped before its data is read,
+   which also stops the tray from briefly showing a chore it just completed.
 6. **Stream Deck plugin.** The actions, the property inspectors, the renderer,
    CI packing.
 7. **Ship.** Mount the Settings section, strings in all 10 languages (pt-BR

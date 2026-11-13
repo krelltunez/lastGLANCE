@@ -1,5 +1,5 @@
 // The command queue (docs/desktop-app.md, section 10): how the surfaces outside
-// the window (the tray, notification actions, and later MCP and Stream Deck)
+// the window (the tray, notification actions, the Stream Deck)
 // change data the page owns. Main never opens the database. It appends a
 // command to userData/commands.json and nudges the page; the page takes the
 // queue, applies each command through the app's own handlers and ledger
@@ -18,7 +18,8 @@ export const COMMANDS_FILE = 'commands.json';
 export const COMMAND_LIMIT = 200;
 export const COMMAND_ACTIONS: ReadonlySet<string> = new Set(['complete', 'create', 'log_interaction']);
 
-export type CommandSource = 'tray' | 'notification';
+export type CommandSource = 'tray' | 'notification' | 'streamdeck';
+const SOURCES: ReadonlySet<string> = new Set<CommandSource>(['tray', 'notification', 'streamdeck']);
 
 export interface DesktopCommand {
   clientId: string;
@@ -33,7 +34,7 @@ function isCommand(v: unknown): v is DesktopCommand {
   const c = v as Record<string, unknown>;
   return typeof c.clientId === 'string' && !!c.clientId && typeof c.action === 'string' && COMMAND_ACTIONS.has(c.action)
     && !!c.payload && typeof c.payload === 'object' && !Array.isArray(c.payload)
-    && (c.source === 'tray' || c.source === 'notification') && typeof c.at === 'string';
+    && SOURCES.has(c.source as string) && typeof c.at === 'string';
 }
 
 export interface CommandQueueDeps {

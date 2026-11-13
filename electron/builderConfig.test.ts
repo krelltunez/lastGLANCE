@@ -21,7 +21,7 @@ const packageOf = (spec: string) => spec.split('/').slice(0, spec.startsWith('@'
  * The packages main loads at run time: every value import (not `import type`)
  * in electron/*.ts outside the tests, other than electron, node builtins and
  * billing (shipped in part, checked on its own), with their dependencies and
- * peer dependencies followed transitively.
+ * peer dependencies followed transitively (optional peers only when installed).
  */
 function mainRuntimeClosure(): Set<string> {
   const seeds = readdirSync(path.join(root, 'electron'))
@@ -37,7 +37,10 @@ function mainRuntimeClosure(): Set<string> {
     if (closure.has(name)) continue;
     closure.add(name);
     const pkg = JSON.parse(readFileSync(path.join(root, 'node_modules', name, 'package.json'), 'utf-8'));
-    queue.push(...Object.keys({ ...pkg.dependencies, ...pkg.peerDependencies }));
+    // An optional peer (ws's native accelerators) is loaded only if installed; one that is not is not a dependency.
+    const optional = new Set(Object.entries(pkg.peerDependenciesMeta ?? {}).filter(([, m]) => (m as { optional?: boolean }).optional).map(([n]) => n));
+    const peers = Object.keys(pkg.peerDependencies ?? {}).filter((n) => !optional.has(n) || existsSync(path.join(root, 'node_modules', n, 'package.json')));
+    queue.push(...Object.keys(pkg.dependencies ?? {}), ...peers);
   }
   return closure;
 }

@@ -19,6 +19,9 @@
 //     client from the page's database; with "Allow changes" a write lands in
 //     the database and the journal, and Settings' undo takes it back out;
 //     turning it off frees the port;
+//   - Stream Deck: turned on, the listener hands the plugin a token and the
+//     state; a press marks the chore done in the page's database, once, and a
+//     second press is answered too_soon; turning it off frees the port;
 //   - the page's log lines reach the log file;
 //   - no uncaught page error.
 //
@@ -32,6 +35,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client'
 import { spawn } from 'node:child_process'
+import { WebSocket } from 'ws'
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 const { version } = JSON.parse(readFileSync(path.join(root, 'package.json'), 'utf-8'))
@@ -366,6 +370,72 @@ try {
   if (mcpView?.mcp?.endpoint) {
     const refused = await fetch(mcpView.mcp.endpoint, { method: 'POST' }).then(() => false, () => true)
     check(refused, 'turning MCP off frees the port')
+  }
+
+  // Stream Deck (docs/mcp-and-stream-deck.md, section 6): on through the same
+  // transition Settings sends, then a client exactly as the plugin's backend
+  // connects (no Origin), a press, and the page's database.
+  const deckOn = await page.evaluate(() => window.lastGlanceDesktop.localIntegrations.transition({ type: 'set-stream-deck', enabled: true }))
+  let deckView = deckOn?.view
+  for (let i = 0; i < 50 && !deckView?.streamDeck?.status?.running && !deckView?.streamDeck?.status?.error; i++) {
+    await new Promise((r) => setTimeout(r, 100))
+    deckView = await page.evaluate(() => window.lastGlanceDesktop.localIntegrations.get())
+  }
+  check(deckView?.streamDeck?.status?.running === true, `the Stream Deck listener runs (${JSON.stringify(deckView?.streamDeck?.status)})`)
+  if (deckView?.streamDeck?.status?.running) {
+    const deck = new WebSocket(`ws://127.0.0.1:${deckView.streamDeck.port}`)
+    const messages = []
+    deck.on('message', (d) => messages.push(JSON.parse(String(d))))
+    const waitFor = async (pred, ms = 10_000) => {
+      for (let t = 0; t < ms; t += 50) {
+        const found = messages.find(pred)
+        if (found) return found
+        await new Promise((r) => setTimeout(r, 50))
+      }
+      return null
+    }
+    const token = await waitFor((m) => m.type === 'lg:token')
+    check(/^[0-9a-f]{32}$/.test(token?.token ?? ''), 'the deck is handed a session token')
+    // The snapshot arrives from the page; until it has, the state says not ready.
+    page.evaluate(() => window.dispatchEvent(new Event('lg:chore-logged')))
+    const state = await waitFor((m) => m.type === 'lg:state' && m.ready && m.chores.length > 0)
+    check(!!state, `the deck gets the chores (${state?.chores?.length ?? 0})`)
+    // A chore nobody did in the last minute: a rerun on the same profile must not press one the last run did.
+    const target = state?.chores.find((c) => !c.justDone && (!c.lastCompletedAt || Date.now() - Date.parse(c.lastCompletedAt) > 61_000))
+    if (target) {
+      const completions = () => page.evaluate(() => new Promise((resolve) => {
+        const req = indexedDB.open('lastglance')
+        req.onsuccess = () => {
+          const count = req.result.transaction('completionEvents', 'readonly').objectStore('completionEvents').count()
+          count.onsuccess = () => { resolve(count.result); req.result.close() }
+        }
+        req.onerror = () => resolve(-1)
+      }))
+      const before = await completions()
+      deck.send(JSON.stringify({ type: 'lg:chore:complete', choreId: target.id, clientId: 'smoke-press-1' }))
+      const first = await waitFor((m) => m.type === 'lg:result' && m.clientId === 'smoke-press-1')
+      check(first?.ok === true, `a press marks the chore done (${JSON.stringify(first)})`)
+      deck.send(JSON.stringify({ type: 'lg:chore:complete', choreId: target.id, clientId: 'smoke-press-2' }))
+      const second = await waitFor((m) => m.type === 'lg:result' && m.clientId === 'smoke-press-2')
+      check(second?.ok === false && second.reason === 'too_soon', `a second press within the minute is refused (${JSON.stringify(second)})`)
+      const justDone = await waitFor((m) => m.type === 'lg:state' && m.chores.some((c) => c.id === target.id && c.justDone))
+      check(!!justDone, 'the deck shows it done at once')
+      let after = before
+      for (let i = 0; i < 50 && after === before; i++) { await new Promise((r) => setTimeout(r, 100)); after = await completions() }
+      check(after === before + 1, `the page records exactly one completion (${before} then ${after})`)
+    }
+    deck.close()
+  }
+  const deckOff = await page.evaluate(() => window.lastGlanceDesktop.localIntegrations.transition({ type: 'set-stream-deck', enabled: false }))
+  check(deckOff?.ok === true && deckOff.view?.streamDeck?.status?.running === false, 'Stream Deck turns off')
+  if (deckView?.streamDeck?.port) {
+    await new Promise((r) => setTimeout(r, 200))
+    const refused = await new Promise((resolve) => {
+      const probe = new WebSocket(`ws://127.0.0.1:${deckView.streamDeck.port}`)
+      probe.once('open', () => { probe.close(); resolve(false) })
+      probe.once('error', () => resolve(true))
+    })
+    check(refused, 'turning Stream Deck off frees the port')
   }
 
   // The page's lines reach the log file in userData (shell.log).
