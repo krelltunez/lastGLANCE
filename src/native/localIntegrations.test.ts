@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  claudeCodeCommand, consentsForTier, statusErrorKey, LOCAL_INTEGRATIONS_UI, maskToken, parsePortInput, tierAction, transitionErrorKey, writesAction,
+  claudeCodeCommand, claudeSetupMessage, consentsForTier, offersClaudeDesktopSetup, statusErrorKey, LOCAL_INTEGRATIONS_UI, maskToken, parsePortInput, tierAction, transitionErrorKey, writesAction,
 } from './localIntegrations'
 
 describe('the local integrations panel', () => {
@@ -47,5 +47,19 @@ describe('the local integrations panel', () => {
     expect(statusErrorKey('port_in_use')).toBe('localIntegrations.errorPortInUse')
     expect(statusErrorKey('permission_denied')).toBe('localIntegrations.errorPortDenied')
     expect(statusErrorKey('bind_failed')).toBe('localIntegrations.errorBindFailed')
+  })
+
+  it('offers the Claude Desktop setup on direct builds for macOS and Windows only', () => {
+    expect(offersClaudeDesktopSetup('darwin', false)).toBe(true)
+    expect(offersClaudeDesktopSetup('win32', false)).toBe(true)
+    expect(offersClaudeDesktopSetup('linux', false)).toBe(false)
+    expect(offersClaudeDesktopSetup('darwin', true)).toBe(false)
+  })
+
+  it('says what the setup did, and hands over the snippet when it could not write', () => {
+    expect(claudeSetupMessage({ ok: true, action: 'created', path: '/c', backupPath: null })).toEqual({ key: 'localIntegrations.claudeDesktopDone', manual: null, error: false })
+    expect(claudeSetupMessage({ ok: true, action: 'merged', path: '/c', backupPath: '/c.bak' }).key).toBe('localIntegrations.claudeDesktopDoneBackup')
+    expect(claudeSetupMessage({ ok: false, reason: 'unparseable', path: '/c', manualEntry: '{}' })).toEqual({ key: 'localIntegrations.claudeDesktopManual', manual: '{}', error: true })
+    expect(claudeSetupMessage({ ok: false, reason: 'bridge_missing', path: '/c' }).key).toBe('localIntegrations.claudeDesktopBridgeMissing')
   })
 })

@@ -1093,6 +1093,15 @@
     "undo": "Annuler",
     "undoAll": "Tout annuler",
     "undoResult": "Annulées : {{undone}}. Conservées car modifiées depuis : {{kept}}.",
-    "undoFailed": "Impossible d'annuler pour le moment. Réessayez."
+    "undoFailed": "Impossible d'annuler pour le moment. Réessayez.",
+    "claudeDesktop": "Claude Desktop",
+    "claudeDesktopSetup": "Configurer Claude Desktop",
+    "claudeDesktopHint": "Ajoute lastGLANCE aux réglages de Claude Desktop sans toucher à ses autres connexions.",
+    "claudeDesktopDone": "Ajouté. Redémarrez Claude Desktop pour le connecter.",
+    "claudeDesktopDoneBackup": "Ajouté, et vos réglages précédents de Claude Desktop ont été enregistrés à côté. Redémarrez Claude Desktop pour le connecter.",
+    "claudeDesktopBridgeMissing": "Il manque à cette version de lastGLANCE son connecteur pour Claude Desktop. Utilisez plutôt l'extension lastGLANCE du guide de configuration.",
+    "claudeDesktopManual": "Les réglages de Claude Desktop n'ont pas pu être modifiés. Ajoutez ceci à la main :",
+    "claudeDesktopGuide": "Connectez Claude Desktop avec l'extension lastGLANCE, et collez-y le jeton.",
+    "setupGuide": "Guide de configuration"
   }
 }

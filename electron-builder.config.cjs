@@ -98,6 +98,11 @@ module.exports = {
     'node_modules/@glance-apps/billing/package.json',
     'node_modules/@glance-apps/billing/dist/electron-main/**/*',
     ...MAIN_RUNTIME_PACKAGES.map((name) => `node_modules/${name}/**/*`),
+    // The Claude Desktop setup is left out of the Mac App Store build
+    // (docs/mcp-and-stream-deck.md, section 7: the app must not install or run
+    // code there). Top-level negations: a per-target files array is a separate
+    // matcher whose negations do not compose (dayGLANCE's finding).
+    ...(isMasBuild ? ['!dist-electron/mcpDesktopSetup*', '!dist-electron/mcpDesktopConfig*'] : []),
   ],
   // The tray icons (section 7), outside the asar so nativeImage reads them
   // from process.resourcesPath/tray.

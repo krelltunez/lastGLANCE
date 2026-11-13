@@ -155,22 +155,25 @@ describe('electron-builder.config.cjs', () => {
       expect(mas.buildVersion).toMatch(/^\d{8}\.\d{4}$/);
       expect(mas.mas.hardenedRuntime).toBe(false);
       expect(mas.mas.provisioningProfile).toBe('electron/lastglance.mas.provisionprofile');
+      // The Claude Desktop setup stays out of the MAS package, at the top level where negations compose.
+      expect(mas.files).toEqual(expect.arrayContaining(['!dist-electron/mcpDesktopSetup*', '!dist-electron/mcpDesktopConfig*']));
+      expect(mas.mas.files).toBeUndefined();
     } finally {
       delete process.env.LASTGLANCE_APP_ID;
     }
     expect(config.buildVersion).toBeUndefined();
+    expect(config.files.some((f: string) => f.includes('mcpDesktop'))).toBe(false);   // direct builds carry it
   });
 
   it('gives the MAS app the sandbox, both iCloud containers, and nothing it does not use', () => {
     const plist = readFileSync(path.join(root, 'electron/entitlements.mas.plist'), 'utf-8');
     for (const key of [
-      'com.apple.security.app-sandbox', 'com.apple.security.network.client',
+      'com.apple.security.app-sandbox', 'com.apple.security.network.client', 'com.apple.security.network.server',
       'com.apple.security.files.user-selected.read-write', 'com.apple.security.files.bookmarks.app-scope',
       'iCloud.com.lastglance', 'iCloud.com.dayglance', 'CloudDocuments',
     ]) expect(plist, key).toContain(key);
-    // No listener yet (MCP and Stream Deck come later), and Apple Pay's
-    // entitlement fails App Store validation on macOS.
-    expect(plist).not.toContain('<key>com.apple.security.network.server</key>');
+    // Apple Pay's entitlement fails App Store validation on macOS. The server
+    // entitlement is the MCP and Stream Deck listeners', on 127.0.0.1 only.
     expect(plist).not.toContain('<key>com.apple.security.in-app-payments</key>');
     const inherit = readFileSync(path.join(root, 'electron/entitlements.mas.inherit.plist'), 'utf-8');
     expect(inherit).toContain('com.apple.security.inherit');

@@ -280,6 +280,11 @@ try {
     mcpView = await page.evaluate(() => window.lastGlanceDesktop.localIntegrations.get())
   }
   check(mcpView?.mcp?.status?.running === true, `the MCP listener runs (${JSON.stringify(mcpView?.mcp?.status)})`)
+  // The discovery file the bridge reads: in the app's data folder (userData on
+  // every desktop platform), the port and token, while the server runs.
+  const discoveryFile = path.join(await app.evaluate(({ app }) => app.getPath('userData')), 'mcp.json')
+  const discovered = existsSync(discoveryFile) ? JSON.parse(readFileSync(discoveryFile, 'utf-8')) : null
+  check(discovered?.token === mcpView?.mcp?.token && discovered?.port === mcpView?.mcp?.port, 'the discovery file holds the port and token while the server runs')
   if (mcpView?.mcp?.status?.running) {
     const client = new Client({ name: 'lastglance-smoke', version: '0.0.0' })
     await client.connect(new StreamableHTTPClientTransport(new URL(mcpView.mcp.endpoint), {
@@ -335,6 +340,7 @@ try {
   }
   const mcpOff = await page.evaluate(() => window.lastGlanceDesktop.localIntegrations.transition({ type: 'set-mcp-read-tier', tier: 'off' }))
   check(mcpOff?.ok === true && mcpOff.view?.mcp?.status?.running === false, 'MCP turns off')
+  check(!existsSync(discoveryFile), 'turning MCP off removes the discovery file')
   if (mcpView?.mcp?.endpoint) {
     const refused = await fetch(mcpView.mcp.endpoint, { method: 'POST' }).then(() => false, () => true)
     check(refused, 'turning MCP off frees the port')

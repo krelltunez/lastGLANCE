@@ -12,9 +12,13 @@
     <true/>
     <key>com.apple.security.app-sandbox</key>
     <true/>
-    <!-- Outbound network: WebDAV, GLANCEvault, RevenueCat. No network.server:
-         nothing listens until MCP or Stream Deck arrive (section 10). -->
+    <!-- Outbound network: WebDAV, GLANCEvault, RevenueCat. -->
     <key>com.apple.security.network.client</key>
+    <true/>
+    <!-- Inbound, on 127.0.0.1 only: the MCP server (7900) and the Stream Deck
+         listener (7901), both off until turned on in Settings
+         (docs/mcp-and-stream-deck.md, section 7). dayGLANCE ships the same. -->
+    <key>com.apple.security.network.server</key>
     <true/>
     <!-- Direct Access: a folder the user picks, kept across launches with a
          security-scoped bookmark (electron/directAccess.ts). -->

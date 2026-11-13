@@ -1141,6 +1141,15 @@
     "undo": "Скасувати",
     "undoAll": "Скасувати все",
     "undoResult": "Скасовано: {{undone}}. Збережено, бо змінилися відтоді: {{kept}}.",
-    "undoFailed": "Не вдалося скасувати зараз. Спробуйте ще раз."
+    "undoFailed": "Не вдалося скасувати зараз. Спробуйте ще раз.",
+    "claudeDesktop": "Claude Desktop",
+    "claudeDesktopSetup": "Налаштувати Claude Desktop",
+    "claudeDesktopHint": "Додає lastGLANCE до налаштувань Claude Desktop, не змінюючи інших його підключень.",
+    "claudeDesktopDone": "Додано. Перезапустіть Claude Desktop, щоб підключитися.",
+    "claudeDesktopDoneBackup": "Додано, а попередні налаштування Claude Desktop збережено поруч. Перезапустіть Claude Desktop, щоб підключитися.",
+    "claudeDesktopBridgeMissing": "У цій збірці lastGLANCE бракує з’єднувача для Claude Desktop. Скористайтеся натомість розширенням lastGLANCE з посібника з налаштування.",
+    "claudeDesktopManual": "Не вдалося оновити налаштування Claude Desktop. Додайте це вручну:",
+    "claudeDesktopGuide": "Підключіть Claude Desktop за допомогою розширення lastGLANCE і вставте в нього токен.",
+    "setupGuide": "Посібник з налаштування"
   }
 }

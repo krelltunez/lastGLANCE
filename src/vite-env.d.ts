@@ -13,4 +13,6 @@ interface ImportMeta {
 }
 
 declare const __APP_VERSION__: string
+// True only in the Mac App Store build's bundle (vite.config.ts).
+declare const __MAS_BUILD__: boolean
 declare const __BUILD_TIME__: string

@@ -1093,6 +1093,15 @@
     "undo": "撤销",
     "undoAll": "全部撤销",
     "undoResult": "已撤销：{{undone}}。因之后有改动而保留：{{kept}}。",
-    "undoFailed": "暂时无法撤销，请重试。"
+    "undoFailed": "暂时无法撤销，请重试。",
+    "claudeDesktop": "Claude Desktop",
+    "claudeDesktopSetup": "设置 Claude Desktop",
+    "claudeDesktopHint": "将 lastGLANCE 添加到 Claude Desktop 的设置中，不影响它的其他连接。",
+    "claudeDesktopDone": "已添加。重新启动 Claude Desktop 即可连接。",
+    "claudeDesktopDoneBackup": "已添加，原来的 Claude Desktop 设置已另存一份。重新启动 Claude Desktop 即可连接。",
+    "claudeDesktopBridgeMissing": "此版本的 lastGLANCE 缺少 Claude Desktop 连接器。请改用设置指南中的 lastGLANCE 扩展。",
+    "claudeDesktopManual": "无法更新 Claude Desktop 的设置。请手动添加以下内容：",
+    "claudeDesktopGuide": "使用 lastGLANCE 扩展连接 Claude Desktop，并将令牌粘贴进去。",
+    "setupGuide": "设置指南"
   }
 }

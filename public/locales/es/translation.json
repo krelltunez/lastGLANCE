@@ -1093,6 +1093,15 @@
     "undo": "Deshacer",
     "undoAll": "Deshacer todo",
     "undoResult": "Deshechos: {{undone}}. Conservados porque cambiaron después: {{kept}}.",
-    "undoFailed": "No se pudo deshacer ahora. Inténtalo de nuevo."
+    "undoFailed": "No se pudo deshacer ahora. Inténtalo de nuevo.",
+    "claudeDesktop": "Claude Desktop",
+    "claudeDesktopSetup": "Configurar Claude Desktop",
+    "claudeDesktopHint": "Añade lastGLANCE a los ajustes de Claude Desktop sin tocar sus otras conexiones.",
+    "claudeDesktopDone": "Añadido. Reinicia Claude Desktop para conectarlo.",
+    "claudeDesktopDoneBackup": "Añadido, y tus ajustes anteriores de Claude Desktop se guardaron al lado. Reinicia Claude Desktop para conectarlo.",
+    "claudeDesktopBridgeMissing": "A esta versión de lastGLANCE le falta el conector de Claude Desktop. Usa en su lugar la extensión de lastGLANCE de la guía de configuración.",
+    "claudeDesktopManual": "No se pudieron actualizar los ajustes de Claude Desktop. Añade esto a mano:",
+    "claudeDesktopGuide": "Conecta Claude Desktop con la extensión de lastGLANCE y pega el token en ella.",
+    "setupGuide": "Guía de configuración"
   }
 }
