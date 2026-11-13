@@ -1081,6 +1081,9 @@
     "consentPeople": "Pessoas contém informação sobre outras pessoas: nomes, aniversários, as notas que guarda sobre elas e quando falaram pela última vez. Elas não aceitaram partilhá-la com um assistente de IA. Inclua Pessoas apenas se estiver à vontade com isso.",
     "consentWrites": "O assistente poderá alterar os seus dados sem lhe perguntar de cada vez. Pode fazer no máximo 30 alterações por minuto, nunca pode eliminar nada e pode desfazer as alterações dele aqui.",
     "accept": "Ativar",
-    "cancel": "Cancelar"
+    "cancel": "Cancelar",
+    "errorPortInUse": "A porta {{port}} já está a ser usada por outro programa.",
+    "errorPortDenied": "Este computador não permitiu a porta {{port}}. Escolha uma porta acima de 1024.",
+    "errorBindFailed": "Não foi possível iniciar na porta {{port}}."
   }
 }

@@ -246,6 +246,7 @@ const OVERRIDES = {
     "Os assistentes conectados precisam deste token. Um novo token os desconecta até que eles o recebam.",
   'localIntegrations.portHint':
     "Mude a porta apenas se outro programa já a usar. Deixe em branco para usar a porta padrão.",
+  'localIntegrations.errorPortInUse': "A porta {{port}} já está sendo usada por outro programa.",
   'localIntegrations.claudeCodeHint': "Execute isto no terminal para conectar o Claude Code.",
   'localIntegrations.consentBase':
     "O que o assistente lê é enviado à empresa que o opera (no caso do Claude, a Anthropic) e tratado segundo os termos dela, não os do lastGLANCE. Ative isto apenas para um assistente a quem você confia suas tarefas e sua casa.",

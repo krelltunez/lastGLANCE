@@ -48,6 +48,7 @@ import { useDirectAccessIntents } from '@/hooks/useDirectAccessIntents'
 import { useICloudIntents } from '@/hooks/useICloudIntents'
 import { useAndroidIntentBridge } from '@/hooks/useAndroidIntentBridge'
 import { useDesktopCommands } from '@/hooks/useDesktopCommands'
+import { useMcpBridge } from '@/mcp/useMcpBridge'
 import { runCappedRefreshCycle, type RefreshTier } from '@/intents/launcherRefreshCycle'
 import { useOutboxFlush } from '@/hooks/useOutboxFlush'
 import { useDayRollover } from '@/hooks/useDayRollover'
@@ -662,6 +663,8 @@ function AppInner() {
   // via app.lastglance.* intents. No-op off native Android.
   useAndroidIntentBridge(loadHeatmap, { runSyncCycle: runLauncherSyncCycle, touchHeartbeat: touchHeartbeatNow })
   useDesktopCommands(loadHeatmap)
+  // The MCP server's reads, answered from the database (src/mcp/). No-op off the desktop.
+  useMcpBridge()
   // OUTBOUND: drain the durable intents outbox on mount, on focus, and on the
   // poll cadence (enqueue also triggers a flush). Guarantees queued intents are
   // delivered/retried and never lost across restarts.

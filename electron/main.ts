@@ -29,6 +29,8 @@ import { shouldQuitOnAllWindowsClosed } from './startupQuit.js';
 import { DESKTOP_INFO_ARG, encodeDesktopInfo } from './desktopInfo.js';
 import { loadWindowState, onScreen, saveWindowState, saveWindowTheme, windowBackgroundColor } from './windowState.js';
 import { createCommandQueue, type CommandSource } from './commandQueue.js';
+import { bindErrorCode, startMcpServer } from './mcpServer.js';
+import { createRendererBridge } from './mcpRendererBridge.js';
 import { registerElectronBilling } from '@glance-apps/billing/electron-main';
 import { MAS_BILLING } from './billingConfig.js';
 import { availableUpdate, CHECK_CACHE_MS, RELEASES_API, type AvailableUpdate } from './updateCheck.js';
@@ -36,8 +38,10 @@ import { DEEP_LINK_SCHEME, deepLinkFromArgv, deepLinkToken } from './deepLink.js
 import { createReminderScheduler, type ScheduledReminder } from './reminderScheduler.js';
 import { isClickAfterBlurHide, parseTraySnapshot, popupPosition, settledCompletions, trayMenuItems, trayOpenToken, trayState, type TraySnapshot } from './trayModel.js';
 import { linuxFormats, macFormats, windowsFormats, type SystemFormats } from './systemFormats.js';
+import type http from 'node:http';
+import type { HostBridge } from '@glance-apps/mcp-host';
 import {
-  applyTransition, DEFAULT_LOCAL_INTEGRATIONS, integrationsView, listenerEffects, loadLocalIntegrations, saveLocalIntegrations,
+  applyTransition, DEFAULT_LOCAL_INTEGRATIONS, integrationsView, listenerEffects, loadLocalIntegrations, mcpGates, saveLocalIntegrations,
   type ListenerStatus, type LocalIntegrationsConfig, type McpEffect, type StreamDeckEffect,
 } from './localIntegrations.js';
 import { applyOpenAtLogin, closeAction, isAcceleratorText, launchedHidden, loadDesktopSettings, saveDesktopSettings, type DesktopSettings } from './backgroundMode.js';
@@ -453,10 +457,8 @@ ipcMain.handle('shell:set-shortcut', (event, kind: unknown, accelerator: unknown
 
 // ── Local integrations (docs/mcp-and-stream-deck.md, section 3) ────────────
 // The MCP server and the Stream Deck listener, both off until turned on in
-// Settings. localIntegrations.ts decides; this applies. The listeners
-// themselves arrive in later phases (MCP in phase 2, Stream Deck in phase 5):
-// until then an effect only records that it would have run, and neither
-// status ever reads as running.
+// Settings. localIntegrations.ts decides; this applies. The Stream Deck
+// listener arrives in phase 5: until then its effect is only logged.
 let integrationsConfig: LocalIntegrationsConfig = DEFAULT_LOCAL_INTEGRATIONS;
 const integrationsStatus: { mcp: ListenerStatus; streamDeck: ListenerStatus } = {
   mcp: { running: false, error: null },
@@ -471,9 +473,58 @@ function pushIntegrationsStatus(): void {
   live(mainWindow)?.webContents.send('local-integrations:status', currentIntegrationsView());
 }
 
+// The MCP listener (mcpServer.ts). The bridge to the page is made once and
+// kept across stops and starts; the token and the People tier are read on
+// every request, so neither needs a restart.
+let mcpServerHandle: http.Server | null = null;
+let mcpBridge: HostBridge | null = null;
+
+function setMcpStatus(status: ListenerStatus): void {
+  integrationsStatus.mcp = status;
+  pushIntegrationsStatus();
+}
+
+function startMcpListener(): void {
+  if (mcpServerHandle || !mcpGates(integrationsConfig).bound) return;
+  mcpBridge ??= createRendererBridge(() => live(mainWindow));
+  const srv = startMcpServer({
+    token: () => integrationsConfig.mcp.token ?? '',
+    portOverride: integrationsConfig.mcp.portOverride,
+    version: app.getVersion(),
+    readDeps: {
+      bridge: mcpBridge,
+      now: () => Date.now(),
+      timeZone: () => Intl.DateTimeFormat().resolvedOptions().timeZone,
+      includePeople: () => mcpGates(integrationsConfig).includePeople,
+    },
+    log: logStartup,
+    logError: logStartup,
+  });
+  if (!srv) { setMcpStatus({ running: false, error: 'bind_failed' }); return; }
+  mcpServerHandle = srv;
+  srv.on('listening', () => { if (mcpServerHandle === srv) setMcpStatus({ running: true, error: null }); });
+  srv.on('error', (err) => {
+    if (mcpServerHandle !== srv) return;
+    mcpServerHandle = null;
+    try { srv.close(); } catch { /* never bound */ }
+    setMcpStatus({ running: false, error: bindErrorCode(err) });
+  });
+}
+
+/** Stop and free the port at once, so a restart on the same port does not race its own rebind. */
+function stopMcpListener(onClosed?: () => void): void {
+  const srv = mcpServerHandle;
+  mcpServerHandle = null;
+  integrationsStatus.mcp = { running: false, error: null };
+  if (!srv) { onClosed?.(); return; }
+  srv.close(() => onClosed?.());
+  srv.closeAllConnections();
+}
+
 function applyMcpEffect(effect: McpEffect): void {
-  if (effect === 'none') return;
-  logStartup(`mcp listener: ${effect} (not built yet)`);
+  if (effect === 'start') startMcpListener();
+  else if (effect === 'stop') stopMcpListener();
+  else if (effect === 'restart') stopMcpListener(() => startMcpListener());
 }
 
 function applyStreamDeckEffect(effect: StreamDeckEffect): void {
@@ -1036,6 +1087,7 @@ app.whenReady().then(() => {
 
   // The MCP server and Stream Deck listener, when Settings turned them on.
   startLocalIntegrations();
+  app.on('will-quit', () => stopMcpListener());
 
   // Reminders due while the app was not running: within 12 hours fire once.
   reminders.rearm();

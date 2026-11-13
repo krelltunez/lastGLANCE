@@ -1081,6 +1081,9 @@
     "consentPeople": "People holds information about other people: their names, birthdays, the notes you keep about them and when you were last in touch. They have not agreed to share it with an AI assistant. Include People only if you are comfortable with that.",
     "consentWrites": "The assistant will be able to change your data without asking you each time. It can make at most 30 changes a minute, it can never delete anything, and you can undo its changes from here.",
     "accept": "Turn on",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "errorPortInUse": "Port {{port}} is already used by another app.",
+    "errorPortDenied": "This computer did not allow port {{port}}. Choose a port above 1024.",
+    "errorBindFailed": "Could not start on port {{port}}."
   }
 }

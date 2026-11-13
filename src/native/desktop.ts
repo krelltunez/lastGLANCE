@@ -307,6 +307,17 @@ export interface DesktopLocalIntegrations {
   onStatus(listener: (view: unknown) => void): () => void
 }
 
+/**
+ * The page's half of the MCP request bridge (electron/mcpRendererBridge.ts):
+ * main asks {id, method, params}, the page answers {id, ok, data | error}.
+ * Main takes answers from the main window only.
+ */
+export interface DesktopMcp {
+  /** Returns the unsubscribe. */
+  onRequest(listener: (request: unknown) => void): () => void
+  respond(response: Record<string, unknown>): void
+}
+
 export interface DesktopBridge {
   info: DesktopInfo
   shell: DesktopShell
@@ -322,6 +333,7 @@ export interface DesktopBridge {
   tray: DesktopTray
   billing: DesktopBilling
   localIntegrations: DesktopLocalIntegrations
+  mcp: DesktopMcp
 }
 
 /**
@@ -398,6 +410,8 @@ export const DESKTOP_BRIDGE_METHODS = [
   'localIntegrations.get',
   'localIntegrations.transition',
   'localIntegrations.onStatus',
+  'mcp.onRequest',
+  'mcp.respond',
 ] as const
 
 declare global {

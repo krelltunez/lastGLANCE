@@ -1081,6 +1081,9 @@
     "consentPeople": "Personen enthält Angaben über andere Menschen: Namen, Geburtstage, deine Notizen über sie und wann ihr zuletzt Kontakt hattet. Sie haben nicht zugestimmt, das mit einem KI-Assistenten zu teilen. Nimm Personen nur dazu, wenn du damit einverstanden bist.",
     "consentWrites": "Der Assistent kann deine Daten ändern, ohne jedes Mal nachzufragen. Er kann höchstens 30 Änderungen pro Minute machen, nie etwas löschen, und du kannst seine Änderungen hier rückgängig machen.",
     "accept": "Einschalten",
-    "cancel": "Abbrechen"
+    "cancel": "Abbrechen",
+    "errorPortInUse": "Port {{port}} wird schon von einer anderen App genutzt.",
+    "errorPortDenied": "Dieser Computer hat Port {{port}} nicht erlaubt. Wähle einen Port über 1024.",
+    "errorBindFailed": "Konnte auf Port {{port}} nicht starten."
   }
 }

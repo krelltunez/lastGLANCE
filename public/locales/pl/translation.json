@@ -1129,6 +1129,9 @@
     "consentPeople": "Osoby zawiera informacje o innych ludziach: imiona, urodziny, twoje notatki o nich i to, kiedy ostatnio byliście w kontakcie. Nie zgodzili się na udostępnienie ich asystentowi AI. Dołącz Osoby tylko wtedy, gdy ci to odpowiada.",
     "consentWrites": "Asystent będzie mógł zmieniać twoje dane bez pytania za każdym razem. Może wprowadzić najwyżej 30 zmian na minutę, nigdy niczego nie usunie, a jego zmiany możesz tu cofnąć.",
     "accept": "Włącz",
-    "cancel": "Anuluj"
+    "cancel": "Anuluj",
+    "errorPortInUse": "Port {{port}} jest już używany przez inną aplikację.",
+    "errorPortDenied": "Ten komputer nie zezwolił na port {{port}}. Wybierz port powyżej 1024.",
+    "errorBindFailed": "Nie udało się uruchomić na porcie {{port}}."
   }
 }

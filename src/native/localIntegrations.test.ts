@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  claudeCodeCommand, consentsForTier, LOCAL_INTEGRATIONS_UI, maskToken, parsePortInput, tierAction, transitionErrorKey, writesAction,
+  claudeCodeCommand, consentsForTier, statusErrorKey, LOCAL_INTEGRATIONS_UI, maskToken, parsePortInput, tierAction, transitionErrorKey, writesAction,
 } from './localIntegrations'
 
 describe('the local integrations panel', () => {
@@ -44,5 +44,8 @@ describe('the local integrations panel', () => {
     expect(transitionErrorKey('invalid_port')).toBe('localIntegrations.errorInvalidPort')
     expect(transitionErrorKey('port_reserved')).toBe('localIntegrations.errorPortReserved')
     expect(transitionErrorKey('consent_required')).toBe('localIntegrations.errorGeneric')
+    expect(statusErrorKey('port_in_use')).toBe('localIntegrations.errorPortInUse')
+    expect(statusErrorKey('permission_denied')).toBe('localIntegrations.errorPortDenied')
+    expect(statusErrorKey('bind_failed')).toBe('localIntegrations.errorBindFailed')
   })
 })
