@@ -1,0 +1,32 @@
+{
+  "name": "lastglance-streamdeck",
+  "version": "1.0.0",
+  "private": true,
+  "description": "lastGLANCE for Stream Deck: chores and People on your keys. Talks to the lastGLANCE desktop app on this computer.",
+  "type": "module",
+  "scripts": {
+    "icons": "node scripts/gen-assets.mjs",
+    "build": "npm run icons && rollup -c --bundleConfigAsCjs",
+    "watch": "rollup -cw --bundleConfigAsCjs",
+    "typecheck": "tsc --noEmit",
+    "validate": "streamdeck validate com.lastglance.streamdeck.sdPlugin",
+    "pack": "streamdeck pack com.lastglance.streamdeck.sdPlugin --output dist --force"
+  },
+  "dependencies": {
+    "@elgato/streamdeck": "2.1.2",
+    "ws": "8.18.3"
+  },
+  "devDependencies": {
+    "@elgato/cli": "1.10.4",
+    "@elgato/utils": "0.6.0",
+    "@rollup/plugin-commonjs": "29.0.3",
+    "@rollup/plugin-json": "6.1.0",
+    "@rollup/plugin-node-resolve": "16.0.3",
+    "@rollup/plugin-typescript": "12.3.1",
+    "@types/node": "^20.19.0",
+    "@types/ws": "8.18.1",
+    "rollup": "4.68.3",
+    "tslib": "^2.8.1",
+    "typescript": "~5.9.3"
+  }
+}

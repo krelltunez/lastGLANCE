@@ -33,6 +33,48 @@ jobs:
       - name: Typecheck the desktop shell
         run: npm run build:electron:main
 
+  # The Stream Deck plugin (docs/mcp-and-stream-deck.md, section 6). Its tests
+  # run in the checks job with the app's; this builds the bundle, checks its
+  # types and the manifest, and packs it. The icon table is generated from the
+  # app's own lucide-react, so the root install comes first.
+  stream-deck-plugin:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            stream-deck-plugin/package-lock.json
+
+      - name: Install the app's dependencies
+        run: npm ci
+
+      - name: Install the plugin's dependencies
+        working-directory: stream-deck-plugin
+        run: npm ci
+
+      - name: Build
+        working-directory: stream-deck-plugin
+        run: npm run build
+
+      - name: Typecheck
+        working-directory: stream-deck-plugin
+        run: npm run typecheck
+
+      - name: Validate the manifest
+        working-directory: stream-deck-plugin
+        run: npm run validate
+
+      - name: Pack
+        working-directory: stream-deck-plugin
+        run: npm run pack
+
   # The packaged desktop app, launched for real (docs/desktop-app.md, section
   # 11): the app:// origin, the preload bridge, Dexie, no service worker and the
   # CSP, none of which a unit test can see. Linux only; macOS and Windows

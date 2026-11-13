@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <!-- The Chore key's settings: which chore it shows. The list comes from the
+       plugin over Stream Deck's own channel (actions/chore.ts, onSendToPlugin);
+       this page never connects to lastGLANCE itself. -->
+  <style>
+    body { margin: 0; padding: 8px 12px; font: 13px -apple-system, 'Segoe UI', sans-serif; color: #d6d6d6; background: #2d2d2d; }
+    label { display: block; margin: 4px 0 6px; color: #969696; }
+    select { width: 100%; padding: 4px; background: #3d3d3d; color: #d6d6d6; border: 1px solid #4d4d4d; border-radius: 3px; font: inherit; }
+    p { margin: 8px 0 0; color: #969696; line-height: 1.4; }
+  </style>
+</head>
+<body>
+  <label for="chore">Chore</label>
+  <select id="chore" disabled><option>Loading…</option></select>
+  <p id="note"></p>
+  <script>
+    let socket = null, context = null, action = null, settings = {}, retry = null;
+    const select = document.getElementById('chore'), note = document.getElementById('note');
+
+    function send(msg) { if (socket && socket.readyState === 1) socket.send(JSON.stringify(msg)); }
+    function ask() { send({ event: 'sendToPlugin', action, context, payload: { event: 'lg-list-chores' } }); }
+
+    function show(list, connected) {
+      select.textContent = '';
+      if (!connected) {
+        select.disabled = true;
+        select.append(new Option('lastGLANCE is not running'));
+        note.textContent = 'Open lastGLANCE and turn on Stream Deck in Settings, then Integrations.';
+        clearTimeout(retry); retry = setTimeout(ask, 3000);
+        return;
+      }
+      note.textContent = '';
+      select.disabled = false;
+      select.append(new Option('Choose a chore…', ''));
+      const groups = new Map();
+      for (const c of [...list].sort((a, b) => a.category.localeCompare(b.category) || a.name.localeCompare(b.name))) {
+        if (!groups.has(c.category)) { const g = document.createElement('optgroup'); g.label = c.category || 'Other'; groups.set(c.category, g); select.append(g); }
+        groups.get(c.category).append(new Option(c.name, c.id));
+      }
+      if (settings.choreId && !list.some((c) => c.id === settings.choreId)) select.append(new Option('(a chore that no longer exists)', settings.choreId));
+      select.value = settings.choreId || '';
+    }
+
+    select.addEventListener('change', () => {
+      settings = { ...settings, choreId: select.value || undefined };
+      send({ event: 'setSettings', context, payload: settings });
+    });
+
+    // Called by Stream Deck when the inspector opens.
+    window.connectElgatoStreamDeckSocket = (port, uuid, registerEvent, _info, actionInfo) => {
+      context = uuid;
+      const info = JSON.parse(actionInfo);
+      action = info.action;
+      settings = (info.payload && info.payload.settings) || {};
+      socket = new WebSocket(`ws://127.0.0.1:${port}`);
+      socket.onopen = () => { send({ event: registerEvent, uuid }); ask(); };
+      socket.onmessage = (e) => {
+        const msg = JSON.parse(e.data);
+        if (msg.event === 'sendToPropertyInspector' && msg.payload && msg.payload.event === 'lg-chores') show(msg.payload.chores || [], msg.payload.connected);
+        if (msg.event === 'didReceiveSettings') { settings = msg.payload.settings || {}; select.value = settings.choreId || ''; }
+      };
+    };
+  </script>
+</body>
+</html>

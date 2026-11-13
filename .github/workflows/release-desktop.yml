@@ -3,8 +3,8 @@
 #
 # On a v* tag: builds macOS (dmg and zip, Developer ID-signed and notarized
 # when the signing secrets are set, ad-hoc otherwise), Windows (nsis) and Linux
-# (AppImage and deb), then adds them to the GitHub release for that tag:
-# uploaded to the release if it already exists (the Android APK's release, for
+# (AppImage and deb), and packs the Stream Deck plugin, then adds them to the
+# GitHub release for that tag: uploaded to the release if it already exists (the Android APK's release, for
 # instance), else attached to a new draft. A published release stays
 # published. The Mac App Store build is made locally (npm run build:electron:mas).
 #
@@ -87,8 +87,45 @@ jobs:
             dist-app/*.deb
           if-no-files-found: error
 
+  # The Stream Deck plugin, packed once (it is the same file on every
+  # platform) and added to the release beside the apps. The Elgato Marketplace
+  # submission is a manual step (docs/releasing-desktop.md).
+  stream-deck:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            stream-deck-plugin/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          npm ci --prefix stream-deck-plugin
+
+      - name: Build, validate and pack
+        working-directory: stream-deck-plugin
+        run: |
+          npm run build
+          npm run validate
+          npm run pack
+
+      - name: Upload the plugin
+        uses: actions/upload-artifact@v4
+        with:
+          name: stream-deck-plugin
+          path: stream-deck-plugin/dist/com.lastglance.streamdeck.streamDeckPlugin
+          if-no-files-found: error
+
   release:
-    needs: build
+    needs: [build, stream-deck]
     # Tag pushes only: a manual run is a build-only check.
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
