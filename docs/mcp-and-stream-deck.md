@@ -364,9 +364,12 @@ until phase 7.
      `scripts/verify-mas-compileout.mjs`, run on direct builds in CI) and the
      MAS `network.server` entitlement. The Claude Code line was built in
      phase 1.
-   - **4b, once 0.2.0 is on npm:** the bridge as a dependency, shipped in
-     `extraResources` on macOS and Windows direct builds (never MAS), so the
-     button's entry points at a file that exists; the verify script checks it.
+   - **4b (done):** `@glance-apps/mcp-bridge` 0.2.0 shipped in
+     `extraResources` on macOS and Windows direct builds (never MAS, never
+     Linux), so the button's entry points at a file that exists; the verify
+     script checks it, and the smoke test runs the entry's exact command (the
+     build's binary as Node on the bridge, `--app lastglance`) against the live
+     server over stdio.
 5. **Stream Deck, desktop side.** The WebSocket server, the protocol, the deck
    model from the snapshot, `streamdeck` commands and the double-completion
    guard.

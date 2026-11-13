@@ -36,6 +36,16 @@ const hasCert = Boolean(process.env.CSC_LINK);
 // inherit the ad-hoc `identity: null` below, which would skip signing.
 const isMasBuild = process.env.LASTGLANCE_APP_ID === 'com.lastglance';
 
+// The MCP bridge (docs/mcp-and-stream-deck.md, section 5) rides along into
+// Resources/mcp-bridge on direct macOS and Windows builds, where "Set up
+// Claude Desktop" points Claude at it (mcpDesktopConfig.ts, bridgeScriptPath).
+// Never on the Mac App Store build (the app must not install or run code
+// there), never on Linux (no Claude Desktop; an AppImage's path changes every
+// launch). extraResources is per platform, so each declares it: a platform
+// that forgets ships a button pointing at nothing (dayGLANCE's Windows build
+// once did; the handler now refuses with bridge_missing).
+const MCP_BRIDGE_RESOURCE = { from: 'node_modules/@glance-apps/mcp-bridge', to: 'mcp-bridge' };
+
 // CFBundleVersion for App Store uploads, which must strictly increase:
 // YYYYMMDD.HHMM from the build time (BUILD_NUMBER overrides). The marketing
 // version stays package.json's. Set on MAS builds only.
@@ -108,6 +118,9 @@ module.exports = {
   // from process.resourcesPath/tray.
   extraResources: [{ from: 'electron/resources/tray', to: 'tray' }],
   mac: {
+    // mas options merge over these and arrays concatenate, so a mas section
+    // could not take the bridge back out: it is left out here instead.
+    extraResources: isMasBuild ? [] : [MCP_BRIDGE_RESOURCE],
     // null: ad-hoc (no certificate); undefined: electron-builder picks the
     // Developer ID identity when CSC_LINK is set.
     identity: hasCert || isMasBuild ? undefined : null,
@@ -140,6 +153,7 @@ module.exports = {
     category: 'public.app-category.productivity',
   },
   win: {
+    extraResources: [MCP_BRIDGE_RESOURCE],
     icon: 'electron/resources/icon.png',
     target: [{ target: 'nsis' }],
   },

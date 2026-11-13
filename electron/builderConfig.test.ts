@@ -100,6 +100,18 @@ describe('electron-builder.config.cjs', () => {
     expect([...whole].sort()).toEqual([...mainRuntimeClosure()].sort());
   });
 
+  it('ships the MCP bridge on direct macOS and Windows builds, where the setup points Claude at it', () => {
+    const bridge = { from: 'node_modules/@glance-apps/mcp-bridge', to: 'mcp-bridge' };
+    expect(config.mac.extraResources).toEqual([bridge]);
+    expect(config.win.extraResources).toEqual([bridge]);
+    expect(config.linux.extraResources).toBeUndefined();
+    // The version shipped knows lastGLANCE: --app lastglance, which the entry passes.
+    const pkg = JSON.parse(readFileSync(path.join(root, bridge.from, 'package.json'), 'utf-8'));
+    expect(pkg.version).toBe('0.2.0');
+    expect(readFileSync(path.join(root, bridge.from, 'src/apps.js'), 'utf-8')).toContain("id: 'lastglance'");
+    expect(existsSync(path.join(root, bridge.from, 'bridge.js'))).toBe(true);
+  });
+
   it('points at icons that exist', () => {
     for (const icon of [config.mac.icon, config.win.icon, config.linux.icon]) {
       expect(existsSync(path.join(root, icon)), icon).toBe(true);
@@ -155,6 +167,9 @@ describe('electron-builder.config.cjs', () => {
       expect(mas.buildVersion).toMatch(/^\d{8}\.\d{4}$/);
       expect(mas.mas.hardenedRuntime).toBe(false);
       expect(mas.mas.provisioningProfile).toBe('electron/lastglance.mas.provisionprofile');
+      // No bridge on MAS: the mac options it merges over carry none.
+      expect(mas.mac.extraResources).toEqual([]);
+      expect(mas.mas.extraResources).toBeUndefined();
       // The Claude Desktop setup stays out of the MAS package, at the top level where negations compose.
       expect(mas.files).toEqual(expect.arrayContaining(['!dist-electron/mcpDesktopSetup*', '!dist-electron/mcpDesktopConfig*']));
       expect(mas.mas.files).toBeUndefined();

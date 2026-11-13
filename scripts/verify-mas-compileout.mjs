@@ -8,10 +8,11 @@
 //   node scripts/verify-mas-compileout.mjs --mas    <app or resources dir>
 //   node scripts/verify-mas-compileout.mjs --direct <app or resources dir>
 //
-// --mas: the setup modules are not in app.asar, and no renderer bundle holds
-// the button's code. --direct: both are there (so the check cannot pass by
-// looking in the wrong place). The path is a .app, or the folder holding
-// app.asar (dist-app/linux-unpacked/resources).
+// --mas: the setup modules are not in app.asar, no renderer bundle holds the
+// button's code, and the bridge is not in Resources. --direct: all three are
+// there (so the check cannot pass by looking in the wrong place), except the
+// bridge on Linux, which never carries it. The path is a .app, or the folder
+// holding app.asar (dist-app/linux-unpacked/resources, win-unpacked/resources).
 import { existsSync } from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
@@ -57,6 +58,13 @@ if (!texts.some(([, t]) => t.includes(PANEL_KEY))) {
   const carrying = texts.filter(([, t]) => t.includes(BUTTON_KEY)).map(([e]) => e)
   check(mas ? carrying.length === 0 : carrying.length > 0, `the Set up Claude Desktop button ${mas ? 'is not' : 'is'} in the renderer bundle${carrying.length ? ` (${carrying.join(', ')})` : ''}`)
 }
+
+// The bridge the setup points Claude at: Resources/mcp-bridge/bridge.js on
+// direct macOS and Windows builds, nowhere on MAS or Linux.
+const bridge = path.join(resources, 'mcp-bridge', 'bridge.js')
+const linux = /linux-unpacked/.test(resources)
+const shouldCarry = !mas && !linux
+check(existsSync(bridge) === shouldCarry, `the MCP bridge ${shouldCarry ? 'is' : 'is not'} in Resources${linux ? ' (Linux never carries it)' : ''}`)
 
 if (failures.length) {
   console.error(`\n${failures.length} check(s) failed`)
