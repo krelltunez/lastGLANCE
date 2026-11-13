@@ -13,7 +13,9 @@
 //     refused until granted, then reached, and the grant can be revoked;
 //   - background settings, reminders through main, the command queue and the
 //     tray popup's page (Phase 4);
-//   - the MCP server: turned on through the bridge, it answers the official
+//   - the MCP server: the Claude Desktop entry's command (this build's binary
+//     as Node on the bridge, --app lastglance) finds it through the discovery
+//     file and lists its tools over stdio; turned on through the bridge, it answers the official
 //     client from the page's database; with "Allow changes" a write lands in
 //     the database and the journal, and Settings' undo takes it back out;
 //     turning it off frees the port;
@@ -29,6 +31,7 @@ import http from 'node:http'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client'
+import { spawn } from 'node:child_process'
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 const { version } = JSON.parse(readFileSync(path.join(root, 'package.json'), 'utf-8'))
@@ -285,6 +288,25 @@ try {
   const discoveryFile = path.join(await app.evaluate(({ app }) => app.getPath('userData')), 'mcp.json')
   const discovered = existsSync(discoveryFile) ? JSON.parse(readFileSync(discoveryFile, 'utf-8')) : null
   check(discovered?.token === mcpView?.mcp?.token && discovered?.port === mcpView?.mcp?.port, 'the discovery file holds the port and token while the server runs')
+
+  // What "Set up Claude Desktop" writes: this build's own binary run as Node on
+  // the bridge, --app lastglance, with nothing else (mcpDesktopConfig.ts,
+  // bridgeEntry). Linux does not bundle the bridge, so the same package comes
+  // from node_modules; the runtime, the profile and the discovery are the real ones.
+  if (mcpView?.mcp?.status?.running) {
+    const bridgeScript = path.join(root, 'node_modules/@glance-apps/mcp-bridge/bridge.js')
+    const replies = await new Promise((resolve) => {
+      const child = spawn(executablePath, [bridgeScript, '--app', 'lastglance'], { env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' } })
+      let out = ''
+      child.stdout.on('data', (d) => { out += d })
+      child.on('close', () => resolve(out.split('\n').filter(Boolean).map((l) => { try { return JSON.parse(l) } catch { return null } })))
+      setTimeout(() => child.kill(), 15_000)
+      child.stdin.write(JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'lastglance-smoke', version: '0' } } }) + '\n')
+      child.stdin.end(JSON.stringify({ jsonrpc: '2.0', id: 2, method: 'tools/list' }) + '\n')
+    })
+    const listed = replies.find((r) => r?.id === 2)?.result?.tools?.map((t) => t.name) ?? []
+    check(listed.includes('lastglance_get_overview'), `the Claude Desktop entry's command reaches the server over stdio (${listed.length} tools)`)
+  }
   if (mcpView?.mcp?.status?.running) {
     const client = new Client({ name: 'lastglance-smoke', version: '0.0.0' })
     await client.connect(new StreamableHTTPClientTransport(new URL(mcpView.mcp.endpoint), {
