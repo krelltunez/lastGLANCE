@@ -238,7 +238,7 @@ export interface DesktopCommand {
   clientId: string
   action: string
   payload: Record<string, unknown>
-  source: 'tray' | 'notification'
+  source: 'tray' | 'notification' | 'streamdeck'
   at: string
 }
 

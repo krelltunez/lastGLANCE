@@ -33,6 +33,9 @@ import { bindErrorCode, startMcpServer } from './mcpServer.js';
 import { createRendererBridge } from './mcpRendererBridge.js';
 import { createJournal } from './mcpJournal.js';
 import { discoveryFilePath, syncDiscoveryFile } from './mcpDiscovery.js';
+import { startStreamDeckServer, type StreamDeckServer } from './streamDeckServer.js';
+import { deckCompletion, deckOpenToken, deckState, prunePresses } from './deckModel.js';
+import { STREAM_DECK_PORT } from './deckProtocol.js';
 import { registerElectronBilling } from '@glance-apps/billing/electron-main';
 import { MAS_BILLING } from './billingConfig.js';
 import { availableUpdate, CHECK_CACHE_MS, RELEASES_API, type AvailableUpdate } from './updateCheck.js';
@@ -349,6 +352,8 @@ function refreshTray(): void {
   tray.setToolTip(counts.overdue > 0 ? `lastGLANCE · ${counts.overdue}` : 'lastGLANCE');
   if (!USE_TRAY_POPUP) tray.setContextMenu(trayMenu(true));
   live(trayWindow)?.webContents.send('tray:state', currentTrayState());
+  // The deck draws the same snapshot: a new one, or a completion from the tray, reaches its keys too.
+  streamDeckServer?.broadcast();
 }
 
 function completeFromTray(syncId: unknown): void {
@@ -597,9 +602,68 @@ function applyMcpEffect(effect: McpEffect): void {
   else if (effect === 'restart') stopMcpListener(() => startMcpListener());
 }
 
+// The Stream Deck listener (streamDeckServer.ts, docs/mcp-and-stream-deck.md,
+// 6.1). The keys draw the snapshot the tray holds (deckModel.ts), aged by a
+// one-minute tick; a press goes through the command queue as the tray's does,
+// marked done here at once so the deck and the tray agree before the page
+// catches up.
+let streamDeckServer: StreamDeckServer | null = null;
+let streamDeckTick: ReturnType<typeof setInterval> | null = null;
+// The deck's own presses, kept the full minute (deckModel.ts, deckCompletion).
+const deckPressed = new Map<string, number>();
+
+function setStreamDeckStatus(status: ListenerStatus): void {
+  integrationsStatus.streamDeck = status;
+  pushIntegrationsStatus();
+}
+
+function startStreamDeckListener(): void {
+  if (streamDeckServer || !integrationsConfig.streamDeck.enabled) return;
+  const srv = startStreamDeckServer({
+    port: STREAM_DECK_PORT,
+    getState: () => deckState(traySnapshot, doneHere, Date.now()),
+    onCommand: (command) => {
+      if (command.type === 'lg:chore:complete') {
+        const now = Date.now();
+        prunePresses(deckPressed, now);
+        const verdict = deckCompletion(command.choreId, traySnapshot, doneHere, now, deckPressed);
+        if (verdict !== 'ok') return { ok: false, reason: verdict };
+        deckPressed.set(command.choreId, now);
+        doneHere.set(command.choreId, now);
+        queueCommand('complete', { chore_id: command.choreId }, 'streamdeck');
+        refreshTray();
+        return { ok: true };
+      }
+      const token = deckOpenToken(command.target, traySnapshot);
+      if (token === false) return { ok: false, reason: 'refused' };
+      openToken(token);
+      return { ok: true };
+    },
+    log: logStartup,
+  });
+  streamDeckServer = srv;
+  srv.wss.on('listening', () => { if (streamDeckServer === srv) setStreamDeckStatus({ running: true, error: null }); });
+  srv.wss.on('error', (err) => {
+    if (streamDeckServer !== srv) return;
+    logStartup(`stream deck listener failed: ${(err as NodeJS.ErrnoException).code ?? err.message}`);
+    stopStreamDeckListener();
+    setStreamDeckStatus({ running: false, error: bindErrorCode(err) });
+  });
+  // The keys age with the clock while nothing else changes.
+  streamDeckTick = setInterval(() => streamDeckServer?.broadcast(), 60_000);
+}
+
+function stopStreamDeckListener(): void {
+  if (streamDeckTick) { clearInterval(streamDeckTick); streamDeckTick = null; }
+  const srv = streamDeckServer;
+  streamDeckServer = null;
+  integrationsStatus.streamDeck = { running: false, error: null };
+  srv?.close();
+}
+
 function applyStreamDeckEffect(effect: StreamDeckEffect): void {
-  if (effect === 'none') return;
-  logStartup(`stream deck listener: ${effect} (not built yet)`);
+  if (effect === 'start') startStreamDeckListener();
+  else if (effect === 'stop') { stopStreamDeckListener(); pushIntegrationsStatus(); }
 }
 
 function applyListenerEffects(effects: { mcp: McpEffect; streamDeck: StreamDeckEffect }): void {
@@ -1181,7 +1245,7 @@ app.whenReady().then(() => {
       ))
       .catch((err) => logStartup(`claude desktop setup not available: ${err instanceof Error ? err.message : err}`));
   }
-  app.on('will-quit', () => stopMcpListener());
+  app.on('will-quit', () => { stopMcpListener(); stopStreamDeckListener(); });
 
   // Reminders due while the app was not running: within 12 hours fire once.
   reminders.rearm();

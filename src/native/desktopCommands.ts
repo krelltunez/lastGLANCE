@@ -24,7 +24,7 @@ export function commandAsWrite(command: DesktopCommand): LauncherWrite {
 
 /** Where the activity log says a write came from. */
 export const commandVia = (command: Pick<DesktopCommand, 'source'>): string =>
-  (command.source === 'notification' ? 'a notification' : 'the tray')
+  (command.source === 'notification' ? 'a notification' : command.source === 'streamdeck' ? 'the Stream Deck' : 'the tray')
 
 /** Take the queue, apply each command, acknowledge each once handled. */
 export async function drainDesktopCommands(

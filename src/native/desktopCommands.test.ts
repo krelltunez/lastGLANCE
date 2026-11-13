@@ -39,6 +39,7 @@ describe('the desktop command queue, page side', () => {
     expect(commandAsWrite(cmd('a'))).toEqual({ action: LG_LAUNCHER_ACTIONS.COMPLETE, payload: { chore_id: 'c1' }, clientId: 'a' })
     expect(commandAsWrite(cmd('b', 'log_interaction', {})).action).toBe(LG_LAUNCHER_ACTIONS.LOG_INTERACTION)
     expect(commandVia({ source: 'notification' })).toBe('a notification')
+    expect(commandVia({ source: 'streamdeck' })).toBe('the Stream Deck')
   })
 
   it('applies a completion through the app handler, then acknowledges it', async () => {

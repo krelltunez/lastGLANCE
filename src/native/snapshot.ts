@@ -67,6 +67,11 @@ function choreState(target: number | null, elapsed: number | null): ChoreState {
 }
 
 export async function buildSnapshot(): Promise<WidgetSnapshot> {
+  // As of when the data is read, not when the snapshot is finished: the desktop
+  // tray and Stream Deck treat a completion made before this time as reflected
+  // (electron/trayModel.ts, settledCompletions), and one made during the reads
+  // is not in them.
+  const generatedAt = new Date().toISOString()
   const categories = await getCategories()
   const choresByCat = await Promise.all(categories.map(c => getChoresForCategory(c.id)))
   const catName = new Map(categories.map(c => [c.id, c.name]))
@@ -130,7 +135,7 @@ export async function buildSnapshot(): Promise<WidgetSnapshot> {
 
   return {
     version: 1,
-    generatedAt: new Date().toISOString(),
+    generatedAt,
     counts: { overdue, soon },
     heatmap,
     weekStart: firstDayOfWeek(),

@@ -60,6 +60,7 @@
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-i18next": "^17.0.8",
+    "ws": "8.18.3",
     "zod": "4.6.7"
   },
   "devDependencies": {
@@ -72,6 +73,7 @@
     "@types/node": "^25.6.0",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
+    "@types/ws": "8.18.1",
     "@vitejs/plugin-react": "^4.4.1",
     "@vitest/coverage-v8": "^4.1.7",
     "autoprefixer": "^10.4.21",
