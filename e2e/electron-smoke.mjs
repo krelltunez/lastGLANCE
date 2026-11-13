@@ -85,7 +85,14 @@ try {
     check(info?.secureStorage === false, `secure storage reported unavailable here (${info?.secureStorage})`)
   }
 
-  const dbs = await page.evaluate(async () => (await indexedDB.databases()).map((d) => d.name))
+  // The header can render before Dexie's first open on a fresh profile has
+  // committed, and indexedDB.databases() lists a database only once it has:
+  // wait for it (CI starts from an empty profile every run) rather than read once.
+  let dbs = []
+  for (let i = 0; i < 100 && !dbs.includes('lastglance'); i++) {
+    if (i) await new Promise((r) => setTimeout(r, 100))
+    dbs = await page.evaluate(async () => (await indexedDB.databases()).map((d) => d.name))
+  }
   check(dbs.includes('lastglance'), `Dexie opened the lastglance database (${dbs.join(', ')})`)
 
   // app:// is not registered with allowServiceWorkers, so Chromium refuses the
