@@ -12,7 +12,7 @@ vi.mock('./pendingOpenPerson', () => ({
   setPendingOpenPerson: vi.fn(),
 }))
 
-import { routeWidgetDeepLink } from './pendingDeepLink'
+import { OPEN_SETTINGS_EVENT, routeWidgetDeepLink } from './pendingDeepLink'
 
 // lastglance://chores is the chores counterpart of lastglance://people: a
 // launcher's Chores card fires it, and without it a plain launch stayed on
@@ -32,6 +32,16 @@ beforeEach(() => { vi.clearAllMocks(); vi.stubGlobal('window', new EventTarget()
 afterEach(() => { vi.unstubAllGlobals() })
 
 describe('routeWidgetDeepLink', () => {
+  it('"settings:integrations" (the tray\'s assistant indicator) opens Settings at Integrations', async () => {
+    const sections: unknown[] = []
+    window.addEventListener(OPEN_SETTINGS_EVENT, (e) => sections.push((e as CustomEvent).detail))
+    const seen = events()
+    bridge.consumeDeepLink.mockResolvedValueOnce('settings:integrations')
+    await routeWidgetDeepLink()
+    expect(sections).toEqual(['integrations'])
+    expect(seen).toEqual([])
+  })
+
   it('"chores" dispatches the mode switch and nothing else', async () => {
     const seen = events()
     bridge.consumeDeepLink.mockResolvedValueOnce('chores')

@@ -141,6 +141,12 @@ Then:
 - Download the macOS `dmg` on a Mac that has never run the app. It should open
   without a Gatekeeper warning (signed builds only).
 - On an install of the previous version, check that the update notice appears.
+- In Settings → Integrations → On this computer, turn on AI assistants and
+  use **Set up Claude Desktop** (macOS or Windows direct build): Claude Desktop,
+  restarted, should list the lastGLANCE tools. The tray popup's dot turns
+  green, and blue after an assistant change.
+- With Stream Deck on, install the release's `.streamDeckPlugin`: a Chore key
+  should show the chore and mark it done.
 - On the Mac App Store build, check that the paywall shows App Store prices,
   that a purchase or restore unlocks, and that iCloud reaches both containers
   (desktop-app.md, section 6).

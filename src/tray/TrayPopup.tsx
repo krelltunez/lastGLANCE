@@ -8,6 +8,7 @@ import { formatElapsed, formatNextDue } from '@/utils/cadence'
 import { formatMonthShort } from '@/utils/datetime'
 import { daysUntilLabel } from '@/components/People/labels'
 import { searchChores } from './search'
+import { AssistantDot } from '@/components/LocalIntegrations/AssistantDot'
 
 // The desktop tray popup (docs/desktop-app.md, section 7): a widget, drawn
 // with the app's own cards. It renders what main derives from the widget
@@ -80,9 +81,12 @@ export function TrayPopup({ tray }: { tray: DesktopTray }) {
     <div className="h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 select-none">
       <header className="shrink-0 px-4 pt-4 pb-3 border-b border-slate-200 dark:border-slate-800/80 flex items-end justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-2xl font-black tracking-tight leading-none text-slate-900 dark:text-slate-100">
-            last<span className="italic text-green-400">GLANCE</span>
-          </h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-black tracking-tight leading-none text-slate-900 dark:text-slate-100">
+              last<span className="italic text-green-400">GLANCE</span>
+            </h1>
+            <AssistantDot indicator={state?.assistant} onClick={() => tray.open('settings:integrations')} />
+          </div>
           <p className="text-[11px] text-slate-400 dark:text-slate-600 mt-1 tracking-wide truncate">{t('app.tagline')}</p>
         </div>
         <div className="inline-flex shrink-0 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-900" role="tablist">

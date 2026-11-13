@@ -143,9 +143,11 @@ export function trayState(snapshot: TraySnapshot | null, doneHere: ReadonlyMap<s
 
 /**
  * The deep-link token the popup may open: a chore or person it shows, the
- * quick-log sheet for a person it shows, People, or (null) just the app.
+ * quick-log sheet for a person it shows, People, Settings at Integrations (the
+ * assistant indicator), or (null) just the app.
  */
 export function trayOpenToken(token: unknown, snapshot: TraySnapshot | null): string | null {
+  if (token === 'settings:integrations') return token;
   if (typeof token !== 'string' || !snapshot) return null;
   if (token === 'people') return token;
   const colon = token.indexOf(':');

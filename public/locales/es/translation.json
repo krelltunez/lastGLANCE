@@ -1102,6 +1102,9 @@
     "claudeDesktopBridgeMissing": "A esta versión de lastGLANCE le falta el conector de Claude Desktop. Usa en su lugar la extensión de lastGLANCE de la guía de configuración.",
     "claudeDesktopManual": "No se pudieron actualizar los ajustes de Claude Desktop. Añade esto a mano:",
     "claudeDesktopGuide": "Conecta Claude Desktop con la extensión de lastGLANCE y pega el token en ella.",
-    "setupGuide": "Guía de configuración"
+    "setupGuide": "Guía de configuración",
+    "assistantOn": "El acceso de asistentes está activado",
+    "assistantUndo": "Cambios de asistentes que puedes deshacer",
+    "assistantPaused": "Los cambios de asistentes están en pausa"
   }
 }

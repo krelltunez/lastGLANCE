@@ -1,11 +1,19 @@
 import { describe, expect, it } from 'vitest'
 import {
-  claudeCodeCommand, claudeSetupMessage, consentsForTier, offersClaudeDesktopSetup, statusErrorKey, LOCAL_INTEGRATIONS_UI, maskToken, parsePortInput, tierAction, transitionErrorKey, writesAction,
+  assistantLabelKey, claudeCodeCommand, claudeSetupMessage, consentsForTier, offersClaudeDesktopSetup, statusErrorKey, LOCAL_INTEGRATIONS_UI, maskToken, parsePortInput, tierAction, transitionErrorKey, writesAction,
 } from './localIntegrations'
 
 describe('the local integrations panel', () => {
-  it('stays unmounted until the phase that ships it', () => {
-    expect(LOCAL_INTEGRATIONS_UI).toBe(false)
+  it('is mounted (phase 7)', () => {
+    expect(LOCAL_INTEGRATIONS_UI).toBe(true)
+  })
+
+  it('words the assistant indicator, and shows nothing when it is off', () => {
+    expect(assistantLabelKey('on')).toBe('localIntegrations.assistantOn')
+    expect(assistantLabelKey('undo')).toBe('localIntegrations.assistantUndo')
+    expect(assistantLabelKey('paused')).toBe('localIntegrations.assistantPaused')
+    expect(assistantLabelKey('off')).toBeNull()
+    expect(assistantLabelKey(undefined)).toBeNull()
   })
 
   it('asks for the consents a tier change needs, and only those', () => {

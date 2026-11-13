@@ -2,6 +2,9 @@ import { consumeDeepLink, consumeSharedChore } from './widgetBridge'
 import { setPendingOpenChore } from './pendingOpenChore'
 import { OPEN_PERSON_PENDING_EVENT, setPendingOpenPerson, type PendingPeopleOpen } from './pendingOpenPerson'
 
+/** Opens Settings at the section in `detail` (App listens). */
+export const OPEN_SETTINGS_EVENT = 'lg:open-settings'
+
 // Route a target captured natively from a widget tap or launcher shortcut (see
 // MainActivity). A chore tap reuses the durable pending-open mechanism (the
 // Ribbon consumes it once its data has loaded, so cold-start ordering doesn't
@@ -26,6 +29,9 @@ export async function routeWidgetDeepLink(): Promise<void> {
       window.dispatchEvent(new Event('lg:open-chores'))
     } else if (link === 'pinned') {
       window.dispatchEvent(new Event('lg:open-pinned'))
+    } else if (link === 'settings:integrations') {
+      // The desktop tray popup's assistant indicator: Settings, at Integrations.
+      window.dispatchEvent(new CustomEvent(OPEN_SETTINGS_EVENT, { detail: 'integrations' }))
     } else {
       const people = peopleRequest(link)
       if (people) {

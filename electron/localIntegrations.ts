@@ -294,6 +294,27 @@ export interface LocalIntegrationsView {
     /** Repeated overruns of the write rate limit turned changes off until restart. */
     writesPaused: boolean;
   };
+  /** The assistant indicator in Settings and the tray popup (4.6). */
+  assistant: AssistantIndicator;
+}
+
+/**
+ * The assistant indicator (docs/mcp-and-stream-deck.md, 4.6): red while
+ * changes are paused after too many in a row, blue while there are changes
+ * from this session to undo (even with the server turned off since), green
+ * while the server is running, and nothing otherwise. A server that is on but
+ * could not start shows nothing: Settings says why.
+ */
+export type AssistantIndicator = 'off' | 'on' | 'undo' | 'paused';
+
+export function assistantIndicator(
+  mcp: Pick<LocalIntegrationsView['mcp'], 'readTier' | 'writesEnabled' | 'writesPaused' | 'status'>,
+  undoable: number,
+): AssistantIndicator {
+  const on = mcp.readTier !== 'off';
+  if (on && mcp.writesEnabled && mcp.writesPaused) return 'paused';
+  if (undoable > 0) return 'undo';
+  return on && mcp.status.running ? 'on' : 'off';
 }
 
 export const MCP_ENDPOINT_PATH = '/mcp';
@@ -301,10 +322,10 @@ export const MCP_ENDPOINT_PATH = '/mcp';
 export function integrationsView(
   config: LocalIntegrationsConfig,
   status: { mcp: ListenerStatus; streamDeck: ListenerStatus },
-  extras: { writesPaused?: boolean } = {},
+  extras: { writesPaused?: boolean; undoable?: number } = {},
 ): LocalIntegrationsView {
   const port = mcpPort(config);
-  return {
+  const view: Omit<LocalIntegrationsView, 'assistant'> = {
     streamDeck: { enabled: config.streamDeck.enabled, port: STREAM_DECK_PORT, status: { ...status.streamDeck } },
     mcp: {
       readTier: config.mcp.readTier,
@@ -317,4 +338,5 @@ export function integrationsView(
       writesPaused: extras.writesPaused === true,
     },
   };
+  return { ...view, assistant: assistantIndicator(view.mcp, extras.undoable ?? 0) };
 }

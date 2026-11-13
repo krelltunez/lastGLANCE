@@ -1,4 +1,4 @@
-import type { DesktopClaudeSetupResult, DesktopIntegrationsAction, DesktopMcpReadTier } from './desktop'
+import type { DesktopAssistantIndicator, DesktopClaudeSetupResult, DesktopIntegrationsAction, DesktopMcpReadTier } from './desktop'
 
 // The Settings panel's decisions for the local integrations
 // (docs/mcp-and-stream-deck.md, section 3), pure so they are tested without a
@@ -7,8 +7,18 @@ import type { DesktopClaudeSetupResult, DesktopIntegrationsAction, DesktopMcpRea
 // (electron/localIntegrations.ts, applyTransition): this only keeps the panel
 // from sending what main would refuse, and says why.
 
-/** Whether the panel is mounted. Off until the phase that ships it (section 2). */
-export const LOCAL_INTEGRATIONS_UI = false
+/** Whether the panel is mounted (on since phase 7, section 8). */
+export const LOCAL_INTEGRATIONS_UI = true
+
+/** The words for the assistant indicator (4.6), or null when it shows nothing. */
+export function assistantLabelKey(indicator: DesktopAssistantIndicator | undefined): string | null {
+  switch (indicator) {
+    case 'on': return 'localIntegrations.assistantOn'
+    case 'undo': return 'localIntegrations.assistantUndo'
+    case 'paused': return 'localIntegrations.assistantPaused'
+    default: return null
+  }
+}
 
 export type ConsentKind = 'base' | 'people' | 'writes'
 

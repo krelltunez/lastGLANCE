@@ -1102,6 +1102,9 @@
     "claudeDesktopBridgeMissing": "此版本的 lastGLANCE 缺少 Claude Desktop 连接器。请改用设置指南中的 lastGLANCE 扩展。",
     "claudeDesktopManual": "无法更新 Claude Desktop 的设置。请手动添加以下内容：",
     "claudeDesktopGuide": "使用 lastGLANCE 扩展连接 Claude Desktop，并将令牌粘贴进去。",
-    "setupGuide": "设置指南"
+    "setupGuide": "设置指南",
+    "assistantOn": "助手访问已开启",
+    "assistantUndo": "可撤销的助手修改",
+    "assistantPaused": "助手修改已暂停"
   }
 }

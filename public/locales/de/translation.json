@@ -1102,6 +1102,9 @@
     "claudeDesktopBridgeMissing": "Diesem Build von lastGLANCE fehlt die Verbindung zu Claude Desktop. Nutze stattdessen die lastGLANCE-Erweiterung aus der Einrichtungsanleitung.",
     "claudeDesktopManual": "Die Einstellungen von Claude Desktop konnten nicht geändert werden. Füge das von Hand hinzu:",
     "claudeDesktopGuide": "Verbinde Claude Desktop mit der lastGLANCE-Erweiterung und füge das Token dort ein.",
-    "setupGuide": "Einrichtungsanleitung"
+    "setupGuide": "Einrichtungsanleitung",
+    "assistantOn": "Zugriff für Assistenten ist an",
+    "assistantUndo": "Änderungen durch Assistenten, die du rückgängig machen kannst",
+    "assistantPaused": "Änderungen durch Assistenten sind pausiert"
   }
 }

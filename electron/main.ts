@@ -293,7 +293,7 @@ function isTrayWindowSender(sender: Electron.WebContents): boolean {
 }
 
 function currentTrayState() {
-  return trayState(traySnapshot, doneHere);
+  return { ...trayState(traySnapshot, doneHere), assistant: currentIntegrationsView().assistant };
 }
 
 function trayIconPath(name: string): string {
@@ -489,11 +489,13 @@ const integrationsStatus: { mcp: ListenerStatus; streamDeck: ListenerStatus } = 
 };
 
 function currentIntegrationsView() {
-  return integrationsView(integrationsConfig, integrationsStatus, { writesPaused: mcpGate.writesDisabled() });
+  return integrationsView(integrationsConfig, integrationsStatus, { writesPaused: mcpGate.writesDisabled(), undoable: mcpJournal.entries().length });
 }
 
 function pushIntegrationsStatus(): void {
   live(mainWindow)?.webContents.send('local-integrations:status', currentIntegrationsView());
+  // The tray popup's indicator and the menu's assistant items follow it.
+  refreshTray();
 }
 
 // The MCP listener (mcpServer.ts). The bridge to the page is made once and
@@ -510,7 +512,7 @@ const mcpJournal = createJournal();
 
 function pushJournal(): void {
   live(mainWindow)?.webContents.send('mcp-journal:changed', mcpJournal.snapshot());
-  refreshTray();
+  pushIntegrationsStatus();
 }
 
 /** Undo one item's changes, or all of them, newest first, through the page. */
