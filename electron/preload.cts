@@ -123,6 +123,11 @@ contextBridge.exposeInMainWorld('lastGlanceDesktop', {
     ack: (ids: string[]) => ipcRenderer.invoke('commands:ack', ids),
     onQueued: (listener: (payload: unknown) => void) => subscribe('commands:queued', listener),
   },
+  localIntegrations: {
+    get: () => ipcRenderer.invoke('local-integrations:get'),
+    transition: (action: Record<string, unknown>) => ipcRenderer.invoke('local-integrations:transition', action),
+    onStatus: (listener: (payload: unknown) => void) => subscribe('local-integrations:status', listener),
+  },
   icloud: {
     available: () => ipcRenderer.invoke('icloud:available'),
     readFile: (options: { path: string; container?: string; allowStale?: boolean }) => ipcRenderer.invoke('icloud:read-file', options),

@@ -264,6 +264,49 @@ export interface DesktopBilling {
   onSubscriptionPricesReady(listener: (prices: never) => void): () => void
 }
 
+/** MCP's read tiers (docs/mcp-and-stream-deck.md, 4.4). */
+export type DesktopMcpReadTier = 'off' | 'chores' | 'chores_people'
+
+export interface DesktopListenerStatus {
+  running: boolean
+  /** A bind failure to show (the port is taken), else null. */
+  error: string | null
+}
+
+/** The Settings view of the local integrations (electron/localIntegrations.ts, integrationsView). */
+export interface DesktopLocalIntegrationsView {
+  streamDeck: { enabled: boolean; port: number; status: DesktopListenerStatus }
+  mcp: {
+    readTier: DesktopMcpReadTier
+    writesEnabled: boolean
+    token: string | null
+    port: number
+    portOverride: number | null
+    endpoint: string
+    status: DesktopListenerStatus
+  }
+}
+
+/** A Settings change; the consent flags are set only by a consent dialog's Accept. */
+export type DesktopIntegrationsAction =
+  | { type: 'set-mcp-read-tier'; tier: DesktopMcpReadTier; consentConfirmed?: boolean; peopleConsentConfirmed?: boolean }
+  | { type: 'set-mcp-writes'; enabled: boolean; writesConsentConfirmed?: boolean }
+  | { type: 'rotate-token' }
+  | { type: 'set-mcp-port'; port: number | null }
+  | { type: 'set-stream-deck'; enabled: boolean }
+
+export type DesktopIntegrationsResult =
+  | { ok: true; view: DesktopLocalIntegrationsView }
+  | { ok: false; error: string; view: DesktopLocalIntegrationsView | null }
+
+/** The MCP server and Stream Deck switches (docs/mcp-and-stream-deck.md, section 3); main answers only the main window. */
+export interface DesktopLocalIntegrations {
+  get(): Promise<DesktopLocalIntegrationsView | null>
+  transition(action: DesktopIntegrationsAction): Promise<DesktopIntegrationsResult>
+  /** The view changed (a transition, a listener started or failed); returns the unsubscribe. */
+  onStatus(listener: (view: unknown) => void): () => void
+}
+
 export interface DesktopBridge {
   info: DesktopInfo
   shell: DesktopShell
@@ -278,6 +321,7 @@ export interface DesktopBridge {
   widget: DesktopWidget
   tray: DesktopTray
   billing: DesktopBilling
+  localIntegrations: DesktopLocalIntegrations
 }
 
 /**
@@ -351,6 +395,9 @@ export const DESKTOP_BRIDGE_METHODS = [
   'billing.subscriptionPrices',
   'billing.onSubscriptionEvent',
   'billing.onSubscriptionPricesReady',
+  'localIntegrations.get',
+  'localIntegrations.transition',
+  'localIntegrations.onStatus',
 ] as const
 
 declare global {

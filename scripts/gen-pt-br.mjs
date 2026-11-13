@@ -231,6 +231,28 @@ const RULES = [
 // Whole-string replacements for the handful of sentences a word-level rule
 // cannot rebuild — passive reordering and the addressee pronoun.
 const OVERRIDES = {
+  // The desktop app's MCP and Stream Deck settings: conectar (ligar is
+  // European), excluir (eliminar), desfazer, no terminal, seus without the
+  // article, proclisis (os desconecta), você.
+  'localIntegrations.intro':
+    "Permite que outros programas deste computador usem o lastGLANCE. Ambos escutam apenas neste computador (127.0.0.1) e nunca podem ser acessados pela rede.",
+  'localIntegrations.streamDeckHint':
+    "Permite que o plugin do lastGLANCE para Stream Deck mostre suas tarefas e as marque como feitas (porta {{port}}).",
+  'localIntegrations.mcpHint':
+    "Permite que um assistente de IA compatível com MCP, como o Claude, leia seus dados do lastGLANCE.",
+  'localIntegrations.writesHint':
+    "O assistente poderá marcar tarefas como feitas, adicionar e editar tarefas e Pessoas, e registrar contatos. Ele nunca poderá excluir nada, e você pode desfazer as alterações dele.",
+  'localIntegrations.tokenHint':
+    "Os assistentes conectados precisam deste token. Um novo token os desconecta até que eles o recebam.",
+  'localIntegrations.portHint':
+    "Mude a porta apenas se outro programa já a usar. Deixe em branco para usar a porta padrão.",
+  'localIntegrations.claudeCodeHint': "Execute isto no terminal para conectar o Claude Code.",
+  'localIntegrations.consentBase':
+    "O que o assistente lê é enviado à empresa que o opera (no caso do Claude, a Anthropic) e tratado segundo os termos dela, não os do lastGLANCE. Ative isto apenas para um assistente a quem você confia suas tarefas e sua casa.",
+  'localIntegrations.consentPeople':
+    "Pessoas contém informações sobre outras pessoas: nomes, aniversários, as anotações que você guarda sobre elas e quando vocês se falaram pela última vez. Elas não concordaram em compartilhar isso com um assistente de IA. Inclua Pessoas apenas se você estiver à vontade com isso.",
+  'localIntegrations.consentWrites':
+    "O assistente poderá alterar seus dados sem perguntar a você a cada vez. Ele pode fazer no máximo 30 alterações por minuto, nunca pode excluir nada, e você pode desfazer as alterações dele aqui.",
   // The tray search and global shortcuts: buscar, registrar, de qualquer
   // lugar, pressione, digitação, o app (masculine in Brazil).
   'tray.searchPlaceholder': "Buscar tarefas",
