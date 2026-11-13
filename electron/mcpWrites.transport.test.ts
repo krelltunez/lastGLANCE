@@ -28,7 +28,7 @@ const store = new Map<string, string>();
 } as Storage;
 
 const TOKEN = generateMcpToken();
-const ctx = { meUserSyncId: null, now: () => new Date(), changed: () => {}, activity: () => {} };
+const ctx = { meUserSyncId: null, multiUserEnabled: false, now: () => new Date(), changed: () => {}, activity: () => {} };
 
 /** The page, answering over the bridge: reads from the database, writes through the write model. */
 function pageBridge() {
@@ -66,7 +66,7 @@ async function start(over: Partial<WriteToolDeps> = {}, gate: WriteGate = create
   const { bridge, methods } = pageBridge();
   const journal = createJournal();
   const deps: WriteToolDeps = {
-    bridge, gate, store: createIdempotencyStore(), token: () => TOKEN, includeWrites: () => true,
+    bridge, gate, store: createIdempotencyStore(), token: () => TOKEN, includeWrites: () => true, includePeople: () => true,
     onWritesDisabled: vi.fn(), journal, onWrite: vi.fn(), ...over,
   };
   const server = startMcpServer({
@@ -94,7 +94,10 @@ const errorCode = (r: ToolResult) => JSON.parse(r.content[0].text).error.code as
 const chore = (r: ToolResult) => r.structuredContent!.chore as Row;
 
 beforeEach(async () => {
-  await Promise.all([db.categories.clear(), db.chores.clear(), db.completionEvents.clear(), db.tombstones.clear(), db.users.clear()]);
+  await Promise.all([
+    db.categories.clear(), db.chores.clear(), db.completionEvents.clear(), db.tombstones.clear(), db.users.clear(),
+    db.people.clear(), db.interactions.clear(), db.personDates.clear(), db.personCircles.clear(), db.peopleTombstones.clear(),
+  ]);
   await createCategory('Home', undefined, 'House', undefined, [], 'c-home');
 });
 
@@ -163,5 +166,28 @@ describe('MCP writes', () => {
     expect(errorCode(await call(s.client, 'lastglance_create_chore', { name: 'E' }))).toBe('writes_disabled');
     expect(s.deps.onWritesDisabled).toHaveBeenCalledTimes(1);
     expect(await db.chores.count()).toBe(2);
+  });
+
+  it('writes People only under the People tier, and a contact goes through the journal and undo', async () => {
+    const chores = await start({ includePeople: () => false });
+    expect((await chores.client.listTools()).tools.map((t) => t.name)).not.toContain('lastglance_log_interaction');
+
+    const s = await start();
+    const created = await call(s.client, 'lastglance_create_person', { name: 'Maya', preferred_channel: 'call', dates: [{ month: 11, day: 20 }] });
+    const personId = (created.structuredContent!.person as Row).id as string;
+    const logged = await call(s.client, 'lastglance_log_interaction', { person_ids: [personId], note: 'Caught up' });
+    expect(logged.structuredContent!.interaction).toMatchObject({ channel: 'call', note: 'Caught up', person_ids: [personId] });
+    const interactionId = (logged.structuredContent!.interaction as Row).id as string;
+
+    const list = (await call(s.client, 'lastglance_list_mcp_writes', { interaction_id: interactionId })).structuredContent!;
+    expect((list.items as Row[]).map((i) => i.tool)).toEqual(['lastglance_log_interaction']);
+    expect(s.journal.snapshot().groups.map((g) => g.key).sort()).toEqual([`interaction:${interactionId}`, `person:${personId}`]);
+
+    // Undo everything, newest first: the contact, then the person it was with.
+    const undone = await s.deps.bridge.request('undo_mcp_writes', { ops: s.journal.plan().ops });
+    expect(undone).toMatchObject({ ok: true, data: { undone: 2, skipped: [] } });
+    expect(await db.people.count()).toBe(0);
+    expect(await db.interactions.count()).toBe(0);
+    expect(await db.personDates.count()).toBe(0);
   });
 });

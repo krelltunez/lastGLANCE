@@ -36,6 +36,8 @@ export interface WriteToolDeps {
   token: () => string;
   /** "Allow changes" in Settings, read per call. */
   includeWrites: () => boolean;
+  /** The "Chores and People" tier: the People write tools exist only under it, as the People reads do. */
+  includePeople: () => boolean;
   /** Fired once, when repeated overruns turn writes off. */
   onWritesDisabled: () => void;
   journal?: McpJournal;
@@ -230,6 +232,168 @@ export function registerWriteTools(server: McpServer, deps: WriteToolDeps): void
       ...(args.position !== undefined && { position: args.position }),
     })),
   );
+
+  if (deps.includePeople()) registerPeopleWriteTools(server, write, named);
+}
+
+type Write = (tool: string, key: unknown, method: string, params: (newId: string) => Record<string, unknown>) => Promise<Result>;
+type Named = (args: Record<string, unknown>, keys: readonly string[]) => Record<string, unknown>;
+
+const PEOPLE_NOTE = ' Only this user\'s People can be changed, as the People screens show them.';
+const CHANNEL = 'in_person, call, video, text, email or other.';
+const DATE_SCHEMA = {
+  kind: z.string().optional().describe('birthday (default), anniversary or custom.'),
+  label: z.string().nullable().optional().describe('A custom date\'s name; ignored for a birthday or anniversary, as in the app.'),
+  month: z.number().int().optional().describe('1-12.'),
+  day: z.number().int().optional().describe('A real day of that month; Feb 29 is allowed.'),
+  year: z.number().int().nullable().optional().describe('The year it started, when known (for the age or years); null when unknown.'),
+  remind_days_before: z.number().int().optional().describe('0 (on the day, the default), 1, 2, 3, 7 or 14, as the app offers.'),
+};
+const DATE_KEYS = Object.keys(DATE_SCHEMA);
+
+function registerPeopleWriteTools(server: McpServer, write: Write, named: Named): void {
+  const personFields = {
+    nickname: z.string().nullable().optional(),
+    circle_id: z.string().nullable().optional().describe('A circle id from lastglance_list_circles, or null for none.'),
+    cadence_days: z.number().int().nullable().optional().describe('How often to be in touch, in whole days, 1 or more (the app shows weeks: 7 a week); null for none.'),
+    preferred_channel: z.string().nullable().optional().describe(`${CHANNEL} null for no preference.`),
+    details: z.string().nullable().optional().describe('Notes about the person; null to clear.'),
+    notify_when_overdue: z.boolean().optional().describe('In the daily People digest once overdue (needs a cadence).'),
+    add_to_dayglance_when_overdue: z.boolean().optional().describe('Send a task to dayGLANCE once overdue (needs a cadence and the dayGLANCE integration).'),
+    send_to_lifeglance: z.boolean().optional().describe('Send each contact logged with them to the lifeGLANCE timeline (needs the integration).'),
+  };
+  const PERSON_KEYS = Object.keys(personFields);
+
+  server.registerTool(
+    'lastglance_create_person',
+    {
+      description: 'Add a person to People, optionally with their birthday and other dates. With multi-user mode on, the person is this ' +
+        'user\'s, as when added in the app.' + UNDO_NOTE,
+      inputSchema: z.object({
+        name: z.string(),
+        ...personFields,
+        dates: z.array(z.object(DATE_SCHEMA)).optional().describe('Dates to add with them, each as in lastglance_add_person_date.'),
+        idempotency_key: KEY,
+      }),
+    },
+    async (args) => write('create_person', args.idempotency_key, 'create_person', (new_id) => ({
+      new_id, name: args.name, ...named(args, [...PERSON_KEYS, 'dates']),
+    })),
+  );
+
+  server.registerTool(
+    'lastglance_update_person',
+    {
+      description: 'Change a person: any field the person form edits, and archive or snooze them as the app\'s buttons do. ' +
+        'Only the fields given change; null clears one. Their dates change with lastglance_add_person_date and ' +
+        'lastglance_update_person_date.' + PEOPLE_NOTE + NO_DELETE + UNDO_NOTE,
+      inputSchema: z.object({
+        person_id: z.string(),
+        name: z.string().optional(),
+        ...personFields,
+        archived: z.boolean().optional().describe('Archived people leave Reach out and the lists, as in the app.'),
+        snooze_days: z.number().int().nullable().optional().describe('Hide them from Reach out for 3, 7 or 14 days, as the app offers; null ends a snooze.'),
+        idempotency_key: KEY,
+      }),
+    },
+    async (args) => write('update_person', args.idempotency_key, 'update_person', () => ({
+      person_id: args.person_id, fields: named(args, ['name', ...PERSON_KEYS, 'archived', 'snooze_days']),
+    })),
+  );
+
+  server.registerTool(
+    'lastglance_add_person_date',
+    {
+      description: 'Add a birthday, anniversary or custom date to a person.' + PEOPLE_NOTE + UNDO_NOTE,
+      inputSchema: z.object({ person_id: z.string(), ...DATE_SCHEMA, idempotency_key: KEY }),
+    },
+    async (args) => write('add_person_date', args.idempotency_key, 'add_person_date', (new_id) => ({
+      new_id, person_id: args.person_id, ...named(args, DATE_KEYS),
+    })),
+  );
+
+  server.registerTool(
+    'lastglance_update_person_date',
+    {
+      description: 'Change one of a person\'s dates (ids are in lastglance_get_person). Only the fields given change.' + PEOPLE_NOTE + NO_DELETE + UNDO_NOTE,
+      inputSchema: z.object({ date_id: z.string(), ...DATE_SCHEMA, idempotency_key: KEY }),
+    },
+    async (args) => write('update_person_date', args.idempotency_key, 'update_person_date', () => ({
+      date_id: args.date_id, fields: named(args, DATE_KEYS),
+    })),
+  );
+
+  const contactFields = {
+    channel: z.string().optional().describe(`${CHANNEL} On a new contact, the first person's preferred channel, else the last one used, by default.`),
+    direction: z.string().nullable().optional().describe('outbound (the user reached out), inbound (they did), mutual, or null for not recorded.'),
+    note: z.string().nullable().optional(),
+    occurred_at: z.string().optional().describe('When, ISO 8601 with a zone; never in the future. Default now.'),
+  };
+
+  server.registerTool(
+    'lastglance_log_interaction',
+    {
+      description: 'Log a contact with one or more people (a dinner with three friends is one contact). Logging ends their snooze, ' +
+        'as in the app. Archived people cannot be logged with.' + PEOPLE_NOTE + UNDO_NOTE,
+      inputSchema: z.object({
+        person_ids: z.array(z.string()).describe('At least one person id from lastglance_list_people.'),
+        ...contactFields,
+        idempotency_key: KEY,
+      }),
+    },
+    async (args) => {
+      if (args.occurred_at !== undefined && (!ISO_TIME.test(args.occurred_at) || Number.isNaN(Date.parse(args.occurred_at)))) {
+        return toolError('validation', `occurred_at must be ISO 8601 with a zone, e.g. "2026-11-12T18:30:00-07:00", got ${JSON.stringify(args.occurred_at)}.`);
+      }
+      return write('log_interaction', args.idempotency_key, 'log_interaction', (new_id) => ({
+        new_id, person_ids: args.person_ids, ...named(args, Object.keys(contactFields)),
+      }));
+    },
+  );
+
+  server.registerTool(
+    'lastglance_update_interaction',
+    {
+      description: 'Change a logged contact (ids are in lastglance_get_person): who it was with, the channel, direction, note or time. ' +
+        'Only the fields given change.' + PEOPLE_NOTE + NO_DELETE + UNDO_NOTE,
+      inputSchema: z.object({
+        interaction_id: z.string(),
+        person_ids: z.array(z.string()).optional(),
+        ...contactFields,
+        idempotency_key: KEY,
+      }),
+    },
+    async (args) => {
+      if (args.occurred_at !== undefined && (!ISO_TIME.test(args.occurred_at) || Number.isNaN(Date.parse(args.occurred_at)))) {
+        return toolError('validation', `occurred_at must be ISO 8601 with a zone, e.g. "2026-11-12T18:30:00-07:00", got ${JSON.stringify(args.occurred_at)}.`);
+      }
+      return write('update_interaction', args.idempotency_key, 'update_interaction', () => ({
+        interaction_id: args.interaction_id, fields: named(args, ['person_ids', ...Object.keys(contactFields)]),
+      }));
+    },
+  );
+
+  server.registerTool(
+    'lastglance_create_circle',
+    {
+      description: 'Add a circle to group People in. Circles have a name and an order; the app sets no icon on them.' + UNDO_NOTE,
+      inputSchema: z.object({ name: z.string(), position: POSITION, idempotency_key: KEY }),
+    },
+    async (args) => write('create_circle', args.idempotency_key, 'create_circle', (new_id) => ({
+      new_id, name: args.name, ...named(args, ['position']),
+    })),
+  );
+
+  server.registerTool(
+    'lastglance_update_circle',
+    {
+      description: 'Rename a circle, or move it in the order.' + NO_DELETE + UNDO_NOTE,
+      inputSchema: z.object({ circle_id: z.string(), name: z.string().optional(), position: POSITION, idempotency_key: KEY }),
+    },
+    async (args) => write('update_circle', args.idempotency_key, 'update_circle', () => ({
+      circle_id: args.circle_id, fields: named(args, ['name']), ...(args.position !== undefined && { position: args.position }),
+    })),
+  );
 }
 
 /** The journal, as a read: what MCP changed this session. Under the read tier, whatever "Allow changes" says. */
@@ -239,16 +403,19 @@ export function registerJournalReadTool(server: McpServer, journal: McpJournal):
     {
       description:
         'What assistants changed in lastGLANCE this session, newest first: when, which tool, a summary, the ids, and each changed ' +
-        'field\'s value before. Filter by chore_id or category_id. Cleared when lastGLANCE restarts, and as the user undoes changes.',
+        'field\'s value before. Filter by one id. Cleared when lastGLANCE restarts, and as the user undoes changes.',
       inputSchema: z.object({
         chore_id: z.string().optional(),
         category_id: z.string().optional(),
+        person_id: z.string().optional(),
+        interaction_id: z.string().optional(),
+        circle_id: z.string().optional(),
         limit: z.number().int().optional(),
         cursor: z.string().optional(),
       }),
     },
-    async ({ chore_id, category_id, limit, cursor }) => {
-      const page = journal.page({ match: { chore_id, category_id }, limit, cursor });
+    async ({ chore_id, category_id, person_id, interaction_id, circle_id, limit, cursor }) => {
+      const page = journal.page({ match: { chore_id, category_id, person_id, interaction_id, circle_id }, limit, cursor });
       if (!page.ok) return toolError('validation', page.reason);
       return ok({ items: page.items, truncated: page.truncated, next_cursor: page.nextCursor, total: page.total });
     },

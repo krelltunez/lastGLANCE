@@ -197,19 +197,44 @@ is the audit of the forms, and the write tools follow it.
 | Category | `parent_id` | Category form | create, update | A top-level category, or null; nesting lifts its own subcategories beside it |
 | Category | `assignee_ids` | Category form (multi-user) | create, update | Not inherited from the parent |
 | Category | `position` | Drag, up and down | create, update | Among its siblings, 0 first |
+| Person | `name` | Person form | create, update | Trimmed, required, at most 500 |
+| Person | `nickname` | Person form | create, update | Or null |
+| Person | `circle_id` | Person form | create, update | A circle, or null |
+| Person | `cadence_days` | Person form (entered in weeks) | create, update | Whole days, 1 or more (7 a week), or null |
+| Person | `preferred_channel` | Person form | create, update | `in_person`, `call`, `video`, `text`, `email`, `other`, or null |
+| Person | `details` | Person form | create, update | Or null |
+| Person | `notify_when_overdue` | Person form | create, update | Meaningful with a cadence |
+| Person | `add_to_dayglance_when_overdue` | Person form | create, update | Meaningful with a cadence and the dayGLANCE integration |
+| Person | `send_to_lifeglance` | Person form | create, update | Meaningful with the lifeGLANCE integration |
+| Person | `archived` | Person detail, Archive | update | Not on create |
+| Person | `snooze_days` | Reach out, Snooze | update | 3, 7 or 14 days, as the app offers; null ends a snooze; not on create |
+| Date | `kind` | Person form, dates | create person, add, update | `birthday`, `anniversary`, `custom` |
+| Date | `label` | Person form, dates | create person, add, update | Custom dates only, as the form saves it |
+| Date | `month`, `day` | Person form, dates | create person, add, update | A real day; Feb 29 allowed |
+| Date | `year` | Person form, dates | create person, add, update | 1-9999, or null when unknown |
+| Date | `remind_days_before` | Person form, dates | create person, add, update | 0, 1, 2, 3, 7 or 14 |
+| Contact | (a new one) | Log sheet, one-tap logs | `lastglance_log_interaction` | One or more people, not archived; never in the future; ends their snooze |
+| Contact | `person_ids`, `channel`, `direction`, `note`, `occurred_at` | Log sheet, editing a contact | `lastglance_update_interaction` | At least one person; never in the future |
+| Circle | `name` | Circle manager | create, update | Trimmed, required |
+| Circle | `position` | Circle manager, up and down | create, update | 0 first |
 
 Not changed over MCP, on purpose:
 
-- **Deleting** anything: chores, completions, categories. A delete is done in
+- **Deleting** anything: chores, completions, categories, people, dates,
+  contacts, circles. A delete is done in
   the app. An undo of an MCP create is the one removal, and it declines when
   the user has added to the item since (a chore done since, a category with
-  chores in it).
+  chores in it, a person with a contact logged or a date added since, a circle
+  with people in it).
 - **A completion's time, completer and source**: no form edits them.
 - **`preferred_schedule_behavior`**: no form edits it.
 - **Household members and this device's settings** (multi-user mode, who is
   Me): edited in Settings, about the device rather than the household's data.
-- **People, dates, contacts and circles**: the People write tools come next,
-  under the same rules.
+- **A person's owner**: stamped when they are added (this user, with
+  multi-user mode on), as the app does; no form changes it.
+- **A circle's icon** and **a contact's source**: no form edits them.
+- **Another household member's People**: with multi-user mode on, they do not
+  exist for these tools, as they do not on this user's People screens.
 
 ## Write tools
 
@@ -254,13 +279,67 @@ clears one. Returns `chore`.
 `category_id`, and any of `name`, `icon` (null for none), `parent_id` (null
 for top level), `assignee_ids`, `position`. Returns `category`.
 
+## People write tools
+
+Registered only under the "Chores and People" tier, like the People reads.
+
+### `lastglance_create_person`
+
+`name` (required), and optionally `nickname`, `circle_id`, `cadence_days`,
+`preferred_channel`, `details`, `notify_when_overdue`,
+`add_to_dayglance_when_overdue`, `send_to_lifeglance`, `dates` (each as in
+`lastglance_add_person_date`), `idempotency_key`. Returns `person`, as
+`lastglance_get_person` shows them.
+
+### `lastglance_update_person`
+
+`person_id`, and any of the create fields, plus `archived` and `snooze_days`
+(3, 7 or 14, or null to end a snooze). Only the fields given change; null clears
+one. Returns `person`.
+
+### `lastglance_add_person_date`
+
+`person_id`, `kind` (default `birthday`), `label` (custom only), `month`, `day`,
+`year`, `remind_days_before`, `idempotency_key`. Returns `date_id` and `person`.
+
+### `lastglance_update_person_date`
+
+`date_id`, and any of the date fields. Returns `date_id` and `person`.
+
+### `lastglance_log_interaction`
+
+| Argument | |
+|---|---|
+| `person_ids` | Required, at least one; archived people cannot be logged with. |
+| `channel` | Optional; by default the first person's preferred channel, else the last one used, else `in_person`, as the log sheet suggests. |
+| `direction` | Optional: `outbound`, `inbound`, `mutual`, or null. |
+| `note` | Optional. |
+| `occurred_at` | Optional ISO 8601 time with a zone. Default now. Never in the future. |
+| `idempotency_key` | Optional. |
+
+Logging ends a snooze on its people, as in the app (an undo puts a snooze that
+has not ended yet back). Returns `interaction` and `people`.
+
+### `lastglance_update_interaction`
+
+`interaction_id`, and any of `person_ids`, `channel`, `direction`, `note`,
+`occurred_at`. Returns `interaction`.
+
+### `lastglance_create_circle`
+
+`name` (required), `position`, `idempotency_key`. Returns `circle`.
+
+### `lastglance_update_circle`
+
+`circle_id`, and `name` and/or `position`. Returns `circle`.
+
 ## The write journal
 
 ### `lastglance_list_mcp_writes`
 
 | Argument | |
 |---|---|
-| `chore_id`, `category_id` | Optional filters. |
+| `chore_id`, `category_id`, `person_id`, `interaction_id`, `circle_id` | Optional filters, one id. |
 | `limit`, `cursor` | Pagination. |
 
 What assistants changed this session, newest first: `at`, `tool`, `summary`,

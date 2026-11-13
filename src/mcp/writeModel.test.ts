@@ -34,7 +34,7 @@ beforeEach(async () => {
   ] as never)
   home = await createCategory('Home', undefined, 'House', undefined, [], 'c-home')
   kitchen = await createCategory('Kitchen', undefined, 'CookingPot', home, ['u-sam'], 'c-kitchen')
-  ctx = { meUserSyncId: 'u-alex', now: () => NOW, changed: vi.fn<() => void>(), activity: vi.fn<(message: string) => void>() }
+  ctx = { meUserSyncId: 'u-alex', multiUserEnabled: false, now: () => NOW, changed: vi.fn<() => void>(), activity: vi.fn<(message: string) => void>() }
 })
 
 type Ok = Extract<WriteResult, { ok: true }>

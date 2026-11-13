@@ -325,6 +325,12 @@ try {
     const undone = await page.evaluate(() => window.lastGlanceDesktop.mcpJournal.undo(null))
     check(undone?.ok === true && undone.undone === 1, `Settings' undo takes it back (${JSON.stringify(undone)})`)
     check(await choreCount() === pageChores, 'the chore is gone from the database again')
+
+    // A People write the same way: a person added, then Settings' undo.
+    const added = await client.callTool({ name: 'lastglance_create_person', arguments: { name: 'Smoke Person', dates: [{ month: 2, day: 29 }] } })
+    check(!added.isError && added.structuredContent?.person?.name === 'Smoke Person', `MCP adds a person (${added.isError ? added.content?.[0]?.text : 'ok'})`)
+    const peopleUndone = await page.evaluate(() => window.lastGlanceDesktop.mcpJournal.undo(null))
+    check(peopleUndone?.ok === true && peopleUndone.undone === 1, `Settings' undo takes the person back (${JSON.stringify(peopleUndone)})`)
     await client.close()
   }
   const mcpOff = await page.evaluate(() => window.lastGlanceDesktop.localIntegrations.transition({ type: 'set-mcp-read-tier', tier: 'off' }))

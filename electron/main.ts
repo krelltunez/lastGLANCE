@@ -545,6 +545,7 @@ function startMcpListener(): void {
       store: mcpStore,
       token: () => integrationsConfig.mcp.token ?? '',
       includeWrites: () => mcpGates(integrationsConfig).includeWrites,
+      includePeople: () => mcpGates(integrationsConfig).includePeople,
       onWritesDisabled: () => {
         logStartup('mcp: writes turned off after repeated rate-limit overruns, until restart');
         pushIntegrationsStatus();
