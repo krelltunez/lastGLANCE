@@ -205,6 +205,26 @@ describe('reads', () => {
   });
 });
 
+describe('local time (docs/mcp-tools-reference.md, Conventions)', () => {
+  it('answers every instant in the server\'s zone with its offset, in tools and resources, dates untouched', async () => {
+    const raw = handleMcpRequest(fixtureData(), { method: 'get_chore', params: { chore_id: 'ch-water' } });
+    const stored = (raw as { ok: true; data: Row }).data;
+    const client = await (await start(modelBridge().bridge, { timeZone: () => 'America/Denver' })).connect();
+    const r = await call(client, 'lastglance_get_chore', { chore_id: 'ch-water' });
+    const local = r.structuredContent!;
+    // The same instant, written in Denver's wall-clock time.
+    expect(String(stored.last_completed_at)).toMatch(/Z$/);
+    expect(String(local.last_completed_at)).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}-0[67]:00$/);
+    expect(Date.parse(String(local.last_completed_at))).toBe(Math.floor(Date.parse(String(stored.last_completed_at)) / 1000) * 1000);
+    expect(items(local.completions).every((c) => /-0[67]:00$/.test(String(c.completed_at)))).toBe(true);
+    expect(local.next_due).toBe(stored.next_due);
+    // The text a client reads is the structured content, localized the same way.
+    expect(body(r)).toEqual(local);
+    const due = JSON.parse((await client.readResource({ uri: 'lastglance://chores/due' })).contents[0].text as string);
+    expect(JSON.stringify(due)).not.toMatch(/T\d{2}:\d{2}(:\d{2}(\.\d+)?)?Z"/);
+  });
+});
+
 describe('an unavailable window', () => {
   it('is a typed error for every tool and resource, never an empty result', async () => {
     const client = await (await start(modelBridge(() => UNAVAILABLE).bridge, { includePeople: () => true })).connect();
@@ -214,6 +234,7 @@ describe('an unavailable window', () => {
       lastglance_get_chore: { chore_id: 'ch-water' },
       lastglance_get_person: { person_id: 'p-maya' },
       lastglance_complete_chore: { chore_id: 'ch-water' },
+      lastglance_complete_chores: { completions: [{ chore_id: 'ch-water' }, { chore_id: 'ch-vacuum' }] },
       lastglance_update_completion: { completion_id: 'e-1', note: null },
       lastglance_create_chore: { name: 'Dust' },
       lastglance_update_chore: { chore_id: 'ch-water', name: 'Water' },

@@ -27,6 +27,7 @@ import {
 } from '@glance-apps/mcp-host';
 import { isUndoOp, type McpJournal } from './mcpJournal.js';
 import { toolError } from './mcpReadTools.js';
+import { parseTimeInput } from './mcpTimes.js';
 
 export interface WriteToolDeps {
   bridge: HostBridge;
@@ -43,6 +44,8 @@ export interface WriteToolDeps {
   journal?: McpJournal;
   /** After every write that changed something. */
   onWrite?: () => void;
+  /** The IANA zone a local time input ("2026-11-13 19:30") is read in; this machine's by default. */
+  timeZone?: () => string;
 }
 
 type Result = { content: { type: 'text'; text: string }[]; structuredContent?: Record<string, unknown>; isError?: boolean };
@@ -54,7 +57,11 @@ export function idFromKey(storeKey: string): string {
   return `${h.slice(0, 8)}-${h.slice(8, 12)}-5${h.slice(13, 16)}-${(8 | (parseInt(h[16], 16) & 3)).toString(16)}${h.slice(17, 20)}-${h.slice(20, 32)}`;
 }
 
-const ISO_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{1,9})?)?(Z|[+-]\d{2}:\d{2})$/;
+/** The most completions lastglance_complete_chores takes at once (under the rate limit of 30 a minute). */
+export const MAX_BATCH = 25;
+/** The errors that end a batch: the rest would meet them too. */
+const STOPS_BATCH = new Set(['rate_limited', 'writes_disabled', 'renderer_unavailable']);
+const TIME_FORMS = 'a local time "2026-11-12 18:30", or ISO 8601 with a zone, "2026-11-12T18:30:00-07:00"';
 
 const KEY = z.string().optional()
   .describe('Optional retry token, 1-128 characters of [A-Za-z0-9_.:-]. Sending the same key again returns the first result and changes nothing. Use one per intended change.');
@@ -68,6 +75,7 @@ const NO_DELETE = ' Nothing can be deleted over MCP: removing anything is done i
 const UNDO_NOTE = ' The user can undo this change from lastGLANCE.';
 
 export function registerWriteTools(server: McpServer, deps: WriteToolDeps): void {
+  const zone = () => deps.timeZone?.() ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
   /** The pipeline: consent, replay, gate, then the page. `newId` is for creates. */
   const write = async (tool: string, key: unknown, method: string, params: (newId: string) => Record<string, unknown>): Promise<Result> => {
     if (!deps.includeWrites()) {
@@ -111,16 +119,79 @@ export function registerWriteTools(server: McpServer, deps: WriteToolDeps): void
         'device\'s user, as when the user taps it in the app. Returns the completion and the chore as it now stands.' + UNDO_NOTE,
       inputSchema: z.object({
         chore_id: z.string().describe('A chore id from lastglance_list_chores or lastglance_get_overview.'),
-        completed_at: z.string().optional().describe('When it was done: ISO 8601 with a zone, e.g. "2026-11-12T18:30:00-07:00". Default now.'),
+        completed_at: z.string().optional().describe(`When it was done: ${TIME_FORMS}. Default now.`),
         note: z.string().optional().describe('A note on this completion.'),
         idempotency_key: KEY,
       }),
     },
     async ({ chore_id, completed_at, note, idempotency_key }) => {
-      if (completed_at !== undefined && (!ISO_TIME.test(completed_at) || Number.isNaN(Date.parse(completed_at)))) {
-        return toolError('validation', `completed_at must be ISO 8601 with a zone, e.g. "2026-11-12T18:30:00-07:00", got ${JSON.stringify(completed_at)}.`);
+      const at = completed_at === undefined ? undefined : parseTimeInput(completed_at, zone());
+      if (at === null) return toolError('validation', `completed_at must be ${TIME_FORMS}, got ${JSON.stringify(completed_at)}.`);
+      return write('complete_chore', idempotency_key, 'complete_chore', (new_id) => ({ chore_id, completed_at: at, note, new_id }));
+    },
+  );
+
+  server.registerTool(
+    'lastglance_complete_chores',
+    {
+      description:
+        `Mark several chores done in one call, e.g. "did all four bathrooms Saturday morning". Each is an ordinary completion, ` +
+        'exactly as if completed one at a time: the chores stay separate, nothing groups them, and each change is undone on its own. ' +
+        'completed_at and note at the top apply to every item that gives none of its own. ' +
+        `At most ${MAX_BATCH} items. Every time is checked before anything is written. One item failing (an unknown id, say) ` +
+        'does not stop the others; reaching the rate limit (or the window not answering) stops the batch, and the items after ' +
+        'it come back not_attempted, ' +
+        'to retry later. One idempotency_key covers the whole batch: a retry with it repeats nothing that already went through.' + UNDO_NOTE,
+      inputSchema: z.object({
+        completions: z.array(z.object({
+          chore_id: z.string(),
+          completed_at: z.string().optional(),
+          note: z.string().optional(),
+        })).describe(`The chores, 1 to ${MAX_BATCH}, each with an optional time and note of its own.`),
+        completed_at: z.string().optional().describe(`When they were done, for items without their own: ${TIME_FORMS}. Default now.`),
+        note: z.string().optional().describe('A note for items without their own.'),
+        idempotency_key: z.string().optional().describe('Makes a retried batch safe: 1-120 characters of [A-Za-z0-9_.:-].'),
+      }),
+    },
+    async (args) => {
+      if (!deps.includeWrites()) {
+        return toolError('read_only_mode', 'lastGLANCE is read-only for assistants: "Allow changes" is off in its Settings. Ask the user to turn it on.');
       }
-      return write('complete_chore', idempotency_key, 'complete_chore', (new_id) => ({ chore_id, completed_at, note, new_id }));
+      const items = args.completions;
+      if (items.length < 1 || items.length > MAX_BATCH) return toolError('validation', `completions takes 1 to ${MAX_BATCH} items, got ${items.length}.`);
+      const key = args.idempotency_key;
+      if (key !== undefined && (!isValidIdempotencyKey(key) || key.length > 120)) {
+        return toolError('validation', 'idempotency_key must be 1-120 characters of [A-Za-z0-9_.:-].');
+      }
+      // Every time first, so a bad one writes nothing.
+      const times: (string | undefined)[] = [];
+      for (const [i, item] of items.entries()) {
+        const given = item.completed_at ?? args.completed_at;
+        const at = given === undefined ? undefined : parseTimeInput(given, zone());
+        if (at === null) return toolError('validation', `completions[${i}].completed_at must be ${TIME_FORMS}, got ${JSON.stringify(given)}.`);
+        times.push(at);
+      }
+      const results: Record<string, unknown>[] = [];
+      let stopped: { code: string; message: string } | null = null;
+      for (const [i, item] of items.entries()) {
+        if (stopped) {
+          results.push({ chore_id: item.chore_id, ok: false, error: { code: 'not_attempted', message: `Not tried: ${stopped.message}` } });
+          continue;
+        }
+        const note = item.note ?? args.note;
+        const r = await write('complete_chores', key === undefined ? undefined : `${key}:${i}`, 'complete_chore',
+          (new_id) => ({ chore_id: item.chore_id, completed_at: times[i], note, new_id }));
+        if (r.isError) {
+          const error = (JSON.parse(r.content[0].text) as { error: { code: string; message: string } }).error;
+          // The window not answering is the whole call's error while nothing has gone through, as for every tool.
+          if (error.code === 'renderer_unavailable' && !results.some((x) => x.ok)) return r;
+          results.push({ chore_id: item.chore_id, ok: false, error });
+          if (STOPS_BATCH.has(error.code)) stopped = error;
+        } else {
+          results.push({ chore_id: item.chore_id, ok: true, ...r.structuredContent });
+        }
+      }
+      return ok({ completed: results.filter((x) => x.ok).length, failed: results.filter((x) => !x.ok).length, results });
     },
   );
 
@@ -233,7 +304,7 @@ export function registerWriteTools(server: McpServer, deps: WriteToolDeps): void
     })),
   );
 
-  if (deps.includePeople()) registerPeopleWriteTools(server, write, named);
+  if (deps.includePeople()) registerPeopleWriteTools(server, write, named, zone);
 }
 
 type Write = (tool: string, key: unknown, method: string, params: (newId: string) => Record<string, unknown>) => Promise<Result>;
@@ -251,7 +322,7 @@ const DATE_SCHEMA = {
 };
 const DATE_KEYS = Object.keys(DATE_SCHEMA);
 
-function registerPeopleWriteTools(server: McpServer, write: Write, named: Named): void {
+function registerPeopleWriteTools(server: McpServer, write: Write, named: Named, zone: () => string): void {
   const personFields = {
     nickname: z.string().nullable().optional(),
     circle_id: z.string().nullable().optional().describe('A circle id from lastglance_list_circles, or null for none.'),
@@ -327,7 +398,7 @@ function registerPeopleWriteTools(server: McpServer, write: Write, named: Named)
     channel: z.string().optional().describe(`${CHANNEL} On a new contact, the first person's preferred channel, else the last one used, by default.`),
     direction: z.string().nullable().optional().describe('outbound (the user reached out), inbound (they did), mutual, or null for not recorded.'),
     note: z.string().nullable().optional(),
-    occurred_at: z.string().optional().describe('When, ISO 8601 with a zone; never in the future. Default now.'),
+    occurred_at: z.string().optional().describe(`When: ${TIME_FORMS}; never in the future. Default now.`),
   };
 
   server.registerTool(
@@ -342,11 +413,10 @@ function registerPeopleWriteTools(server: McpServer, write: Write, named: Named)
       }),
     },
     async (args) => {
-      if (args.occurred_at !== undefined && (!ISO_TIME.test(args.occurred_at) || Number.isNaN(Date.parse(args.occurred_at)))) {
-        return toolError('validation', `occurred_at must be ISO 8601 with a zone, e.g. "2026-11-12T18:30:00-07:00", got ${JSON.stringify(args.occurred_at)}.`);
-      }
+      const at = args.occurred_at === undefined ? undefined : parseTimeInput(args.occurred_at, zone());
+      if (at === null) return toolError('validation', `occurred_at must be ${TIME_FORMS}, got ${JSON.stringify(args.occurred_at)}.`);
       return write('log_interaction', args.idempotency_key, 'log_interaction', (new_id) => ({
-        new_id, person_ids: args.person_ids, ...named(args, Object.keys(contactFields)),
+        new_id, person_ids: args.person_ids, ...named({ ...args, occurred_at: at }, Object.keys(contactFields)),
       }));
     },
   );
@@ -364,11 +434,10 @@ function registerPeopleWriteTools(server: McpServer, write: Write, named: Named)
       }),
     },
     async (args) => {
-      if (args.occurred_at !== undefined && (!ISO_TIME.test(args.occurred_at) || Number.isNaN(Date.parse(args.occurred_at)))) {
-        return toolError('validation', `occurred_at must be ISO 8601 with a zone, e.g. "2026-11-12T18:30:00-07:00", got ${JSON.stringify(args.occurred_at)}.`);
-      }
+      const at = args.occurred_at === undefined ? undefined : parseTimeInput(args.occurred_at, zone());
+      if (at === null) return toolError('validation', `occurred_at must be ${TIME_FORMS}, got ${JSON.stringify(args.occurred_at)}.`);
       return write('update_interaction', args.idempotency_key, 'update_interaction', () => ({
-        interaction_id: args.interaction_id, fields: named(args, ['person_ids', ...Object.keys(contactFields)]),
+        interaction_id: args.interaction_id, fields: named({ ...args, occurred_at: at }, ['person_ids', ...Object.keys(contactFields)]),
       }));
     },
   );
