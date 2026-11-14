@@ -33,7 +33,7 @@ import type { SyncChore } from './types'
 export const KNOWN_CHORE_KEYS: ReadonlySet<string> = new Set([
   'id', 'name', 'categorySyncId', 'sortOrder', 'targetCadenceDays', 'notifyWhenOverdue', 'autoScheduleToDayglance',
   'preferredScheduleBehavior', 'seasonalStart', 'seasonalEnd', 'details', 'pinned', 'icon', 'assignedUserSyncIds',
-  'createdAt', 'updatedAt',
+  'createdAt', 'updatedAt', 'durationMinutes',
 ])
 
 /**
@@ -42,7 +42,10 @@ export const KNOWN_CHORE_KEYS: ReadonlySet<string> = new Set([
  * a device that never knew it. Each is also in KNOWN_CHORE_KEYS, and is written
  * by laterChoreFields, which always writes the key.
  */
-export const LATER_CHORE_FIELDS: Readonly<Record<string, keyof Chore>> = {}
+export const LATER_CHORE_FIELDS: Readonly<Record<string, keyof Chore>> = {
+  // How long the chore takes (the dayGLANCE task length).
+  durationMinutes: 'duration_minutes',
+}
 
 type Rec = Record<string, unknown>
 

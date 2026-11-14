@@ -372,7 +372,7 @@ network.
 - **AI assistants (MCP).** Choose what an assistant may read: **Chores**, or
   **Chores and People** (People asks again, since it holds information about
   other people). **Allow changes** lets it mark chores done, add and edit chores
-  and People, and log contacts. It can never delete anything, makes at most 30
+  and People, log contacts, and send a chore to dayGLANCE at a time it picks. It can never delete anything, makes at most 30
   changes a minute, and every change it made this session can be undone from
   Settings or the tray menu. A dot in Settings and the tray popup shows green
   while it is on, blue while there are changes to undo, and red if changes were

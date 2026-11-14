@@ -28,6 +28,7 @@ import {
 import { isUndoOp, type McpJournal } from './mcpJournal.js';
 import { toolError } from './mcpReadTools.js';
 import { parseTimeInput } from './mcpTimes.js';
+import { isValidLocalDate } from '@glance-apps/mcp-host/dates';
 
 export interface WriteToolDeps {
   bridge: HostBridge;
@@ -61,6 +62,7 @@ export function idFromKey(storeKey: string): string {
 export const MAX_BATCH = 25;
 /** The errors that end a batch: the rest would meet them too. */
 const STOPS_BATCH = new Set(['rate_limited', 'writes_disabled', 'renderer_unavailable']);
+const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_FORMS = 'a local time "2026-11-12 18:30", or ISO 8601 with a zone, "2026-11-12T18:30:00-07:00"';
 
 const KEY = z.string().optional()
@@ -196,6 +198,55 @@ export function registerWriteTools(server: McpServer, deps: WriteToolDeps): void
   );
 
   server.registerTool(
+    'lastglance_send_to_dayglance',
+    {
+      description:
+        'Send a chore to dayGLANCE as a linked task: done there, it is the chore done here, as when the user sends it from ' +
+        'the app. Works for any chore, due or not. start places it: a local time "2026-11-15 09:00" (or ISO 8601 with a ' +
+        'zone) for a timed block, a date "2026-11-15" for an all-day task, or leave it out for the dayGLANCE inbox. ' +
+        'DURATION: only a timed send carries one, duration_minutes or else the chore\'s own duration_minutes; an all-day ' +
+        'or inbox send gets dayGLANCE\'s default length, so to set it, resize the block with dayglance_resize_block or ' +
+        'set it with dayglance_update_task once it is in dayGLANCE. Returns dayglance_task_id, the id the task gets in ' +
+        'dayGLANCE, with pending: true: the task appears once dayGLANCE picks the send up, which can take a while. ' +
+        'To MOVE or RESIZE it later, use dayGLANCE\'s tools on that id (dayglance_move_block, dayglance_resize_block, ' +
+        'dayglance_schedule_task for an inbox task), never another send: a send for a different time makes a second ' +
+        'task. A send for the same start updates the same task. When this device sent the chore before for another ' +
+        'time and has had no word since that it was completed or deleted, the result carries a warning and ' +
+        'previous_send: check that task in dayGLANCE. Needs the dayGLANCE integration on in lastGLANCE ' +
+        '(not_connected otherwise). Not undone from lastGLANCE: remove the task in dayGLANCE.',
+      inputSchema: z.object({
+        chore_id: z.string().describe('A chore id from lastglance_list_chores or lastglance_get_overview.'),
+        start: z.string().optional().describe(`${TIME_FORMS} for a timed block; "YYYY-MM-DD" for all day; leave out for the inbox.`),
+        duration_minutes: z.number().int().optional().describe('Timed sends only: the block\'s length, 1 to 1440. Default the chore\'s own duration_minutes, else dayGLANCE\'s default.'),
+        idempotency_key: KEY,
+      }),
+    },
+    async ({ chore_id, start, duration_minutes, idempotency_key }) => {
+      let due: string | undefined;
+      let allDay: boolean | undefined;
+      if (start !== undefined) {
+        if (DATE_ONLY.test(start)) {
+          if (!isValidLocalDate(start)) return toolError('validation', `start ${JSON.stringify(start)} is not a date.`);
+          due = start;
+          allDay = true;
+        } else {
+          const at = parseTimeInput(start, zone());
+          if (at === null) return toolError('validation', `start must be ${TIME_FORMS}, or a date "YYYY-MM-DD" for all day, got ${JSON.stringify(start)}.`);
+          due = at;
+          allDay = false;
+        }
+      }
+      if (duration_minutes !== undefined && allDay !== false) {
+        return toolError('validation', 'duration_minutes needs a timed start ("2026-11-15 09:00"): an all-day or inbox send takes ' +
+          'dayGLANCE\'s default length. Send it, then set the length with dayglance_resize_block or dayglance_update_task.');
+      }
+      return write('send_to_dayglance', idempotency_key, 'send_to_dayglance', () => ({
+        chore_id, ...(due !== undefined && { due, all_day: allDay }), ...(duration_minutes !== undefined && { duration_minutes }),
+      }));
+    },
+  );
+
+  server.registerTool(
     'lastglance_update_completion',
     {
       description: 'Change the note on one completion, as the app allows; nothing else about a completion can change. ' +
@@ -212,6 +263,7 @@ export function registerWriteTools(server: McpServer, deps: WriteToolDeps): void
 
   const choreFieldsSchema = {
     cadence_days: z.number().int().nullable().optional().describe('How often, in whole days, 1 or more; null for no cadence.'),
+    duration_minutes: z.number().int().nullable().optional().describe('How long it takes, in minutes, 1 to 1440; null to clear. The task length when it is sent to dayGLANCE at a set time.'),
     icon: z.string().nullable().optional().describe(`${ICON} null for none.`),
     details: z.string().nullable().optional().describe('Notes about the chore, at most 2000 characters; null to clear.'),
     pinned: z.boolean().optional().describe('Also shown in the Pinned row.'),

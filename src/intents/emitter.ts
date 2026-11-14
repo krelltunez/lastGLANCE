@@ -7,6 +7,8 @@ import { isDirectAccessIntentsEnabled } from './directAccessIntentsConfig'
 import { isICloudIntentsEnabled } from './icloudIntents'
 import { outbox, type OutboxIntent, type TransportName } from './outbox'
 import { flushIntents } from './flushIntents'
+import { dayglanceTaskId } from './dayglanceTaskId'
+import { recordSent } from './sentToDayglance'
 
 // Builds the RAW intent (action + payload + emit metadata) for a chore and
 // stamps a STABLE event_id NOW, at emit time. That id is both the outbox entry
@@ -16,14 +18,31 @@ import { flushIntents } from './flushIntents'
 // payload mirrors the former buildCreateEnvelope, but NO envelope is built here —
 // encryption happens at flush in the deliverer.
 export function buildCreateIntent(chore: ChoreWithLastCompletion): OutboxIntent {
+  return buildCreateIntentFor(choreCreateFields(chore, { due: dayjs().format('YYYY-MM-DD'), allDay: true }))
+}
+
+/**
+ * Where a chore goes in dayGLANCE: a time (an ISO instant with its offset,
+ * with a duration in minutes), a date (all day), or neither (the inbox). The
+ * intents schema takes a duration only with a time; on a date or the inbox,
+ * dayGLANCE gives the task its default length.
+ */
+export interface ChoreSend {
+  due?: string
+  allDay?: boolean
+  duration?: number
+}
+
+export function choreCreateFields(chore: Pick<ChoreWithLastCompletion, 'name' | 'sync_id' | 'assigned_user_sync_ids'>, send: ChoreSend): CreateFields {
   const assignedUserIds = chore.assigned_user_sync_ids ?? []
-  return buildCreateIntentFor({
+  const timed = send.due !== undefined && send.allDay === false
+  return {
     title: chore.name,
-    due: dayjs().format('YYYY-MM-DD'),
-    all_day: true,
+    ...(send.due !== undefined && { due: send.due, all_day: !timed }),
+    ...(timed && send.duration !== undefined && { duration: send.duration }),
     source_entity_id: chore.sync_id,
     ...(assignedUserIds.length > 0 && { assigned_user_ids: assignedUserIds }),
-  })
+  }
 }
 
 // The fields of a CREATE payload a caller chooses; source_app is always
@@ -87,7 +106,31 @@ export async function emitCreateIntent(
   chore: ChoreWithLastCompletion,
   deps: EmitDeps = defaultEmitDeps,
 ): Promise<boolean> {
-  return emitIntent(buildCreateIntent(chore), `Queued "${chore.name}" for dayGLANCE`, deps)
+  const intent = buildCreateIntent(chore)
+  const queued = await emitIntent(intent, `Queued "${chore.name}" for dayGLANCE`, deps)
+  if (queued) await rememberSend(chore.sync_id, (intent.payload as CreatePayload).due)
+  return queued
+}
+
+/**
+ * Send a chore where the assistant chose (lastglance_send_to_dayglance).
+ * Returns the id dayGLANCE will give the task, or null when no transport is
+ * enabled (nothing was sent).
+ */
+export async function emitChoreSend(
+  chore: Pick<ChoreWithLastCompletion, 'name' | 'sync_id' | 'assigned_user_sync_ids'>,
+  send: ChoreSend,
+  deps: EmitDeps = defaultEmitDeps,
+): Promise<string | null> {
+  const queued = await emitIntent(buildCreateIntentFor(choreCreateFields(chore, send)), `Queued "${chore.name}" for dayGLANCE`, deps)
+  return queued ? rememberSend(chore.sync_id, send.due) : null
+}
+
+/** Note the send for the duplicate-send warning (sentToDayglance.ts), and return its task id. */
+async function rememberSend(choreSyncId: string, due: string | undefined): Promise<string> {
+  const taskId = await dayglanceTaskId(choreSyncId, due)
+  recordSent(choreSyncId, { taskId, due: due ?? null, sentAt: new Date().toISOString() })
+  return taskId
 }
 
 // The same for any CREATE payload (People). `activity` is the Activity-Log

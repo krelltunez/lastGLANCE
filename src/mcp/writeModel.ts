@@ -13,6 +13,8 @@ import {
 } from './writeShared'
 import { loadMcpReadData } from './readData'
 import { handlePeopleWrite, PEOPLE_UNDO_KINDS, PEOPLE_WRITE_METHODS, undoPeopleOp, type PeopleUndoOp } from './peopleWriteModel'
+import { DURATION_MAX_MINUTES, isDurationMinutes } from '@/utils/choreDuration'
+import { sendChoreToDayglance } from './sendToDayglance'
 
 // The MCP write model, the page's half (docs/mcp-and-stream-deck.md, 4.5; the
 // tools are electron/mcpWriteTools.ts, which validates the arguments' shape
@@ -47,7 +49,7 @@ export type WriteResult = SharedWriteResult<UndoOp>
 export type { WriteContext }
 
 export const WRITE_METHODS = [
-  'complete_chore', 'update_completion', 'create_chore', 'update_chore', 'create_category', 'update_category',
+  'complete_chore', 'update_completion', 'create_chore', 'update_chore', 'create_category', 'update_category', 'send_to_dayglance',
   ...PEOPLE_WRITE_METHODS, 'undo_mcp_writes',
 ] as const
 
@@ -96,6 +98,12 @@ function checkSeason(v: unknown): { seasonal_start: string | null; seasonal_end:
 function checkCadence(v: unknown): number | null {
   if (v === null) return null
   if (typeof v !== 'number' || !Number.isInteger(v) || v < 1 || v > 36500) refuse('validation', 'cadence_days must be a whole number of days, 1 or more, or null for no cadence.')
+  return v as number
+}
+
+function checkDuration(v: unknown): number | null {
+  if (v === null) return null
+  if (!isDurationMinutes(v)) refuse('validation', `duration_minutes must be a whole number of minutes, 1 to ${DURATION_MAX_MINUTES}, or null to clear it.`)
   return v as number
 }
 
@@ -188,6 +196,7 @@ async function createChoreWrite(p: Record<string, unknown>, ctx: WriteContext): 
     name,
     category_id: category.id,
     target_cadence_days: p.cadence_days !== undefined ? checkCadence(p.cadence_days) : null,
+    duration_minutes: p.duration_minutes !== undefined ? checkDuration(p.duration_minutes) : null,
     notify_when_overdue: p.notify_when_overdue !== undefined ? bool(p.notify_when_overdue, 'notify_when_overdue') : false,
     auto_schedule_to_dayglance: p.auto_schedule_to_dayglance !== undefined ? bool(p.auto_schedule_to_dayglance, 'auto_schedule_to_dayglance') : false,
     preferred_schedule_behavior: null,
@@ -210,6 +219,7 @@ async function choreFields(c: Chore): Promise<Record<string, unknown>> {
     name: c.name,
     category_id: cat?.sync_id ?? null,
     cadence_days: c.target_cadence_days,
+    duration_minutes: c.duration_minutes ?? null,
     icon: c.icon ?? null,
     details: c.details,
     pinned: !!c.pinned,
@@ -220,7 +230,7 @@ async function choreFields(c: Chore): Promise<Record<string, unknown>> {
   }
 }
 
-const CHORE_FIELDS = ['name', 'category_id', 'cadence_days', 'icon', 'details', 'pinned', 'notify_when_overdue', 'auto_schedule_to_dayglance', 'season', 'assignee_ids'] as const
+const CHORE_FIELDS = ['name', 'category_id', 'cadence_days', 'duration_minutes', 'icon', 'details', 'pinned', 'notify_when_overdue', 'auto_schedule_to_dayglance', 'season', 'assignee_ids'] as const
 
 /** Apply the tools' chore fields through updateChore, as the form saves them. */
 async function applyChoreFields(chore: Chore, f: Record<string, unknown>): Promise<void> {
@@ -228,6 +238,7 @@ async function applyChoreFields(chore: Chore, f: Record<string, unknown>): Promi
   if (has(f, 'name')) patch.name = checkName(f.name)
   if (has(f, 'category_id')) patch.category_id = (await categoryBySync(f.category_id)).id
   if (has(f, 'cadence_days')) patch.target_cadence_days = checkCadence(f.cadence_days)
+  if (has(f, 'duration_minutes')) patch.duration_minutes = checkDuration(f.duration_minutes)
   if (has(f, 'icon')) patch.icon = checkIcon(f.icon)
   if (has(f, 'details')) patch.details = checkDetails(f.details)
   if (has(f, 'pinned')) patch.pinned = bool(f.pinned, 'pinned')
@@ -258,6 +269,17 @@ async function updateChoreWrite(p: Record<string, unknown>, ctx: WriteContext): 
     summary: `Edited ${quote(name)}`,
     op: { kind: 'restore_chore_fields', choreId: chore.sync_id, before, ...(orderBefore && { orderBefore }) },
   })
+}
+
+/**
+ * A chore to dayGLANCE (sendToDayglance.ts). Nothing to undo here: the task is
+ * dayGLANCE's once it lands, so the change is not journaled, and it is taken
+ * back in dayGLANCE.
+ */
+async function sendToDayglanceWrite(p: Record<string, unknown>): Promise<WriteResult> {
+  const chore = await choreBySync(p.chore_id)
+  const sent = await sendChoreToDayglance(chore, p)
+  return ok({ ...sent, chore: await choreResult(chore.sync_id) })
 }
 
 // ── Categories ──────────────────────────────────────────────────────────────
@@ -429,6 +451,7 @@ export async function handleMcpWrite(method: string, params: unknown, ctx: Write
       case 'update_completion': return await updateCompletion(p, ctx)
       case 'create_chore': return await createChoreWrite(p, ctx)
       case 'update_chore': return await updateChoreWrite(p, ctx)
+      case 'send_to_dayglance': return await sendToDayglanceWrite(p)
       case 'create_category': return await createCategoryWrite(p, ctx)
       case 'update_category': return await updateCategoryWrite(p, ctx)
       case 'undo_mcp_writes': return await undoWrites(p, ctx)

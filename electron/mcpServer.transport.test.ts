@@ -196,6 +196,15 @@ describe('reads', () => {
     expect(body(r).error.code).toBe('not_found');
   });
 
+  it('resolves a dayGLANCE link: a chore under either tier, a person or a date only under People', async () => {
+    const chores = await (await start(modelBridge().bridge)).connect();
+    expect((await call(chores, 'lastglance_resolve_link', { id: 'ch-water' })).structuredContent).toMatchObject({ kind: 'chore' });
+    expect(body(await call(chores, 'lastglance_resolve_link', { id: 'p-maya' })).error.code).toBe('not_found');
+    const people = await (await start(modelBridge().bridge, { includePeople: () => true })).connect();
+    expect((await call(people, 'lastglance_resolve_link', { id: 'p-maya' })).structuredContent).toMatchObject({ kind: 'person' });
+    expect((await call(people, 'lastglance_resolve_link', { id: 'd-maya-bday:2027' })).structuredContent).toMatchObject({ kind: 'date', for_year: 2027 });
+  });
+
   it('reads the resources', async () => {
     const client = await (await start(modelBridge().bridge, { includePeople: () => true })).connect();
     const due = JSON.parse((await client.readResource({ uri: 'lastglance://chores/due' })).contents[0].text as string);
@@ -235,6 +244,8 @@ describe('an unavailable window', () => {
       lastglance_get_person: { person_id: 'p-maya' },
       lastglance_complete_chore: { chore_id: 'ch-water' },
       lastglance_complete_chores: { completions: [{ chore_id: 'ch-water' }, { chore_id: 'ch-vacuum' }] },
+      lastglance_resolve_link: { id: 'ch-water' },
+      lastglance_send_to_dayglance: { chore_id: 'ch-water', start: '2026-11-15 09:00' },
       lastglance_update_completion: { completion_id: 'e-1', note: null },
       lastglance_create_chore: { name: 'Dust' },
       lastglance_update_chore: { chore_id: 'ch-water', name: 'Water' },

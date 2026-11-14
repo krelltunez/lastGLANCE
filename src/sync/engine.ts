@@ -19,6 +19,7 @@ import { getSyncFolder } from './syncFolder'
 import { buildPeoplePayload } from '@/people/sync/apply'
 import type { PeoplePayload } from '@/people/sync/types'
 import { applyLaterChoreFields, carryLaterFields, laterChoreFields, unknownChoreFields, withUnknownFields } from './choreFields'
+import { isDurationMinutes } from '@/utils/choreDuration'
 
 // On Android the spread hooks route key storage to the Keystore-backed
 // SecureStore instead of IndexedDB (issue #210); elsewhere they spread to
@@ -228,6 +229,7 @@ function validateSyncPayload(data: SyncPayload): void {
     if (c.seasonalStart != null && !mmddRe.test(c.seasonalStart)) throw new Error('invalid chore seasonalStart')
     if (c.seasonalEnd != null && !mmddRe.test(c.seasonalEnd)) throw new Error('invalid chore seasonalEnd')
     if (c.pinned != null && typeof c.pinned !== 'boolean') throw new Error('invalid chore pinned')
+    if (c.durationMinutes != null && !isDurationMinutes(c.durationMinutes)) throw new Error('invalid chore durationMinutes')
   }
   for (const e of (data.completionEvents ?? [])) {
     if (!uuidRe.test(e.id)) throw new Error('invalid completionEvent id')

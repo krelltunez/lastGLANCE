@@ -11,6 +11,7 @@ import { requestNotificationPermission } from '@/hooks/useNotifications'
 import { isNativeShell } from '@/native/platform'
 import { useIntents } from '@/intents/IntentsContext'
 import { useTranslation } from 'react-i18next'
+import { DURATION_MAX_MINUTES, isDurationMinutes } from '@/utils/choreDuration'
 
 interface Props {
   category: Category
@@ -60,6 +61,9 @@ export function ChoreFormModal({ category, allCategories, chore, initialName, on
   const [name, setName] = useState(chore?.name ?? initialName ?? '')
   const [cadence, setCadence] = useState(
     chore?.target_cadence_days != null ? String(chore.target_cadence_days) : ''
+  )
+  const [duration, setDuration] = useState(
+    chore?.duration_minutes != null ? String(chore.duration_minutes) : ''
   )
   const [details, setDetails] = useState(chore?.details ?? '')
   const [icon, setIcon] = useState<string | undefined>(chore ? chore.icon : category.icon)
@@ -122,18 +126,23 @@ export function ChoreFormModal({ category, allCategories, chore, initialName, on
     if (cadence.trim() && (isNaN(cadenceDays!) || cadenceDays! < 1)) {
       setError(t('choreForm.cadenceInvalid')); return
     }
+    const durationMinutes = duration.trim() ? Number(duration) : null
+    if (durationMinutes !== null && !isDurationMinutes(durationMinutes)) {
+      setError(t('choreForm.durationInvalid', { max: DURATION_MAX_MINUTES })); return
+    }
     const seasonal_start = isSeasonal ? `${startMonth}-${startDay}` : null
     const seasonal_end = isSeasonal ? `${endMonth}-${endDay}` : null
     const trimmedDetails = details.trim() || null
     setSaving(true)
     try {
       if (isEdit && chore) {
-        await updateChore(chore.id, { name: trimmed, target_cadence_days: cadenceDays, notify_when_overdue: notify, auto_schedule_to_dayglance: autoSchedule, icon, category_id: selectedCategoryId, seasonal_start, seasonal_end, details: trimmedDetails, pinned, assigned_user_sync_ids: assignedIds })
+        await updateChore(chore.id, { name: trimmed, target_cadence_days: cadenceDays, duration_minutes: durationMinutes, notify_when_overdue: notify, auto_schedule_to_dayglance: autoSchedule, icon, category_id: selectedCategoryId, seasonal_start, seasonal_end, details: trimmedDetails, pinned, assigned_user_sync_ids: assignedIds })
       } else {
         await createChore({
           name: trimmed,
           category_id: selectedCategoryId,
           target_cadence_days: cadenceDays,
+          duration_minutes: durationMinutes,
           notify_when_overdue: notify,
           auto_schedule_to_dayglance: autoSchedule,
           preferred_schedule_behavior: null,
@@ -249,6 +258,25 @@ export function ChoreFormModal({ category, allCategories, chore, initialName, on
               />
               <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
                 {t('choreForm.cadenceHint')}
+              </p>
+            </div>
+
+            <div>
+              <label htmlFor="chore-duration" className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+                {t('choreForm.durationLabel')} <span className="text-slate-400 dark:text-slate-500">{t('choreForm.durationOptional')}</span>
+              </label>
+              <input
+                id="chore-duration"
+                type="number"
+                min="1"
+                max={DURATION_MAX_MINUTES}
+                value={duration}
+                onChange={e => { setDuration(e.target.value); setError('') }}
+                placeholder={t('choreForm.durationPlaceholder')}
+                className="w-full bg-slate-100 dark:bg-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-green-400"
+              />
+              <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
+                {t('choreForm.durationHint')}
               </p>
             </div>
 

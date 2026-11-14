@@ -2,6 +2,7 @@ import { ACTIONS, EVENTS, SOURCE_APPS } from '@glance-apps/intents'
 import type { Envelope, NotifyPayload } from '@glance-apps/intents'
 import dayjs from 'dayjs'
 import type { InteractionChannel } from '@/people/types'
+import { clearSent } from './sentToDayglance'
 
 export interface ProcessNotifyDeps {
   getChore: (syncId: string) => Promise<{ id: number; name: string } | undefined>
@@ -34,6 +35,11 @@ export async function processNotifyEnvelope(
 
   const payload = envelope.payload
   if (payload.source_app !== SOURCE_APPS.LASTGLANCE) return
+  // Word on a task this device sent: the duplicate-send warning stops
+  // (sentToDayglance.ts), whatever else the notice does.
+  if ((payload.event === EVENTS.COMPLETED || payload.event === EVENTS.DELETED) && payload.source_entity_id) {
+    clearSent(payload.source_entity_id)
+  }
   if (payload.event !== EVENTS.COMPLETED) return
 
   const choreSyncId = payload.source_entity_id

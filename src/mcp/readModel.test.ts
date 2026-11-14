@@ -128,6 +128,30 @@ describe('chores by next due date', () => {
   })
 })
 
+describe('resolving a dayGLANCE link', () => {
+  const dateId = fixtureData().dates.find(d => d.person_sync_id === 'p-maya')!.sync_id
+
+  it('says what an id is: a chore, a person, or a date for a year', () => {
+    expect(read('resolve_link', { id: 'ch-water' })).toMatchObject({ kind: 'chore', id: 'ch-water', chore: { id: 'ch-water', name: expect.any(String) } })
+    expect(read('resolve_link', { id: 'p-maya', include_people: true })).toMatchObject({ kind: 'person', person: { id: 'p-maya' } })
+    const date = read('resolve_link', { id: `${dateId}:2027`, include_people: true })
+    expect(date).toMatchObject({ kind: 'date', for_year: 2027, date: { id: dateId }, person: { id: 'p-maya' } })
+  })
+
+  it('keeps People to the People tier, and to this user\'s People', () => {
+    expect(refused('resolve_link', { id: 'p-maya' }).code).toBe('not_found')
+    expect(refused('resolve_link', { id: `${dateId}:2027` }).code).toBe('not_found')
+    // Another household member's person does not exist for these tools.
+    const asAlex = fixtureData({ multiUserEnabled: true, meUserSyncId: 'u-alex' })
+    expect(refused('resolve_link', { id: 'p-sam', include_people: true }, asAlex).code).toBe('not_found')
+  })
+
+  it('an id nothing has is not_found, and a missing id a validation error', () => {
+    expect(refused('resolve_link', { id: 'gone', include_people: true }).code).toBe('not_found')
+    expect(refused('resolve_link', {}).code).toBe('validation')
+  })
+})
+
 describe('People', () => {
   it('lists people by name, without the archived unless asked', () => {
     expect(ids(read('list_people').items)).toEqual(['p-maya', 'p-sam'])
@@ -182,6 +206,7 @@ describe('People', () => {
 describe('requests', () => {
   it('refuses a method it does not know, and knows which methods read People', () => {
     expect(refused('delete_everything').code).toBe('validation')
-    expect(READ_METHODS.filter(readsPeople)).toEqual(['overview', 'list_people', 'get_person', 'upcoming_dates', 'list_circles'])
+    // resolve_link loads People to answer for a person or a date, under the People tier only.
+    expect(READ_METHODS.filter(readsPeople)).toEqual(['overview', 'list_people', 'get_person', 'upcoming_dates', 'list_circles', 'resolve_link'])
   })
 })
