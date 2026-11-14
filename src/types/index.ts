@@ -36,6 +36,10 @@ export interface Chore {
   sync_id: string
   category_sync_id: string | null
   assigned_user_sync_ids: string[]
+  // Fields a newer version's sync record held that this version does not know,
+  // kept so they go out again with the chore (src/sync/choreFields.ts). Never
+  // read here; absent when there were none.
+  sync_extra?: Record<string, unknown>
 }
 
 export interface CompletionEvent {

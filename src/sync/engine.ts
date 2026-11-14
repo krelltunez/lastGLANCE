@@ -18,6 +18,7 @@ import { getMultiUserEnabled, setMultiUserEnabled } from '@/multiuser/settings'
 import { getSyncFolder } from './syncFolder'
 import { buildPeoplePayload } from '@/people/sync/apply'
 import type { PeoplePayload } from '@/people/sync/types'
+import { applyLaterChoreFields, carryLaterFields, laterChoreFields, unknownChoreFields, withUnknownFields } from './choreFields'
 
 // On Android the spread hooks route key storage to the Keystore-backed
 // SecureStore instead of IndexedDB (issue #210); elsewhere they spread to
@@ -61,7 +62,9 @@ export const buildPayload = async (): Promise<SyncPayload> => {
       assignedUserSyncIds: c.assigned_user_sync_ids ?? [],
       updatedAt: c.updated_at,
     })),
-    chores: chores.map(c => ({
+    // Fields this version does not know ride along beneath its own, and the
+    // later fields always write their key (choreFields.ts).
+    chores: chores.map(c => withUnknownFields({
       id: c.sync_id,
       name: c.name,
       categorySyncId: c.category_sync_id,
@@ -78,7 +81,8 @@ export const buildPayload = async (): Promise<SyncPayload> => {
       assignedUserSyncIds: c.assigned_user_sync_ids ?? [],
       createdAt: c.created_at,
       updatedAt: c.updated_at,
-    })),
+      ...laterChoreFields(c),
+    }, c)),
     completionEvents: completionEvents.flatMap(e => {
       const choreSyncId = choreMap.get(e.chore_id) ?? ''
       if (!uuidRe.test(e.sync_id) || !uuidRe.test(choreSyncId)) return []
@@ -171,6 +175,17 @@ export const mergePayloads = (
 
   const catMerge  = mergeArrayById(lCats,   rCats,   tombstones, null, { idField: 'id', timestampField: 'updatedAt' })
   const choreMerge = mergeArrayById(lChores, rChores, tombstones, null, { idField: 'id', timestampField: 'updatedAt' })
+  // The winning copy keeps the later fields only the other copy has: a copy
+  // without one came from a device that never knew it (choreFields.ts).
+  const lById = new Map(lChores.map(c => [c.id as string, c]))
+  const rById = new Map(rChores.map(c => [c.id as string, c]))
+  let carriedLocal = false, carriedRemote = false
+  choreMerge.merged = choreMerge.merged.map((m: R) => {
+    const fromRemote = rById.get(m.id as string) === m
+    const { record, changed } = carryLaterFields(m, fromRemote ? lById.get(m.id as string) : rById.get(m.id as string))
+    if (changed) { if (fromRemote) carriedRemote = true; else carriedLocal = true }
+    return record
+  })
   const evtMerge  = mergeArrayById(lEvts,   rEvts,   tombstones, null, { idField: 'id', timestampField: 'updatedAt' })
   const userMerge = mergeArrayById(lUsers,  rUsers,  tombstones, null, { idField: 'id', timestampField: 'updatedAt' })
 
@@ -190,8 +205,8 @@ export const mergePayloads = (
       settings: mergedSettings,
       tombstones,
     } as unknown as SyncPayload,
-    localChanged: catMerge.localChanged || choreMerge.localChanged || pins.localChanged || evtMerge.localChanged || userMerge.localChanged || settingsLocalChanged,
-    remoteChanged: catMerge.remoteChanged || choreMerge.remoteChanged || pins.remoteChanged || evtMerge.remoteChanged || userMerge.remoteChanged || settingsRemoteChanged,
+    localChanged: catMerge.localChanged || choreMerge.localChanged || pins.localChanged || evtMerge.localChanged || userMerge.localChanged || settingsLocalChanged || carriedLocal,
+    remoteChanged: catMerge.remoteChanged || choreMerge.remoteChanged || pins.remoteChanged || evtMerge.remoteChanged || userMerge.remoteChanged || settingsRemoteChanged || carriedRemote,
   }
 }
 
@@ -375,6 +390,8 @@ export const applyPayload = async (rawData: unknown, { allowEmpty }: { allowEmpt
           icon: chore.icon,
           assigned_user_sync_ids: chore.assignedUserSyncIds ?? [],
           updated_at: chore.updatedAt,
+          ...applyLaterChoreFields(chore, existing).columns,
+          sync_extra: unknownChoreFields(chore),
         }])
       } else {
         if (!category_id) continue  // category was deleted; skip rather than store category_id: 0
@@ -393,6 +410,8 @@ export const applyPayload = async (rawData: unknown, { allowEmpty }: { allowEmpt
           icon: chore.icon,
           assigned_user_sync_ids: chore.assignedUserSyncIds ?? [],
           created_at: chore.createdAt, updated_at: chore.updatedAt,
+          ...applyLaterChoreFields(chore, undefined).columns,
+          ...(unknownChoreFields(chore) && { sync_extra: unknownChoreFields(chore) }),
         })
       }
     }
