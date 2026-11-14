@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest';
-import { cadenceColor, deckCompletion, deckOpenToken, deckState, prunePresses, stateFor } from './deckModel';
-import { getCadenceColor } from '../src/utils/cadence';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { cadenceColor, deckCompletion, deckOpenToken, deckState, elapsedDays, nextDueOf, prunePresses, sinceOf, stateFor } from './deckModel';
+import { formatElapsed, formatNextDue, getCadenceColor } from '../src/utils/cadence';
+import type { DeckNextDue, DeckSince } from './deckProtocol';
 import type { TraySnapshot } from './trayModel';
 
 const NOW = Date.parse('2026-11-13T12:00:00Z');
@@ -82,5 +83,61 @@ describe('a press', () => {
     expect(deckOpenToken('log:p1', snapshot)).toBe('log:p1');
     expect(deckOpenToken('chore:gone', snapshot)).toBe(false);
     expect(deckOpenToken('action:delete', snapshot)).toBe(false);
+  });
+});
+
+// The words on a key are the app's (src/utils/cadence.ts): the same instants
+// through the app's formatElapsed / formatNextDue and the deck's sinceOf /
+// nextDueOf give the same answer. In the user's zone, as both run there.
+describe('the deck says what the app says about time', () => {
+  const t = ((key: string, opts?: { count?: number }) => (opts?.count !== undefined ? `${key}:${opts.count}` : key)) as unknown as Parameters<typeof formatElapsed>[0];
+  const sinceWords = (s: DeckSince) => ({
+    never: 'elapsed.never', just_now: 'elapsed.justNow', minutes: `elapsed.minutesAgo:${'count' in s ? s.count : ''}`,
+    hours: `elapsed.hoursAgo:${'count' in s ? s.count : ''}`, yesterday: 'elapsed.yesterday', days: `elapsed.daysAgo:${'count' in s ? s.count : ''}`,
+  })[s.kind];
+  const dueWords = (d: DeckNextDue) => ({
+    none: '', now: 'nextDue.dueNow', today: 'nextDue.today', tomorrow: 'nextDue.tomorrow', days: `nextDue.inDays:${'count' in d ? d.count : ''}`,
+  })[d.kind];
+  const zone = process.env.TZ;
+  beforeAll(() => { process.env.TZ = 'America/Denver'; });
+  afterAll(() => { process.env.TZ = zone; vi.useRealTimers(); });
+
+  it('a chore done in the evening two calendar days ago is 2 days, as in the app, not 1', () => {
+    const now = new Date(2026, 10, 14, 9, 0).getTime();          // Saturday 9:00
+    const last = new Date(2026, 10, 12, 20, 0).toISOString();     // Thursday 20:00, 37 hours before
+    expect(sinceOf(last, now)).toEqual({ kind: 'days', count: 2 });
+  });
+
+  it('matches formatElapsed and formatNextDue across the day, DST and cadences', () => {
+    const nows = [new Date(2026, 10, 14, 9, 0), new Date(2026, 10, 14, 23, 50), new Date(2026, 10, 2, 0, 30), new Date(2026, 2, 9, 1, 15)];
+    const agoMinutes = [0, 1, 59, 60, 61, 23 * 60, 23 * 60 + 59, 24 * 60 - 3, 24 * 60, 25 * 60, 37 * 60, 47 * 60, 49 * 60, 6 * 1440 + 1300, 7 * 1440 - 4, 7 * 1440 + 4, 30 * 1440];
+    for (const n of nows) {
+      vi.useFakeTimers();
+      vi.setSystemTime(n);
+      const now = n.getTime();
+      for (const ago of agoMinutes) {
+        const last = new Date(now - ago * 60_000).toISOString();
+        const elapsed = elapsedDays(Date.parse(last), now);
+        expect(sinceWords(sinceOf(last, now)), `${n.toString()} - ${ago}m`).toBe(formatElapsed(t, elapsed, last));
+        for (const cadence of [1, 3, 7, 14]) {
+          expect(dueWords(nextDueOf(last, cadence, now)), `${n.toString()} - ${ago}m, every ${cadence}d`).toBe(formatNextDue(t, cadence, elapsed, last));
+        }
+      }
+      expect(sinceWords(sinceOf(null, now))).toBe(formatElapsed(t, null, null));
+      expect(dueWords(nextDueOf(null, 7, now))).toBe(formatNextDue(t, 7, null, null));
+      vi.useRealTimers();
+    }
+  });
+
+  it('comes with each chore, and the pinned chores in the app\'s order', () => {
+    const now = Date.parse('2026-11-14T16:00:00Z');
+    const chore = (syncId: string, daysAgo: number | null, pinned: boolean, name = syncId) => ({
+      syncId, name, icon: null, categoryName: null, state: 'fresh' as const, elapsedDays: null, ratio: null, color: null,
+      lastCompletedAt: daysAgo === null ? null : new Date(now - daysAgo * 86_400_000).toISOString(), targetCadenceDays: 7, pinned,
+    });
+    const snapshot = { generatedAt: now, chores: [chore('a', 2, true), chore('b', 9, true), chore('c', null, true), chore('d', 8, false)], reachOut: [], comingUp: [] };
+    const s = deckState(snapshot, new Map(), now);
+    expect(s.chores.find((c) => c.id === 'b')).toMatchObject({ since: { kind: 'days', count: 9 }, nextDue: { kind: 'now' } });
+    expect(s.pinned).toEqual(['b', 'a', 'c']);
   });
 });

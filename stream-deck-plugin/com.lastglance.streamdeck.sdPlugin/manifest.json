@@ -1,7 +1,7 @@
 {
   "Name": "lastGLANCE",
   "UUID": "com.lastglance.streamdeck",
-  "Version": "1.0.0.0",
+  "Version": "1.1.0.0",
   "Author": "GLANCE Apps",
   "Description": "Your chores and People from lastGLANCE: what is due, how long since, and mark it done with a press.",
   "Category": "lastGLANCE",
@@ -31,7 +31,7 @@
       "Name": "Chore",
       "UUID": "com.lastglance.streamdeck.chore",
       "Icon": "imgs/actions/chore/icon",
-      "Tooltip": "One chore: how long since you did it. Press to mark it done.",
+      "Tooltip": "One chore: how long since you did it, and when it comes due, in turn. Press to mark it done.",
       "PropertyInspectorPath": "ui/chore.html",
       "Controllers": [
         "Keypad"
@@ -72,10 +72,36 @@
       "SupportedInMultiActions": false
     },
     {
-      "Name": "Overview",
+      "Name": "Pinned",
+      "UUID": "com.lastglance.streamdeck.pinned",
+      "Icon": "imgs/actions/pinned/icon",
+      "Tooltip": "Your pinned chores, most overdue first. Tap for the next, hold to mark it done; on a dial, turn to move and push to mark it done.",
+      "Controllers": [
+        "Keypad",
+        "Encoder"
+      ],
+      "Encoder": {
+        "layout": "layouts/strip.json",
+        "TriggerDescription": {
+          "Rotate": "Next or previous chore",
+          "Push": "Mark it done",
+          "Touch": "Mark it done"
+        }
+      },
+      "States": [
+        {
+          "Image": "imgs/actions/pinned/key",
+          "TitleAlignment": "bottom",
+          "ShowTitle": false
+        }
+      ],
+      "SupportedInMultiActions": false
+    },
+    {
+      "Name": "Soon",
       "UUID": "com.lastglance.streamdeck.overview",
       "Icon": "imgs/actions/overview/icon",
-      "Tooltip": "How many chores are overdue, and soon. Press to open them.",
+      "Tooltip": "How many chores are overdue, and due soon. Press to open them.",
       "Controllers": [
         "Keypad"
       ],
@@ -92,10 +118,19 @@
       "Name": "Reach out",
       "UUID": "com.lastglance.streamdeck.reach-out",
       "Icon": "imgs/actions/reach-out/icon",
-      "Tooltip": "Who to get in touch with next. Press to log a contact.",
+      "Tooltip": "Who to get in touch with, in Reach out's order. Press to log a contact; on a dial, turn to move through them.",
       "Controllers": [
-        "Keypad"
+        "Keypad",
+        "Encoder"
       ],
+      "Encoder": {
+        "layout": "layouts/strip.json",
+        "TriggerDescription": {
+          "Rotate": "Next or previous person",
+          "Push": "Log a contact",
+          "Touch": "Log a contact"
+        }
+      },
       "States": [
         {
           "Image": "imgs/actions/reach-out/key",
@@ -109,10 +144,19 @@
       "Name": "Coming up",
       "UUID": "com.lastglance.streamdeck.coming-up",
       "Icon": "imgs/actions/coming-up/icon",
-      "Tooltip": "The next birthday or date. Press to open the person.",
+      "Tooltip": "The birthdays and dates ahead, soonest first. Press to open the person; on a dial, turn to move through them.",
       "Controllers": [
-        "Keypad"
+        "Keypad",
+        "Encoder"
       ],
+      "Encoder": {
+        "layout": "layouts/strip.json",
+        "TriggerDescription": {
+          "Rotate": "Next or previous date",
+          "Push": "Open the person",
+          "Touch": "Open the person"
+        }
+      },
       "States": [
         {
           "Image": "imgs/actions/coming-up/key",

@@ -34,6 +34,12 @@ describe('drawing a key', () => {
     expect(escapeXml(`"'`)).toBe('&quot;&apos;');
   });
 
+  it('marks its place in a list in the corner, on a key and on a strip, and nothing alone', () => {
+    expect(svgOf(renderKey({ title: 'Dust', accent: '#f59e0b', badge: '2/5' }, ICON))).toMatch(/text-anchor="end">2\/5</);
+    expect(svgOf(renderStrip({ title: 'Dust', accent: '#f59e0b', badge: '2/5' }, ICON))).toMatch(/text-anchor="end">2\/5</);
+    expect(svgOf(renderKey({ title: 'Dust', accent: '#f59e0b' }, ICON))).not.toContain('text-anchor="end"');
+  });
+
   it('draws the touch strip at its size', () => {
     const svg = svgOf(renderStrip({ title: 'Dust', sub: '1/2 · 2d', accent: '#f59e0b', ratio: 0.8 }, ICON));
     expect(svg).toContain('width="200" height="100"');

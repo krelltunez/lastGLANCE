@@ -22,6 +22,13 @@ function iconAt(markup: string, x: number, y: number, size: number, color: strin
   return `<g transform="translate(${x} ${y}) scale(${size / 24})" fill="none" stroke="${color}" stroke-opacity="${opacity}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${markup}</g>`;
 }
 
+/** Where the key is in its list ("2/5"), small in the top corner. */
+function badgeAt(text: string | undefined, x: number, y: number, size: number, op: number): string {
+  return text
+    ? `<text x="${x}" y="${y}" font-family="${FONT}" font-size="${size}" font-weight="600" fill="#ffffff" fill-opacity="${0.55 * op}" text-anchor="end">${escapeXml(text)}</text>`
+    : '';
+}
+
 function bar(x: number, y: number, w: number, h: number, ratio: number | null | undefined, color: string): string {
   if (ratio === null || ratio === undefined) return '';
   const filled = Math.max(0, Math.min(1, ratio)) * w;
@@ -46,6 +53,7 @@ export function renderKey(view: KeyView, iconMarkup: string | null): string {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="144" height="144" viewBox="0 0 144 144">`
     + `<rect width="144" height="144" fill="${BG}"/>`
     + body + sub
+    + badgeAt(view.badge, 136, 20, 15, op)
     + bar(12, 130, 120, 6, view.ratio, accent)
     + `</svg>`;
   return dataUrl(svg);
@@ -65,6 +73,7 @@ export function renderStrip(view: KeyView, iconMarkup: string | null): string {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100" viewBox="0 0 200 100">`
     + `<rect width="200" height="100" fill="${BG}"/>`
     + icon + title + sub
+    + badgeAt(view.badge, 192, 18, 13, op)
     + bar(12, 86, 176, 6, view.ratio, view.accent)
     + `</svg>`;
   return dataUrl(svg);

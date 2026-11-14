@@ -4,13 +4,15 @@ import type { DeckState } from '../../../electron/deckProtocol';
 import { connection, guard } from '../shared';
 
 // An action that redraws every visible key on each state from the app, and on
-// a minute tick (the keys age: "3d" becomes "4d" with the app untouched). It
-// listens only while at least one of its keys is visible.
+// a tick (a minute by default: the keys age, "3d ago" becomes "4d ago" with the
+// app untouched). It listens only while at least one of its keys is visible.
 export abstract class StateAction<T extends JsonObject = JsonObject> extends SingletonAction<T> {
   private unsubscribe: (() => void) | null = null;
   private tick: ReturnType<typeof setInterval> | null = null;
   private readonly visible = new Set<string>();
   protected state: DeckState | null = null;
+  /** How often the visible keys are redrawn without a new state. */
+  protected readonly tickMs: number = 60_000;
 
   /** Draw every visible key of this action. */
   protected abstract renderAll(): Promise<void>;
@@ -22,7 +24,7 @@ export abstract class StateAction<T extends JsonObject = JsonObject> extends Sin
         this.state = s;
         guard('render', () => this.renderAll());
       });
-      this.tick = setInterval(() => guard('render', () => this.renderAll()), 60_000);
+      this.tick = setInterval(() => guard('render', () => this.renderAll()), this.tickMs);
     }
     guard('render', () => this.renderAll());
   }

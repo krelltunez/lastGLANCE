@@ -307,14 +307,30 @@ drawn as SVG, 144×144 on a key and 200×100 on the Stream Deck + touch strip
 (`src/render.ts`); what each key shows is a pure function of the app's
 `lg:state` and the clock (`src/keys.ts`), so it is tested without Stream Deck.
 
-| Action | Shows | Press |
-|---|---|---|
-| Chore | one chosen chore: its icon in its cadence colour, "3d", the fill bar | marks it done |
-| Due | the due chores, most overdue first, "2/5 · 3d" | tap shows the next; hold (half a second) marks the shown one done. On a dial: turn to move, push or tap the strip to mark done |
-| Overview | the overdue count (or the soon count), big | opens the app filtered to due soon |
-| Reach out | the person at the top of Reach out | opens their contact log |
-| Coming up | the next birthday or date, "Birthday, in 3d" | opens the person |
-| Add chore | a plus | opens Add chore |
+| Action | Shows | Press | Dial (Stream Deck +) |
+|---|---|---|---|
+| Chore | one chosen chore: its icon in its cadence colour, the fill bar, and a line that turns every 4 seconds between "3d ago" and "due now" | marks it done | |
+| Due | the due chores, most overdue first, its place ("2/5") in the corner | tap shows the next; hold (half a second) marks the shown one done | turn to move; push or tap the strip to mark done |
+| Pinned | the pinned chores in season, in the app's Pinned order | as Due | as Due |
+| Soon | the overdue count (or the soon count), big | opens the app filtered to due soon | |
+| Reach out | the people in Reach out, in its order (the first on a key) | opens the shown person's contact log | turn to move; push or tap to open the log |
+| Coming up | the birthdays and dates ahead, soonest first: rose within a week, slate further off | opens the shown person | turn to move; push or tap to open the person |
+| Add chore | a plus | opens Add chore | |
+
+- **The words for time are the app's.** Main works out "since" and "next due"
+  for each chore with the app's rules (`sinceOf` and `nextDueOf` in
+  `electron/deckModel.ts`, following `formatElapsed` and `formatNextDue`):
+  calendar days in the user's zone, so a chore done on Thursday evening is "2d
+  ago" on Saturday morning, as the chore list says, not the 1d of 24-hour
+  periods the first version counted. `deckModel.test.ts` runs both over the same
+  instants, DST included. The plugin only shortens them. The state also carries
+  the pinned chores in the app's order. Both are optional fields of protocol
+  version 1: a plugin keeps working against an app from before them.
+- **Soon** was called Overview, and keeps its action id
+  (`com.lastglance.streamdeck.overview`), so a key already placed keeps working.
+- **Lists on a dial:** Due, Pinned, Reach out and Coming up share one list
+  action (`src/actions/list-action.ts`): each key and dial keeps its own place,
+  and a key shows where it is ("2/5") in its top corner.
 
 - **The connection** (`src/connection.ts`): one socket to 127.0.0.1:7901 with
   no Origin, so the app trusts it as a native client; reconnects with backoff

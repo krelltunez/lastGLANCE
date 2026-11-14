@@ -22,14 +22,19 @@ export interface KeyView {
   dim?: boolean;
   /** The title is a number, drawn large. */
   big?: boolean;
+  /** A small mark in the top corner: where this key is in its list ("2/5"). */
+  badge?: string;
 }
 
 export const GREY = '#64748b';
 export const GREEN = '#22c55e';
 export const AMBER = '#f59e0b';
 export const RED = '#ef4444';
-export const PINK = '#f472b6';
 export const BLUE = '#38bdf8';
+/** A date within a week, as the app marks it (pink there), toned down for a lit key. */
+export const ROSE = '#c27a9c';
+/** A date further off: the app's quiet slate. */
+export const SLATE = '#94a3b8';
 
 const DAY = 86_400_000;
 
@@ -60,6 +65,44 @@ function whenLabel(days: number): string {
   return `in ${days}d`;
 }
 
+/**
+ * How long since a chore was done, in the app's words: the app works it out
+ * (DeckChore.since, calendar days in the user's zone, as its chore list says
+ * it) and this only shortens it. An app from before that sends none: the old
+ * reckoning, whole days.
+ */
+export function sinceText(c: DeckChore, now: number): string {
+  const s = c.since;
+  if (!s) {
+    const old = sinceLabel(c.lastCompletedAt, now);
+    return old === 'never' || old === 'today' ? old : `${old} ago`;
+  }
+  switch (s.kind) {
+    case 'never': return 'never';
+    case 'just_now': return 'just now';
+    case 'minutes': return `${s.count}m ago`;
+    case 'hours': return `${s.count}h ago`;
+    case 'yesterday': return 'yesterday';
+    case 'days': return `${s.count}d ago`;
+  }
+}
+
+/** When a chore comes due, in the app's words, or null when it has no cadence (or the app sent none). */
+export function dueText(c: DeckChore): string | null {
+  const d = c.nextDue;
+  if (!d) return null;
+  switch (d.kind) {
+    case 'none': return null;
+    case 'now': return 'due now';
+    case 'today': return 'due today';
+    case 'tomorrow': return 'due tomorrow';
+    case 'days': return `due in ${d.count}d`;
+  }
+}
+
+/** How often the Chore key turns between "3d ago" and "due now". */
+export const ROTATE_MS = 4000;
+
 /** Shorten to fit a key, on a word where one is near. */
 export function fit(text: string, max: number): string {
   if (text.length <= max) return text;
@@ -71,22 +114,30 @@ export function fit(text: string, max: number): string {
 function choreView(c: DeckChore, now: number, sub?: string): KeyView {
   return {
     title: c.name,
-    sub: sub ?? (c.justDone ? 'Done' : sinceLabel(c.lastCompletedAt, now)),
+    sub: c.justDone ? 'Done' : sub ?? sinceText(c, now),
     icon: c.icon ?? 'CircleCheck',
     accent: c.justDone ? GREEN : c.color ?? GREY,
     ratio: c.ratio,
   };
 }
 
-/** The Chore key: one chosen chore, pressed to mark it done. */
-export function choreKey(state: DeckState | null, choreId: string | null, now: number): { view: KeyView; choreId: string | null } {
+/**
+ * The Chore key: one chosen chore, pressed to mark it done. Its second line
+ * turns between how long since ("3d ago") and when it comes due ("due now"),
+ * a turn every ROTATE_MS: `turn` counts the turns, even for since.
+ */
+export function choreKey(state: DeckState | null, choreId: string | null, now: number, turn = 0): { view: KeyView; choreId: string | null } {
   if (!state) return { view: OFFLINE, choreId: null };
   if (!state.ready) return { view: NOT_READY, choreId: null };
   if (!choreId) return { view: { title: 'Chore', sub: 'Choose one', icon: 'CircleCheck', accent: GREY, dim: true }, choreId: null };
   const c = state.chores.find((x) => x.id === choreId);
   if (!c) return { view: { title: 'Chore', sub: 'Not found', icon: 'CircleHelp', accent: GREY, dim: true }, choreId: null };
-  return { view: choreView(c, now), choreId: c.id };
+  const due = dueText(c);
+  return { view: choreView(c, now, turn % 2 === 1 && due ? due : undefined), choreId: c.id };
 }
+
+/** Where a key is in its list, when the list has more than one. */
+const badge = (i: number, count: number) => (count > 1 ? `${i + 1}/${count}` : undefined);
 
 /** Wrap an index into 0..count-1 (0 when there is nothing). */
 export function wrap(index: number, count: number): number {
@@ -101,11 +152,23 @@ export function dueKey(state: DeckState | null, index: number, now: number): { v
   if (due.length === 0) return { view: { title: 'Nothing due', sub: 'All done', icon: 'PartyPopper', accent: GREEN }, choreId: null, index: 0, count: 0 };
   const i = wrap(index, due.length);
   const c = due[i];
-  const position = due.length > 1 ? `${i + 1}/${due.length} · ` : '';
-  return { view: choreView(c, now, `${position}${sinceLabel(c.lastCompletedAt, now)}`), choreId: c.id, index: i, count: due.length };
+  return { view: { ...choreView(c, now), badge: badge(i, due.length) }, choreId: c.id, index: i, count: due.length };
 }
 
-/** The Overview key: how many chores are overdue, and soon. */
+/** The Pinned key: the pinned chores in season, in the app's Pinned order, one at a time. */
+export function pinnedKey(state: DeckState | null, index: number, now: number): { view: KeyView; choreId: string | null; index: number; count: number } {
+  if (!state) return { view: OFFLINE, choreId: null, index: 0, count: 0 };
+  if (!state.ready) return { view: NOT_READY, choreId: null, index: 0, count: 0 };
+  // An app from before the pinned list: the pinned chores as they come, most overdue first.
+  const ids = state.pinned ?? state.chores.filter((c) => c.pinned).sort((a, b) => (b.ratio ?? -1) - (a.ratio ?? -1)).map((c) => c.id);
+  const pinned = ids.map((id) => state.chores.find((c) => c.id === id)).filter((c): c is DeckChore => !!c);
+  if (pinned.length === 0) return { view: { title: 'Pinned', sub: 'Nothing pinned', icon: 'Pin', accent: GREY, dim: true }, choreId: null, index: 0, count: 0 };
+  const i = wrap(index, pinned.length);
+  const c = pinned[i];
+  return { view: { ...choreView(c, now), badge: badge(i, pinned.length) }, choreId: c.id, index: i, count: pinned.length };
+}
+
+/** The Soon key (first called Overview): how many chores are overdue, and soon. */
 export function overviewKey(state: DeckState | null): KeyView {
   if (!state) return OFFLINE;
   if (!state.ready) return NOT_READY;
@@ -120,23 +183,33 @@ export function overviewKey(state: DeckState | null): KeyView {
   };
 }
 
-/** The Reach out key: the person at the top of Reach out. */
-export function reachOutKey(state: DeckState | null): { view: KeyView; personId: string | null } {
-  if (!state) return { view: OFFLINE, personId: null };
-  if (!state.ready) return { view: NOT_READY, personId: null };
-  const p = state.reachOut[0];
-  if (!p) return { view: { title: 'Reach out', sub: 'All caught up', icon: 'HeartHandshake', accent: GREEN, dim: true }, personId: null };
-  return { view: { title: p.name, sub: p.detail, icon: 'MessageCircleHeart', accent: p.color, ratio: p.ratio }, personId: p.id };
+/** The Reach out key: the people in Reach out, in its order, one at a time (the first on a key). */
+export function reachOutKey(state: DeckState | null, index = 0): { view: KeyView; personId: string | null; index: number; count: number } {
+  if (!state) return { view: OFFLINE, personId: null, index: 0, count: 0 };
+  if (!state.ready) return { view: NOT_READY, personId: null, index: 0, count: 0 };
+  const count = state.reachOut.length;
+  if (count === 0) return { view: { title: 'Reach out', sub: 'All caught up', icon: 'HeartHandshake', accent: GREEN, dim: true }, personId: null, index: 0, count: 0 };
+  const i = wrap(index, count);
+  const p = state.reachOut[i];
+  return { view: { title: p.name, sub: p.detail, icon: 'MessageCircleHeart', accent: p.color, ratio: p.ratio, badge: badge(i, count) }, personId: p.id, index: i, count };
 }
 
-/** The Coming up key: the next birthday or date. */
-export function comingUpKey(state: DeckState | null, now: number): { view: KeyView; personId: string | null } {
-  if (!state) return { view: OFFLINE, personId: null };
-  if (!state.ready) return { view: NOT_READY, personId: null };
-  const d = state.comingUp[0];
-  if (!d) return { view: { title: 'Coming up', sub: 'Nothing soon', icon: 'CalendarHeart', accent: GREY, dim: true }, personId: null };
+/** A date within this many days is marked, as the app's Coming up tiles mark it. */
+export const DATE_SOON_DAYS = 7;
+
+/** The Coming up key: the birthdays and dates ahead, soonest first, one at a time (the first on a key). */
+export function comingUpKey(state: DeckState | null, now: number, index = 0): { view: KeyView; personId: string | null; index: number; count: number } {
+  if (!state) return { view: OFFLINE, personId: null, index: 0, count: 0 };
+  if (!state.ready) return { view: NOT_READY, personId: null, index: 0, count: 0 };
+  const count = state.comingUp.length;
+  if (count === 0) return { view: { title: 'Coming up', sub: 'Nothing soon', icon: 'CalendarHeart', accent: GREY, dim: true }, personId: null, index: 0, count: 0 };
+  const i = wrap(index, count);
+  const d = state.comingUp[i];
   const days = daysUntil(d.on, now);
-  return { view: { title: d.name, sub: `${d.label}, ${whenLabel(days)}`, icon: days <= 0 ? 'PartyPopper' : 'Cake', accent: PINK }, personId: d.personId };
+  return {
+    view: { title: d.name, sub: `${d.label}, ${whenLabel(days)}`, icon: days <= 0 ? 'PartyPopper' : 'Cake', accent: days <= DATE_SOON_DAYS ? ROSE : SLATE, badge: badge(i, count) },
+    personId: d.personId, index: i, count,
+  };
 }
 
 /** The Add chore key. */
