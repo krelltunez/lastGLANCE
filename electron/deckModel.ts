@@ -15,7 +15,7 @@
 // and a second press, or a press just after the tray's, is answered too_soon.
 
 import { trayOpenToken, type TraySnapshot } from './trayModel.js';
-import { DECK_PROTOCOL_VERSION, MSG_STATE, type DeckChore, type DeckChoreState, type DeckState } from './deckProtocol.js';
+import { DECK_PROTOCOL_VERSION, MSG_STATE, type DeckChore, type DeckChoreState, type DeckNextDue, type DeckSince, type DeckState } from './deckProtocol.js';
 
 const DAY_MS = 86_400_000;
 export const ATTENTION_RATIO = 0.75;
@@ -46,6 +46,48 @@ export function stateFor(ratio: number | null): DeckChoreState {
   return 'fresh';
 }
 
+// ── The app's words for time (src/utils/cadence.ts) ────────────────────────
+// The app's chore list says "2 days ago" by calendar days in the user's zone,
+// and a key that counted 24-hour periods said "1d" for the same chore. These
+// follow formatElapsed and formatNextDue step by step, in this process's zone
+// (the user's: main runs on their machine), and deckModel.test.ts runs both
+// over the same instants to hold them equal.
+
+/** Local midnight of an instant's day. */
+const dayStart = (ms: number) => { const d = new Date(ms); return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime(); };
+/** Whole calendar days from one instant's day to another's (DST days are 23 or 25 hours). */
+const calendarDays = (from: number, to: number) => Math.round((dayStart(to) - dayStart(from)) / DAY_MS);
+/** The app's elapsed_days (src/db/queries.ts): whole minutes over a day, to a tenth. */
+export function elapsedDays(lastMs: number, now: number): number {
+  return Math.round((Math.trunc((now - lastMs) / 60_000) / 1440) * 10) / 10;
+}
+
+/** formatElapsed's choice, as data. */
+export function sinceOf(last: string | null, now: number): DeckSince {
+  const lastMs = last ? Date.parse(last) : NaN;
+  if (!Number.isFinite(lastMs)) return { kind: 'never' };
+  const minutes = Math.trunc((now - lastMs) / 60_000);
+  if (minutes < 1) return { kind: 'just_now' };
+  if (minutes < 60) return { kind: 'minutes', count: minutes };
+  if (elapsedDays(lastMs, now) < 1) return { kind: 'hours', count: Math.floor(minutes / 60) };
+  const days = calendarDays(lastMs, now);
+  return days === 1 ? { kind: 'yesterday' } : { kind: 'days', count: days };
+}
+
+/** formatNextDue's choice, as data. */
+export function nextDueOf(last: string | null, cadence: number | null, now: number): DeckNextDue {
+  const lastMs = last ? Date.parse(last) : NaN;
+  if (!Number.isFinite(lastMs) || cadence === null) return { kind: 'none' };
+  // isPastCadence: a cadence of 0 never qualifies, and is no cadence there.
+  if (cadence && elapsedDays(lastMs, now) >= cadence) return { kind: 'now' };
+  const dueAt = new Date(lastMs);
+  dueAt.setDate(dueAt.getDate() + cadence);
+  const until = calendarDays(now, dueAt.getTime());
+  if (until === 0) return { kind: 'today' };
+  if (until === 1) return { kind: 'tomorrow' };
+  return { kind: 'days', count: until };
+}
+
 /** One chore, aged to `now`; done just now when it was completed here and the app has not caught up. */
 function deckChore(c: TraySnapshot['chores'][number], doneAt: number | undefined, now: number): DeckChore {
   const cadence = c.targetCadenceDays;
@@ -63,6 +105,8 @@ function deckChore(c: TraySnapshot['chores'][number], doneAt: number | undefined
     lastCompletedAt: last,
     cadenceDays: cadence,
     pinned: c.pinned,
+    since: sinceOf(last, now),
+    nextDue: nextDueOf(last, cadence, now),
     justDone: doneAt !== undefined,
   };
 }
@@ -81,6 +125,11 @@ export function deckState(snapshot: TraySnapshot | null, doneHere: ReadonlyMap<s
     counts: { overdue: due.filter((c) => c.state === 'overdue').length, soon: due.filter((c) => c.state === 'soon').length },
     chores,
     due: due.map((c) => c.id),
+    // The app's Pinned row (src/utils/pinned.ts): most overdue first, chores without a ratio last, then by name.
+    pinned: chores
+      .filter((c) => c.pinned)
+      .sort((a, b) => (a.ratio === b.ratio ? a.name.localeCompare(b.name) : a.ratio === null ? 1 : b.ratio === null ? -1 : b.ratio - a.ratio))
+      .map((c) => c.id),
     reachOut: (snapshot?.reachOut ?? []).map((p) => ({ id: p.syncId, name: p.name, ratio: p.ratio, color: p.color, detail: p.detail })),
     comingUp: (snapshot?.comingUp ?? []).map((d) => ({ personId: d.personSyncId, name: d.name, label: d.label, on: d.on })),
   };

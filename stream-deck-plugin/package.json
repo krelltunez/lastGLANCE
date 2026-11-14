@@ -1,6 +1,6 @@
 {
   "name": "lastglance-streamdeck",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "description": "lastGLANCE for Stream Deck: chores and People on your keys. Talks to the lastGLANCE desktop app on this computer.",
   "type": "module",

@@ -1,70 +1,44 @@
-import {
-  action, type DialAction, type DialDownEvent, type DialRotateEvent, type KeyAction, type KeyDownEvent, type KeyUpEvent,
-  type TouchTapEvent, type WillDisappearEvent,
-} from '@elgato/streamdeck';
-import type { JsonObject } from '@elgato/utils';
-import { dueKey } from '../keys';
-import { acknowledge, connection, draw } from '../shared';
-import { StateAction } from './state-action';
+import { action } from '@elgato/streamdeck';
+import type { DeckState } from '../../../electron/deckProtocol';
+import { dueKey, pinnedKey } from '../keys';
+import { acknowledge, connection } from '../shared';
+import { ListAction, type ListView } from './list-action';
 
-/** How long a key must be held to mark the shown chore done rather than move on. */
-export const HOLD_MS = 500;
+export { HOLD_MS } from './list-action';
+
+type ChoreTarget = Parameters<typeof acknowledge>[0];
+
+/** Mark the shown chore done; with none shown, open the app where the list comes from. */
+async function completeOr(target: ChoreTarget, choreId: string | null, otherwise: string | null): Promise<void> {
+  if (!choreId) { await connection.openApp(otherwise); return; }
+  await acknowledge(target, await connection.complete(choreId));
+}
 
 // The Due key: the chores that need doing, one at a time, most overdue first.
-// On a key: a tap shows the next, a hold marks the shown one done. On a dial
-// (Stream Deck +): turning moves through them, pushing or tapping the strip
-// marks the shown one done. Each key keeps its own place in the list.
+// A tap shows the next, a hold marks the shown one done; on a dial, turn to
+// move and push or tap the strip to mark it done.
 @action({ UUID: 'com.lastglance.streamdeck.due' })
-export class DueAction extends StateAction {
-  private readonly index = new Map<string, number>();
-  private readonly downAt = new Map<string, number>();
-
-  private view(id: string) {
-    const v = dueKey(this.state, this.index.get(id) ?? 0, Date.now());
-    this.index.set(id, v.index);
-    return v;
+export class DueAction extends ListAction<string | null> {
+  protected readonly keyMode = 'cycle';
+  protected show(state: DeckState | null, index: number, now: number): ListView<string | null> {
+    const v = dueKey(state, index, now);
+    return { ...v, item: v.choreId };
   }
-
-  protected async renderAll(): Promise<void> {
-    for (const a of this.actions) await draw(a, this.view(a.id).view);
+  protected act(target: ChoreTarget, choreId: string | null): Promise<void> {
+    return completeOr(target, choreId, 'filter:soon');
   }
+}
 
-  private async move(a: KeyAction<JsonObject> | DialAction<JsonObject>, by: number): Promise<void> {
-    this.index.set(a.id, (this.index.get(a.id) ?? 0) + by);
-    await draw(a, this.view(a.id).view);
+// The Pinned key: the pinned chores, in the app's Pinned order, one at a time.
+// The same hands as Due.
+@action({ UUID: 'com.lastglance.streamdeck.pinned' })
+export class PinnedAction extends ListAction<string | null> {
+  protected readonly keyMode = 'cycle';
+  protected show(state: DeckState | null, index: number, now: number): ListView<string | null> {
+    const v = pinnedKey(state, index, now);
+    return { ...v, item: v.choreId };
   }
-
-  private async completeShown(a: KeyAction<JsonObject> | DialAction<JsonObject>): Promise<void> {
-    const { choreId } = this.view(a.id);
-    if (!choreId) { await connection.openApp('filter:soon'); return; }
-    await acknowledge(a, await connection.complete(choreId));
-  }
-
-  override onKeyDown(ev: KeyDownEvent): void {
-    this.downAt.set(ev.action.id, Date.now());
-  }
-
-  override async onKeyUp(ev: KeyUpEvent): Promise<void> {
-    const held = Date.now() - (this.downAt.get(ev.action.id) ?? Date.now());
-    this.downAt.delete(ev.action.id);
-    if (held >= HOLD_MS) await this.completeShown(ev.action);
-    else await this.move(ev.action, 1);
-  }
-
-  override async onDialRotate(ev: DialRotateEvent): Promise<void> {
-    await this.move(ev.action, ev.payload.ticks);
-  }
-
-  override async onDialDown(ev: DialDownEvent): Promise<void> {
-    await this.completeShown(ev.action);
-  }
-
-  override async onTouchTap(ev: TouchTapEvent): Promise<void> {
-    await this.completeShown(ev.action);
-  }
-
-  override onWillDisappear(ev: WillDisappearEvent): void {
-    this.index.delete(ev.action.id);
-    super.onWillDisappear(ev);
+  protected act(target: ChoreTarget, choreId: string | null): Promise<void> {
+    return completeOr(target, choreId, null);
   }
 }

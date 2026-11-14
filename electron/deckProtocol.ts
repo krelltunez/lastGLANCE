@@ -33,6 +33,27 @@ export const MAX_FRAME_BYTES = 16 * 1024;
 
 export type DeckChoreState = 'overdue' | 'soon' | 'fresh' | 'none';
 
+/**
+ * How long since a chore was done, in the app's words (src/utils/cadence.ts,
+ * formatElapsed): calendar days in the user's zone, not 24-hour periods, so
+ * the key says what the app says.
+ */
+export type DeckSince =
+  | { kind: 'never' }
+  | { kind: 'just_now' }
+  | { kind: 'minutes'; count: number }
+  | { kind: 'hours'; count: number }
+  | { kind: 'yesterday' }
+  | { kind: 'days'; count: number };
+
+/** When a chore comes due, in the app's words (formatNextDue); `none` without a cadence or a completion. */
+export type DeckNextDue =
+  | { kind: 'none' }
+  | { kind: 'now' }
+  | { kind: 'today' }
+  | { kind: 'tomorrow' }
+  | { kind: 'days'; count: number };
+
 export interface DeckChore {
   id: string;
   name: string;
@@ -47,6 +68,9 @@ export interface DeckChore {
   lastCompletedAt: string | null;
   cadenceDays: number | null;
   pinned: boolean;
+  /** Worked out in the app's process, with the app's rules (deckModel.ts). Absent from apps before them. */
+  since?: DeckSince;
+  nextDue?: DeckNextDue;
   /** Marked done from here (the deck or the tray) and not yet reflected by the app. */
   justDone: boolean;
 }
@@ -81,6 +105,8 @@ export interface DeckState {
   chores: DeckChore[];
   /** The ids of the chores that need doing, most overdue first. */
   due: string[];
+  /** The pinned chores in season, in the app's Pinned order (most overdue first). Absent from apps before it. */
+  pinned?: string[];
   reachOut: DeckPerson[];
   comingUp: DeckDate[];
 }

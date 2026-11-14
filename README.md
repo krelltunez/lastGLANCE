@@ -146,7 +146,7 @@ The desktop app adds what makes sense on a computer:
 | 📁 **Direct Access** | Sync through a folder Syncthing, Nextcloud or Dropbox keeps in step |
 | 🔑 **Secure storage** | Sync credentials in the macOS Keychain, the Windows credential store or the Linux keyring |
 | 🤖 **AI assistants (MCP)** | Let Claude or another MCP assistant read your chores, and People if you allow it, and with your say-so mark chores done, add and edit; off by default ([below](#ai-assistants-and-stream-deck-desktop)) |
-| 🎛️ **Stream Deck** | Keys for a chore, what's due, the overview, Reach out, Coming up and Add chore, with the plugin from Releases |
+| 🎛️ **Stream Deck** | Keys and dials for a chore, what's due, your pinned chores, how many are due soon, Reach out, Coming up and Add chore, with the plugin from Releases |
 
 The desktop app does not update itself: when a newer release is out, it says so
 and links to the download. Releasing is described in
@@ -382,11 +382,13 @@ network.
   [docs/mcp-tools-reference.md](docs/mcp-tools-reference.md).
 - **Stream Deck.** Turn it on, then install
   `com.lastglance.streamdeck.streamDeckPlugin` from
-  [Releases](../../releases) (Stream Deck 6.5 or later). Six actions: a chosen
-  **Chore** (press to mark done), **Due** (the due chores one at a time; hold to
-  mark done, or turn and push a Stream Deck + dial), **Overview**, **Reach
-  out**, **Coming up** and **Add chore**. Keys draw each chore with the icon and
-  colour the app shows.
+  [Releases](../../releases) (Stream Deck 6.5 or later). Seven actions: a chosen
+  **Chore** (how long since and when it's due, in turn; press to mark done),
+  **Due** and **Pinned** (one chore at a time; tap for the next, hold to mark
+  done), **Soon** (how many are due), **Reach out**, **Coming up** and **Add
+  chore**. On a Stream Deck + dial, turn Due, Pinned, Reach out or Coming up to
+  move through them and push to act. Keys draw each chore with the icon and
+  colour the app shows, and say how long ago in the app's words.
 
 ### Automation
 

@@ -69,9 +69,12 @@ write('plugin/category.svg', mark(28, '#ffffff'))
 export const ACTION_ICONS = {
   chore: ['CircleCheck', '#22c55e'],
   due: ['ListTodo', '#ef4444'],
-  overview: ['Gauge', '#f59e0b'],
+  pinned: ['Pin', '#f59e0b'],
+  // The Soon key (its folder keeps the id it first had, overview).
+  overview: ['AlarmClock', '#f59e0b'],
   'reach-out': ['MessageCircleHeart', '#ef4444'],
-  'coming-up': ['Cake', '#f472b6'],
+  // keys.ts ROSE: the app's pink, toned down for a lit key.
+  'coming-up': ['Cake', '#c27a9c'],
   'add-chore': ['Plus', '#38bdf8'],
 }
 for (const [action, [name, accent]] of Object.entries(ACTION_ICONS)) {
