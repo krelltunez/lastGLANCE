@@ -207,6 +207,32 @@ describe('MCP writes', () => {
     expect(await db.completionEvents.count()).toBe(1);
   });
 
+  it('sends a chore to dayGLANCE only with the integration on, and checks start and duration before the page is asked', async () => {
+    const s = await start();
+    const id = chore(await call(s.client, 'lastglance_create_chore', { name: 'Mop kitchen', category_id: 'c-home', cadence_days: 14, duration_minutes: 25 })).id as string;
+    expect((await call(s.client, 'lastglance_get_chore', { chore_id: id })).structuredContent!.duration_minutes).toBe(25);
+    // No GLANCE intents transport is set up here: refused, naming the setting.
+    const off = await call(s.client, 'lastglance_send_to_dayglance', { chore_id: id, start: '2026-11-15 09:00' });
+    expect(errorCode(off)).toBe('not_connected');
+    expect(JSON.parse(off.content[0].text).error.message).toContain('dayGLANCE Integration');
+    const before = s.methods.length;
+    expect(errorCode(await call(s.client, 'lastglance_send_to_dayglance', { chore_id: id, start: '2026-11-15', duration_minutes: 30 }))).toBe('validation');
+    expect(errorCode(await call(s.client, 'lastglance_send_to_dayglance', { chore_id: id, duration_minutes: 30 }))).toBe('validation');
+    expect(errorCode(await call(s.client, 'lastglance_send_to_dayglance', { chore_id: id, start: 'Saturday morning' }))).toBe('validation');
+    expect(s.methods.length).toBe(before);
+    // Not journaled: nothing in lastGLANCE to undo.
+    expect(s.journal.entries().some((e) => e.tool === 'lastglance_send_to_dayglance')).toBe(false);
+  });
+
+  it('says in its description that only a timed send carries a duration, and how to move the task', async () => {
+    const { client } = await start();
+    const tool = (await client.listTools()).tools.find((t) => t.name === 'lastglance_send_to_dayglance')!;
+    expect(tool.description).toMatch(/only a timed send carries one/);
+    expect(tool.description).toContain('dayglance_resize_block');
+    expect(tool.description).toContain('dayglance_update_task');
+    expect(tool.description).toMatch(/never another send/);
+  });
+
   it('limits the rate, and turns writes off after repeated overruns, telling main once', async () => {
     const s = await start({}, createWriteGate({ limit: 2, violationLimit: 2 }));
     for (const name of ['A', 'B']) expect((await call(s.client, 'lastglance_create_chore', { name })).isError).toBeFalsy();

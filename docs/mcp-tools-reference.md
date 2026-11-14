@@ -40,6 +40,7 @@ suite fails.
   | `renderer_unavailable` | The lastGLANCE window is not answering (starting, restarting or closed). NOT an empty result: retry shortly. |
   | `not_found` | No chore, category, user, person or circle with that id. |
   | `validation` | A malformed argument, with what was expected. |
+  | `not_connected` | `lastglance_send_to_dayglance` while the dayGLANCE integration is off on this device; the message names the setting. |
   | `internal` | The read or write failed inside the app. |
   | `read_only_mode` | A write while "Allow changes" is off in Settings. |
   | `rate_limited` | More than 30 writes in a minute. Wait; repeated overruns turn writes off. |
@@ -94,8 +95,9 @@ No arguments. What needs doing today:
 | `limit`, `cursor` | Pagination. |
 
 Each item is a chore summary: `id`, `name`, `icon`, `category_id`,
-`category_path`, `state`, `ratio`, `cadence_days`, `last_completed_at`,
-`elapsed_days`, `next_due`, `pinned`, `in_season`, `assignee_ids`. With a state
+`category_path`, `state`, `ratio`, `cadence_days`, `duration_minutes` (how long
+it takes, or null), `last_completed_at`, `elapsed_days`, `next_due`, `pinned`,
+`in_season`, `assignee_ids`. With a state
 filter the list is most overdue first, otherwise by category path then name;
 `sort: "next_due"` overrides both.
 
@@ -132,6 +134,29 @@ them newest first: the completion fields plus `date`, `chore_id`,
 
 No arguments. `multi_user_enabled`, `me_user_id` (who this device is, with
 multi-user mode on), and `users` as `{ id, name }`.
+
+### `lastglance_resolve_link`
+
+What a dayGLANCE task's `link` points to here. A task lastGLANCE sent to
+dayGLANCE carries `link: { app: "lastglance", id }` in dayGLANCE's MCP output,
+and dayGLANCE stores nothing that says whether the id is a chore or a person
+(the intents create cannot carry it: krelltunez/lastGLANCE#454). This answers
+by looking, as lastGLANCE resolves the completion dayGLANCE sends back.
+
+| Argument | |
+|---|---|
+| `id` | Required: the `link.id`. |
+
+Returns `kind` and `id`, and:
+- `chore`: `chore`, a chore summary;
+- `person` (a reach-out): `person`, a person summary;
+- `date` (a birthday or date, `<date id>:<year>`): `date` (`id`, `kind`,
+  `label`, `month`, `day`, `year`), `for_year` (the year the task was for) and
+  `person`.
+
+Registered under both tiers; a person or a date only resolves under "Chores
+and People", and is `not_found` otherwise, as is an id nothing has (a deleted
+chore, say).
 
 ## People tools
 
@@ -193,6 +218,7 @@ is the audit of the forms, and the write tools follow it.
 | Chore | `name` | Chore form | create, update | Trimmed, required, at most 500 |
 | Chore | `category_id` | Chore form, drag to a category | create, update | No category on create means the Inbox; a move keeps the assignees |
 | Chore | `cadence_days` | Chore form | create, update | Whole days, 1 or more, or null |
+| Chore | `duration_minutes` | Chore form | create, update | Whole minutes, 1 to 1440, or null; the dayGLANCE task length on a timed send |
 | Chore | `icon` | Chore form | create, update | A Lucide name the app knows, or null; on create, the category's icon by default |
 | Chore | `details` | Chore form | create, update | At most 2000 characters, or null |
 | Chore | `pinned` | Chore form, the log sheet's pin | create, update | |
@@ -291,7 +317,7 @@ whole call is the `renderer_unavailable` error, as for every tool.
 
 ### `lastglance_create_chore`
 
-`name` (required), and optionally `category_id`, `cadence_days`, `icon`,
+`name` (required), and optionally `category_id`, `cadence_days`, `duration_minutes`, `icon`,
 `details`, `pinned`, `notify_when_overdue`, `auto_schedule_to_dayglance`,
 `season` (`{ start, end }` or null), `assignee_ids`, `position`,
 `idempotency_key`. Returns `chore`. A chore with the same name already in the
@@ -301,6 +327,50 @@ category is returned instead, with `already_existed: true`.
 
 `chore_id`, and any of the create fields. Only the fields given change; null
 clears one. Returns `chore`.
+
+### `lastglance_send_to_dayglance`
+
+A chore to dayGLANCE as a linked task, any chore, due or not: done there, it
+is the chore done here (the same GLANCE intent the app's send uses).
+
+| Argument | |
+|---|---|
+| `chore_id` | Required. |
+| `start` | Optional. A local time, `2026-11-15 09:00` (or ISO 8601 with a zone): a timed block. A date, `2026-11-15`: an all-day task. Left out: the dayGLANCE inbox. |
+| `duration_minutes` | Optional, timed sends only: the block's length, 1 to 1440. Default the chore's own `duration_minutes`. |
+| `idempotency_key` | Optional. |
+
+**Duration only rides a timed send.** The intents schema refuses a duration
+without a time, so an all-day or inbox send takes dayGLANCE's default length
+(30 minutes), and `duration_minutes` with any other `start` is a `validation`
+error. Set the length in dayGLANCE once the task is there:
+`dayglance_resize_block` for a block, `dayglance_update_task` for an inbox
+task. (Untimed sends carrying a duration wait on krelltunez/lastGLANCE#454.)
+
+Returns `chore_id`, `dayglance_task_id` (the id the task gets in dayGLANCE,
+worked out the way dayGLANCE makes it), `pending: true` (the task appears once
+dayGLANCE picks the send up), `placed` (`timed`, `all_day` or `inbox`), `due`,
+`duration_minutes`, and `chore`.
+
+**Move it with dayGLANCE's tools, by that id; never send again to move it.**
+dayGLANCE keys a sent task on the chore and its `due`: a send with the same
+`start` updates the same task, and one with a different `start` makes a second
+task. So to move or resize the block, use `dayglance_move_block`,
+`dayglance_resize_block`, or `dayglance_schedule_task` for an inbox task, on
+`dayglance_task_id`.
+
+**Duplicate warning.** This device remembers what it sent for each chore (the
+app's own sends and auto-schedule included) until dayGLANCE reports the task
+completed or deleted. A send for another `start` while it has had no word on
+the last one returns `warning` and `previous_send` (`dayglance_task_id`,
+`due`, `sent_at`). It is a warning, not a refusal, and best effort: it knows
+only this device's sends, and cannot see a task left open in dayGLANCE after
+the chore was done in lastGLANCE, so it says "no word since", never "still
+open".
+
+Needs the dayGLANCE integration on (Settings, Integrations, dayGLANCE
+Integration): `not_connected` otherwise. Not journaled and not undone from
+lastGLANCE: the task is dayGLANCE's once it lands, so remove it there.
 
 ### `lastglance_create_category`
 

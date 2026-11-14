@@ -36,6 +36,11 @@ export interface Chore {
   sync_id: string
   category_sync_id: string | null
   assigned_user_sync_ids: string[]
+  // How long the chore takes, in minutes (1 to 1440), or null when not set.
+  // The task length when the chore goes to dayGLANCE at a set time
+  // (lastglance_send_to_dayglance). Optional: rows from before it have none.
+  // Synced as a later field (src/sync/choreFields.ts).
+  duration_minutes?: number | null
   // Fields a newer version's sync record held that this version does not know,
   // kept so they go out again with the chore (src/sync/choreFields.ts). Never
   // read here; absent when there were none.

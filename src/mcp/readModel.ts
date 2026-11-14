@@ -44,7 +44,7 @@ export interface McpRequest {
   params?: unknown
 }
 
-export type McpError = { code: 'not_found' | 'validation' | 'internal'; message: string }
+export type McpError = { code: 'not_found' | 'validation' | 'internal' | 'not_connected'; message: string }
 export type McpResult = { ok: true; data: unknown } | { ok: false; error: McpError }
 
 export type ChoreState = 'overdue' | 'soon' | 'fresh' | 'none'
@@ -53,7 +53,7 @@ export const CHORE_STATES: readonly ChoreState[] = ['overdue', 'soon', 'fresh', 
 /** The read methods, as the bridge names them. People methods are served only under the People tier (main registers them). */
 export const READ_METHODS = [
   'ping', 'overview', 'list_chores', 'get_chore', 'list_categories', 'activity', 'list_users',
-  'list_people', 'get_person', 'upcoming_dates', 'list_circles',
+  'list_people', 'get_person', 'upcoming_dates', 'list_circles', 'resolve_link',
 ] as const
 
 export const DEFAULT_COMPLETIONS = 20
@@ -157,6 +157,7 @@ function choreSummary(idx: Index, f: ChoreFacts, now: Date) {
     state: choreState(target, f.elapsedDays),
     ratio,
     cadence_days: target,
+    duration_minutes: chore.duration_minutes ?? null,
     last_completed_at: f.last?.completed_at ?? null,
     elapsed_days: f.elapsedDays,
     next_due: f.last && target != null ? localDate(dayjs(f.last.completed_at).add(target, 'day')) : null,
@@ -498,6 +499,44 @@ function listCircles(data: McpReadData) {
   }
 }
 
+// ── Links from dayGLANCE ────────────────────────────────────────────────────
+
+/** A lastGLANCE date as dayGLANCE links it: `<date id>:<year>` (people/glanceIntents.ts). */
+const DATE_LINK = /^(.+):(\d{4})$/
+
+/**
+ * What a dayGLANCE task's link.id is in lastGLANCE: a chore (a chore sent
+ * there), a person (a reach-out) or a date (`<date id>:<year>`, a birthday or
+ * date that year). dayGLANCE keeps nothing that says which, so this answers by
+ * looking, as the completion it sends back is resolved (processNotifyEnvelope:
+ * a chore, else a person). People and dates only under the People tier.
+ */
+function resolveLink(data: McpReadData, idx: Index, params: Record<string, unknown>): McpResult {
+  const id = typeof params.id === 'string' ? params.id.trim() : ''
+  if (!id) return fail('validation', 'id is required: a dayGLANCE task\'s link.id.')
+  const chore = idx.factBySync.get(id)
+  if (chore) return ok({ kind: 'chore', id, chore: choreSummary(idx, chore, data.now) })
+  if (params.include_people !== true) {
+    return fail('not_found', `No chore with id ${JSON.stringify(id)}. A person or a date is resolved only under the "Chores and People" tier.`)
+  }
+  const people = visiblePeople(data)
+  const person = people.find(p => p.sync_id === id)
+  if (person) return ok({ kind: 'person', id, person: personSummary(data, person) })
+  const m = DATE_LINK.exec(id)
+  const date = m ? data.dates.find(d => d.sync_id === m[1]) : undefined
+  const owner = date ? people.find(p => p.sync_id === date.person_sync_id) : undefined
+  if (date && owner) {
+    return ok({
+      kind: 'date',
+      id,
+      date: { id: date.sync_id, kind: date.kind, label: date.label, month: date.month, day: date.day, year: date.year },
+      for_year: Number(m![2]),
+      person: personSummary(data, owner),
+    })
+  }
+  return fail('not_found', `Nothing in lastGLANCE has id ${JSON.stringify(id)}: no chore, person or date. It may have been deleted.`)
+}
+
 // ── Shared ──────────────────────────────────────────────────────────────────
 
 /** Accent- and case-insensitive text for search, as the tray's search folds it. */
@@ -524,11 +563,12 @@ export function handleMcpRequest(data: McpReadData, request: McpRequest): McpRes
     case 'get_person': return getPerson(data, params)
     case 'upcoming_dates': return listUpcoming(data, params)
     case 'list_circles': return ok(listCircles(data))
+    case 'resolve_link': return resolveLink(data, buildIndex(data), params)
     default: return fail('validation', `Unknown read method ${JSON.stringify(request.method)}.`)
   }
 }
 
 /** Whether a method reads People, so the loader knows to load them. */
 export function readsPeople(method: string): boolean {
-  return method === 'list_people' || method === 'get_person' || method === 'upcoming_dates' || method === 'list_circles' || method === 'overview'
+  return method === 'list_people' || method === 'get_person' || method === 'upcoming_dates' || method === 'list_circles' || method === 'overview' || method === 'resolve_link'
 }

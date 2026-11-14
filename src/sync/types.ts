@@ -23,6 +23,9 @@ export interface SyncChore {
   assignedUserSyncIds: string[]
   createdAt: string
   updatedAt: string             // maps to chore.updated_at
+  // A later field (choreFields.ts): always written by versions that know it,
+  // null when not set; absent from records of versions before it.
+  durationMinutes?: number | null
 }
 
 export interface SyncCategory {

@@ -150,3 +150,31 @@ describe('processNotifyEnvelope – a People task done in dayGLANCE', () => {
     expect(p.logContact).not.toHaveBeenCalled()
   })
 })
+
+describe('processNotifyEnvelope – word on a task this device sent', () => {
+  const store = new Map<string, string>()
+  ;(globalThis as { localStorage?: Storage }).localStorage = {
+    getItem: (k: string) => (store.has(k) ? store.get(k)! : null),
+    setItem: (k: string, v: string) => { store.set(k, String(v)) },
+    removeItem: (k: string) => { store.delete(k) },
+    clear: () => { store.clear() },
+    key: (i: number) => Array.from(store.keys())[i] ?? null,
+    get length() { return store.size },
+  } as Storage
+  const deps = () => ({ getChore: vi.fn().mockResolvedValue(undefined), logCompletion: vi.fn(), addActivityEntry: vi.fn() })
+
+  it('a completed or deleted notice ends the duplicate-send warning; a reschedule does not', async () => {
+    const { recordSent, unansweredSend } = await import('./sentToDayglance')
+    const sent = () => recordSent(CHORE_SYNC_ID, { taskId: 't-1', due: '2026-11-15', sentAt: new Date().toISOString() })
+
+    sent()
+    await processNotifyEnvelope(makeEnvelope({ event: EVENTS.RESCHEDULED, due: '2026-11-16', previous_due: '2026-11-15' }), deps())
+    expect(unansweredSend(CHORE_SYNC_ID)).not.toBeNull()
+    await processNotifyEnvelope(makeEnvelope(), deps())
+    expect(unansweredSend(CHORE_SYNC_ID)).toBeNull()
+
+    sent()
+    await processNotifyEnvelope(makeEnvelope({ event: EVENTS.DELETED, completed_at: undefined }), deps())
+    expect(unansweredSend(CHORE_SYNC_ID)).toBeNull()
+  })
+})

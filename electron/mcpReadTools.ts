@@ -155,6 +155,27 @@ export function registerReadTools(server: McpServer, deps: ReadToolDeps): void {
   );
 
   server.registerTool(
+    'lastglance_resolve_link',
+    {
+      description:
+        'What a dayGLANCE task\'s link points to in lastGLANCE. A task lastGLANCE sent to dayGLANCE carries ' +
+        'link: { app: "lastglance", id } in dayGLANCE\'s MCP output; pass that id here. Answers kind ("chore", ' +
+        '"person" or "date") with the item: the chore as lastglance_list_chores shows it; the person as ' +
+        'lastglance_list_people shows them; or, for a birthday or date (an id ending ":<year>"), the date, the year it ' +
+        'was for, and its person. Then lastglance_get_chore or lastglance_get_person for the rest. ' +
+        (deps.includePeople() ? '' : 'People and dates are resolved only under the "Chores and People" tier, which is off: ' +
+          'an id that is not a chore comes back not_found. ') + IDS,
+      inputSchema: z.object({
+        id: z.string().describe('The link.id from a dayGLANCE task.'),
+      }),
+    },
+    async ({ id }) => {
+      const r = await ask('resolve_link', { id, include_people: deps.includePeople() });
+      return r.ok ? ok(data(r)) : bridgeError(r);
+    },
+  );
+
+  server.registerTool(
     'lastglance_list_categories',
     {
       description:

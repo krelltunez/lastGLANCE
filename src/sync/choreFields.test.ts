@@ -4,6 +4,7 @@ import { db } from '@/db/client'
 import { updateChore } from '@/db/queries'
 import { applyPayload, buildPayload, mergePayloads } from './engine'
 import { applyRemoteEntity, getLocalEntity } from './dbEngine'
+import { registerDbEngine } from './dirtyTracker'
 import { applyLaterChoreFields, carryLaterFields, laterChoreFields, unknownChoreFields, withUnknownFields } from './choreFields'
 import type { SyncCategory, SyncChore, SyncPayload } from './types'
 
@@ -11,8 +12,8 @@ import type { SyncCategory, SyncChore, SyncPayload } from './types'
 // receives chores carrying fields it does not know, and edits them. Both sync
 // paths must send those fields on with its edit, not drop them
 // (choreFields.ts, rule 1). Rule 2, the later fields an older-than-this device
-// drops, is checked on its functions here with a field of the test's own; the
-// first real one (a chore's duration) brings its own end-to-end scenario.
+// drops, is checked on its functions with a field of the test's own, and end
+// to end with the first real one, a chore's duration.
 
 function installGlobals(): void {
   const store = new Map<string, string>()
@@ -85,7 +86,10 @@ describe('an older client keeps the fields it does not know', () => {
     await applyPayload(emptyPayload({ categories: [category], chores: [plainChore] }), { allowEmpty: false })
     const row = await db.chores.where('sync_id').equals(CHORE_ID).first()
     expect(row!.sync_extra).toBeUndefined()
-    expect(Object.keys((await buildPayload()).chores[0]).sort()).toEqual(Object.keys(plainChore).sort())
+    // Its own keys, the later field included, written as null when not set.
+    const built = (await buildPayload()).chores[0] as unknown as Record<string, unknown>
+    expect(Object.keys(built).sort()).toEqual([...Object.keys(plainChore), 'durationMinutes'].sort())
+    expect(built.durationMinutes).toBeNull()
   })
 
   it('the file merge keeps them on whichever copy wins', () => {
@@ -126,5 +130,51 @@ describe('the rules, on their own', () => {
     // A winner that cleared it (null) keeps its null.
     expect(carryLaterFields({ ...fromOld, minutes: null }, fromNew, LATER).changed).toBe(false)
     expect(carryLaterFields(fromOld, undefined, LATER).changed).toBe(false)
+  })
+})
+
+describe('a chore\'s duration survives a device that has never heard of it (rule 2)', () => {
+  // A device from before durationMinutes: its records have no such key, and it
+  // keeps nothing it does not know.
+  const fromOldDevice = (over: Partial<SyncChore> = {}): SyncChore => ({ ...plainChore, ...over })
+  const withDuration = { ...plainChore, durationMinutes: 25 }
+
+  it('through the file payload: the old device\'s edit wins the merge, the duration stays, and the file is sent again', async () => {
+    await applyPayload(emptyPayload({ categories: [category], chores: [withDuration] }), { allowEmpty: false })
+    const local = await buildPayload()
+    const oldEdit = fromOldDevice({ name: 'Mop the kitchen', updatedAt: '2026-11-04T10:00:00.000Z' })
+    const merged = mergePayloads(local, emptyPayload({ categories: [category], chores: [oldEdit] }))
+    expect((merged.data as SyncPayload).chores[0]).toMatchObject({ name: 'Mop the kitchen', durationMinutes: 25 })
+    // The shared file lacks it, so this device uploads the healed copy.
+    expect(merged.remoteChanged).toBe(true)
+    await applyPayload(merged.data, { allowEmpty: false })
+    expect((await db.chores.where('sync_id').equals(CHORE_ID).first())).toMatchObject({ name: 'Mop the kitchen', duration_minutes: 25 })
+  })
+
+  it('a device that knows it can still clear it: null is a value, absent is not', async () => {
+    await applyPayload(emptyPayload({ categories: [category], chores: [withDuration] }), { allowEmpty: false })
+    const cleared = { ...withDuration, durationMinutes: null, updatedAt: '2026-11-04T10:00:00.000Z' }
+    const merged = mergePayloads(await buildPayload(), emptyPayload({ categories: [category], chores: [cleared] }))
+    expect((merged.data as SyncPayload).chores[0].durationMinutes).toBeNull()
+    await applyPayload(merged.data, { allowEmpty: false })
+    expect((await db.chores.where('sync_id').equals(CHORE_ID).first())!.duration_minutes).toBeNull()
+  })
+
+  it('through the vault rows: the old device\'s row keeps ours, and the row is pushed back with it', async () => {
+    const pushed: string[] = []
+    registerDbEngine({ markDirty: (id: string) => pushed.push(id) } as unknown as Parameters<typeof registerDbEngine>[0])
+    try {
+      await applyRemoteEntity(CAT_ID, category)
+      await applyRemoteEntity(CHORE_ID, withDuration)
+      expect(pushed).toEqual([])
+      await applyRemoteEntity(CHORE_ID, fromOldDevice({ name: 'Mop the kitchen', updatedAt: '2026-11-04T10:00:00.000Z' }))
+      expect(await getLocalEntity(CHORE_ID)).toMatchObject({ name: 'Mop the kitchen', durationMinutes: 25 })
+      expect(pushed).toEqual([CHORE_ID])
+      // Its echo carries the field: nothing more to push.
+      await applyRemoteEntity(CHORE_ID, { ...withDuration, name: 'Mop the kitchen', updatedAt: '2026-11-04T10:00:00.000Z' })
+      expect(pushed).toEqual([CHORE_ID])
+    } finally {
+      registerDbEngine(null)
+    }
   })
 })
