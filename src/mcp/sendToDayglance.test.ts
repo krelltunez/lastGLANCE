@@ -1,9 +1,8 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { CreateSchema, SOURCE_APPS } from '@glance-apps/intents'
+import { CreateSchema, SOURCE_APPS, taskIdFor } from '@glance-apps/intents'
 import type { Chore } from '@/types'
 import { choreCreateFields, type ChoreSend } from '@/intents/emitter'
 import { clearSent, recordSent, unansweredSend } from '@/intents/sentToDayglance'
-import { dayglanceTaskId } from '@/intents/dayglanceTaskId'
 import { NOT_CONNECTED, sendChoreToDayglance, type SendDeps } from './sendToDayglance'
 import { Refusal } from './writeShared'
 
@@ -35,7 +34,7 @@ function deps(over: Partial<SendDeps> = {}) {
     targets: () => ['vault'],
     send: async (c, send) => {
       sends.push(send)
-      const id = await dayglanceTaskId(c.sync_id, send.due)
+      const id = await taskIdFor(SOURCE_APPS.LASTGLANCE, c.sync_id, send.due)
       recordSent(c.sync_id, { taskId: id, due: send.due ?? null, sentAt: new Date().toISOString() })
       return id
     },

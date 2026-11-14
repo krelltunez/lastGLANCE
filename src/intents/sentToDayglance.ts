@@ -12,7 +12,7 @@ const KEY = 'lg-dg-sent'
 export const SENT_KEEP_DAYS = 60
 
 export interface SentRecord {
-  /** The task id dayGLANCE gives it (dayglanceTaskId.ts). */
+  /** The task id dayGLANCE gives it (taskIdFor in @glance-apps/intents). */
   taskId: string
   /** The due it was sent with: a date, a time with its offset, or null for the inbox. */
   due: string | null

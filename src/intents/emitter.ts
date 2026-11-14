@@ -1,4 +1,4 @@
-import { ACTIONS, SOURCE_APPS, eventId, type CreatePayload } from '@glance-apps/intents'
+import { ACTIONS, SOURCE_APPS, eventId, taskIdFor, type CreatePayload } from '@glance-apps/intents'
 import dayjs from 'dayjs'
 import type { ChoreWithLastCompletion } from '@/types'
 import { getIntentsConfig, isIntentsConfigured, addActivityEntry } from './config'
@@ -7,7 +7,6 @@ import { isDirectAccessIntentsEnabled } from './directAccessIntentsConfig'
 import { isICloudIntentsEnabled } from './icloudIntents'
 import { outbox, type OutboxIntent, type TransportName } from './outbox'
 import { flushIntents } from './flushIntents'
-import { dayglanceTaskId } from './dayglanceTaskId'
 import { recordSent } from './sentToDayglance'
 
 // Builds the RAW intent (action + payload + emit metadata) for a chore and
@@ -128,7 +127,7 @@ export async function emitChoreSend(
 
 /** Note the send for the duplicate-send warning (sentToDayglance.ts), and return its task id. */
 async function rememberSend(choreSyncId: string, due: string | undefined): Promise<string> {
-  const taskId = await dayglanceTaskId(choreSyncId, due)
+  const taskId = await taskIdFor(SOURCE_APPS.LASTGLANCE, choreSyncId, due)
   recordSent(choreSyncId, { taskId, due: due ?? null, sentAt: new Date().toISOString() })
   return taskId
 }
