@@ -140,7 +140,7 @@ multi-user mode on), and `users` as `{ id, name }`.
 What a dayGLANCE task's `link` points to here. A task lastGLANCE sent to
 dayGLANCE carries `link: { app: "lastglance", id }` in dayGLANCE's MCP output,
 and dayGLANCE stores nothing that says whether the id is a chore or a person
-(the intents create cannot carry it: krelltunez/lastGLANCE#454). This answers
+(the intents create cannot carry it: glance-apps/glance-intents#24). This answers
 by looking, as lastGLANCE resolves the completion dayGLANCE sends back.
 
 | Argument | |
@@ -345,7 +345,7 @@ without a time, so an all-day or inbox send takes dayGLANCE's default length
 (30 minutes), and `duration_minutes` with any other `start` is a `validation`
 error. Set the length in dayGLANCE once the task is there:
 `dayglance_resize_block` for a block, `dayglance_update_task` for an inbox
-task. (Untimed sends carrying a duration wait on krelltunez/lastGLANCE#454.)
+task. (Untimed sends carrying a duration wait on glance-apps/glance-intents#24.)
 
 Returns `chore_id`, `dayglance_task_id` (the id the task gets in dayGLANCE,
 worked out the way dayGLANCE makes it), `pending: true` (the task appears once
