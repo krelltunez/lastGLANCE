@@ -29,6 +29,8 @@ import {
   getDeferredCompletions,
 } from './deferredCompletions'
 import { cycleWithLauncherRepair, markChangedSince } from './launcherWritesRepair'
+import { applyLaterChoreFields, laterChoreFields, unknownChoreFields, withUnknownFields } from './choreFields'
+import { markDirty } from './dirtyTracker'
 
 const APP_ID = 'lastglance'
 const CRYPTO_DB_NAME = 'lastglance-crypto'
@@ -127,7 +129,9 @@ function toSyncCategory(c: Category): SyncCategory {
 }
 
 function toSyncChore(c: Chore): SyncChore {
-  return {
+  // Fields this version does not know ride along beneath its own, and the
+  // later fields always write their key (choreFields.ts).
+  return withUnknownFields({
     id: c.sync_id,
     name: c.name,
     categorySyncId: c.category_sync_id,
@@ -144,7 +148,8 @@ function toSyncChore(c: Chore): SyncChore {
     assignedUserSyncIds: c.assigned_user_sync_ids ?? [],
     createdAt: c.created_at,
     updatedAt: c.updated_at,
-  }
+    ...laterChoreFields(c),
+  }, c)
 }
 
 function toSyncCompletionEvent(e: CompletionEvent, choreSyncId: string): SyncCompletionEvent {
@@ -262,12 +267,15 @@ export async function resolveCategoryParents(): Promise<number> {
 
 async function applyChore(chore: SyncChore): Promise<void> {
   let skipped = false
+  let kept = false
   await db.transaction('rw', db.chores, db.categories, async () => {
     const cat = chore.categorySyncId
       ? await db.categories.where('sync_id').equals(chore.categorySyncId).first()
       : undefined
     const category_id = cat?.id
     const existing = await db.chores.where('sync_id').equals(chore.id).first()
+    const later = applyLaterChoreFields(chore, existing)
+    kept = later.kept
     if (existing) {
       await db.chores.update(existing.id, {
         name: chore.name,
@@ -285,6 +293,8 @@ async function applyChore(chore: SyncChore): Promise<void> {
         icon: chore.icon,
         assigned_user_sync_ids: chore.assignedUserSyncIds ?? [],
         updated_at: chore.updatedAt,
+        ...later.columns,
+        sync_extra: unknownChoreFields(chore),
       })
     } else {
       // Category not present yet (arrived out of seq order) or deleted: do not
@@ -308,9 +318,16 @@ async function applyChore(chore: SyncChore): Promise<void> {
         assigned_user_sync_ids: chore.assignedUserSyncIds ?? [],
         created_at: chore.createdAt,
         updated_at: chore.updatedAt,
+        ...later.columns,
+        ...(unknownChoreFields(chore) && { sync_extra: unknownChoreFields(chore) }),
       } as Chore)
     }
   })
+  // A row from a device that never knew a later field left our value in place
+  // (choreFields.ts): push the row back so the vault's copy has it again. The
+  // echo carries the field, so this does not repeat. The one deliberate
+  // exception to "remote applies never mark dirty" (module header).
+  if (kept) markDirty(chore.id)
   // Buffer the chore when skipped; clear it from the buffer once applied.
   if (skipped) {
     addDeferredChore(chore)
