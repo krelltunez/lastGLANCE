@@ -83,8 +83,9 @@ export function registerReadTools(server: McpServer, deps: ReadToolDeps): void {
       description:
         'What needs doing in lastGLANCE today: counts (overdue, soon, done today, all chores), the due chores most overdue ' +
         'first (in-season only, at most 50, due_truncated when there are more), and the pinned chores.' +
-        (deps.includePeople() ? ' Also reach_out (People to get in touch with, each with the reason when there is one) and ' +
-          'coming_up (birthdays and dates in the next 30 days).' : '') +
+        (deps.includePeople() ? ' Also reach_out (People to get in touch with, each with the reason when there is one and ' +
+          'last_interaction_note, what the last contact\'s note said) and coming_up (birthdays and dates in the next 30 days).' +
+          PEOPLE_NOTE : '') +
         ' Resolves today on the user\'s machine and echoes the date and IANA timezone. Start here for "what should I do".' + CHORE_NOTE,
     },
     async () => {
@@ -101,21 +102,33 @@ export function registerReadTools(server: McpServer, deps: ReadToolDeps): void {
         'Every chore, with filters. category_id includes its subcategories. state: "overdue", "soon", "due" (overdue or soon), ' +
         '"fresh", "none" or "all" (default). assigned_to: a user id (assigned on the chore or its category), "unassigned", or ' +
         '"me" (what the app\'s Mine view shows: unassigned or mine; needs multi-user mode with Me set). query matches words in the ' +
-        'name and category, accents and case ignored. With a state filter the list is most overdue first, otherwise by category ' +
-        'then name. ' + PAGING + ' ' + IDS + CHORE_NOTE,
+        'name and category, accents and case ignored. due_after and due_before (local YYYY-MM-DD, both included) keep the chores ' +
+        'whose next_due falls in that window, for "what comes due by Sunday"; a chore with no next_due (no cadence, never done) ' +
+        'or out of season is left out when either is given. sort "next_due" lists soonest due first, overdue ones leading. ' +
+        'Otherwise, with a state filter the list is most overdue first, else by category then name. ' + PAGING + ' ' + IDS + CHORE_NOTE,
       inputSchema: z.object({
         category_id: z.string().optional().describe('A category id from lastglance_list_categories.'),
         state: z.string().optional().describe('overdue, soon, due, fresh, none or all.'),
         assigned_to: z.string().optional().describe('A user id from lastglance_list_users, "unassigned" or "me".'),
         query: z.string().optional().describe('Words to find in the chore name or category.'),
+        due_after: z.string().optional().describe('Only chores whose next_due is on or after this local date, YYYY-MM-DD.'),
+        due_before: z.string().optional().describe('Only chores whose next_due is on or before this local date, YYYY-MM-DD.'),
+        sort: z.string().optional().describe('"next_due": soonest due first. Leave out for the default order.'),
         ...pagingSchema,
       }),
     },
-    async ({ category_id, state, assigned_to, query, limit, cursor }) => {
+    async ({ category_id, state, assigned_to, query, due_after, due_before, sort, limit, cursor }) => {
       if (state !== undefined && !(CHORE_STATES as readonly string[]).includes(state)) {
         return toolError('validation', `state must be one of ${CHORE_STATES.join(', ')}, got ${JSON.stringify(state)}.`);
       }
-      const filter = { category_id, state: state ?? 'all', assigned_to, query: query?.trim() || undefined };
+      for (const [name, value] of [['due_after', due_after], ['due_before', due_before]] as const) {
+        if (value !== undefined && !isValidLocalDate(value)) return toolError('validation', `${name} must be a local date, YYYY-MM-DD, got ${JSON.stringify(value)}.`);
+      }
+      if (due_after !== undefined && due_before !== undefined && due_after > due_before) {
+        return toolError('validation', 'due_after must be on or before due_before.');
+      }
+      if (sort !== undefined && sort !== 'next_due') return toolError('validation', `sort must be "next_due", got ${JSON.stringify(sort)}.`);
+      const filter = { category_id, state: state ?? 'all', assigned_to, query: query?.trim() || undefined, due_after, due_before, sort };
       const r = await ask('list_chores', filter);
       if (!r.ok) return bridgeError(r);
       return page((data(r).items as unknown[]) ?? [], JSON.stringify(filter), limit, cursor, {}, deps.timeZone());
@@ -201,7 +214,9 @@ export function registerReadTools(server: McpServer, deps: ReadToolDeps): void {
 const PEOPLE_NOTE =
   ' People are the user\'s private notes about other people; read them only to help the user stay in touch. ' +
   'With multi-user mode on, only this user\'s People are returned, as the app shows them. ratio is days since the last ' +
-  'contact over the person\'s cadence (1.0 = due), due_on the local date the next catch-up comes due.';
+  'contact over the person\'s cadence (1.0 = due), due_on the local date the next catch-up comes due. ' +
+  'last_interaction_note is the note on the last contact (the first 280 characters; lastglance_get_person has each note in full), ' +
+  'for suggesting what to follow up on; null when that contact has no note.';
 
 function registerPeopleTools(server: McpServer, deps: ReadToolDeps): void {
   const ask = (method: string, params: Record<string, unknown> = {}) => deps.bridge.request(method, params);

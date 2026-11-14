@@ -13,6 +13,7 @@ import { startMcpListener } from '@glance-apps/mcp-host';
 import { DEFAULT_MCP_PORT, MCP_ENDPOINT_PATH } from './localIntegrations.js';
 import { registerReadTools, registerResources, type ReadToolDeps } from './mcpReadTools.js';
 import { registerJournalReadTool, registerWriteTools, type WriteToolDeps } from './mcpWriteTools.js';
+import { localizeResourceResult, localizeToolResult } from './mcpTimes.js';
 
 export { MCP_ENDPOINT_PATH };
 
@@ -39,7 +40,7 @@ export function startMcpServer(opts: McpServerOptions): http.Server | null {
     log: opts.log,
     logError: opts.logError,
     createServer: () => {
-      const server = new McpServer({ name: 'lastGLANCE', version: opts.version || '0.0.0' });
+      const server = withLocalTimes(new McpServer({ name: 'lastGLANCE', version: opts.version || '0.0.0' }), opts.readDeps.timeZone);
       registerReadTools(server, opts.readDeps);
       registerResources(server, opts.readDeps);
       if (opts.writeDeps) {
@@ -49,6 +50,26 @@ export function startMcpServer(opts: McpServerOptions): http.Server | null {
       return server;
     },
   });
+}
+
+type Handler = (...args: unknown[]) => unknown;
+type Registrar = (...args: unknown[]) => unknown;
+
+/**
+ * The server with every tool and resource answering in local time
+ * (mcpTimes.ts): each handler registered on it has its result's instants
+ * rewritten in the zone, read per call. One place, so a tool added later is
+ * covered without knowing about it.
+ */
+export function withLocalTimes(server: McpServer, timeZone: () => string): McpServer {
+  const s = server as unknown as { registerTool: Registrar; registerResource: Registrar };
+  const wrapLast = (register: Registrar, localize: (r: unknown, tz: string) => unknown): Registrar => (...args) => {
+    const handler = args[args.length - 1] as Handler;
+    return register(...args.slice(0, -1), async (...call: unknown[]) => localize(await handler(...call), timeZone()));
+  };
+  s.registerTool = wrapLast(s.registerTool.bind(server), localizeToolResult);
+  s.registerResource = wrapLast(s.registerResource.bind(server), localizeResourceResult);
+  return server;
 }
 
 /** The status code a bind failure shows as in Settings. */

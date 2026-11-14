@@ -572,6 +572,7 @@ function startMcpListener(): void {
       },
       journal: mcpJournal,
       onWrite: pushJournal,
+      timeZone: () => Intl.DateTimeFormat().resolvedOptions().timeZone,
     },
     log: logStartup,
     logError: logStartup,

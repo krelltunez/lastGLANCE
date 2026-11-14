@@ -14,8 +14,9 @@ import { cadenceRatio, dueDate, isSnoozed, reachOutList, upcomingDates, visibleT
 // The main process asks over the request bridge (electron/mcpRendererBridge.ts)
 // and validates, paginates and wraps; this resolves ids, filters and shapes.
 // Every id it hands out is a sync id, the one that is the same on every
-// device. Dates are the user's local calendar dates (YYYY-MM-DD), times are
-// ISO instants as stored.
+// device. Dates are the user's local calendar dates (YYYY-MM-DD); times are
+// ISO instants as stored, which main writes in the user's local time on the
+// way out (electron/mcpTimes.ts).
 //
 // People are scoped exactly as the People screens scope them (visibleToMe):
 // with multi-user on, another household member's People never appear.
@@ -178,6 +179,11 @@ function completionItem(e: CompletionEvent) {
 const byDue = (a: { ratio: number | null; name: string }, b: { ratio: number | null; name: string }) =>
   (b.ratio ?? -1) - (a.ratio ?? -1) || a.name.localeCompare(b.name)
 
+/** Soonest next due date first (overdue ones, being in the past, lead), then most overdue; none last. */
+const byNextDue = (a: { next_due: string | null; ratio: number | null; name: string }, b: { next_due: string | null; ratio: number | null; name: string }) =>
+  a.next_due === b.next_due ? byDue(a, b)
+    : a.next_due === null ? 1 : b.next_due === null ? -1 : a.next_due.localeCompare(b.next_due)
+
 function overview(data: McpReadData, idx: Index, params: Record<string, unknown>) {
   const today = localDate(dayjs(data.now))
   const inSeason = idx.facts.filter(f => isInSeasonalWindow(f.chore, data.now)).map(f => choreSummary(idx, f, data.now))
@@ -229,6 +235,18 @@ function listChores(data: McpReadData, idx: Index, params: Record<string, unknow
     }
   }
   let items = facts.map(f => choreSummary(idx, f, data.now))
+  // A window on next_due (local dates, both ends included). A chore with no
+  // next due date (no cadence, or never done) has nothing to place in it, and a
+  // seasonal chore out of season is not coming due: both are left out.
+  const dueAfter = params.due_after === undefined ? null : String(params.due_after)
+  const dueBefore = params.due_before === undefined ? null : String(params.due_before)
+  if ((dueAfter !== null && !DATE_RE.test(dueAfter)) || (dueBefore !== null && !DATE_RE.test(dueBefore))) {
+    return fail('validation', 'due_after and due_before must be YYYY-MM-DD local dates.')
+  }
+  if (dueAfter !== null || dueBefore !== null) {
+    items = items.filter(c => c.next_due !== null && c.in_season
+      && (dueAfter === null || c.next_due >= dueAfter) && (dueBefore === null || c.next_due <= dueBefore))
+  }
   const state = params.state === undefined ? 'all' : String(params.state)
   if (state === 'due') items = items.filter(c => c.state === 'overdue' || c.state === 'soon')
   else if (state !== 'all') items = items.filter(c => c.state === state)
@@ -239,7 +257,8 @@ function listChores(data: McpReadData, idx: Index, params: Record<string, unknow
       return words.every(w => hay.includes(w))
     })
   }
-  items.sort(state === 'all' ? (a, b) => (a.category_path ?? '').localeCompare(b.category_path ?? '') || a.name.localeCompare(b.name) : byDue)
+  items.sort(params.sort === 'next_due' ? byNextDue
+    : state === 'all' ? (a, b) => (a.category_path ?? '').localeCompare(b.category_path ?? '') || a.name.localeCompare(b.name) : byDue)
   return ok({ items })
 }
 
@@ -256,7 +275,6 @@ function getChore(data: McpReadData, idx: Index, params: Record<string, unknown>
     seasonal_end: c.seasonal_end,
     notify_when_overdue: !!c.notify_when_overdue,
     auto_schedule_to_dayglance: !!c.auto_schedule_to_dayglance,
-    preferred_schedule_behavior: c.preferred_schedule_behavior,
     created_at: c.created_at,
     updated_at: c.updated_at,
     completions_total: f.count,
@@ -321,6 +339,36 @@ function visiblePeople(data: McpReadData): PersonWithLastInteraction[] {
   return visibleToMe(data.people, data.multiUserEnabled, data.meUserSyncId)
 }
 
+/** How much of the last contact's note a person summary carries; lastglance_get_person has every note in full. */
+export const LAST_NOTE_CHARS = 280
+
+// Each person's most recent contact, built once per request's data.
+const lastContactCache = new WeakMap<Interaction[], Map<string, Interaction>>()
+function lastContact(data: McpReadData, personSyncId: string): Interaction | undefined {
+  let map = lastContactCache.get(data.interactions)
+  if (!map) {
+    map = new Map()
+    for (const i of data.interactions) {
+      for (const pid of i.person_sync_ids) {
+        const prev = map.get(pid)
+        if (!prev || i.occurred_at > prev.occurred_at) map.set(pid, i)
+      }
+    }
+    lastContactCache.set(data.interactions, map)
+  }
+  return map.get(personSyncId)
+}
+
+/** The note on the person's most recent contact, shortened on a word to LAST_NOTE_CHARS, or null. */
+function lastNote(data: McpReadData, personSyncId: string): string | null {
+  const note = lastContact(data, personSyncId)?.note?.trim()
+  if (!note) return null
+  if (note.length <= LAST_NOTE_CHARS) return note
+  const cut = note.slice(0, LAST_NOTE_CHARS - 1)
+  const space = cut.lastIndexOf(' ')
+  return `${(space > LAST_NOTE_CHARS * 0.8 ? cut.slice(0, space) : cut).trimEnd()}…`
+}
+
 function personSummary(data: McpReadData, p: PersonWithLastInteraction) {
   const ratio = cadenceRatio(p)
   const due = dueDate(p)
@@ -335,6 +383,7 @@ function personSummary(data: McpReadData, p: PersonWithLastInteraction) {
     preferred_channel: p.preferred_channel,
     last_interaction_at: p.last_interaction_at,
     last_channel: p.last_channel,
+    last_interaction_note: lastNote(data, p.sync_id),
     elapsed_days: p.elapsed_days,
     ratio: ratio !== null ? round(ratio) : null,
     due_on: due ? localDate(due) : null,

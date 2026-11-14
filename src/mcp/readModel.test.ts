@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { fold, handleMcpRequest, READ_METHODS, readsPeople, type McpResult } from './readModel'
+import { fold, handleMcpRequest, LAST_NOTE_CHARS, READ_METHODS, readsPeople, type McpResult } from './readModel'
 import dayjs from 'dayjs'
 import { EVENTS, fixtureData, NOW } from './readModel.fixture'
 
@@ -104,6 +104,30 @@ describe('chores', () => {
   })
 })
 
+describe('chores by next due date', () => {
+  const dueOf = (id: string) => rows(read('list_chores').items).find(c => c.id === id)!.next_due as string
+
+  it('keeps the chores coming due in a window, soonest first, overdue leading', () => {
+    const until = dueOf('ch-counters')
+    const r = read('list_chores', { due_before: until, sort: 'next_due' })
+    // Out of season (ch-mow) and no next due date (ch-cafe, ch-kettle) are left out.
+    expect(ids(r.items)).toEqual(['ch-water', 'ch-vacuum', 'ch-counters'])
+    expect(rows(r.items).every(c => (c.next_due as string) <= until)).toBe(true)
+    expect(ids(read('list_chores', { due_after: dueOf('ch-vacuum'), due_before: dueOf('ch-fridge'), sort: 'next_due' }).items))
+      .toEqual(['ch-vacuum', 'ch-counters', 'ch-fridge'])
+  })
+
+  it('sorts every chore by next due date, those without one last', () => {
+    const order = ids(read('list_chores', { sort: 'next_due' }).items)
+    expect(order.slice(0, 5)).toEqual(['ch-mow', 'ch-water', 'ch-vacuum', 'ch-counters', 'ch-fridge'])
+    expect(order.slice(5).sort()).toEqual(['ch-cafe', 'ch-kettle'])
+  })
+
+  it('refuses a date that is not YYYY-MM-DD', () => {
+    expect(refused('list_chores', { due_before: 'Sunday' }).code).toBe('validation')
+  })
+})
+
 describe('People', () => {
   it('lists people by name, without the archived unless asked', () => {
     expect(ids(read('list_people').items)).toEqual(['p-maya', 'p-sam'])
@@ -112,6 +136,24 @@ describe('People', () => {
     expect(ids(read('list_people', { circle_id: 'none' }).items)).toEqual(['p-sam'])
     expect(ids(read('list_people', { query: 'ortiz' }).items)).toEqual(['p-sam'])
     expect(refused('list_people', { circle_id: 'k-gone' }).code).toBe('not_found')
+  })
+
+  it('carries the last contact\'s note on each person, for what to follow up on, shortened past LAST_NOTE_CHARS', () => {
+    const people = rows(read('list_people').items)
+    expect(people.find(p => p.id === 'p-maya')!.last_interaction_note).toBe('Talked about the trip')
+    // Sam's last contact has no note: null, not an older contact's.
+    expect(people.find(p => p.id === 'p-sam')!.last_interaction_note).toBeNull()
+    const reachOut = rows(read('overview', { include_people: true }).reach_out)
+    expect(reachOut.every(p => 'last_interaction_note' in p)).toBe(true)
+
+    const data = fixtureData()
+    const long = `${'word '.repeat(80)}end`
+    data.interactions = data.interactions.map(i => (i.sync_id === 'i-1' ? { ...i, note: long } : i))
+    const short = rows(read('list_people', {}, data).items).find(p => p.id === 'p-maya')!.last_interaction_note as string
+    expect(short.length).toBeLessThanOrEqual(LAST_NOTE_CHARS)
+    expect(short.endsWith('word…')).toBe(true)
+    // The person in full keeps every note whole.
+    expect(rows(read('get_person', { person_id: 'p-maya' }, data).interactions)[0].note).toBe(long)
   })
 
   it('never shows another household member\'s People, as the People screens do not', () => {

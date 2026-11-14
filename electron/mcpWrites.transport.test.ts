@@ -158,6 +158,55 @@ describe('MCP writes', () => {
     expect(methods.length).toBe(before);
   });
 
+  it('takes a local wall-clock time, as dayGLANCE writes them, read in the server\'s zone', async () => {
+    const { client } = await start({ timeZone: () => 'America/Denver' });
+    const id = chore(await call(client, 'lastglance_create_chore', { name: 'Water plants', category_id: 'c-home', cadence_days: 7 })).id as string;
+    const done = await call(client, 'lastglance_complete_chore', { chore_id: id, completed_at: '2026-11-12 18:30' });
+    expect(done.isError).toBeFalsy();
+    // 6:30 pm in Denver, the evening of the 12th, whatever zone the test machine is in; it comes back the same way.
+    const at = (done.structuredContent!.completion as { completed_at: string }).completed_at;
+    expect(Date.parse(at)).toBe(Date.parse('2026-11-13T01:30:00Z'));
+  });
+
+  it('completes several chores at once, each an ordinary completion, and a retried batch repeats nothing', async () => {
+    const s = await start({ timeZone: () => 'America/Denver' });
+    const a = chore(await call(s.client, 'lastglance_create_chore', { name: 'Bathroom 1', category_id: 'c-home', cadence_days: 7 })).id as string;
+    const b = chore(await call(s.client, 'lastglance_create_chore', { name: 'Bathroom 2', category_id: 'c-home', cadence_days: 7 })).id as string;
+    const args = {
+      completions: [{ chore_id: a }, { chore_id: 'ch-gone' }, { chore_id: b, note: 'Grout too' }],
+      completed_at: '2026-11-07 09:00', note: 'Saturday pass', idempotency_key: 'bath-sat',
+    };
+    const r = (await call(s.client, 'lastglance_complete_chores', args)).structuredContent!;
+    expect(r).toMatchObject({ completed: 2, failed: 1 });
+    const results = r.results as Row[];
+    expect(results.map((x) => [x.chore_id, x.ok])).toEqual([[a, true], ['ch-gone', false], [b, true]]);
+    expect((results[1].error as Row).code).toBe('not_found');
+    expect(results[0].completion).toMatchObject({ note: 'Saturday pass' });
+    expect(results[2].completion).toMatchObject({ note: 'Grout too' });
+    expect(Date.parse((results[0].completion as Row).completed_at as string)).toBe(Date.parse('2026-11-07T16:00:00Z'));
+    expect(await db.completionEvents.count()).toBe(2);
+    // One journal entry per completion, each undone on its own.
+    expect(s.journal.entries().filter((e) => e.tool === 'lastglance_complete_chores')).toHaveLength(2);
+
+    const again = (await call(s.client, 'lastglance_complete_chores', args)).structuredContent!;
+    expect((again.results as Row[]).filter((x) => x.ok).every((x) => x.replayed === true)).toBe(true);
+    expect(await db.completionEvents.count()).toBe(2);
+  });
+
+  it('checks every time before writing any, and stops a batch at the rate limit', async () => {
+    const s = await start({}, createWriteGate({ limit: 3, violationLimit: 5 }));
+    const ids: string[] = [];
+    for (const name of ['A', 'B']) ids.push(chore(await call(s.client, 'lastglance_create_chore', { name, cadence_days: 7 })).id as string);
+    const bad = await call(s.client, 'lastglance_complete_chores', { completions: [{ chore_id: ids[0] }, { chore_id: ids[1], completed_at: 'Saturday' }] });
+    expect(errorCode(bad)).toBe('validation');
+    expect(await db.completionEvents.count()).toBe(0);
+
+    // One write left in the minute: the first goes through, the second meets the limit, the rest are not tried.
+    const r = (await call(s.client, 'lastglance_complete_chores', { completions: [{ chore_id: ids[0] }, { chore_id: ids[1] }, { chore_id: ids[0] }] })).structuredContent!;
+    expect((r.results as Row[]).map((x) => (x.ok ? 'ok' : (x.error as Row).code))).toEqual(['ok', 'rate_limited', 'not_attempted']);
+    expect(await db.completionEvents.count()).toBe(1);
+  });
+
   it('limits the rate, and turns writes off after repeated overruns, telling main once', async () => {
     const s = await start({}, createWriteGate({ limit: 2, violationLimit: 2 }));
     for (const name of ['A', 'B']) expect((await call(s.client, 'lastglance_create_chore', { name })).isError).toBeFalsy();

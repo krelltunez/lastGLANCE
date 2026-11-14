@@ -13,10 +13,16 @@ suite fails.
   Settings. Loopback only.
 - **Ids.** Every id is a sync id, the same on every device. Pass ids exactly as
   a tool returned them; never construct one.
-- **Dates and times.** A date is the user's local calendar date, `YYYY-MM-DD`,
-  resolved on the user's machine; a dated response echoes `date` (or
-  `from`/`to`) and the IANA `timezone`. A time is an ISO instant as stored
-  (`completed_at`, `occurred_at`).
+- **Dates and times, all local.** A date is the user's local calendar date,
+  `YYYY-MM-DD`, resolved on the user's machine; a dated response echoes `date`
+  (or `from`/`to`) and the IANA `timezone`. A time (every field ending in `_at`
+  or `_until`: `completed_at`, `last_completed_at`, `occurred_at`,
+  `created_at`, the journal's `at`, ...) is the user's local wall-clock time
+  with its offset, `2026-11-13T19:30:00-07:00`, never UTC: a Friday-evening
+  completion reads as Friday. The server rewrites every instant it returns on
+  the way out (`electron/mcpTimes.ts`), tools and resources alike. A time
+  argument takes either a local time, `2026-11-13 19:30` (dayGLANCE's form,
+  read in the same zone), or ISO 8601 with a zone.
 - **Chore state.** From how long ago a chore was last done against its cadence:
   `overdue` (ratio ≥ 1), `soon` (ratio ≥ 0.75), `fresh`, or `none` (no cadence,
   or never done). `ratio` is elapsed days over cadence days. `next_due` is the
@@ -83,12 +89,15 @@ No arguments. What needs doing today:
 | `state` | Optional. `overdue`, `soon`, `due` (overdue or soon), `fresh`, `none`, `all` (default). |
 | `assigned_to` | Optional. A user id (assigned on the chore or its own category), `unassigned`, or `me` (the app's Mine view: unassigned or mine; needs multi-user mode with Me set). |
 | `query` | Optional. Words matched in the name and category path, accents and case ignored. |
+| `due_after`, `due_before` | Optional local dates, `YYYY-MM-DD`, both included: only chores whose `next_due` falls in the window ("what comes due by Sunday"). With either, a chore with no `next_due` (no cadence, or never done) or out of season is left out. |
+| `sort` | Optional. `next_due`: soonest due first, so overdue chores (due in the past) lead; chores without one last. |
 | `limit`, `cursor` | Pagination. |
 
 Each item is a chore summary: `id`, `name`, `icon`, `category_id`,
 `category_path`, `state`, `ratio`, `cadence_days`, `last_completed_at`,
 `elapsed_days`, `next_due`, `pinned`, `in_season`, `assignee_ids`. With a state
-filter the list is most overdue first, otherwise by category path then name.
+filter the list is most overdue first, otherwise by category path then name;
+`sort: "next_due"` overrides both.
 
 ### `lastglance_get_chore`
 
@@ -99,7 +108,7 @@ filter the list is most overdue first, otherwise by category path then name.
 
 The chore summary plus every field the chore form edits: `details`,
 `seasonal_start`, `seasonal_end` (`MM-DD`), `notify_when_overdue`,
-`auto_schedule_to_dayglance`, `preferred_schedule_behavior`; and `created_at`,
+`auto_schedule_to_dayglance`; and `created_at`,
 `updated_at`, `completions_total`, and `completions` newest first (`id`,
 `completed_at`, `note`, `source`, `completed_by_user_id`).
 
@@ -139,8 +148,10 @@ Registered only under the "Chores and People" tier.
 
 Each item is a person summary: `id`, `name`, `nickname`, `circle_id`,
 `circle_name`, `cadence_days`, `preferred_channel`, `last_interaction_at`,
-`last_channel`, `elapsed_days`, `ratio`, `due_on`, `snoozed_until` (only while
-snoozed), `archived`. Sorted by name.
+`last_channel`, `last_interaction_note` (the note on the last contact, its
+first 280 characters, or null when it has none: for what to follow up on;
+`lastglance_get_person` has every note in full), `elapsed_days`, `ratio`,
+`due_on`, `snoozed_until` (only while snoozed), `archived`. Sorted by name.
 
 ### `lastglance_get_person`
 
@@ -227,7 +238,9 @@ Not changed over MCP, on purpose:
   chores in it, a person with a contact logged or a date added since, a circle
   with people in it).
 - **A completion's time, completer and source**: no form edits them.
-- **`preferred_schedule_behavior`**: no form edits it.
+- **`preferred_schedule_behavior`**: no form edits it and nothing in the app
+  reads it (every chore holds null), so it is not shown either. Where a chore
+  lands in dayGLANCE is chosen when it is sent.
 - **Household members and this device's settings** (multi-user mode, who is
   Me): edited in Settings, about the device rather than the household's data.
 - **A person's owner**: stamped when they are added (this user, with
@@ -243,12 +256,33 @@ Not changed over MCP, on purpose:
 | Argument | |
 |---|---|
 | `chore_id` | Required. |
-| `completed_at` | Optional ISO 8601 time with a zone, e.g. `2026-11-12T18:30:00-07:00`. Default now. Never in the future. |
+| `completed_at` | Optional. A local time, `2026-11-12 18:30`, or ISO 8601 with a zone. Default now. Never in the future. |
 | `note` | Optional. |
 | `idempotency_key` | Optional. |
 
 Returns `completion` (`id`, `completed_at`, `note`) and `chore`, as
 `lastglance_get_chore` shows it.
+
+### `lastglance_complete_chores`
+
+Several chores done at once ("did all four bathrooms Saturday morning"), for
+convenience only: each is an ordinary completion, exactly as if completed one at
+a time. Nothing groups them, they stay separate chores for scheduling, and each
+is journaled and undone on its own.
+
+| Argument | |
+|---|---|
+| `completions` | Required, 1 to 25: `{ chore_id, completed_at?, note? }`. |
+| `completed_at`, `note` | Optional, for items without their own. |
+| `idempotency_key` | Optional, 1-120 characters, covering the whole batch: a retry repeats nothing that went through. |
+
+Every time is checked before anything is written. Returns `completed`,
+`failed`, and `results` in order: `{ chore_id, ok: true, completion, chore }`,
+or `{ chore_id, ok: false, error: { code, message } }`. One item failing (an
+unknown id) does not stop the rest; reaching the rate limit does, as does the
+window not answering, and the items after it come back `not_attempted`, to
+retry later. If the window is not answering before anything went through, the
+whole call is the `renderer_unavailable` error, as for every tool.
 
 ### `lastglance_update_completion`
 
@@ -314,7 +348,7 @@ one. Returns `person`.
 | `channel` | Optional; by default the first person's preferred channel, else the last one used, else `in_person`, as the log sheet suggests. |
 | `direction` | Optional: `outbound`, `inbound`, `mutual`, or null. |
 | `note` | Optional. |
-| `occurred_at` | Optional ISO 8601 time with a zone. Default now. Never in the future. |
+| `occurred_at` | Optional. A local time, `2026-11-12 18:30`, or ISO 8601 with a zone. Default now. Never in the future. |
 | `idempotency_key` | Optional. |
 
 Logging ends a snooze on its people, as in the app (an undo puts a snooze that
