@@ -314,7 +314,7 @@ drawn as SVG, 144×144 on a key and 200×100 on the Stream Deck + touch strip
 | Pinned | the pinned chores in season, in the app's Pinned order | as Due | as Due |
 | Soon | the overdue count (or the soon count), big | opens the app filtered to due soon | |
 | Reach out | the people in Reach out, in its order (the first on a key) | opens the shown person's contact log | turn to move; push or tap to open the log |
-| Coming up | the birthdays and dates ahead, soonest first: rose within a week, slate further off | opens the shown person | turn to move; push or tap to open the person |
+| Coming up | the birthdays and dates ahead, soonest first: rose within a week, slate further off, with a bar that fills as the date nears across the app's 30-day window | opens the shown person | turn to move; push or tap to open the person |
 | Add chore | a plus | opens Add chore | |
 
 - **The words for time are the app's.** Main works out "since" and "next due"

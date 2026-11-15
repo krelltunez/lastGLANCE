@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  addKey, choreKey, comingUpKey, daysUntil, dueKey, dueText, fit, NOT_READY, OFFLINE, overviewKey, pinnedKey, reachOutKey, ROSE,
+  addKey, choreKey, comingUpKey, comingUpRatio, daysUntil, dueKey, dueText, fit, NOT_READY, OFFLINE, overviewKey, pinnedKey, reachOutKey, ROSE,
   sinceLabel, sinceText, SLATE, wrap,
 } from './keys';
 import type { DeckChore, DeckState } from '../../electron/deckProtocol';
@@ -107,6 +107,15 @@ describe('the lists a dial turns through', () => {
     expect(comingUpKey(s, NOW, 0)).toMatchObject({ personId: 'p2', view: { accent: ROSE, badge: '1/2', sub: 'Birthday, tomorrow' } });
     expect(comingUpKey(s, NOW, 1)).toMatchObject({ personId: 'p4', view: { accent: SLATE, sub: 'Anniversary, in 37d' } });
     expect(ROSE).not.toBe('#f472b6');
+  });
+
+  it('Coming up has the bar too, filling as the date nears, full on the day', () => {
+    const on = (d: string) => comingUpKey(state({ comingUp: [{ personId: 'p2', name: 'Sam', label: 'Birthday', on: d }] }), NOW).view.ratio;
+    expect(on('2026-11-13')).toBe(1);                    // today
+    expect(on('2026-11-14')).toBeCloseTo(29 / 30);        // tomorrow
+    expect(on('2026-11-28')).toBeCloseTo(0.5);            // 15 days out
+    expect(on('2026-12-13')).toBe(0);                     // the edge of the window
+    expect(comingUpRatio(45)).toBe(0);
   });
 
   it('Pinned moves through the pinned chores in the app\'s order', () => {
