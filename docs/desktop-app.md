@@ -1,14 +1,18 @@
 # Desktop app (Electron): design
 
-Status: design, approved 2026-11-09. The build follows the phases in section 12;
-All five phases are built: the scaffold, network and sync, iCloud Drive, background mode, and release. Releasing is [releasing-desktop.md](releasing-desktop.md).
+Status: built. The design was approved 2026-11-09, and all five phases in
+section 12 are built: the scaffold, network and sync, iCloud Drive, background
+mode, and release. The direct builds shipped in 3.1.0; the Mac App Store build
+is built but not yet submitted. MCP and Stream Deck followed, on the seams in
+section 10, in [mcp-and-stream-deck.md](mcp-and-stream-deck.md). Releasing is
+[releasing-desktop.md](releasing-desktop.md).
 
 The desktop app is the existing web bundle in an Electron shell for macOS,
 Windows and Linux, after dayGLANCE's desktop app (`krelltunez/dayGLANCE`,
 `electron/`), which is the reference for every pattern below. lastGLANCE needs
 far less of it: no calendar, speech or Obsidian helpers, and no MCP or Stream
-Deck in the first release. Both of those are on the roadmap, and section 10 sets
-out the seams this design leaves for them.
+Deck in the first release. Both came next, on the seams section 10 sets out,
+and are designed in [mcp-and-stream-deck.md](mcp-and-stream-deck.md).
 
 Decisions taken before this document:
 
@@ -530,8 +534,8 @@ attributed to "electron.app.lastGLANCE". The People reminder fields in Settings
 Four surfaces act on data the renderer owns:
 - the tray popup;
 - notification actions;
-- MCP, later;
-- Stream Deck, later.
+- the MCP server;
+- Stream Deck.
 
 They all use one pattern, after the launcher queue (`src/intents/launcherQueue.ts`
 and CLAUDE.md's "Launcher writes are applied, then pushed"):
@@ -549,14 +553,16 @@ and CLAUDE.md's "Launcher writes are applied, then pushed"):
   the write and it is pushed. That was the 2.13.0 lesson.
 
 **Reads come from the snapshot, or from a request bridge.**
-- The tray, and later Stream Deck tiles, read the cached widget snapshot.
-- MCP, later, adds dayGLANCE's `mcpRendererBridge` pattern: a
+- The tray and the Stream Deck keys read the cached widget snapshot
+  (`electron/deckModel.ts` builds the deck's state from it).
+- MCP uses dayGLANCE's `mcpRendererBridge` pattern: a
   `request(method, params, timeoutMs)` that never rejects or hangs, and answers
   `renderer_unavailable` instead of an empty result.
 
-In this release the queue carries the tray's and the notifications' "Mark done".
-It is written generically so that MCP and Stream Deck do not need a second write
-path. The page applies commands with the GLANCElauncher's handlers and ledger
+The queue carries the tray's and the notifications' "Mark done", and the Stream
+Deck's presses (source `streamdeck`). MCP writes go over the request bridge to
+the page's write model instead, since an assistant needs the answer
+([mcp-and-stream-deck.md](mcp-and-stream-deck.md), 4.5). The page applies commands with the GLANCElauncher's handlers and ledger
 (`src/native/desktopCommands.ts` over `src/intents/launcherQueue.ts`).
 
 **Ports, reserved now, so the two apps can run side by side.** dayGLANCE uses
@@ -567,13 +573,14 @@ path. The page applies commands with the GLANCElauncher's handlers and ledger
 | 7900 | MCP | the lastGLANCE example in `@glance-apps/mcp-host`'s README |
 | 7901 | Stream Deck WebSocket | |
 
-**Later MCP work.** For reference only, not this release:
-- `@glance-apps/mcp-host` for the listener.
-- A `lastglance-mcp` read model in the style of `packages/dayglance-mcp`.
-- The `@glance-apps/mcp-bridge` stdio bridge in `extraResources`, and dayGLANCE's
-  Claude Desktop config writer, including its MSIX path handling.
-- On MAS, all of it compiled out (Guideline 2.5.2), with a verify script, as
-  dayGLANCE does.
+**MCP, as built** ([mcp-and-stream-deck.md](mcp-and-stream-deck.md)):
+- `@glance-apps/mcp-host` for the listener (`electron/mcpServer.ts`).
+- The read and write models in the page (`src/mcp/`), over the request bridge.
+- The `@glance-apps/mcp-bridge` stdio bridge in `extraResources` on macOS and
+  Windows direct builds, and dayGLANCE's Claude Desktop config writer,
+  including its MSIX path handling.
+- On MAS, the Claude Desktop setup compiled out (Guideline 2.5.2), with
+  `scripts/verify-mas-compileout.mjs`, as dayGLANCE does.
 
 ## 11. Build, packaging and release
 
@@ -585,7 +592,7 @@ path. The page applies commands with the GLANCElauncher's handlers and ledger
 | `electron-builder.config.cjs` | packaging config |
 | `tsconfig.electron.json` | main, ESM |
 | `tsconfig.electron.preload.json` | preload, CommonJS, emitted as `preload.cjs` because the package is `"type": "module"` |
-| `vite.config.ts`, `--mode electron` | the same config without `VitePWA`; the MAS build uses the same renderer bundle and tells itself apart at run time (`info.isMAS`), since nothing has to be compiled out of it until MCP arrives |
+| `vite.config.ts`, `--mode electron` | the same config without `VitePWA`. The MAS build tells itself apart at run time (`info.isMAS`), and builds the renderer with `LASTGLANCE_MAS_BUILD=1`, which defines `__MAS_BUILD__` to compile the Claude Desktop setup out (mcp-and-stream-deck.md, section 7) |
 
 The `tsconfig` files use `removeComments`. vitest's include gains `electron/`.
 
@@ -723,7 +730,9 @@ Each phase lands as its own PR, with tests.
    - The "update available" notice on direct builds.
    - `RELEASING`-style steps for desktop in the docs, and the README sections.
 
-Later: MCP, then Stream Deck, on the seams in section 10.
+After these: MCP, then Stream Deck, on the seams in section 10
+([mcp-and-stream-deck.md](mcp-and-stream-deck.md), all seven of its phases
+built).
 
 ## 13. Prerequisites outside the repo
 

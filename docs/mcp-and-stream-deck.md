@@ -441,8 +441,9 @@ until phase 7.
 2. **Writes:** complete, create and edit chores, and the same for People (log a
    contact, add a person, edit a person). Every field the app's screens can
    change is exposed (4.5). No deletes.
-3. **The bridge:** generalise `glance-apps/mcp-bridge` with app profiles (5),
-   pending your go-ahead. A user of one app must never see the other.
+3. **The bridge:** generalise `glance-apps/mcp-bridge` with app profiles (5).
+   A user of one app must never see the other. Done: app profiles in 0.2.0
+   (phase 4).
 4. **Stream Deck trust:** dayGLANCE's model (6.1). Agreed.
 5. **Stream Deck actions:** the six in 6.3, to start.
 6. **Order:** MCP first, then Stream Deck.
