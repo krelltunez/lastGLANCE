@@ -196,6 +196,13 @@ export function reachOutKey(state: DeckState | null, index = 0): { view: KeyView
 
 /** A date within this many days is marked, as the app's Coming up tiles mark it. */
 export const DATE_SOON_DAYS = 7;
+/** How far ahead Coming up looks, the app's COMING_UP_DAYS (src/people/home.ts): the bar's span. */
+export const COMING_UP_WINDOW_DAYS = 30;
+
+/** The Coming up bar: filling as the date nears across the window, full on the day. */
+export function comingUpRatio(days: number): number {
+  return Math.max(0, Math.min(1, (COMING_UP_WINDOW_DAYS - days) / COMING_UP_WINDOW_DAYS));
+}
 
 /** The Coming up key: the birthdays and dates ahead, soonest first, one at a time (the first on a key). */
 export function comingUpKey(state: DeckState | null, now: number, index = 0): { view: KeyView; personId: string | null; index: number; count: number } {
@@ -207,7 +214,10 @@ export function comingUpKey(state: DeckState | null, now: number, index = 0): { 
   const d = state.comingUp[i];
   const days = daysUntil(d.on, now);
   return {
-    view: { title: d.name, sub: `${d.label}, ${whenLabel(days)}`, icon: days <= 0 ? 'PartyPopper' : 'Cake', accent: days <= DATE_SOON_DAYS ? ROSE : SLATE, badge: badge(i, count) },
+    view: {
+      title: d.name, sub: `${d.label}, ${whenLabel(days)}`, icon: days <= 0 ? 'PartyPopper' : 'Cake',
+      accent: days <= DATE_SOON_DAYS ? ROSE : SLATE, ratio: comingUpRatio(days), badge: badge(i, count),
+    },
     personId: d.personId, index: i, count,
   };
 }
