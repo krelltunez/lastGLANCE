@@ -10,7 +10,8 @@ import org.json.JSONObject
  * is unit-tested on the JVM; the provider only adds the Android plumbing.
  *
  * Collections: `chores` and `people` (arrays of objects with an `id`) and
- * `meta` (one row: version, updatedAt, timezone, today, handledWrites).
+ * `meta` (one row: version, updatedAt, timezone, today, handledWrites, and
+ * completionsByDay, the last year of completions a day for the heatmap).
  */
 object LauncherSnapshotRows {
 
@@ -36,7 +37,7 @@ object LauncherSnapshotRows {
             val meta = JSONObject()
             val root = snapshotJson?.let { try { JSONObject(it) } catch (e: Exception) { null } }
             if (root != null) {
-                for (key in listOf("version", "updatedAt", "timezone", "today", "handledWrites")) {
+                for (key in listOf("version", "updatedAt", "timezone", "today", "handledWrites", "completionsByDay")) {
                     if (root.has(key)) meta.put(key, root.get(key))
                 }
             }

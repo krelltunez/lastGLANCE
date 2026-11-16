@@ -14,7 +14,8 @@ class LauncherSnapshotRowsTest {
          "chores":[{"id":"c1","name":"Vacuum","category":"Kitchen","targetCadenceDays":7,"lastDoneAt":"2026-10-15T12:00:00.000Z","clientId":null},
                    {"id":"c2","name":"Mow","category":"Garden","targetCadenceDays":null,"lastDoneAt":null,"clientId":"w-1"}],
          "people":[{"id":"p1","name":"Ana","circle":"Family","dates":[{"id":"d1","kind":"birthday","month":11,"day":2}]}],
-         "handledWrites":[{"clientId":"w-1","action":"create","entityId":"c2"}]}
+         "handledWrites":[{"clientId":"w-1","action":"create","entityId":"c2"}],
+         "completionsByDay":{"2026-10-18":2,"2026-10-19":1}}
     """.trimIndent()
 
     @Test
@@ -36,6 +37,8 @@ class LauncherSnapshotRowsTest {
         assertEquals("2026-10-19", meta.getString("today"))
         assertEquals("c2", meta.getJSONArray("handledWrites").getJSONObject(0).getString("entityId"))
         assertTrue(!meta.has("chores"))
+        // The heatmap's counts ride the meta row, so a launcher from before them reads on unharmed.
+        assertEquals(2, meta.getJSONObject("completionsByDay").getInt("2026-10-18"))
     }
 
     @Test

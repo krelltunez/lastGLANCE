@@ -54,8 +54,8 @@ describe('buildLauncherSnapshot', () => {
     expect(snap.today).toBe('2026-10-19')
     expect(snap.timezone).toBe('America/Denver')
     expect(snap.chores).toEqual([
-      { id: 'chore-1', name: 'Vacuum', category: 'Kitchen', categoryId: 'cat-1', targetCadenceDays: 7, lastDoneAt: '2026-10-15T12:00:00.000Z', elapsedDays: 4.1, icon: null, updatedAt: '2026-10-02T00:00:00.000Z', clientId: null, pinned: false },
-      { id: 'chore-2', name: 'Mow', category: 'Garden', categoryId: 'cat-2', targetCadenceDays: null, lastDoneAt: null, elapsedDays: null, icon: 'scissors', updatedAt: '2026-10-02T00:00:00.000Z', clientId: null, pinned: false },
+      { id: 'chore-1', name: 'Vacuum', category: 'Kitchen', categoryId: 'cat-1', targetCadenceDays: 7, lastDoneAt: '2026-10-15T12:00:00.000Z', elapsedDays: 4.1, icon: null, updatedAt: '2026-10-02T00:00:00.000Z', clientId: null, pinned: false, seasonalStart: null, seasonalEnd: null },
+      { id: 'chore-2', name: 'Mow', category: 'Garden', categoryId: 'cat-2', targetCadenceDays: null, lastDoneAt: null, elapsedDays: null, icon: 'scissors', updatedAt: '2026-10-02T00:00:00.000Z', clientId: null, pinned: false, seasonalStart: null, seasonalEnd: null },
     ])
   })
 
@@ -68,16 +68,44 @@ describe('buildLauncherSnapshot', () => {
     expect(snap.people[1].dates).toEqual([{ id: 'd2', kind: 'custom', label: 'Moved', month: 3, day: 1, year: null }])
   })
 
-  it('marks pinned chores, leaving an out-of-season pin unmarked as the app Pinned row does', () => {
+  it('marks pinned chores', () => {
     const snap = buildLauncherSnapshot(input({
       chores: [
         chore(1, 'Vacuum', 1, { pinned: true }),
-        chore(2, 'Mow', 2, { pinned: true, seasonal_start: '04-01', seasonal_end: '09-30' }),
         chore(3, 'Rake', 2, { pinned: true, seasonal_start: '10-01', seasonal_end: '11-30' }),
         chore(4, 'Dust', 1),
       ],
     }))
-    expect(Object.fromEntries(snap.chores.map(c => [c.name, c.pinned]))).toEqual({ Vacuum: true, Mow: false, Rake: true, Dust: false })
+    expect(Object.fromEntries(snap.chores.map(c => [c.name, c.pinned]))).toEqual({ Vacuum: true, Rake: true, Dust: false })
+  })
+
+  it('leaves out a chore that is out of season, as the app does, and says when the others\' seasons run', () => {
+    // 19 October. Overdue or not, a chore whose season ended is not the launcher's to call due.
+    const snap = buildLauncherSnapshot(input({
+      chores: [
+        chore(1, 'Vacuum', 1),
+        chore(2, 'Mow', 2, { pinned: true, seasonal_start: '04-01', seasonal_end: '09-30', last_completed_at: '2026-09-01T12:00:00.000Z', elapsed_days: 48 }),
+        chore(3, 'Rake', 2, { seasonal_start: '10-01', seasonal_end: '11-30' }),
+        // A season that wraps the new year: in season from November to February.
+        chore(4, 'Shovel', 2, { seasonal_start: '11-01', seasonal_end: '02-28' }),
+        chore(5, 'Salt', 2, { seasonal_start: '10-15', seasonal_end: '03-15' }),
+      ],
+    }))
+    expect(snap.chores.map(c => c.name)).toEqual(['Vacuum', 'Rake', 'Salt'])
+    expect(snap.chores.map(c => [c.seasonalStart, c.seasonalEnd])).toEqual([[null, null], ['10-01', '11-30'], ['10-15', '03-15']])
+    // Half a season is no season: always shown, and nothing for the launcher to act on.
+    const half = buildLauncherSnapshot(input({ chores: [chore(1, 'Vacuum', 1, { seasonal_start: '04-01', seasonal_end: null })] }))
+    expect(half.chores.map(c => [c.name, c.seasonalStart, c.seasonalEnd])).toEqual([['Vacuum', null, null]])
+  })
+
+  it('carries the last year of completions a day, for the heatmap', () => {
+    const counts = new Map([['2026-10-19', 3], ['2026-10-01', 1], ['2025-10-20', 2], ['2025-09-30', 5], ['2026-10-10', 0]])
+    const snap = buildLauncherSnapshot(input({ completionCounts: counts }))
+    // Oldest first whatever order they came in, days with none left out, nothing older than 53 weeks.
+    expect(Object.entries(snap.completionsByDay)).toEqual([['2025-10-20', 2], ['2026-10-01', 1], ['2026-10-19', 3]])
+    expect(buildLauncherSnapshot(input()).completionsByDay).toEqual({})
+    // A completion is a change the launcher should see.
+    expect(launcherSnapshotFingerprint(snap)).not.toBe(launcherSnapshotFingerprint(buildLauncherSnapshot(input())))
   })
 
   it('leaves out archived people and, with multi-user on, chores and people that are not mine', () => {

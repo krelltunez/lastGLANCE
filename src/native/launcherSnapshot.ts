@@ -31,10 +31,16 @@ export interface LauncherChore {
   icon: string | null
   updatedAt: string
   clientId: string | null
-  // Shown in the launcher's Pinned list: pinned and in season, as in the app's
-  // Pinned row and the Pinned widgets. The launcher orders pins itself, the
-  // same way collectPinned does. An older launcher ignores the field.
+  // Shown in the launcher's Pinned list, as in the app's Pinned row and the
+  // Pinned widgets. The launcher orders pins itself, the same way
+  // collectPinned does. An older launcher ignores the field.
   pinned: boolean
+  // The chore's season, "MM-DD" to "MM-DD" (a start after its end wraps the
+  // new year), or null for a chore that is always in season. Only chores in
+  // season at the build are listed at all; these let the launcher drop one
+  // the day its season ends, without waiting for the next snapshot.
+  seasonalStart: string | null
+  seasonalEnd: string | null
 }
 
 export interface LauncherPersonDate {
@@ -71,7 +77,16 @@ export interface LauncherSnapshot {
   chores: LauncherChore[]
   people: LauncherPerson[]
   handledWrites: HandledWrite[]
+  // Chore completions per local day ("YYYY-MM-DD") over the last year, days
+  // with none left out: what the app's own header heatmap is drawn from.
+  // Every completion on the device counts, as in the app's heatmap, whoever
+  // the chore belongs to.
+  completionsByDay: Record<string, number>
 }
+
+// How far back `completionsByDay` reaches: the app's heatmap is 52 weeks
+// from the start of a week, so 53 weeks covers it wherever the week starts.
+export const LAUNCHER_ACTIVITY_DAYS = 53 * 7
 
 export interface LauncherSnapshotInput {
   now: Date
@@ -83,6 +98,8 @@ export interface LauncherSnapshotInput {
   multiUserEnabled: boolean
   meId: string | null
   handledWrites: HandledWrite[]
+  // Completions per local day, as getAllCompletionCounts answers them.
+  completionCounts?: Map<string, number>
   timezone?: string
 }
 
@@ -107,6 +124,10 @@ export function buildLauncherSnapshot(input: LauncherSnapshotInput): LauncherSna
       !ownedByMe(cat?.assigned_user_sync_ids ?? [], meId!) ||
       !ownedByMe(ch.assigned_user_sync_ids ?? [], meId!)
     )) continue
+    // Out of season, a chore is not in the app's lists at all (CategorySection),
+    // and the launcher has no business calling it due. Left out here, so that
+    // holds for every launcher, including ones from before the season fields.
+    if (!isInSeasonalWindow(ch, now)) continue
     seen.add(ch.sync_id)
     chores.push({
       id: ch.sync_id,
@@ -119,7 +140,9 @@ export function buildLauncherSnapshot(input: LauncherSnapshotInput): LauncherSna
       icon: ch.icon ?? null,
       updatedAt: ch.updated_at,
       clientId: createdBy.get(ch.sync_id) ?? null,
-      pinned: !!ch.pinned && isInSeasonalWindow(ch, now),
+      pinned: !!ch.pinned,
+      seasonalStart: ch.seasonal_start && ch.seasonal_end ? ch.seasonal_start : null,
+      seasonalEnd: ch.seasonal_start && ch.seasonal_end ? ch.seasonal_end : null,
     })
   }
 
@@ -145,6 +168,13 @@ export function buildLauncherSnapshot(input: LauncherSnapshotInput): LauncherSna
     updatedAt: p.updated_at,
   }))
 
+  // Sorted, so the same counts always make the same snapshot (the fingerprint).
+  const since = dayjs(now).subtract(LAUNCHER_ACTIVITY_DAYS, 'day').format('YYYY-MM-DD')
+  const completionsByDay: Record<string, number> = {}
+  for (const [day, count] of [...(input.completionCounts ?? [])].sort(([a], [b]) => (a < b ? -1 : 1))) {
+    if (day >= since && count > 0) completionsByDay[day] = count
+  }
+
   return {
     version: LAUNCHER_SNAPSHOT_VERSION,
     updatedAt: now.getTime(),
@@ -153,6 +183,7 @@ export function buildLauncherSnapshot(input: LauncherSnapshotInput): LauncherSna
     chores,
     people: launcherPeople,
     handledWrites,
+    completionsByDay,
   }
 }
 
