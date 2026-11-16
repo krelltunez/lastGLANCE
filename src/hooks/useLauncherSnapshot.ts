@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import dayjs from 'dayjs'
-import { getCategories, getChoresForCategory } from '@/db/queries'
+import { getAllCompletionCounts, getCategories, getChoresForCategory } from '@/db/queries'
 import { getAllPersonDates, getCircles, getPeople, PEOPLE_CHANGED_EVENT } from '@/people/queries'
 import { getMeUserSyncId, getMultiUserEnabled } from '@/multiuser/settings'
 import { buildLauncherSnapshot, launcherSnapshotFingerprint } from '@/native/launcherSnapshot'
@@ -38,11 +38,12 @@ export async function touchHeartbeatNow(): Promise<void> {
 export async function pushLauncherSnapshotNow(): Promise<void> {
   try {
     const categories = await getCategories()
-    const [choresByCat, people, dates, circles] = await Promise.all([
+    const [choresByCat, people, dates, circles, completionCounts] = await Promise.all([
       Promise.all(categories.map(c => getChoresForCategory(c.id))),
       getPeople(),
       getAllPersonDates(),
       getCircles(),
+      getAllCompletionCounts(),
     ])
     const snapshot = buildLauncherSnapshot({
       now: new Date(),
@@ -54,6 +55,7 @@ export async function pushLauncherSnapshotNow(): Promise<void> {
       multiUserEnabled: getMultiUserEnabled(),
       meId: getMeUserSyncId(),
       handledWrites: readLauncherLedger(),
+      completionCounts,
     })
     const fingerprint = launcherSnapshotFingerprint(snapshot)
     if (fingerprint !== lastFingerprint) {

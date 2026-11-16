@@ -22,11 +22,12 @@ widget snapshot and its hook are untouched. Shape:
 ```
 { version: 1, updatedAt, timezone, today,
   chores: [{ id, name, category, categoryId, targetCadenceDays, lastDoneAt, elapsedDays,
-             icon, updatedAt, clientId, pinned }],
+             icon, updatedAt, clientId, pinned, seasonalStart, seasonalEnd }],
   people: [{ id, name, nickname, circle, circleId, targetCadenceDays, lastInteractionAt,
              lastChannel, unreturned, snoozedUntil,
              dates: [{ id, kind, label, month, day, year }], updatedAt }],
-  handledWrites: [{ clientId, action, entityId, at }] }
+  handledWrites: [{ clientId, action, entityId, at }],
+  completionsByDay: { "YYYY-MM-DD": count } }
 ```
 
 Ids are the rows' `sync_id`s, the ids the launcher writes back by. Chores
@@ -34,9 +35,26 @@ follow the widgets' "Mine" rule under multi-user; people are the ones this
 user sees, archived left out, snoozed included with `snoozedUntil` so the
 launcher can hide them the way the app does.
 
+**Seasons.** A chore that is out of season is left out of `chores`, as it is
+left out of the app's own lists: the launcher was calling one "due now" months
+after its season ended, because it knew nothing of seasons. Leaving it out
+here fixes that for every launcher. The chores that are listed carry their
+season (`seasonalStart`, `seasonalEnd`, "MM-DD", null for none; a start after
+its end wraps the new year), so a launcher that reads them can drop a chore
+the day its season ends without waiting for the next snapshot. One coming
+into season appears with the next snapshot.
+
+**The heatmap.** `completionsByDay` is the count of chore completions for each
+local day of the last 53 weeks, days with none left out: what the app's own
+header heatmap is drawn from, and like it, every completion on the device
+whoever the chore belongs to. It is served in the `meta` row, not as a
+collection of its own, so a launcher from before it is not asked for a
+collection it does not know.
+
 `LauncherProvider` (`android/.../launcher/`) serves it read-only at
 `content://com.lastglance.app.launcher/<collection>` for `chores`, `people`
-and `meta` (one row: version, updatedAt, timezone, today, handledWrites).
+and `meta` (one row: version, updatedAt, timezone, today, handledWrites,
+completionsByDay).
 Each cursor has `_id`, `id` and `json` columns, the row as JSON. Every push
 calls `notifyChange` on the authority, so a `ContentObserver` registered on
 any collection URI sees every change. `insert`, `update` and `delete` throw.
