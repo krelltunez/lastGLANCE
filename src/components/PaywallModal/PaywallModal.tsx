@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { X, Check, Loader, KeyRound } from 'lucide-react'
 import type { UseBillingResult } from '@glance-apps/billing/react'
-import { GATE_DISMISSIBLE, PRODUCT_IDS, STORE_NAME } from '@/billing/billing'
+import { GATE_DISMISSIBLE, HAS_HOME_SCREEN_WIDGETS, PRODUCT_IDS, STORE_NAME } from '@/billing/billing'
 import { leaveApp } from '@/native/backButton'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
 import { useTranslation } from 'react-i18next'
@@ -105,9 +105,10 @@ export function PaywallModal({ billing }: Props) {
         {/* Named benefits, not just scope: App Store review rejects paywalls
             that don't describe what the price buys (Guideline 3.1.2 —
             dayGLANCE learned this the hard way), and the list reads fine on
-            Play too. Keep it to what the unlock actually includes. */}
+            Play too. Keep it to what the unlock actually includes: the Mac
+            App Store build has no home-screen widgets, so it lists none. */}
         <ul className="mt-3 space-y-1.5">
-          {(['featureWidgets', 'featureReminders', 'featureSync', 'featureUsers', 'featureIntegrations'] as const).map(k => (
+          {(['featureWidgets', 'featureReminders', 'featureSync', 'featureUsers', 'featureIntegrations'] as const).filter(k => k !== 'featureWidgets' || HAS_HOME_SCREEN_WIDGETS).map(k => (
             <li key={k} className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
               <Check size={14} className="text-green-400 shrink-0" />
               {t(`paywall.${k}`)}
