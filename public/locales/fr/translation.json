@@ -665,6 +665,7 @@
     "featureSync": "Synchronisation chiffrée entre appareils",
     "featureUsers": "Listes de tâches partagées du foyer",
     "featureIntegrations": "Intégration dayGLANCE et Tasker",
+    "featureIntegrationsNoTasker": "Intégration dayGLANCE",
     "annualTitle": "Annuel",
     "annualPer": "{{price}}/an",
     "lifetimeTitle": "À vie",

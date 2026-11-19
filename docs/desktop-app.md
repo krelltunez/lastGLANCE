@@ -530,9 +530,11 @@ attributed to "electron.app.lastGLANCE". The People reminder fields in Settings
 - On MAS, `STORE_NAME` is "App Store" and `MANAGE_SUBSCRIPTION_URL` is Apple's.
 - `GATE_DISMISSIBLE` follows iOS (no close control): a Mac app has no
   sanctioned way to dismiss itself either. The reviewer code works unchanged.
-- The paywall's list of what a purchase unlocks leaves out the home-screen
-  widgets and quick tiles on MAS (`HAS_HOME_SCREEN_WIDGETS`): the Mac app has
-  neither, and App Review reads that list against the app.
+- The paywall's list of what a purchase unlocks is per build
+  (`PAYWALL_FEATURES`), since App Review reads it against the app: on MAS it
+  leaves out the home-screen widgets and quick tiles, which the Mac app does
+  not have, and its integrations line names dayGLANCE without Tasker, which is
+  an Android app (iOS drops Tasker too).
 - The billing parity table test gains the desktop rows:
   - MAS gated;
   - Developer ID, Windows and Linux ungated;

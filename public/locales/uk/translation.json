@@ -687,6 +687,7 @@
     "featureSync": "Зашифрована синхронізація між пристроями",
     "featureUsers": "Спільні списки побутових справ для всієї родини",
     "featureIntegrations": "Інтеграція з dayGLANCE і Tasker",
+    "featureIntegrationsNoTasker": "Інтеграція з dayGLANCE",
     "annualTitle": "Річна",
     "annualPer": "{{price}}/рік",
     "lifetimeTitle": "Довічна",

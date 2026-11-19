@@ -665,6 +665,7 @@
     "featureSync": "跨设备加密同步",
     "featureUsers": "家庭共享事项列表",
     "featureIntegrations": "dayGLANCE 与 Tasker 集成",
+    "featureIntegrationsNoTasker": "dayGLANCE 集成",
     "annualTitle": "年度订阅",
     "annualPer": "{{price}}/年",
     "lifetimeTitle": "永久版",

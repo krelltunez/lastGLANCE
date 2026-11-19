@@ -665,6 +665,7 @@
     "featureSync": "Sincronizzazione crittografata tra dispositivi",
     "featureUsers": "Liste di attività condivise per la famiglia",
     "featureIntegrations": "Integrazione dayGLANCE e Tasker",
+    "featureIntegrationsNoTasker": "Integrazione dayGLANCE",
     "annualTitle": "Annuale",
     "annualPer": "{{price}}/anno",
     "lifetimeTitle": "A vita",
