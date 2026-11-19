@@ -127,6 +127,24 @@ describe('electron-builder.config.cjs', () => {
     expect(config.mac.extendInfo.CFBundleLocalizations).toContain('zh-Hans');
   });
 
+  it('answers the export compliance question in the bundle, as the iOS app does', () => {
+    // Left out, each Mac App Store upload sits in App Store Connect until the
+    // question is answered by hand.
+    expect(config.mac.extendInfo.ITSAppUsesNonExemptEncryption).toBe(false);
+    expect(readFileSync(path.join(root, 'ios/App/App/Info.plist'), 'utf-8')).toMatch(/<key>ITSAppUsesNonExemptEncryption<\/key>\s*<false\/>/);
+    // electron-builder writes the MAS build's Info.plist from mac.extendInfo
+    // too (macPackager, applyCommonInfo) and never reads one under mas, so a
+    // key moved there would be dropped without a word.
+    process.env.LASTGLANCE_APP_ID = 'com.lastglance';
+    try {
+      const mas = loadConfig();
+      expect(mas.mac.extendInfo.ITSAppUsesNonExemptEncryption).toBe(false);
+      expect(mas.mas.extendInfo).toBeUndefined();
+    } finally {
+      delete process.env.LASTGLANCE_APP_ID;
+    }
+  });
+
   it('gives the deb the metadata it fails without', () => {
     expect(config.linux.maintainer).toMatch(/<.+@.+>/);
     expect(config.linux.category).toBeTruthy();

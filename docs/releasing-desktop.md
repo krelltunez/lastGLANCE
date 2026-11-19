@@ -119,7 +119,9 @@ npm run build:electron:mas
 This builds the universal `.pkg` in `dist-app/mas-universal/`, as
 `com.lastglance`, sandboxed, with both iCloud containers and in-app purchases.
 Its build number is `YYYYMMDD.HHMM`, so every upload is higher than the last
-(`BUILD_NUMBER` overrides). Before uploading, check it carries nothing the
+(`BUILD_NUMBER` overrides). Its `Info.plist` answers the export compliance
+question (`ITSAppUsesNonExemptEncryption`, false, as for iOS), so the build
+does not wait in App Store Connect for it. Before uploading, check it carries nothing the
 store build must not (the Claude Desktop setup, docs/mcp-and-stream-deck.md,
 section 7):
 
