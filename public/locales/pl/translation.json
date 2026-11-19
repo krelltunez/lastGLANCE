@@ -687,6 +687,7 @@
     "featureSync": "Szyfrowana synchronizacja między urządzeniami",
     "featureUsers": "Wspólne listy obowiązków domowych",
     "featureIntegrations": "Integracja z dayGLANCE i Taskerem",
+    "featureIntegrationsNoTasker": "Integracja z dayGLANCE",
     "annualTitle": "Rocznie",
     "annualPer": "{{price}}/rok",
     "lifetimeTitle": "Dożywotnio",

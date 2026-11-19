@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { X, Check, Loader, KeyRound } from 'lucide-react'
 import type { UseBillingResult } from '@glance-apps/billing/react'
-import { GATE_DISMISSIBLE, HAS_HOME_SCREEN_WIDGETS, PRODUCT_IDS, STORE_NAME } from '@/billing/billing'
+import { GATE_DISMISSIBLE, PAYWALL_FEATURES, PRODUCT_IDS, STORE_NAME } from '@/billing/billing'
 import { leaveApp } from '@/native/backButton'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
 import { useTranslation } from 'react-i18next'
@@ -10,6 +10,10 @@ import { useTranslation } from 'react-i18next'
 interface Props {
   billing: UseBillingResult
 }
+
+// How long the Restore control stays busy with no outcome before it gives up
+// showing so. Well past the Mac App Store's ten-second wait plus a slow network.
+const RESTORE_GIVE_UP_MS = 45_000
 
 // The hard paywall on a locked store install (Play or App Store) — fullscreen, not dismissible
 // (store review passes it via the reviewer code, rule 9). The entitlement
@@ -19,6 +23,36 @@ export function PaywallModal({ billing }: Props) {
   const [showCode, setShowCode] = useState(false)
   const [code, setCode] = useState('')
   const [codeError, setCodeError] = useState(false)
+
+  // Whether a restore is under way: asked for, and no outcome yet. A restore
+  // can take a while to answer. On the Mac App Store build "nothing to restore"
+  // takes ten seconds and more, by design: StoreKit sends no signal when it
+  // finds nothing, so main waits that long for a restored purchase before it
+  // asks RevenueCat (@glance-apps/billing, restoreFallbackMs). With nothing on
+  // screen for that long, the control looked dead.
+  const [restoreAsked, setRestoreAsked] = useState(false)
+  const restoring = restoreAsked && !billing.billingEvent
+  // Every restore ends in an event; this is for the one that somehow does not,
+  // so the control cannot stay busy for good.
+  useEffect(() => {
+    if (!restoring) return
+    const timer = setTimeout(() => setRestoreAsked(false), RESTORE_GIVE_UP_MS)
+    return () => clearTimeout(timer)
+  }, [restoring])
+
+  function startRestore() {
+    // The last outcome goes first: a second press must not sit under the first
+    // one's "No previous purchase found" as if it had already answered.
+    billing.clearBillingEvent()
+    setRestoreAsked(true)
+    billing.restore()
+  }
+
+  function buy(productId: string) {
+    billing.clearBillingEvent()
+    setRestoreAsked(false)
+    billing.subscribe(productId)
+  }
   // The gate sits above everything, so it owns Back (and Escape) while it is
   // up: both leave the app, exactly like its X. Without this, Back would
   // dismiss whatever is underneath, such as the welcome screen.
@@ -105,10 +139,11 @@ export function PaywallModal({ billing }: Props) {
         {/* Named benefits, not just scope: App Store review rejects paywalls
             that don't describe what the price buys (Guideline 3.1.2 —
             dayGLANCE learned this the hard way), and the list reads fine on
-            Play too. Keep it to what the unlock actually includes: the Mac
-            App Store build has no home-screen widgets, so it lists none. */}
+            Play too. Keep it to what the unlock actually includes on this
+            build: PAYWALL_FEATURES leaves out the widgets on the Mac and
+            Tasker everywhere but Android. */}
         <ul className="mt-3 space-y-1.5">
-          {(['featureWidgets', 'featureReminders', 'featureSync', 'featureUsers', 'featureIntegrations'] as const).filter(k => k !== 'featureWidgets' || HAS_HOME_SCREEN_WIDGETS).map(k => (
+          {PAYWALL_FEATURES.map(k => (
             <li key={k} className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
               <Check size={14} className="text-green-400 shrink-0" />
               {t(`paywall.${k}`)}
@@ -122,8 +157,8 @@ export function PaywallModal({ billing }: Props) {
         <div className="space-y-3 mt-5">
           {/* Annual */}
           <button
-            onClick={() => { billing.clearBillingEvent(); billing.subscribe(PRODUCT_IDS.yearly) }}
-            disabled={billing.isLoading}
+            onClick={() => buy(PRODUCT_IDS.yearly)}
+            disabled={billing.isLoading || restoring}
             className="w-full text-left p-4 rounded-xl border-2 border-green-400/60 hover:border-green-400 bg-green-400/5 hover:bg-green-400/10 transition-colors disabled:opacity-50"
           >
             <div className="flex items-baseline justify-between">
@@ -139,8 +174,8 @@ export function PaywallModal({ billing }: Props) {
 
           {/* Lifetime */}
           <button
-            onClick={() => { billing.clearBillingEvent(); billing.subscribe(PRODUCT_IDS.lifetime) }}
-            disabled={billing.isLoading}
+            onClick={() => buy(PRODUCT_IDS.lifetime)}
+            disabled={billing.isLoading || restoring}
             className="w-full text-left p-4 rounded-xl border border-slate-200 dark:border-slate-600 hover:border-slate-300 dark:hover:border-slate-500 bg-slate-50 dark:bg-slate-700/40 transition-colors disabled:opacity-50"
           >
             <div className="flex items-baseline justify-between">
@@ -174,11 +209,13 @@ export function PaywallModal({ billing }: Props) {
 
         <div className="flex items-center justify-between mt-5">
           <button
-            onClick={() => billing.restore()}
-            className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors inline-flex items-center gap-1.5"
+            onClick={startRestore}
+            disabled={restoring}
+            aria-busy={restoring}
+            className={`text-xs transition-colors inline-flex items-center gap-1.5 ${restoring ? 'text-slate-600 dark:text-slate-200 cursor-progress' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}
           >
-            {billing.isLoading && <Loader size={11} className="animate-spin" />}
-            {t('paywall.restore')}
+            {(billing.isLoading || restoring) && <Loader size={11} className="animate-spin" />}
+            {restoring ? t('backup.restoring') : t('paywall.restore')}
           </button>
           {/* Reviewer bypass entry (store review, rule 9) — explicitly labeled
               so users don't mistake it for a promo/redeem field. */}

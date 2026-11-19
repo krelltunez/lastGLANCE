@@ -665,6 +665,7 @@
     "featureSync": "Sincronização encriptada entre dispositivos",
     "featureUsers": "Listas de tarefas partilhadas do lar",
     "featureIntegrations": "Integração dayGLANCE e Tasker",
+    "featureIntegrationsNoTasker": "Integração dayGLANCE",
     "annualTitle": "Anual",
     "annualPer": "{{price}}/ano",
     "lifetimeTitle": "Vitalício",

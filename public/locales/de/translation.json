@@ -665,6 +665,7 @@
     "featureSync": "Verschlüsselte Synchronisierung zwischen Geräten",
     "featureUsers": "Gemeinsame Aufgabenlisten für den Haushalt",
     "featureIntegrations": "dayGLANCE- & Tasker-Integration",
+    "featureIntegrationsNoTasker": "dayGLANCE-Integration",
     "annualTitle": "Jährlich",
     "annualPer": "{{price}}/Jahr",
     "lifetimeTitle": "Lebenslang",

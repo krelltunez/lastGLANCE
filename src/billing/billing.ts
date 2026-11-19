@@ -88,6 +88,22 @@ export const BILLING_GATED = adapter !== null
 // ships (dayGLANCE's rule for its own).
 export const HAS_HOME_SCREEN_WIDGETS = !DESKTOP_MAS
 
+// What the paywall lists as unlocked, per build, as `paywall.<key>` strings.
+// Each line has to be true of the app in front of the buyer (and of the
+// store's reviewer): the Mac has no home-screen widgets, and Tasker is an
+// Android app, so only the Android paywall names it. Everywhere else the
+// integrations line names dayGLANCE alone.
+export type PaywallFeature =
+  | 'featureWidgets' | 'featureReminders' | 'featureSync' | 'featureUsers'
+  | 'featureIntegrations' | 'featureIntegrationsNoTasker'
+export const PAYWALL_FEATURES: readonly PaywallFeature[] = [
+  ...(HAS_HOME_SCREEN_WIDGETS ? ['featureWidgets' as const] : []),
+  'featureReminders',
+  'featureSync',
+  'featureUsers',
+  PLATFORM === 'android' ? 'featureIntegrations' : 'featureIntegrationsNoTasker',
+]
+
 // The store's own subscription-management screen. Apple's has no per-app deep
 // link; the account's subscription list is where the user cancels.
 export const MANAGE_SUBSCRIPTION_URL = APP_STORE

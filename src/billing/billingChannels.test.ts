@@ -59,6 +59,37 @@ describe('billing channels', () => {
     }
   })
 
+  it('each store\'s paywall lists only what that build has', async () => {
+    // Tasker is an Android app, so only Play's paywall names it; the Mac has
+    // no home-screen widgets, so its paywall has no widgets line.
+    const rest = ['featureReminders', 'featureSync', 'featureUsers']
+    const rows = [
+      ['android', 'play', null, ['featureWidgets', ...rest, 'featureIntegrations']],
+      ['ios', undefined, null, ['featureWidgets', ...rest, 'featureIntegrationsNoTasker']],
+      ['web', undefined, { platform: 'darwin', isMAS: true }, [...rest, 'featureIntegrationsNoTasker']],
+    ] as const
+    for (const [platform, channel, desktop, features] of rows) {
+      const b = await load(platform, channel, desktop)
+      expect(b.PAYWALL_FEATURES, `${platform} ${JSON.stringify(desktop)}`).toEqual(features)
+      vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.resetModules(); vi.doUnmock('@capacitor/core')
+    }
+  })
+
+  it('every paywall line has its string in every language, and only the Android one names Tasker', async () => {
+    const { readdirSync, readFileSync } = await import('node:fs')
+    const path = await import('node:path')
+    const dir = path.resolve(__dirname, '../../public/locales')
+    for (const lng of readdirSync(dir)) {
+      const paywall = JSON.parse(readFileSync(path.join(dir, lng, 'translation.json'), 'utf-8')).paywall
+      for (const key of ['featureWidgets', 'featureReminders', 'featureSync', 'featureUsers', 'featureIntegrations', 'featureIntegrationsNoTasker']) {
+        expect(paywall[key], `${lng} paywall.${key}`).toBeTruthy()
+      }
+      expect(paywall.featureIntegrations, lng).toMatch(/Tasker/i)
+      expect(paywall.featureIntegrationsNoTasker, lng).not.toMatch(/Tasker/i)
+      expect(paywall.featureIntegrationsNoTasker, lng).toContain('dayGLANCE')
+    }
+  })
+
   it('the Mac App Store app manages its subscription in the App Store', async () => {
     const b = await load('web', undefined, { platform: 'darwin', isMAS: true })
     expect(b.MANAGE_SUBSCRIPTION_URL).toContain('apps.apple.com')

@@ -665,6 +665,7 @@
     "featureSync": "Encrypted sync across devices",
     "featureUsers": "Shared household chore lists",
     "featureIntegrations": "dayGLANCE & Tasker integration",
+    "featureIntegrationsNoTasker": "dayGLANCE integration",
     "annualTitle": "Annual",
     "annualPer": "{{price}}/year",
     "lifetimeTitle": "Lifetime",
