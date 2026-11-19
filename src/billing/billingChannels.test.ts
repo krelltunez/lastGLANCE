@@ -43,6 +43,22 @@ describe('billing channels', () => {
     }
   })
 
+  it('only the Mac App Store paywall leaves the widgets out of what a purchase unlocks', async () => {
+    // The Mac app has no home-screen widgets; the phones' paywalls keep the line.
+    const rows = [
+      ['web', undefined, null, true],
+      ['android', 'play', null, true],
+      ['ios', undefined, null, true],
+      ['web', undefined, { platform: 'darwin', isMAS: true }, false],
+      ['web', undefined, { platform: 'darwin', isMAS: false }, true],
+    ] as const
+    for (const [platform, channel, desktop, widgets] of rows) {
+      const b = await load(platform, channel, desktop)
+      expect(b.HAS_HOME_SCREEN_WIDGETS, `${platform} ${JSON.stringify(desktop)}`).toBe(widgets)
+      vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.resetModules(); vi.doUnmock('@capacitor/core')
+    }
+  })
+
   it('the Mac App Store app manages its subscription in the App Store', async () => {
     const b = await load('web', undefined, { platform: 'darwin', isMAS: true })
     expect(b.MANAGE_SUBSCRIPTION_URL).toContain('apps.apple.com')
