@@ -1219,12 +1219,13 @@ app.whenReady().then(() => {
   }
 
   // A link that launched the app opens the window even at login.
-  const firstWindow = createWindow({ startHidden: !IS_MAC && launchedHidden(process.argv) && !pendingDeepLink });
+  createWindow({ startHidden: !IS_MAC && launchedHidden(process.argv) && !pendingDeepLink });
 
   // In-app purchases, on the Mac App Store build only (section 9; billingConfig.ts).
-  // Registered once: its handlers are app-wide, and a window recreated by crash
-  // recovery reads the status afresh.
-  if (process.mas) registerElectronBilling(firstWindow, { ...MAS_BILLING, products: { ...MAS_BILLING.products } });
+  // Registered once: its handlers are app-wide. The window is a getter, so a
+  // purchase or restore result reaches a window recreated by crash recovery
+  // (given the first window, the package kept sending to that one).
+  if (process.mas) registerElectronBilling(() => live(mainWindow), { ...MAS_BILLING, products: { ...MAS_BILLING.products } });
 
   createTray();
 

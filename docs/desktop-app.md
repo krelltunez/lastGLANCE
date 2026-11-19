@@ -516,11 +516,17 @@ attributed to "electron.app.lastGLANCE". The People reminder fields in Settings
     receipt, and every other build answers `{ active: true }`. That makes two
     independent "free" signals for Developer ID, Windows and Linux.
 - The adapter is `createElectronRendererAdapter({ api: bridge.billing })`.
-- Main calls `registerElectronBilling(win, { rcApiKey, entitlementId,
-  products })` on the MAS build only (`process.mas`), with the iOS values in
-  `electron/billingConfig.ts`, held equal to the iOS sources by a test. This is StoreKit through `inAppPurchase`, verified
-  by RevenueCat with the iOS app's App Store key, because the products are the
-  same under Universal Purchase.
+- Main calls `registerElectronBilling(() => live(mainWindow), { rcApiKey,
+  entitlementId, products })` on the MAS build only (`process.mas`), with the
+  iOS values in `electron/billingConfig.ts`, held equal to the iOS sources by a
+  test. This is StoreKit through `inAppPurchase`, verified by RevenueCat with
+  the iOS app's App Store key, because the products are the same under
+  Universal Purchase.
+  - The window is a getter (`@glance-apps/billing` 0.2.3). Given a window, the
+    package sends every purchase and restore result to that one, and a window
+    recreated by crash recovery never hears: the purchase completes and the
+    paywall's spinner stays. Closing only hides the window on macOS, so crash
+    recovery is the one way this app gets a second window.
 - On MAS, `STORE_NAME` is "App Store" and `MANAGE_SUBSCRIPTION_URL` is Apple's.
 - `GATE_DISMISSIBLE` follows iOS (no close control): a Mac app has no
   sanctioned way to dismiss itself either. The reviewer code works unchanged.
@@ -528,6 +534,12 @@ attributed to "electron.app.lastGLANCE". The People reminder fields in Settings
   - MAS gated;
   - Developer ID, Windows and Linux ungated;
   - web unchanged.
+- **The gate is the main window's.** The tray popup, the notification actions,
+  the Stream Deck keys and MCP are not gated on the entitlement, as the Android
+  and iOS widgets are not: they read the snapshot and queue commands (section
+  10), and none of them sells anything. This is the one place the Mac App Store
+  build differs from dayGLANCE's, whose tray popup is the whole app and so
+  shows the wall.
 
 ## 10. Commands from outside the window, and the road to MCP and Stream Deck
 
