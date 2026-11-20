@@ -674,7 +674,7 @@
     "trialDays_one": "{{count}} Tag kostenlos testen",
     "trialDays_other": "{{count}} Tage kostenlos testen",
     "restore": "Kauf wiederherstellen",
-    "nothingToRestore": "Kein früherer Kauf gefunden.",
+    "nothingToRestore": "Wir konnten gerade keinen Kauf bestätigen. Wenn du schon bezahlt hast, schreib an support@glance-apps.com und wir kümmern uns darum.",
     "codePlaceholder": "Prüfcode",
     "codeSubmit": "Einlösen",
     "codeInvalid": "Dieser Code ist ungültig.",

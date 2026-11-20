@@ -674,7 +674,7 @@
     "trialDays_one": "Essai gratuit de {{count}} jour",
     "trialDays_other": "Essai gratuit de {{count}} jours",
     "restore": "Restaurer l'achat",
-    "nothingToRestore": "Aucun achat antérieur trouvé.",
+    "nothingToRestore": "Nous n'avons pas pu confirmer d'achat pour le moment. Si vous avez déjà payé, écrivez à support@glance-apps.com et nous réglerons le problème.",
     "codePlaceholder": "Code évaluateur",
     "codeSubmit": "Valider",
     "codeInvalid": "Ce code n'est pas valide.",

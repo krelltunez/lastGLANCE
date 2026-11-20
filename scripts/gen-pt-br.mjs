@@ -11,6 +11,17 @@
 // nothing else. src/localeVariants.test.ts holds the output to zero European
 // markers; anything novel the rules miss fails there.
 //
+// WHAT THAT GUARDRAIL CANNOT SEE: REGISTER. It checks markers, words that
+// belong to one standard only. A word or construction that is correct in both
+// standards but wrong in tone passes every check in the repo. lifeGLANCE, which
+// generates in the other direction, found the case that shows it: "você" is
+// copied through unchanged and reads Brazilian in Portugal. Here the risk runs
+// the other way: European address (the "tu" conjugation, "o senhor", formal
+// courtesies) survives the transform and reads stiff or foreign in Brazil.
+// When writing new pt-PT copy, prefer a sentence that needs no form of
+// address at all ("Se já pagou, envie…"), which reads naturally in both, and
+// read the generated pt-BR string for tone, not just for markers.
+//
 // Rules are ordered most-specific-first. The specific entries are not
 // redundant with the general ones below them: they carry the gender agreement
 // that plain substitution strands. "cópia de segurança" (feminine) becomes

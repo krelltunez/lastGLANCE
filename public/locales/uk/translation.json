@@ -698,7 +698,7 @@
     "trialDays_many": "{{count}}-денний безкоштовний пробний період",
     "trialDays_other": "{{count}}-денний безкоштовний пробний період",
     "restore": "Відновити покупку",
-    "nothingToRestore": "Попередніх покупок не знайдено.",
+    "nothingToRestore": "Зараз не вдалося підтвердити покупку. Якщо ви вже оплатили, напишіть на support@glance-apps.com, і ми все владнаємо.",
     "codePlaceholder": "Код рецензента",
     "codeSubmit": "Застосувати",
     "codeInvalid": "Цей код недійсний.",

@@ -698,7 +698,7 @@
     "trialDays_many": "{{count}}-dniowy bezpłatny okres próbny",
     "trialDays_other": "{{count}}-dniowy bezpłatny okres próbny",
     "restore": "Przywróć zakup",
-    "nothingToRestore": "Nie znaleziono wcześniejszego zakupu.",
+    "nothingToRestore": "Nie udało się teraz potwierdzić zakupu. Jeśli płatność została już dokonana, napisz na support@glance-apps.com, a wszystko wyjaśnimy.",
     "codePlaceholder": "Kod recenzenta",
     "codeSubmit": "Zastosuj",
     "codeInvalid": "Ten kod jest nieprawidłowy.",
