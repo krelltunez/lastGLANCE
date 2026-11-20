@@ -6,13 +6,22 @@ import Capacitor
 // so src/billing/billing.ts's one createCapacitorAdapter drives both stores
 // with no iOS-specific JS. The store logic is RevenueCatBilling.
 //
-//   initialize({ yearlyProductId, lifetimeProductId }) → void
+//   initialize({ yearlyProductId, lifetimeProductId }) → { refreshReportsCompletion: true }
 //   getStatus()            → { active, productId }   productId null when none
-//   refresh()              → void; re-reads and, when inactive, syncs (the restore)
+//   refresh()              → void, once the re-read (and, when inactive, the
+//                            sync: the restore) has FINISHED; an overlapping
+//                            call resolves when the one in flight does
 //   purchase({ productId }) → void; the outcome arrives as a billingEvent
 //   getProductPrices()     → { yearly, lifetime, yearlyTrialDays }   each null until known
 //   getTrialEligibility()  → { "<yearlyProductId>": boolean }
-//   event "billingEvent"   { status, code, message, productId }
+//   event "billingEvent"   { status, code, message, productId }; status
+//                          'pending' with code 100 (deferred) or 101 (completed,
+//                          entitlement missing) is neither success nor failure
+//   event "billingStatus"  { active: true, productId }: an entitlement
+//                          RevenueCat reported on its own. ACTIVE ONLY.
+//
+// The refreshReportsCompletion and billingStatus halves are
+// @glance-apps/billing 0.2.4's opt-in contract (createCapacitorAdapter).
 //
 // consumeTestPurchase is Play-only (consuming a test lifetime token) and is not
 // implemented here; Capacitor rejects a call to it as unimplemented.
@@ -38,6 +47,26 @@ public class BillingBridgePlugin: CAPPlugin, CAPBridgedPlugin {
                 "productId": productId,
             ])
         }
+        billing.onActiveEntitlement = { [weak self] productId in
+            self?.pushActiveEntitlement(productId)
+        }
+    }
+
+    /// The 'billingStatus' push. `active` is the literal true: this is the only
+    /// place the event is sent, and it has no inactive form.
+    private func pushActiveEntitlement(_ productId: String?) {
+        #if DEBUG
+        // Under -GlanceBillingStartLocked a push could unlock the app before a
+        // person did anything (RevenueCat reports the cached entitlement on its
+        // first fetch), and the locked-restore test would pass proving nothing.
+        // So pushes wait for the first status read a person caused; see the
+        // section on the overrides below.
+        if startLocked, !startLockedPersonRead { return }
+        #endif
+        notifyListeners("billingStatus", data: [
+            "active": true,
+            "productId": productId.map { $0 as Any } ?? NSNull(),
+        ])
     }
 
     @objc func initialize(_ call: CAPPluginCall) {
@@ -47,7 +76,9 @@ public class BillingBridgePlugin: CAPPlugin, CAPBridgedPlugin {
             return
         }
         billing.setProductIds(yearly: yearly, lifetime: lifetime)
-        call.resolve()
+        // refresh() below resolves only once its work is done; saying so is
+        // what makes the adapter read then instead of after a fixed delay.
+        call.resolve(["refreshReportsCompletion": true])
     }
 
     // MARK: - Status, and its two Debug-only overrides
@@ -81,6 +112,13 @@ public class BillingBridgePlugin: CAPPlugin, CAPBridgedPlugin {
     //       deleting and reinstalling re-unlocks from the Apple ID, and a
     //       sandbox subscription will not lapse for about a week.
     //
+    //       It also holds back the 'billingStatus' push (RevenueCat's
+    //       delegate) until the first real read, the first one a person can
+    //       have caused. Without that, RevenueCat reporting the device's
+    //       entitlement on its first fetch would unlock the app with no
+    //       Restore tap, and the test would pass proving nothing. The push is
+    //       held, not faked: once a person has acted it flows as usual.
+    //
     // WHY A READ COUNT AND NOT A TIMER. The adapter's mount sequence is
     // exactly two status reads — one immediately, one re-read at
     // mountRereadMs — and no further read happens without a user action (a
@@ -92,6 +130,10 @@ public class BillingBridgePlugin: CAPPlugin, CAPBridgedPlugin {
     // unlocks by itself, visibly, in a Debug build.
 
     #if DEBUG
+    /// Whether `-GlanceBillingStartLocked` is in force. The one place the
+    /// override is read.
+    private var startLocked: Bool { UserDefaults.standard.bool(forKey: "GlanceBillingStartLocked") }
+
     /// Status reads already served while `-GlanceBillingStartLocked` is in
     /// force. In memory for the life of the process by design.
     private var startLockedReads = 0
@@ -99,15 +141,20 @@ public class BillingBridgePlugin: CAPPlugin, CAPBridgedPlugin {
     /// The two mount reads. Both are the initial read; the third read is the
     /// first one a person can have caused.
     private static let startLockedSuppressedReads = 2
+
+    /// Set by that third read. Until then 'billingStatus' pushes are held
+    /// (pushActiveEntitlement). In memory, like the counter.
+    private var startLockedPersonRead = false
     #endif
 
     @objc func getStatus(_ call: CAPPluginCall) {
         #if DEBUG
-        let startLocked = UserDefaults.standard.bool(forKey: "GlanceBillingStartLocked")
+        let startLocked = self.startLocked
         if startLocked, startLockedReads < Self.startLockedSuppressedReads {
             startLockedReads += 1
             call.resolve(["active": false, "productId": NSNull()])
         } else if startLocked || UserDefaults.standard.bool(forKey: "GlanceBillingRealStatus") {
+            if startLocked { startLockedPersonRead = true }
             let status = billing.status()
             call.resolve([
                 "active": status.active,
@@ -126,8 +173,11 @@ public class BillingBridgePlugin: CAPPlugin, CAPBridgedPlugin {
     }
 
     @objc func refresh(_ call: CAPPluginCall) {
-        billing.refresh()
-        call.resolve()
+        // Resolves when the work is done (initialize() says so to the adapter).
+        Task {
+            await billing.refresh()
+            call.resolve()
+        }
     }
 
     @objc func purchase(_ call: CAPPluginCall) {
