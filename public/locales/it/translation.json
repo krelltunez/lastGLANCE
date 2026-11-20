@@ -674,7 +674,7 @@
     "trialDays_one": "Prova gratuita di {{count}} giorno",
     "trialDays_other": "Prova gratuita di {{count}} giorni",
     "restore": "Ripristina acquisto",
-    "nothingToRestore": "Nessun acquisto precedente trovato.",
+    "nothingToRestore": "Al momento non è stato possibile confermare un acquisto. Se hai già pagato, scrivi a support@glance-apps.com e risolveremo il problema.",
     "codePlaceholder": "Codice revisore",
     "codeSubmit": "Applica",
     "codeInvalid": "Codice non valido.",

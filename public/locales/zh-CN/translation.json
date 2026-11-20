@@ -674,7 +674,7 @@
     "trialDays_one": "免费试用 {{count}} 天",
     "trialDays_other": "免费试用 {{count}} 天",
     "restore": "恢复购买",
-    "nothingToRestore": "未找到之前的购买记录。",
+    "nothingToRestore": "暂时无法确认购买记录。如果你已经付款，请联系 support@glance-apps.com，我们会为你处理。",
     "codePlaceholder": "审核员代码",
     "codeSubmit": "应用",
     "codeInvalid": "该代码无效。",
