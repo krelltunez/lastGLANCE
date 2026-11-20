@@ -432,7 +432,10 @@ out of scope; reconcile on next foreground).
   gitignored `ios/version.generated.xcconfig`, which `ios/debug.xcconfig` and
   `ios/release.xcconfig` include at the project level, so all three targets
   inherit them and builds never dirty `project.pbxproj`. `MARKETING_VERSION`
-  tracks package.json. `CURRENT_PROJECT_VERSION` (the build number) has to
+  tracks package.json; for a TestFlight build of unreleased work after a
+  version has shipped, `MARKETING_VERSION=<next> IOS_BUILD=<n> npm run build:ios`
+  overrides it for that one build without touching package.json (App Store
+  Connect refuses an already-published marketing version). `CURRENT_PROJECT_VERSION` (the build number) has to
   increment per **upload**, not per version, so it cannot be derived from
   package.json and is set explicitly: `IOS_BUILD=<n> npm run build:ios`. With
   `IOS_BUILD` unset the last build number written on that machine is kept. The
