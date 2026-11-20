@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { X, Check, Loader, KeyRound } from 'lucide-react'
 import type { UseBillingResult } from '@glance-apps/billing/react'
+import { BILLING_CODE_PENDING } from '@glance-apps/billing'
 import { GATE_DISMISSIBLE, PAYWALL_FEATURES, PRODUCT_IDS, STORE_NAME } from '@/billing/billing'
 import { leaveApp } from '@/native/backButton'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
@@ -66,6 +67,23 @@ export function PaywallModal({ billing }: Props) {
 
   const isError = billing.billingEvent?.status === 'error'
   const restored = billing.billingEvent?.message === 'restore_complete'
+
+  // A purchase that ended neither failed nor confirmed (@glance-apps/billing
+  // 0.2.4). Deferred: waiting for someone's approval (Ask to Buy). Otherwise
+  // unconfirmed: the store completed it but the entitlement has not appeared.
+  // Either way the app unlocks on its own when it does, from RevenueCat's
+  // update; nothing here sends anyone to Restore, which would find nothing yet.
+  // English until the locale pass adds the keys (defaultValue applies while a
+  // key is missing from every bundle).
+  const pending = billing.billingEvent?.status === 'pending' ? billing.billingEvent : null
+  const pendingText = !pending ? null
+    : pending.code === BILLING_CODE_PENDING
+      ? t('paywall.purchasePendingApproval', {
+          defaultValue: 'Your purchase is waiting for approval. lastGLANCE will unlock on its own as soon as it is approved.',
+        })
+      : t('paywall.purchaseUnconfirmed', {
+          defaultValue: "Your purchase went through and is still being confirmed. lastGLANCE will unlock on its own as soon as it is. If it hasn't within a few minutes, email support@glance-apps.com.",
+        })
 
   // Prices come from the store or not at all (no hardcoded strings — package
   // README rule 8). Null renders a quiet placeholder until the store answers.
@@ -205,6 +223,9 @@ export function PaywallModal({ billing }: Props) {
         )}
         {restored && (
           <p className="text-xs text-slate-400 dark:text-slate-500 mt-3">{t('paywall.nothingToRestore')}</p>
+        )}
+        {pendingText && (
+          <p role="status" className="text-xs text-slate-600 dark:text-slate-300 mt-3">{pendingText}</p>
         )}
 
         <div className="flex items-center justify-between mt-5">
