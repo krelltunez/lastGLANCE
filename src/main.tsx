@@ -68,13 +68,8 @@ const booting = settleServiceWorker({
 // (see utils/viewportZoom.ts). No-op on every other platform.
 lockViewportScaleOnIPhone()
 
-// Apply theme before React renders to avoid flash. 'system' (or nothing
-// stored yet) follows the OS.
-const saved = localStorage.getItem('theme')
-const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-if (saved === 'dark' || (saved !== 'light' && prefersDark)) {
-  document.documentElement.classList.add('dark')
-}
+// The saved theme is applied before the first paint by public/theme-init.js,
+// loaded from index.html's <head>; App.tsx keeps it in step from then on.
 
 // App is loaded only in its own mode: a headless refresh (src/headless/, run by
 // the Android shell with no Activity) does not evaluate App's modules, and the
