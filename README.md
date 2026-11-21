@@ -193,7 +193,7 @@ and links to the download. Releasing is described in
 - **Cloud sync**: keep data in step across devices through iCloud (iPhone and iPad, zero-config), WebDAV or Nextcloud, GLANCEvault, or a folder a sync tool already keeps in step (Direct Access); end-to-end encryption available
 - **Auto-backups**: periodic remote snapshots (hourly/daily/weekly) in a `backups/` subfolder alongside the sync file
 - **GLANCE integrations**: send chores and People catch-ups to dayGLANCE, and logged contacts to your lifeGLANCE timeline
-- **Languages**: English, French, German, Spanish, Italian, Portuguese (Portugal and Brazil), Polish, Ukrainian and Chinese
+- **Languages**: English, French, German, Spanish, Italian, Portuguese (Portugal and Brazil), Polish, Ukrainian, Chinese and Japanese
 - **PWA**: installable, works offline, auto-updates
 - **Light, dark and system themes**, 12- or 24-hour clock, and your choice of first day of the week
 

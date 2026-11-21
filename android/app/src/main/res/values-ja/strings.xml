@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="heatmap_widget_description">最近の完了の記録をひと目で確認できます。</string>
+    <string name="single_chore_widget_description">いちばん対応が必要なタスクを表示し、ワンタップで完了にできます。</string>
+    <string name="soon_list_widget_description">もうすぐ対応が必要なタスクを表示し、ワンタップで完了にできます。</string>
+    <string name="soon_list_widget_title">もうすぐ</string>
+    <string name="pinned_widget_description">ピン留めしたタスクを期限切れが長い順に表示し、ワンタップで完了にできます。</string>
+    <string name="pinned_widget_title">ピン留め</string>
+    <string name="widget_label_pinned">lastGLANCE ピン留め</string>
+    <string name="widget_no_pinned">アプリでタスクをピン留めすると、ここに表示されます。</string>
+    <string name="widget_done">完了</string>
+    <string name="widget_all_caught_up">すべて完了</string>
+    <string name="widget_config_auto">期限切れが最も長いもの（自動）</string>
+    <string name="widget_config_title">タスクを選択</string>
+    <string name="widget_config_search">タスクを検索</string>
+    <string name="widget_label_activity">lastGLANCE ヒートマップ</string>
+    <string name="widget_label_chore">lastGLANCE タスク</string>
+    <string name="widget_label_soon">lastGLANCE もうすぐ</string>
+    <string name="widget_label_reach_out">lastGLANCE そろそろ連絡</string>
+    <string name="widget_label_coming_up">lastGLANCE 近日の予定</string>
+    <string name="reach_out_widget_description">そろそろ連絡したい人を表示します。人をタップすると連絡を記録できます。</string>
+    <string name="coming_up_widget_description">次の誕生日や記念日などの日付を表示します。</string>
+    <string name="widget_label_add">lastGLANCE 追加</string>
+    <string name="add_chore_widget_description">ワンタップで新しいタスクを追加できます。</string>
+    <string name="widget_add_chore">タスクを追加</string>
+    <string name="shortcut_soon_short">もうすぐ</string>
+    <string name="shortcut_soon_long">対応が必要なもの</string>
+    <string name="shortcut_search_short">検索</string>
+    <string name="shortcut_search_long">タスクを検索</string>
+    <string name="shortcut_add_short">タスクを追加</string>
+    <string name="shortcut_add_long">新しいタスクを追加</string>
+    <string name="tile_add_chore">タスクを追加</string>
+    <string name="tile_soon">もうすぐ</string>
+    <string name="widget_never">なし</string>
+    <string name="widget_today">今日</string>
+    <string name="widget_yesterday">昨日</string>
+    <string name="widget_days_ago">%1$d日前</string>
+    <string name="widget_count_overdue">期限切れ%1$d件</string>
+    <string name="widget_count_soon">もうすぐ%1$d件</string>
+    <string name="launcher_permission_label">GLANCElauncher用にlastGLANCEのデータを読み取る</string>
+    <string name="launcher_permission_description">GLANCElauncherがタスクと人を読み取れるようにします。また、GLANCElauncherから追加または記録するタスクや、記録する連絡をlastGLANCEに送れるようにします。</string>
+    <string name="launcher_refresh_notification">GLANCElauncher用に更新しています</string>
+    <string name="launcher_refresh_channel">GLANCElauncherの更新</string>
+</resources>

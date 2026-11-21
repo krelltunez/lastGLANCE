@@ -30,6 +30,12 @@
             "value" : "Aggiungi attività"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タスクを追加"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -86,6 +92,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Dice quando hai fatto un'attività l'ultima volta, senza aprire l'app."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アプリを開かずに、タスクを最後にいつやったかを答えます。"
           }
         },
         "pl" : {
@@ -146,6 +158,12 @@
             "value" : "Controlla quando %@ è stata fatta l'ultima volta"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@を最後にいつやったかを確認"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -202,6 +220,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Controlla quando un'attività è stata fatta l'ultima volta"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タスクを最後にいつやったかを確認"
           }
         },
         "pl" : {
@@ -262,6 +286,12 @@
             "value" : "Attività"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タスク"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -318,6 +348,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "In scadenza"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "もうすぐ"
           }
         },
         "pl" : {
@@ -378,6 +414,12 @@
             "value" : "Ultima volta"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最後にやった日"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -434,6 +476,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Fatto l'ultima volta %@."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最後にやったのは%@です。"
           }
         },
         "pl" : {
@@ -494,6 +542,12 @@
             "value" : "Registra un completamento, senza aprire l'app."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アプリを開かずに、完了を記録します。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -550,6 +604,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ registrata."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@を記録しました。"
           }
         },
         "pl" : {
@@ -610,6 +670,12 @@
             "value" : "Segna %@ come fatta"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@を完了にする"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -666,6 +732,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Segna attività come fatta"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タスクを完了にする"
           }
         },
         "pl" : {
@@ -726,6 +798,12 @@
             "value" : "Segna fatta"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完了にする"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -782,6 +860,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Non ancora fatta."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "まだ一度もやっていません。"
           }
         },
         "pl" : {
@@ -842,6 +926,12 @@
             "value" : "Apre lastGLANCE sulle attività che richiedono attenzione."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "対応が必要なタスクを表示した状態でlastGLANCEを開きます。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -898,6 +988,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Apri lastGLANCE una volta per sincronizzare."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "同期するには、lastGLANCEを一度開いてください。"
           }
         },
         "pl" : {
@@ -958,6 +1054,12 @@
             "value" : "Apre lastGLANCE pronto per aggiungere una nuova attività."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新しいタスクを追加する画面でlastGLANCEを開きます。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1016,6 +1118,12 @@
             "value" : "Mostra le attività in scadenza"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "予定日が近いタスクを表示"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1072,6 +1180,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Snapshot illeggibile."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スナップショットを読み取れません。"
           }
         },
         "pl" : {
