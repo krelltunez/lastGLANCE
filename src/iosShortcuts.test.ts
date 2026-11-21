@@ -171,9 +171,9 @@ interface Catalog {
 
 const catalog = (rel: string): Catalog => JSON.parse(readFileSync(join(IOS, rel), 'utf8'))
 
-// The nine the app ships beyond English, as the project spells them (zh-CN,
+// The ten the app ships beyond English, as the project spells them (zh-CN,
 // matching knownRegions and the other catalogs, not Info.plist's zh-Hans).
-const LANGS = ['de', 'es', 'fr', 'it', 'pl', 'pt-BR', 'pt-PT', 'uk', 'zh-CN']
+const LANGS = ['de', 'es', 'fr', 'it', 'ja', 'pl', 'pt-BR', 'pt-PT', 'uk', 'zh-CN']
 
 describe('iOS App Shortcuts: strings', () => {
   // The app target had no catalog at all until the Shortcuts arrived, so

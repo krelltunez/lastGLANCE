@@ -67,7 +67,7 @@ describe('applyDateLocale', () => {
   })
 
   it('falls back to English for anything unsupported or absent', () => {
-    for (const lng of ['ja', 'xx-YY', '', undefined]) {
+    for (const lng of ['ko', 'xx-YY', '', undefined]) {
       applyDateLocale(lng)
       expect(getActiveLocale()).toBe('en')
     }
@@ -106,6 +106,9 @@ describe('display formatting', () => {
     applyDateLocale('zh-CN')
     expect(formatDayHeading(SAMPLE)).toMatch(/8月/)
     expect(formatDayHeading(SAMPLE)).toMatch(/星期三/)
+    applyDateLocale('ja')
+    expect(formatDayHeading(SAMPLE)).toMatch(/8月12日/)
+    expect(formatDayHeading(SAMPLE)).toMatch(/水曜日/)
   })
 
   // Polish and Ukrainian decline the month: genitive after a day number
