@@ -60,6 +60,7 @@
 		EE0000000000000000000007 /* Snapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA00000000000000000000F6 /* Snapshot.swift */; };
 		EE0000000000000000000008 /* CompletionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA00000000000000000000E3 /* CompletionStore.swift */; };
 		EE0000000000000000000021 /* AppShortcuts.strings in Resources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000020 /* AppShortcuts.strings */; };
+		EF0000000000000000000003 /* EntitlementRead in Frameworks */ = {isa = PBXBuildFile; productRef = EF0000000000000000000002 /* EntitlementRead */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -169,6 +170,7 @@
 			files = (
 				4D22ABE92AF431CB00220026 /* CapApp-SPM in Frameworks */,
 				ED0000000000000000000007 /* RevenueCat in Frameworks */,
+				EF0000000000000000000003 /* EntitlementRead in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -321,6 +323,7 @@
 			packageProductDependencies = (
 				4D22ABE82AF431CB00220026 /* CapApp-SPM */,
 				ED0000000000000000000006 /* RevenueCat */,
+				EF0000000000000000000002 /* EntitlementRead */,
 			);
 			productName = App;
 			productReference = 504EC3041FED79650016851F /* App.app */;
@@ -406,6 +409,7 @@
 			packageReferences = (
 				D4C12C0A2AAA248700AAC8A2 /* XCLocalSwiftPackageReference "CapApp-SPM" */,
 				ED0000000000000000000005 /* XCLocalSwiftPackageReference "Packages/RevenueCatBinary" */,
+				EF0000000000000000000001 /* XCLocalSwiftPackageReference "Packages/EntitlementRead" */,
 			);
 			productRefGroup = 504EC3051FED79650016851F /* Products */;
 			projectDirPath = "";
@@ -901,6 +905,10 @@
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Packages/RevenueCatBinary;
 		};
+		EF0000000000000000000001 /* XCLocalSwiftPackageReference "Packages/EntitlementRead" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/EntitlementRead;
+		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -913,6 +921,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = ED0000000000000000000005 /* XCLocalSwiftPackageReference "Packages/RevenueCatBinary" */;
 			productName = RevenueCat;
+		};
+		EF0000000000000000000002 /* EntitlementRead */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = EF0000000000000000000001 /* XCLocalSwiftPackageReference "Packages/EntitlementRead" */;
+			productName = EntitlementRead;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
