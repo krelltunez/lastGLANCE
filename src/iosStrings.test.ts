@@ -21,7 +21,7 @@ const CATALOGS = [
 ]
 const PBXPROJ = join(IOS, 'App.xcodeproj/project.pbxproj')
 
-const LANGS = ['de', 'es', 'fr', 'it', 'pt-PT', 'pt-BR', 'zh-CN', 'pl', 'uk']
+const LANGS = ['de', 'es', 'fr', 'it', 'pt-PT', 'pt-BR', 'zh-CN', 'pl', 'uk', 'ja']
 
 interface StringUnit { stringUnit: { state: string; value: string } }
 // A plural entry: the value is "%#@name@" and the named substitution consumes

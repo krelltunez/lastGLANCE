@@ -10,6 +10,7 @@ import 'dayjs/locale/de'
 import 'dayjs/locale/es'
 import 'dayjs/locale/fr'
 import 'dayjs/locale/it'
+import 'dayjs/locale/ja'
 import 'dayjs/locale/pl'
 import 'dayjs/locale/pt'
 import 'dayjs/locale/pt-br'
@@ -54,7 +55,7 @@ declare global {
 // Portuguese (pt-PT, pt-BR) and Chinese (zh-CN); every other language is
 // still a bare tag. A new regional locale needs its lower-cased dayjs name
 // listed here, or it falls back to the base language's (or English's) format.
-const SUPPORTED = ['de', 'es', 'fr', 'it', 'pl', 'pt', 'pt-br', 'uk', 'zh-cn'] as const
+const SUPPORTED = ['de', 'es', 'fr', 'it', 'ja', 'pl', 'pt', 'pt-br', 'uk', 'zh-cn'] as const
 
 let activeLocale = 'en'
 

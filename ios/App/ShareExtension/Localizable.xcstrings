@@ -27,6 +27,12 @@
             "value" : "%@\n\nTi aspetterà come nuova attività alla prossima apertura dell'app."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@\n\n次にアプリを開いたときに、新しいタスクとして追加されています。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -83,6 +89,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Fine"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完了"
           }
         },
         "pl" : {
@@ -143,6 +155,12 @@
             "value" : "Niente da salvare"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存するものがありません"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -201,6 +219,12 @@
             "value" : "Salvato in lastGLANCE"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "lastGLANCEに保存しました"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -257,6 +281,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Questo elemento non conteneva testo o link utilizzabili da lastGLANCE."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この項目には、lastGLANCEで使えるテキストやリンクが含まれていませんでした。"
           }
         },
         "pl" : {

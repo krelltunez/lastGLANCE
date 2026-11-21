@@ -159,6 +159,7 @@
 		EE0000000000000000000017 /* pt-PT */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "pt-PT"; path = "pt-PT.lproj/AppShortcuts.strings"; sourceTree = "<group>"; };
 		EE0000000000000000000018 /* uk */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = uk; path = uk.lproj/AppShortcuts.strings; sourceTree = "<group>"; };
 		EE0000000000000000000019 /* zh-CN */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-CN"; path = "zh-CN.lproj/AppShortcuts.strings"; sourceTree = "<group>"; };
+		EE000000000000000000001A /* ja */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ja; path = ja.lproj/AppShortcuts.strings; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -394,6 +395,7 @@
 				es,
 				fr,
 				it,
+				ja,
 				"pt-PT",
 				"pt-BR",
 				"zh-CN",
@@ -576,6 +578,7 @@
 				EE0000000000000000000012 /* es */,
 				EE0000000000000000000013 /* fr */,
 				EE0000000000000000000014 /* it */,
+				EE000000000000000000001A /* ja */,
 				EE0000000000000000000015 /* pl */,
 				EE0000000000000000000016 /* pt-BR */,
 				EE0000000000000000000017 /* pt-PT */,

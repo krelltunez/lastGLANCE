@@ -30,6 +30,12 @@
             "value" : "%@ · %lld in ritardo"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · 期限切れ%lld件"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -200,6 +206,28 @@
                     "stringUnit" : {
                       "state" : "translated",
                       "value" : "giorni attivi"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@noun@"
+          },
+          "substitutions" : {
+            "noun" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "活動日数"
                     }
                   }
                 }
@@ -509,6 +537,28 @@
             }
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@noun@"
+          },
+          "substitutions" : {
+            "noun" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "完了回数"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -811,6 +861,28 @@
             }
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@noun@"
+          },
+          "substitutions" : {
+            "noun" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "連続日数"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -997,6 +1069,12 @@
             "value" : "%lld in ritardo"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "期限切れ%lld件"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1053,6 +1131,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld in ritardo · %lld in scadenza"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "期限切れ%lld件 · もうすぐ%lld件"
           }
         },
         "pl" : {
@@ -1113,6 +1197,12 @@
             "value" : "%lld in scadenza"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "もうすぐ%lld件"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1169,6 +1259,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld g fa"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld日前"
           }
         },
         "pl" : {
@@ -1229,6 +1325,12 @@
             "value" : "+%lld altre"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ほか%lld件"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1285,6 +1387,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Una scorciatoia per aggiungere una nuova attività con un tocco."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ワンタップで新しいタスクを追加できるショートカットです。"
           }
         },
         "pl" : {
@@ -1345,6 +1453,12 @@
             "value" : "Attività"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アクティビティ"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1401,6 +1515,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Aggiungi attività"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タスクを追加"
           }
         },
         "pl" : {
@@ -1461,6 +1581,12 @@
             "value" : "Tutto fatto"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべて完了"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1517,6 +1643,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Scegli attività"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タスクを選択"
           }
         },
         "pl" : {
@@ -1577,6 +1709,12 @@
             "value" : "Attività"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タスク"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1633,6 +1771,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Attività in scadenza o in ritardo, con Fatto in un tocco."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "予定日が近いタスクと期限切れのタスクを表示し、ワンタップで完了にできます。"
           }
         },
         "pl" : {
@@ -1693,6 +1837,12 @@
             "value" : "In arrivo"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "近日の予定"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1751,6 +1901,12 @@
             "value" : "Fatto"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完了"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1807,6 +1963,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "in ritardo"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "期限切れ"
           }
         },
         "pl" : {
@@ -1868,6 +2030,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Quante attività hanno bisogno di attenzione, sulla schermata di blocco."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "対応が必要なタスクの数をロック画面に表示します。"
           }
         },
         "pl" : {
@@ -1934,6 +2102,12 @@
             "value" : "lastGLANCE · %lld in ritardo, %lld in scadenza"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "lastGLANCE · 期限切れ%lld件、もうすぐ%lld件"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1990,6 +2164,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Meno"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "少ない"
           }
         },
         "pl" : {
@@ -2050,6 +2230,12 @@
             "value" : "Segna attività come fatta"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タスクを完了にする"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2106,6 +2292,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Più"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "多い"
           }
         },
         "pl" : {
@@ -2166,6 +2358,12 @@
             "value" : "mai"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "なし"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2222,6 +2420,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Prossimo compleanno"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "次の誕生日"
           }
         },
         "pl" : {
@@ -2282,6 +2486,12 @@
             "value" : "Un'attività e da quanto tempo, con Fatto in un tocco. Modifica il widget per sceglierla."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タスクを1つと前回からの経過時間を表示し、ワンタップで完了にできます。表示するタスクはウィジェットを編集して選べます。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2338,6 +2548,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Apri lastGLANCE una volta per sincronizzare."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "同期するには、lastGLANCEを一度開いてください。"
           }
         },
         "pl" : {
@@ -2398,6 +2614,12 @@
             "value" : "Apre lastGLANCE pronto per aggiungere una nuova attività."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新しいタスクを追加する画面でlastGLANCEを開きます。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2454,6 +2676,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "In ritardo a colpo d'occhio"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "期限切れをひと目で"
           }
         },
         "pl" : {
@@ -2514,6 +2742,12 @@
             "value" : "Scegli l'attività seguita da questo widget."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このウィジェットに表示するタスクを選んでください。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2570,6 +2804,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Fissa delle attività nell'app per vederle qui."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アプリでタスクをピン留めすると、ここに表示されます。"
           }
         },
         "pl" : {
@@ -2630,6 +2870,12 @@
             "value" : "FISSATE"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ピン留め"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2686,6 +2932,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Fissate"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ピン留め"
           }
         },
         "pl" : {
@@ -2746,6 +2998,12 @@
             "value" : "Fatti sentire"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "そろそろ連絡"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2802,6 +3060,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Snapshot illeggibile."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スナップショットを読み取れません。"
           }
         },
         "pl" : {
@@ -2862,6 +3126,12 @@
             "value" : "PRESTO"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "もうすぐ"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2918,6 +3188,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Presto"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "もうすぐ"
           }
         },
         "pl" : {
@@ -2978,6 +3254,12 @@
             "value" : "Il prossimo compleanno o data, sulla schermata di blocco."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "次の誕生日や記念日などの日付をロック画面に表示します。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3034,6 +3316,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "I prossimi compleanni e date."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "次の誕生日や記念日などの日付を表示します。"
           }
         },
         "pl" : {
@@ -3094,6 +3382,12 @@
             "value" : "oggi"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "今日"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3150,6 +3444,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Chi è ora di sentire. Tocca qualcuno per registrare un contatto."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "そろそろ連絡したい人を表示します。人をタップすると連絡を記録できます。"
           }
         },
         "pl" : {
@@ -3210,6 +3510,12 @@
             "value" : "ieri"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "昨日"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3268,6 +3574,12 @@
             "value" : "La tua cronologia di completamenti a colpo d'occhio."
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完了の履歴をひと目で確認できます。"
+          }
+        },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3324,6 +3636,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Le tue attività fissate, prima le più in ritardo, con Fatto in un tocco."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ピン留めしたタスクを期限切れが長い順に表示し、ワンタップで完了にできます。"
           }
         },
         "pl" : {
