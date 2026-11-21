@@ -192,7 +192,7 @@
     "daysAgo": "{{count}}日前"
   },
   "nextDue": {
-    "dueNow": "今すぐ",
+    "dueNow": "期限です",
     "today": "今日",
     "tomorrow": "明日",
     "inDays": "あと{{count}}日",
