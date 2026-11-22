@@ -359,6 +359,13 @@ describe('locale bundles', () => {
    * was written (about 2% of t() calls), here and in dayGLANCE alike. This
    * check is not total; a template-built key that misses falls back to the
    * key itself on screen.
+   *
+   * NOT CHECKED, ON PURPOSE: whether a key that resolves to an object is
+   * called with `returnObjects: true`. This check's job is keys with no bundle
+   * entry, not misuse of keys that have one, and a plain t('menu') fails
+   * visibly (i18next puts its "returned an object" text on screen) rather
+   * than silently shipping English. Reading each call's options would also
+   * need a parser, not this regex.
    */
   describe('every literal t() key in the source resolves in en', () => {
     const LITERAL_CALL = /\bt\(\s*['"]([^'"]+)['"]/g
