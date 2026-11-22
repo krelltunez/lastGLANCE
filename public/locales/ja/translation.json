@@ -675,6 +675,8 @@
     "trialDays_other": "{{count}}日間の無料試用",
     "restore": "購入を復元",
     "nothingToRestore": "今は購入を確認できませんでした。お支払い済みの場合は、support@glance-apps.comまでメールでご連絡ください。こちらで対応します。",
+    "purchasePendingApproval": "Your purchase is waiting for approval. lastGLANCE will unlock on its own as soon as it is approved.",
+    "purchaseUnconfirmed": "Your purchase went through and is still being confirmed. lastGLANCE will unlock on its own as soon as it is. If it hasn't within a few minutes, email support@glance-apps.com.",
     "codePlaceholder": "審査用コード",
     "codeSubmit": "適用",
     "codeInvalid": "このコードは無効です。",

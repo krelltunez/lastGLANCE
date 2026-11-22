@@ -675,6 +675,8 @@
     "trialDays_other": "Essai gratuit de {{count}} jours",
     "restore": "Restaurer l'achat",
     "nothingToRestore": "Nous n'avons pas pu confirmer d'achat pour le moment. Si vous avez déjà payé, écrivez à support@glance-apps.com et nous réglerons le problème.",
+    "purchasePendingApproval": "Your purchase is waiting for approval. lastGLANCE will unlock on its own as soon as it is approved.",
+    "purchaseUnconfirmed": "Your purchase went through and is still being confirmed. lastGLANCE will unlock on its own as soon as it is. If it hasn't within a few minutes, email support@glance-apps.com.",
     "codePlaceholder": "Code évaluateur",
     "codeSubmit": "Valider",
     "codeInvalid": "Ce code n'est pas valide.",

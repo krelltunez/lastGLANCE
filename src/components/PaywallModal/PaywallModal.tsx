@@ -73,17 +73,13 @@ export function PaywallModal({ billing }: Props) {
   // unconfirmed: the store completed it but the entitlement has not appeared.
   // Either way the app unlocks on its own when it does, from RevenueCat's
   // update; nothing here sends anyone to Restore, which would find nothing yet.
-  // English until the locale pass adds the keys (defaultValue applies while a
-  // key is missing from every bundle).
+  // Both strings are English in every bundle until the locale pass translates
+  // them; UNTRANSLATED in src/locales.test.ts tracks who is waiting.
   const pending = billing.billingEvent?.status === 'pending' ? billing.billingEvent : null
   const pendingText = !pending ? null
     : pending.code === BILLING_CODE_PENDING
-      ? t('paywall.purchasePendingApproval', {
-          defaultValue: 'Your purchase is waiting for approval. lastGLANCE will unlock on its own as soon as it is approved.',
-        })
-      : t('paywall.purchaseUnconfirmed', {
-          defaultValue: "Your purchase went through and is still being confirmed. lastGLANCE will unlock on its own as soon as it is. If it hasn't within a few minutes, email support@glance-apps.com.",
-        })
+      ? t('paywall.purchasePendingApproval')
+      : t('paywall.purchaseUnconfirmed')
 
   // Prices come from the store or not at all (no hardcoded strings — package
   // README rule 8). Null renders a quiet placeholder until the store answers.
