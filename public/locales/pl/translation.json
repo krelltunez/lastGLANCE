@@ -699,6 +699,8 @@
     "trialDays_other": "{{count}}-dniowy bezpłatny okres próbny",
     "restore": "Przywróć zakup",
     "nothingToRestore": "Nie udało się teraz potwierdzić zakupu. Jeśli płatność została już dokonana, napisz na support@glance-apps.com, a wszystko wyjaśnimy.",
+    "purchasePendingApproval": "Your purchase is waiting for approval. lastGLANCE will unlock on its own as soon as it is approved.",
+    "purchaseUnconfirmed": "Your purchase went through and is still being confirmed. lastGLANCE will unlock on its own as soon as it is. If it hasn't within a few minutes, email support@glance-apps.com.",
     "codePlaceholder": "Kod recenzenta",
     "codeSubmit": "Zastosuj",
     "codeInvalid": "Ten kod jest nieprawidłowy.",

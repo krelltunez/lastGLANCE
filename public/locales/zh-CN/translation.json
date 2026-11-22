@@ -675,6 +675,8 @@
     "trialDays_other": "免费试用 {{count}} 天",
     "restore": "恢复购买",
     "nothingToRestore": "暂时无法确认购买记录。如果你已经付款，请联系 support@glance-apps.com，我们会为你处理。",
+    "purchasePendingApproval": "Your purchase is waiting for approval. lastGLANCE will unlock on its own as soon as it is approved.",
+    "purchaseUnconfirmed": "Your purchase went through and is still being confirmed. lastGLANCE will unlock on its own as soon as it is. If it hasn't within a few minutes, email support@glance-apps.com.",
     "codePlaceholder": "审核员代码",
     "codeSubmit": "应用",
     "codeInvalid": "该代码无效。",

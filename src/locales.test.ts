@@ -312,6 +312,39 @@ describe('locale bundles', () => {
     })
   })
 
+  /**
+   * Keys that ship in English in some languages until a translation lands, and
+   * which languages are waiting. The parity checks above are satisfied by the
+   * English text, so without this list nothing in the repo would say these are
+   * untranslated. The point of the list is that it shrinks: each entry must
+   * name exactly the languages that still carry en's text, so translating one
+   * fails here until the language is dropped, and an empty entry is removed.
+   * Same shape as dayGLANCE's UNTRANSLATED.
+   */
+  describe('UNTRANSLATED: English on the way to a translation', () => {
+    const UNTRANSLATED: Record<string, string[]> = {
+      // The paywall's two pending outcomes (billing Phase 2) shipped in English
+      // first, so no installable version reaches one with nothing to show; the
+      // localization pass translates them.
+      'paywall.purchasePendingApproval': ['de', 'es', 'fr', 'it', 'ja', 'pl', 'pt-BR', 'pt-PT', 'uk', 'zh-CN'],
+      'paywall.purchaseUnconfirmed': ['de', 'es', 'fr', 'it', 'ja', 'pl', 'pt-BR', 'pt-PT', 'uk', 'zh-CN'],
+    }
+    const get = (lng: string, key: string): unknown =>
+      key.split('.').reduce<unknown>((o, k) => (o as Record<string, unknown> | undefined)?.[k], bundles[lng])
+
+    it.each(Object.keys(UNTRANSLATED))('%s names exactly the languages still in English', (key) => {
+      expect(get('en', key), `${key} is not in en; drop it from UNTRANSLATED`).toBeTypeOf('string')
+      const stillEnglish = TRANSLATED.filter((lng) => get(lng, key) === get('en', key)).sort()
+      expect(
+        stillEnglish,
+        `UNTRANSLATED['${key}'] must list exactly the languages that still carry en's text. ` +
+          'A language translated since is dropped from the list (and the key, once its list is empty); ' +
+          'a language listed that does not ship is a typo.',
+      ).toEqual([...UNTRANSLATED[key]].sort())
+      expect(UNTRANSLATED[key].length, `${key} is translated everywhere; drop it from UNTRANSLATED`).toBeGreaterThan(0)
+    })
+  })
+
   // Parity can be satisfied by pasting the English text in. Spot-check one
   // string from each of the two backlog sections for actual translation.
   describe('backlog keys are actually translated', () => {

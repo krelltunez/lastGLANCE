@@ -675,6 +675,8 @@
     "trialDays_other": "{{count}}-day free trial",
     "restore": "Restore purchase",
     "nothingToRestore": "We couldn't confirm a purchase just now. If you've already paid, email support@glance-apps.com and we'll sort it out.",
+    "purchasePendingApproval": "Your purchase is waiting for approval. lastGLANCE will unlock on its own as soon as it is approved.",
+    "purchaseUnconfirmed": "Your purchase went through and is still being confirmed. lastGLANCE will unlock on its own as soon as it is. If it hasn't within a few minutes, email support@glance-apps.com.",
     "codePlaceholder": "Reviewer code",
     "codeSubmit": "Apply",
     "codeInvalid": "That code is not valid.",

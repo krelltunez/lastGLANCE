@@ -284,18 +284,24 @@ vi.mock('@capacitor/core', () => ({
 }))
 vi.mock('@glance-apps/billing/capacitor', () => ({ createCapacitorAdapter }))
 // For rendering the real PaywallModal in this node environment: the portal
-// target is the document, and the strings are their own keys.
+// target is the document, and each string is its key plus en's text.
 vi.mock('react-dom', async (importOriginal) => ({
   ...(await importOriginal<typeof import('react-dom')>()),
   createPortal: (node: unknown) => node,
 }))
-vi.mock('react-i18next', () => ({
-  useTranslation: () => ({
-    // The key, plus the English fallback when the code gives one, so a test
-    // can read copy that has no bundle entry yet.
-    t: (key: string, opts?: { defaultValue?: string }) => (opts?.defaultValue ? `${key}|${opts.defaultValue}` : key),
-  }),
-}))
+vi.mock('react-i18next', async () => {
+  const { readFileSync } = await import('node:fs')
+  const { resolve } = await import('node:path')
+  const en = JSON.parse(readFileSync(resolve(__dirname, '../../public/locales/en/translation.json'), 'utf8'))
+  const text = (key: string) => key.split('.').reduce<unknown>((o, k) => (o as Record<string, unknown> | undefined)?.[k], en)
+  return {
+    useTranslation: () => ({
+      // The key, plus en's text when the bundle has it, so a test can read the
+      // copy the user sees.
+      t: (key: string) => (typeof text(key) === 'string' ? `${key}|${text(key)}` : key),
+    }),
+  }
+})
 vi.mock('@/native/backButton', () => ({ leaveApp: vi.fn() }))
 
 async function load(p: string, channel?: string) {
