@@ -38,7 +38,7 @@
     <string name="widget_count_overdue">%1$d 个逾期</string>
     <string name="widget_count_soon">%1$d 个即将到期</string>
     <string name="launcher_permission_label">为 GLANCElauncher 读取 lastGLANCE 数据</string>
-    <string name="launcher_permission_description">允许 GLANCElauncher 读取您的家务和联系人，并向其发送要添加或记录的家务以及要记录的联络。</string>
+    <string name="launcher_permission_description">允许 GLANCElauncher 读取您的事项和联系人，并向 lastGLANCE 发送要添加或记录的事项以及要记录的联络。</string>
     <string name="launcher_refresh_notification">正在为 GLANCElauncher 刷新</string>
     <string name="launcher_refresh_channel">GLANCElauncher 刷新</string>
 </resources>

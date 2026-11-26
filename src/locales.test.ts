@@ -326,8 +326,8 @@ describe('locale bundles', () => {
       // The paywall's two pending outcomes (billing Phase 2) shipped in English
       // first, so no installable version reaches one with nothing to show; the
       // localization pass translates them.
-      'paywall.purchasePendingApproval': ['de', 'es', 'fr', 'it', 'ja', 'pl', 'pt-BR', 'pt-PT', 'uk', 'zh-CN'],
-      'paywall.purchaseUnconfirmed': ['de', 'es', 'fr', 'it', 'ja', 'pl', 'pt-BR', 'pt-PT', 'uk', 'zh-CN'],
+      'paywall.purchasePendingApproval': ['de', 'es', 'fr', 'it', 'ja', 'pl', 'pt-BR', 'pt-PT', 'uk'],
+      'paywall.purchaseUnconfirmed': ['de', 'es', 'fr', 'it', 'ja', 'pl', 'pt-BR', 'pt-PT', 'uk'],
     }
     const get = (lng: string, key: string): unknown =>
       key.split('.').reduce<unknown>((o, k) => (o as Record<string, unknown> | undefined)?.[k], bundles[lng])
