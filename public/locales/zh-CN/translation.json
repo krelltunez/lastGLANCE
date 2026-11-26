@@ -949,8 +949,6 @@
       "cardTitle": "通讯录",
       "matches_one": "这里有 {{count}} 人与本机通讯录中的联系人匹配。",
       "matches_other": "这里有 {{count}} 人与本机通讯录中的联系人匹配。",
-      "andMore_one": "以及另外 {{count}} 人",
-      "andMore_other": "以及另外 {{count}} 人",
       "linkThem": "全部关联",
       "notNow": "稍后再说",
       "birthdayChanged": "通讯录中 {{name}} 的生日是 {{date}}。",

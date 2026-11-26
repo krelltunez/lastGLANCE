@@ -949,8 +949,6 @@
       "cardTitle": "Kontakte",
       "matches_one": "{{count}} Person hier passt zu einem Kontakt auf diesem Telefon.",
       "matches_other": "{{count}} Personen hier passen zu Kontakten auf diesem Telefon.",
-      "andMore_one": "und {{count}} weitere",
-      "andMore_other": "und {{count}} weitere",
       "linkThem": "Verknüpfen",
       "notNow": "Nicht jetzt",
       "birthdayChanged": "In Kontakte ist der Geburtstag von {{name}} am {{date}}.",

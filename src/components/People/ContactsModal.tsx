@@ -4,6 +4,7 @@ import { BookUser, Check, Search, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
 import { getActiveLocale } from '@/utils/datetime'
+import { listFormat } from '@/people/reminders'
 import {
   contactsPermission, listDeviceContacts, requestContactsPermission, type DeviceContactSummary,
 } from '@/native/contacts'
@@ -219,7 +220,7 @@ export function ContactsModal(props: Props) {
                         {taken
                           ? <span className="block text-xs text-slate-400 dark:text-slate-500">{t('people.contacts.alreadyAdded')}</span>
                           : !on && dates.length > 0 && (
-                            <span className="block text-xs text-slate-400 dark:text-slate-500 truncate">{dates.map(dateText).join(', ')}</span>
+                            <span className="block text-xs text-slate-400 dark:text-slate-500 truncate">{listFormat(getActiveLocale(), dates.map(dateText))}</span>
                           )}
                       </span>
                     </button>

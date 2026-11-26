@@ -7,6 +7,7 @@ import { setContactLink } from '@/people/queries'
 import type { PeopleContacts } from '@/people/useContacts'
 import type { PersonWithLastInteraction } from '@/people/types'
 import { getActiveLocale } from '@/utils/datetime'
+import { listFormat } from '@/people/reminders'
 
 interface Props {
   contacts: PeopleContacts
@@ -46,7 +47,8 @@ export function ContactsNotices({ contacts, people }: Props) {
   const showMatches = matches.length > 0 && !dismissedMatches
   if (!available || (!showMatches && offers.length === 0)) return null
 
-  const names = matches.slice(0, 3).map(m => m.person.name).join(', ')
+  const names = matches.slice(0, 3).map(m => m.person.name)
+  if (matches.length > 3) names.push(t('people.reminders.more', { count: matches.length - 3 }))
   const btn = 'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors'
 
   return (
@@ -58,7 +60,7 @@ export function ContactsNotices({ contacts, people }: Props) {
         <div className="space-y-2">
           <p className="text-sm text-slate-600 dark:text-slate-300">{t('people.contacts.matches', { count: matches.length })}</p>
           <p className="text-xs text-slate-400 dark:text-slate-500">
-            {names}{matches.length > 3 && ` ${t('people.contacts.andMore', { count: matches.length - 3 })}`}
+            {listFormat(getActiveLocale(), names)}
           </p>
           <div className="flex gap-2">
             <button

@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { Archive, ArchiveRestore, Pencil, Plus, Trash2, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
-import { formatDateTime, formatMonthDay } from '@/utils/datetime'
+import { formatDateTime, formatMonthDay, getActiveLocale } from '@/utils/datetime'
 import { formatElapsed } from '@/utils/cadence'
 import {
   deletePerson, getDatesForPerson, getInteractionsForPerson, PEOPLE_CHANGED_EVENT, updatePerson,
@@ -11,6 +11,7 @@ import {
 import { daysToWeeks, dueDate, isSnoozed, nextOccurrence } from '@/people/home'
 import { hasEnoughForBalance, RECIPROCITY_WINDOW_DAYS } from '@/people/reciprocity'
 import { useShowReciprocity } from '@/people/settings'
+import { listFormat } from '@/people/reminders'
 import { normalizeDirection } from '@/people/types'
 import type { ContactLink, Interaction, PersonCircle, PersonDate, PersonWithLastInteraction } from '@/people/types'
 import dayjs from 'dayjs'
@@ -194,7 +195,7 @@ export function PersonDetailModal({ person, people, circles, contactsAvailable =
                   const Icon = CHANNEL_ICONS[i.channel]
                   const direction = normalizeDirection(i.direction)
                   const DirectionIcon = showReciprocity && direction ? DIRECTION_ICONS[direction] : null
-                  const others = i.person_sync_ids.filter(id => id !== person.sync_id).map(nameOf).filter(Boolean)
+                  const others = i.person_sync_ids.filter(id => id !== person.sync_id).map(nameOf).filter((n): n is string => Boolean(n))
                   return (
                     <li key={i.sync_id}>
                       <button
@@ -216,7 +217,7 @@ export function PersonDetailModal({ person, people, circles, contactsAvailable =
                             <span className="text-xs text-slate-400 dark:text-slate-500 tabular-nums shrink-0">{formatDateTime(i.occurred_at)}</span>
                           </span>
                           {others.length > 0 && (
-                            <span className="block text-xs text-slate-400 dark:text-slate-500">{t('people.detail.with', { names: others.join(', ') })}</span>
+                            <span className="block text-xs text-slate-400 dark:text-slate-500">{t('people.detail.with', { names: listFormat(getActiveLocale(), others) })}</span>
                           )}
                           {i.note && <span className="block text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap break-words mt-0.5">{i.note}</span>}
                         </span>

@@ -8,6 +8,7 @@ import { useEscapeKey } from '@/hooks/useEscapeKey'
 import { getAllInteractions, getPeople, PEOPLE_CHANGED_EVENT } from '@/people/queries'
 import { visibleToMe } from '@/people/home'
 import { inRange, visibleInteractions } from '@/people/journal'
+import { listFormat } from '@/people/reminders'
 import { useShowReciprocity } from '@/people/settings'
 import { INTERACTION_CHANNELS, normalizeDirection } from '@/people/types'
 import type { Interaction, PersonWithLastInteraction } from '@/people/types'
@@ -15,7 +16,7 @@ import { CHANNEL_ICONS, CHANNEL_LABEL_KEYS, DIRECTION_ICONS, DIRECTION_LABEL_KEY
 import { QuickLogSheet } from '@/components/People/QuickLogSheet'
 import { saveCsvFile } from '@/utils/exportFile'
 import { csvCell, RANGE_KEYS, resolveRange, type RangeKey } from '@/utils/journalRange'
-import { formatDayHeading, formatMonthDay, formatTime } from '@/utils/datetime'
+import { formatDayHeading, formatMonthDay, formatTime, getActiveLocale } from '@/utils/datetime'
 
 interface Props {
   onClose: () => void
@@ -69,10 +70,13 @@ export function PeopleJournalModal({ onClose, initialDate }: Props) {
     [all, mine, from, to],
   )
 
-  const namesOf = useCallback(
-    (i: Interaction) => i.person_sync_ids.map(id => nameById.get(id)).filter(Boolean).join(', '),
+  const nameListOf = useCallback(
+    (i: Interaction) => i.person_sync_ids.map(id => nameById.get(id)).filter((n): n is string => Boolean(n)),
     [nameById],
   )
+  // Display text joins the names the way the language does; the CSV keeps a
+  // plain ', ' so the column stays the same in every language.
+  const namesOf = useCallback((i: Interaction) => listFormat(getActiveLocale(), nameListOf(i)), [nameListOf])
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -126,7 +130,7 @@ export function PeopleJournalModal({ onClose, initialDate }: Props) {
         return [
           at.format('YYYY-MM-DD'),
           at.format('HH:mm'),
-          namesOf(i),
+          nameListOf(i).join(', '),
           t(CHANNEL_LABEL_KEYS[i.channel]),
           direction ? t(DIRECTION_LABEL_KEYS[direction]) : '',
           i.source,
