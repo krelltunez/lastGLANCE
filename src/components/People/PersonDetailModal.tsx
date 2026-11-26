@@ -11,6 +11,7 @@ import {
 import { daysToWeeks, dueDate, isSnoozed, nextOccurrence } from '@/people/home'
 import { hasEnoughForBalance, RECIPROCITY_WINDOW_DAYS } from '@/people/reciprocity'
 import { useShowReciprocity } from '@/people/settings'
+import { listFormat } from '@/people/reminders'
 import { normalizeDirection } from '@/people/types'
 import type { ContactLink, Interaction, PersonCircle, PersonDate, PersonWithLastInteraction } from '@/people/types'
 import dayjs from 'dayjs'
@@ -35,7 +36,7 @@ interface Props {
 }
 
 export function PersonDetailModal({ person, people, circles, contactsAvailable = false, links = [], onClose }: Props) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const [interactions, setInteractions] = useState<Interaction[]>([])
   const [dates, setDates] = useState<PersonDate[]>([])
   const [editing, setEditing] = useState(false)
@@ -216,7 +217,7 @@ export function PersonDetailModal({ person, people, circles, contactsAvailable =
                             <span className="text-xs text-slate-400 dark:text-slate-500 tabular-nums shrink-0">{formatDateTime(i.occurred_at)}</span>
                           </span>
                           {others.length > 0 && (
-                            <span className="block text-xs text-slate-400 dark:text-slate-500">{t('people.detail.with', { names: others.join(', ') })}</span>
+                            <span className="block text-xs text-slate-400 dark:text-slate-500">{t('people.detail.with', { names: listFormat(i18n.resolvedLanguage || i18n.language, others) })}</span>
                           )}
                           {i.note && <span className="block text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap break-words mt-0.5">{i.note}</span>}
                         </span>
