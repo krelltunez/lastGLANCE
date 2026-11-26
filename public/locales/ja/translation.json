@@ -949,8 +949,6 @@
       "cardTitle": "連絡先",
       "matches_one": "{{count}}人が、このスマートフォンの連絡先と一致しています。",
       "matches_other": "{{count}}人が、このスマートフォンの連絡先と一致しています。",
-      "andMore_one": "ほか{{count}}人",
-      "andMore_other": "ほか{{count}}人",
       "linkThem": "リンクする",
       "notNow": "今はしない",
       "birthdayChanged": "連絡先では、{{name}}の誕生日は{{date}}になっています。",

@@ -949,8 +949,6 @@
       "cardTitle": "Contactos",
       "matches_one": "{{count}} persona coincide con un contacto de este teléfono.",
       "matches_other": "{{count}} personas coinciden con contactos de este teléfono.",
-      "andMore_one": "y {{count}} más",
-      "andMore_other": "y {{count}} más",
       "linkThem": "Vincular",
       "notNow": "Ahora no",
       "birthdayChanged": "En Contactos, el cumpleaños de {{name}} es el {{date}}.",

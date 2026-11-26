@@ -949,8 +949,6 @@
       "cardTitle": "Contacts",
       "matches_one": "{{count}} person here matches a contact on this phone.",
       "matches_other": "{{count}} people here match contacts on this phone.",
-      "andMore_one": "and {{count}} more",
-      "andMore_other": "and {{count}} more",
       "linkThem": "Link them",
       "notNow": "Not now",
       "birthdayChanged": "Contacts has {{name}}'s birthday as {{date}}.",

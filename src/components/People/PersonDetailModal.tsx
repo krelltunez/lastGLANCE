@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { Archive, ArchiveRestore, Pencil, Plus, Trash2, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
-import { formatDateTime, formatMonthDay } from '@/utils/datetime'
+import { formatDateTime, formatMonthDay, getActiveLocale } from '@/utils/datetime'
 import { formatElapsed } from '@/utils/cadence'
 import {
   deletePerson, getDatesForPerson, getInteractionsForPerson, PEOPLE_CHANGED_EVENT, updatePerson,
@@ -36,7 +36,7 @@ interface Props {
 }
 
 export function PersonDetailModal({ person, people, circles, contactsAvailable = false, links = [], onClose }: Props) {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const [interactions, setInteractions] = useState<Interaction[]>([])
   const [dates, setDates] = useState<PersonDate[]>([])
   const [editing, setEditing] = useState(false)
@@ -217,7 +217,7 @@ export function PersonDetailModal({ person, people, circles, contactsAvailable =
                             <span className="text-xs text-slate-400 dark:text-slate-500 tabular-nums shrink-0">{formatDateTime(i.occurred_at)}</span>
                           </span>
                           {others.length > 0 && (
-                            <span className="block text-xs text-slate-400 dark:text-slate-500">{t('people.detail.with', { names: listFormat(i18n.resolvedLanguage || i18n.language, others) })}</span>
+                            <span className="block text-xs text-slate-400 dark:text-slate-500">{t('people.detail.with', { names: listFormat(getActiveLocale(), others) })}</span>
                           )}
                           {i.note && <span className="block text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap break-words mt-0.5">{i.note}</span>}
                         </span>
