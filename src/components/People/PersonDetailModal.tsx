@@ -195,7 +195,7 @@ export function PersonDetailModal({ person, people, circles, contactsAvailable =
                   const Icon = CHANNEL_ICONS[i.channel]
                   const direction = normalizeDirection(i.direction)
                   const DirectionIcon = showReciprocity && direction ? DIRECTION_ICONS[direction] : null
-                  const others = i.person_sync_ids.filter(id => id !== person.sync_id).map(nameOf).filter(Boolean)
+                  const others = i.person_sync_ids.filter(id => id !== person.sync_id).map(nameOf).filter((n): n is string => Boolean(n))
                   return (
                     <li key={i.sync_id}>
                       <button
